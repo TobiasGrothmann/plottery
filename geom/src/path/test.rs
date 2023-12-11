@@ -4,6 +4,7 @@ mod test_path {
         path::path::Path,
         shape::shape::{SampleSettings, Shape},
         vec2::V2,
+        Rect,
     };
 
     #[test]
@@ -23,5 +24,21 @@ mod test_path {
         for (i, point) in p.get_points(&SampleSettings::default()).iter().enumerate() {
             assert_eq!(point, &V2::new(i as f32 * 0.1, (i as f32).sin()));
         }
+    }
+
+    #[test]
+    fn shape() {
+        let p = Path::new_from(vec![
+            V2::new(0.0, 0.0),
+            V2::new(1.0, 0.0),
+            V2::new(2.0, 1.0),
+        ]);
+        assert_eq!(p.length(), 1.0 + 2.0_f32.sqrt());
+        assert_eq!(p.is_closed(), false);
+
+        let r = Rect::new(V2::new(-1.2, -5.0), V2::new(2.0, 3.1));
+        let p = Path::new_from(r.get_points(&SampleSettings::default()));
+        assert!((r.length() - p.length()).abs() < 0.00001);
+        assert_eq!(p.is_closed(), true);
     }
 }

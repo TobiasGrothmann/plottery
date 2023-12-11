@@ -42,6 +42,14 @@ impl Shape for Circle {
     fn clone_box(&self) -> Box<dyn Shape> {
         Box::new(self.clone())
     }
+
+    fn length(&self) -> f32 {
+        self.circumference()
+    }
+
+    fn is_closed(&self) -> bool {
+        true
+    }
 }
 
 impl Rotate for Circle {

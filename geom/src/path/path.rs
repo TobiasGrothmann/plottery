@@ -1,5 +1,7 @@
 use std::{slice::Iter, slice::IterMut};
 
+use itertools::Itertools;
+
 use crate::{
     shape::shape::{SampleSettings, Shape},
     traits::{rotate::Rotate, rotate90::Rotate90},
@@ -38,6 +40,17 @@ impl Shape for Path {
 
     fn clone_box(&self) -> Box<dyn Shape> {
         Box::new(self.clone())
+    }
+
+    fn length(&self) -> f32 {
+        self.points
+            .iter()
+            .tuple_windows()
+            .fold(0.0, |acc, (from, to)| acc + from.dist(to))
+    }
+
+    fn is_closed(&self) -> bool {
+        self.points.len() > 0 && self.points.first() == self.points.last()
     }
 }
 

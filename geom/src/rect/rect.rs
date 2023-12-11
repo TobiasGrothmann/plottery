@@ -71,6 +71,14 @@ impl Shape for Rect {
     fn clone_box(&self) -> Box<dyn Shape> {
         Box::new(self.clone())
     }
+
+    fn length(&self) -> f32 {
+        self.width() * 2.0 + self.height() * 2.0
+    }
+
+    fn is_closed(&self) -> bool {
+        true
+    }
 }
 
 impl Rotate90 for Rect {

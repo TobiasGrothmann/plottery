@@ -22,6 +22,10 @@ pub trait Shape {
 
     fn get_points(&self, _: &SampleSettings) -> Vec<V2>;
 
+    fn length(&self) -> f32;
+
+    fn is_closed(&self) -> bool;
+
     fn get_points_oversampled(&self, sample_settings: &SampleSettings) -> Vec<V2> {
         let points = self.get_points(sample_settings);
         if points.len() == 0 {
