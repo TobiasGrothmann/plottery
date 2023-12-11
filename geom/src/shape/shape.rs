@@ -17,11 +17,16 @@ impl SampleSettings {
     }
 }
 
-pub trait Shape: Clone {
-    fn get_points(&self, sample_settings: &SampleSettings) -> Vec<V2>;
+pub trait Shape {
+    fn clone_box(&self) -> Box<dyn Shape>;
+
+    fn get_points(&self, _: &SampleSettings) -> Vec<V2>;
 
     fn get_points_oversampled(&self, sample_settings: &SampleSettings) -> Vec<V2> {
         let points = self.get_points(sample_settings);
+        if points.len() == 0 {
+            return points;
+        }
         let mut points_oversampled = vec![points[0].clone()];
         for (from, to) in self.get_points(sample_settings).iter().tuple_windows() {
             let num_steps = sample_settings.get_num_points_for_length(from.dist(to));

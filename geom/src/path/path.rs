@@ -35,6 +35,10 @@ impl Shape for Path {
     fn get_points(&self, _: &SampleSettings) -> Vec<V2> {
         self.points.clone()
     }
+
+    fn clone_box(&self) -> Box<dyn Shape> {
+        Box::new(self.clone())
+    }
 }
 
 impl FromIterator<V2> for Path {

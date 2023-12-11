@@ -39,6 +39,9 @@ impl Shape for Circle {
             .map(|i| &self.center + V2::polar(i as f32 * angle_per_step, self.radius))
             .collect()
     }
+    fn clone_box(&self) -> Box<dyn Shape> {
+        Box::new(self.clone())
+    }
 }
 
 impl Rotate for Circle {

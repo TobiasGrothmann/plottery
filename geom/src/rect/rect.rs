@@ -67,6 +67,10 @@ impl Shape for Rect {
     fn get_points(&self, _: &SampleSettings) -> Vec<V2> {
         vec![self.bl(), self.tl(), self.tr(), self.br(), self.bl()]
     }
+
+    fn clone_box(&self) -> Box<dyn Shape> {
+        Box::new(self.clone())
+    }
 }
 
 impl Rotate90 for Rect {
