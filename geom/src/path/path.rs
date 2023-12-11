@@ -1,0 +1,118 @@
+use std::{slice::Iter, slice::IterMut};
+
+use crate::{
+    shape::shape::{SampleSettings, Shape},
+    traits::{rotate::Rotate, rotate90::Rotate90},
+    vec2::V2,
+};
+
+pub struct Path {
+    points: Vec<V2>,
+}
+
+impl Path {
+    pub fn new() -> Self {
+        Self { points: vec![] }
+    }
+    pub fn new_from(points: Vec<V2>) -> Self {
+        Self { points: points }
+    }
+
+    pub fn push(&mut self, point: V2) {
+        self.points.push(point);
+    }
+
+    pub fn iter(&self) -> Iter<'_, V2> {
+        self.points.iter()
+    }
+    pub fn iter_mut(&mut self) -> IterMut<'_, V2> {
+        self.points.iter_mut()
+    }
+}
+
+impl Shape for Path {
+    fn get_points(&self, _: &SampleSettings) -> Vec<V2> {
+        self.points.clone()
+    }
+}
+
+impl FromIterator<V2> for Path {
+    fn from_iter<I: IntoIterator<Item = V2>>(iter: I) -> Self {
+        Path {
+            points: iter.into_iter().collect(),
+        }
+    }
+}
+
+impl Rotate for Path {
+    fn rotate(&self, angle: &crate::angle::angle::Angle) -> Self {
+        Path {
+            points: self.iter().map(|point| point.rotate(angle)).collect(),
+        }
+    }
+
+    fn rotate_around(&self, pivot: &V2, angle: &crate::angle::angle::Angle) -> Self {
+        Path {
+            points: self
+                .iter()
+                .map(|point| point.rotate_around(pivot, angle))
+                .collect(),
+        }
+    }
+}
+
+impl Rotate90 for Path {
+    fn rotate_90(&self) -> Self {
+        Path {
+            points: self.iter().map(|point| point.rotate_90()).collect(),
+        }
+    }
+
+    fn rotate_180(&self) -> Self {
+        Path {
+            points: self.iter().map(|point| point.rotate_180()).collect(),
+        }
+    }
+
+    fn rotate_270(&self) -> Self {
+        Path {
+            points: self.iter().map(|point| point.rotate_270()).collect(),
+        }
+    }
+
+    fn rotate_90_around(&self, pivot: &V2) -> Self {
+        Path {
+            points: self
+                .iter()
+                .map(|point| point.rotate_90_around(pivot))
+                .collect(),
+        }
+    }
+
+    fn rotate_180_around(&self, pivot: &V2) -> Self {
+        Path {
+            points: self
+                .iter()
+                .map(|point| point.rotate_180_around(pivot))
+                .collect(),
+        }
+    }
+
+    fn rotate_270_around(&self, pivot: &V2) -> Self {
+        Path {
+            points: self
+                .iter()
+                .map(|point| point.rotate_270_around(pivot))
+                .collect(),
+        }
+    }
+}
+
+impl IntoIterator for Path {
+    type Item = V2;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.points.into_iter()
+    }
+}
