@@ -17,7 +17,7 @@ impl SampleSettings {
     }
 }
 
-pub trait Shape {
+pub trait Shape: Clone {
     fn get_points(&self, sample_settings: &SampleSettings) -> Vec<V2>;
 
     fn get_points_oversampled(&self, sample_settings: &SampleSettings) -> Vec<V2> {

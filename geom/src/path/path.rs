@@ -6,6 +6,7 @@ use crate::{
     vec2::V2,
 };
 
+#[derive(Debug, Clone)]
 pub struct Path {
     points: Vec<V2>,
 }

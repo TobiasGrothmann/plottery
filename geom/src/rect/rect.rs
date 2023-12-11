@@ -4,7 +4,7 @@ use crate::{
     vec2::V2,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Rect {
     bot_left: V2,
     top_right: V2,

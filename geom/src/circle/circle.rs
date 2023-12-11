@@ -7,7 +7,7 @@ use crate::{
     vec2::V2,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Circle {
     pub center: V2,
     pub radius: f32,
