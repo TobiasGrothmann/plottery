@@ -1,6 +1,7 @@
 pub mod angle;
 pub mod circle;
 pub mod layer;
+pub mod line;
 pub mod path;
 pub mod rect;
 pub mod shape;
