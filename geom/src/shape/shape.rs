@@ -1,4 +1,7 @@
-use crate::vec2::V2;
+use crate::{layer::Layer, vec2::V2, Path};
+
+use geo::BooleanOps;
+use geo_types::{LineString, MultiLineString, Polygon};
 
 use itertools::Itertools;
 
@@ -15,6 +18,11 @@ impl SampleSettings {
     pub fn get_num_points_for_length(&self, length: f32) -> i32 {
         (length * self.points_per_unit as f32).ceil() as i32
     }
+}
+
+pub struct Masked {
+    pub inside: Layer,
+    pub outside: Layer,
 }
 
 pub trait Shape {
@@ -44,5 +52,51 @@ pub trait Shape {
             }
         }
         points_oversampled
+    }
+
+    fn as_geo_polygon(&self, sample_settings: &SampleSettings) -> Polygon<f32> {
+        Polygon::new(
+            self.as_geo_line_string(sample_settings),
+            vec![LineString(vec![])],
+        )
+    }
+
+    fn as_geo_line_string(&self, sample_settings: &SampleSettings) -> LineString<f32> {
+        let coords = self
+            .get_points(sample_settings)
+            .iter()
+            .map(|v| v.as_geo_coord())
+            .collect_vec();
+        LineString(coords)
+    }
+
+    fn as_geo_multi_line_string(&self, sample_settings: &SampleSettings) -> MultiLineString<f32> {
+        MultiLineString(vec![self.as_geo_line_string(sample_settings)])
+    }
+
+    fn get_masked(&self, mask: Box<dyn Shape>, sample_settings: &SampleSettings) -> Masked {
+        let shape_geo = self.as_geo_multi_line_string(sample_settings);
+        let mask_geo = mask.as_geo_polygon(sample_settings);
+
+        let masked_inside_geo = mask_geo.clip(&shape_geo, false);
+        let masked_outside_geo = mask_geo.clip(&shape_geo, true);
+
+        let layer_inside = Layer::from_iter(
+            masked_inside_geo
+                .iter()
+                .map(|geo_line_string| Path::new_from_geo_line_string(geo_line_string))
+                .map(|path| Box::new(path) as Box<dyn Shape>),
+        );
+        let layer_outside = Layer::from_iter(
+            masked_outside_geo
+                .iter()
+                .map(|geo_line_string| Path::new_from_geo_line_string(geo_line_string))
+                .map(|path| Box::new(path) as Box<dyn Shape>),
+        );
+
+        Masked {
+            inside: layer_inside,
+            outside: layer_outside,
+        }
     }
 }

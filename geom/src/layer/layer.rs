@@ -15,6 +15,12 @@ impl Layer {
             sublayers: Vec::new(),
         }
     }
+    pub fn new_from(shapes: Vec<Box<dyn Shape>>) -> Self {
+        Self {
+            shapes: shapes,
+            sublayers: Vec::new(),
+        }
+    }
 
     pub fn push<S: Shape + 'static>(&mut self, shape: S) {
         self.shapes.push(Box::new(shape));
@@ -36,6 +42,18 @@ impl Layer {
     }
     pub fn iter_flattened(&self) -> LayerFlattenedIterator {
         LayerFlattenedIterator::new(&self)
+    }
+
+    pub fn len(&self) -> i32 {
+        self.shapes.len() as i32
+    }
+    pub fn len_recursive(&self) -> i32 {
+        self.sublayers
+            .iter()
+            .fold(self.len(), |acc, sublayer| acc + sublayer.len_recursive())
+    }
+    pub fn len_sublayers(&self) -> i32 {
+        self.sublayers.len() as i32
     }
 }
 

@@ -1,7 +1,5 @@
 #[cfg(test)]
 mod test_layer {
-    use std::clone;
-
     use itertools::Itertools;
 
     use crate::{layer::Layer, Circle, Path, Rect, SampleSettings, V2};
@@ -61,5 +59,10 @@ mod test_layer {
         assert_eq!(l_clone.iter().len(), 1);
         assert_eq!(l_clone.iter_sublayers().len(), 2);
         assert_eq!(l_clone.iter_flattened().collect_vec().len(), 8);
+
+        // check len methods
+        assert_eq!(l_clone.len(), 1);
+        assert_eq!(l_clone.len_sublayers(), 2);
+        assert_eq!(l_clone.len_recursive(), 8);
     }
 }

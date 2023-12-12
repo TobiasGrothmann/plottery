@@ -6,6 +6,7 @@ mod test_shape {
         rect::rect::Rect,
         shape::shape::{SampleSettings, Shape},
         vec2::V2,
+        Path,
     };
 
     #[test]
@@ -62,5 +63,75 @@ mod test_shape {
         assert_eq!(sample_settings.get_num_points_for_length(0.9), 2);
         assert_eq!(sample_settings.get_num_points_for_length(0.6), 2);
         assert_eq!(sample_settings.get_num_points_for_length(0.3), 1);
+    }
+
+    #[test]
+    fn masking_1() {
+        let mask = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+        let p = Path::new_from(vec![V2::new(0.5, 0.5), V2::new(1.5, 0.5)]);
+
+        let masked = p.get_masked(Box::new(mask), &SampleSettings::default());
+        assert_eq!(masked.inside.len(), 1);
+        assert_eq!(masked.outside.len(), 1);
+    }
+
+    #[test]
+    fn masking_2() {
+        let mask = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+        let p = Path::new_from(vec![V2::new(0.5, 0.5), V2::new(1.5, 1.5)]);
+
+        let masked = p.get_masked(Box::new(mask), &SampleSettings::default());
+        assert_eq!(masked.inside.len(), 1);
+        assert_eq!(masked.outside.len(), 1);
+    }
+
+    #[test]
+    fn masking_3() {
+        let mask = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+        let p = Path::new_from(vec![V2::new(1.0, 1.0), V2::new(1.0, 1.5)]);
+
+        let masked = p.get_masked(Box::new(mask), &SampleSettings::default());
+        assert_eq!(masked.inside.len(), 0);
+        assert_eq!(masked.outside.len(), 1);
+    }
+
+    #[test]
+    fn masking_4() {
+        let mask = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+        let p = Path::new_from(vec![V2::new(1.0, 1.0), V2::new(0.5, 0.5)]);
+
+        let masked = p.get_masked(Box::new(mask), &SampleSettings::default());
+        assert_eq!(masked.inside.len(), 1);
+        assert_eq!(masked.outside.len(), 0);
+    }
+
+    #[test]
+    fn masking_5() {
+        let mask = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+        let p = Path::new_from(vec![V2::new(0.5, 1.2), V2::new(1.2, 0.5)]);
+
+        let masked = p.get_masked(Box::new(mask), &SampleSettings::default());
+        assert_eq!(masked.inside.len(), 1);
+        assert_eq!(masked.outside.len(), 2);
+    }
+
+    #[test]
+    fn masking_6() {
+        let mask = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+        let p = Path::new_from(vec![V2::new(0.5, 1.0), V2::new(0.6, 1.0)]);
+
+        let masked = p.get_masked(Box::new(mask), &SampleSettings::default());
+        assert_eq!(masked.inside.len(), 0);
+        assert_eq!(masked.outside.len(), 1);
+    }
+
+    #[test]
+    fn masking_7() {
+        let mask = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+        let p = Path::new_from(vec![V2::new(-1.0, 1.0), V2::new(3.0, 1.0)]);
+
+        let masked = p.get_masked(Box::new(mask), &SampleSettings::default());
+        assert_eq!(masked.inside.len(), 0);
+        assert_eq!(masked.outside.len(), 2);
     }
 }

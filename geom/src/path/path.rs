@@ -1,5 +1,6 @@
 use std::{slice::Iter, slice::IterMut};
 
+use geo_types::{LineString, Polygon};
 use itertools::Itertools;
 
 use crate::{
@@ -19,6 +20,21 @@ impl Path {
     }
     pub fn new_from(points: Vec<V2>) -> Self {
         Self { points: points }
+    }
+    pub fn new_from_geo_polygon(geo_polygon: Polygon<f32>) -> Self {
+        Self::from_iter(
+            geo_polygon
+                .exterior()
+                .into_iter()
+                .map(|geo_coord| V2::new_from_geo(geo_coord)),
+        )
+    }
+    pub fn new_from_geo_line_string(geo_line_string: &LineString<f32>) -> Self {
+        Self::from_iter(
+            geo_line_string
+                .into_iter()
+                .map(|geo_coord| V2::new_from_geo(geo_coord)),
+        )
     }
 
     pub fn push(&mut self, point: V2) {

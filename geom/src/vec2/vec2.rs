@@ -1,9 +1,11 @@
+use geo_types::Coord;
+
 use crate::{
     angle::angle::Angle,
     traits::{rotate::Rotate, rotate90::Rotate90},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct V2 {
     pub x: f32,
     pub y: f32,
@@ -20,10 +22,23 @@ impl V2 {
     pub fn new(x: f32, y: f32) -> Self {
         Self { x, y }
     }
+    pub fn new_from_geo(geo_coord: &Coord<f32>) -> Self {
+        Self {
+            x: geo_coord.x,
+            y: geo_coord.y,
+        }
+    }
     pub fn polar(angle: f32, distance: f32) -> Self {
         Self {
             x: angle.cos() * distance,
             y: angle.sin() * distance,
+        }
+    }
+
+    pub fn as_geo_coord(&self) -> Coord<f32> {
+        Coord {
+            x: self.x,
+            y: self.y,
         }
     }
 
@@ -39,10 +54,6 @@ impl V2 {
     }
     pub fn dist_manhattan(&self, other: &Self) -> f32 {
         (self.x - other.x).abs() + (self.y - other.y).abs()
-    }
-
-    pub fn test<T: AsRef<Angle>>(&self, angle: T) -> Self {
-        self.rotate(angle.as_ref())
     }
 }
 
