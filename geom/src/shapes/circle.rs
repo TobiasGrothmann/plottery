@@ -1,11 +1,6 @@
 use std::f32::consts::PI;
 
-use crate::{
-    angle::angle::Angle,
-    shape::{SampleSettings, Shape},
-    traits::{rotate::Rotate, rotate90::Rotate90},
-    vec2::V2,
-};
+use crate::{Angle, Rotate, Rotate90, SampleSettings, Shape, V2};
 
 #[derive(Debug, Clone)]
 pub struct Circle {

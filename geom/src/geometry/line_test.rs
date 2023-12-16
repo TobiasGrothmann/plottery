@@ -2,10 +2,7 @@
 mod test_line {
     #[cfg(test)]
     mod tests {
-        use crate::{
-            line::{Line, LineIntersection, PointLineRelation},
-            V2,
-        };
+        use crate::{Line, LineIntersection, PointLineRelation, V2};
 
         #[test]
         fn point_relation() {

@@ -1,13 +1,8 @@
-use std::{slice::Iter, slice::IterMut};
-
 use geo_types::{LineString, Polygon};
 use itertools::Itertools;
+use std::{slice::Iter, slice::IterMut};
 
-use crate::{
-    shape::shape::{SampleSettings, Shape},
-    traits::{rotate::Rotate, rotate90::Rotate90},
-    vec2::V2,
-};
+use crate::{Angle, Rotate, Rotate90, SampleSettings, Shape, V2};
 
 #[derive(Debug, Clone)]
 pub struct Path {
@@ -76,13 +71,13 @@ impl FromIterator<V2> for Path {
 }
 
 impl Rotate for Path {
-    fn rotate(&self, angle: &crate::angle::angle::Angle) -> Self {
+    fn rotate(&self, angle: &Angle) -> Self {
         Path {
             points: self.iter().map(|point| point.rotate(angle)).collect(),
         }
     }
 
-    fn rotate_around(&self, pivot: &V2, angle: &crate::angle::angle::Angle) -> Self {
+    fn rotate_around(&self, pivot: &V2, angle: &Angle) -> Self {
         Path {
             points: self
                 .iter()

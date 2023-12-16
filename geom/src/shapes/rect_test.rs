@@ -1,10 +1,6 @@
 #[cfg(test)]
 mod test_rect {
-    use crate::{
-        rect::rect::Rect,
-        shape::shape::{SampleSettings, Shape},
-        vec2::V2,
-    };
+    use crate::{Rect, SampleSettings, Shape, V2};
 
     #[test]
     fn rect_calculations() {

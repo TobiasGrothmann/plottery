@@ -2,11 +2,7 @@
 mod test_circle {
     use std::f32::consts::PI;
 
-    use crate::{
-        circle::circle::Circle,
-        shape::shape::{SampleSettings, Shape},
-        vec2::V2,
-    };
+    use crate::{Circle, SampleSettings, Shape, V2};
 
     #[test]
     fn circle_calculations() {

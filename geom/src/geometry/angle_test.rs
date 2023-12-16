@@ -2,7 +2,7 @@
 mod test_angle {
     use std::f32::consts::PI;
 
-    use crate::angle::Angle;
+    use crate::Angle;
 
     #[test]
     fn angle_creation() {

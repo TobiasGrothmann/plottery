@@ -1,4 +1,4 @@
-use crate::vec2::V2;
+use crate::V2;
 
 pub trait Rotate90 {
     fn rotate_90(&self) -> Self;

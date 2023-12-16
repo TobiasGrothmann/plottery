@@ -1,10 +1,6 @@
 #[cfg(test)]
 mod test_vec2 {
-    use crate::{
-        angle::angle::Angle,
-        traits::{rotate::Rotate, rotate90::Rotate90},
-        vec2::V2,
-    };
+    use crate::{geometry::Angle, Rotate, Rotate90, V2};
 
     #[test]
     fn add() {

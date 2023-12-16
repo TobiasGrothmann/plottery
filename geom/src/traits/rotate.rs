@@ -1,4 +1,4 @@
-use crate::{angle::angle::Angle, vec2::V2};
+use crate::{Angle, V2};
 
 pub trait Rotate {
     fn rotate(&self, angle: &Angle) -> Self;

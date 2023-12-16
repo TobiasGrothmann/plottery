@@ -1,8 +1,4 @@
-use crate::{
-    shape::shape::{SampleSettings, Shape},
-    traits::rotate90::Rotate90,
-    vec2::V2,
-};
+use crate::{Rotate90, SampleSettings, Shape, V2};
 
 #[derive(Debug, Clone)]
 pub struct Rect {

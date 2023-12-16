@@ -1,11 +1,6 @@
 #[cfg(test)]
 mod test_path {
-    use crate::{
-        path::path::Path,
-        shape::shape::{SampleSettings, Shape},
-        vec2::V2,
-        Rect,
-    };
+    use crate::{Path, Rect, SampleSettings, Shape, V2};
 
     #[test]
     fn path() {

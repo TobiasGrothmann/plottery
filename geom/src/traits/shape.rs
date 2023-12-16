@@ -1,4 +1,4 @@
-use crate::{layer::Layer, vec2::V2, Path};
+use crate::{Layer, Path, V2};
 
 use geo::BooleanOps;
 use geo_types::{LineString, MultiLineString, Polygon};

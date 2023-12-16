@@ -1,9 +1,6 @@
 use geo_types::Coord;
 
-use crate::{
-    angle::angle::Angle,
-    traits::{rotate::Rotate, rotate90::Rotate90},
-};
+use crate::{Angle, Rotate, Rotate90};
 
 #[derive(Debug, Copy, Clone)]
 pub struct V2 {

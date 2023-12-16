@@ -2,12 +2,7 @@
 mod test_shape {
     use itertools::Itertools;
 
-    use crate::{
-        rect::rect::Rect,
-        shape::shape::{SampleSettings, Shape},
-        vec2::V2,
-        Path,
-    };
+    use crate::{Path, Rect, SampleSettings, Shape, V2};
 
     #[test]
     fn oversampling() {

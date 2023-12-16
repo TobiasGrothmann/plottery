@@ -2,7 +2,7 @@
 mod test_layer {
     use itertools::Itertools;
 
-    use crate::{layer::Layer, Circle, Path, Rect, SampleSettings, V2};
+    use crate::{Circle, Layer, Path, Rect, SampleSettings, V2};
 
     #[test]
     fn iterator() {
