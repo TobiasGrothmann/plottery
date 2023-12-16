@@ -19,7 +19,12 @@ thiserror = "1.0.50"
 toml = "0.8.8"
 tempfile = "3.8.1"
 libloading = "0.8.1"
+clap = "4.4.11"
 
 [lib]
 name = "plottery_lib"
 path = "src/lib.rs"
+
+[[bin]]
+name = "plottery"
+path = "src/cli.rs"
