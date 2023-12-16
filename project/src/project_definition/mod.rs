@@ -1,9 +1,8 @@
-mod errors;
+mod generate_project;
 mod project;
-mod project_file;
+mod project_config;
 mod test;
 
-pub use errors::FailedToOpenProjectError;
-pub use errors::FailedToSaveProjectError;
+pub use generate_project::generate_cargo_project;
 pub use project::Project;
-pub use project_file::ProjectConfig;
+pub use project_config::ProjectConfig;

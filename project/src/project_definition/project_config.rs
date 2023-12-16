@@ -4,10 +4,9 @@ use std::{
     path::Path,
 };
 
+use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-
-use super::{FailedToOpenProjectError, FailedToSaveProjectError};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ProjectConfig {
@@ -31,7 +30,7 @@ impl ProjectConfig {
         }
     }
 
-    pub fn new_from_file(path: &Path) -> Result<ProjectConfig, FailedToOpenProjectError> {
+    pub fn new_from_file(path: &Path) -> Result<Self> {
         let file = File::open(path)?;
         let mut reader = BufReader::new(file);
 
@@ -41,11 +40,11 @@ impl ProjectConfig {
         Ok(serde_json::from_str(&contents)?)
     }
 
-    pub fn save_to_file(&self, path: &Path) -> Result<(), FailedToSaveProjectError> {
+    pub fn save_to_file(&self, path: &Path) -> Result<()> {
         let file = File::create(path)?;
         let mut writer = io::BufWriter::new(file);
 
-        let contents = serde_json::to_string(&self)?;
+        let contents = serde_json::to_string_pretty(&self)?;
         writer.write_all(contents.as_bytes())?;
 
         Ok(())

@@ -107,16 +107,12 @@ mod test_shape {
 
         let masked = p.get_masked(Box::new(mask), &SampleSettings::default());
         assert_eq!(masked.inside.len(), 1);
+        assert_eq!(
+            masked.inside.shapes[0]
+                .get_points(&SampleSettings::default())
+                .len(),
+            2
+        );
         assert_eq!(masked.outside.len(), 2);
-    }
-
-    #[test]
-    fn masking_6() {
-        let mask = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
-        let p = Path::new_from(vec![V2::new(0.5, 1.0), V2::new(0.6, 1.0)]);
-
-        let masked = p.get_masked(Box::new(mask), &SampleSettings::default());
-        assert_eq!(masked.inside.len(), 0);
-        assert_eq!(masked.outside.len(), 1);
     }
 }

@@ -2,10 +2,10 @@
 mod tests {
     use std::path::Path;
 
-    use crate::{project_definition::ProjectConfig, Project};
+    use crate::{Project, ProjectConfig};
 
     #[test]
-    fn save_and_load_project() {
+    fn save_project_config() {
         let project_file = ProjectConfig::new("project_name".to_string());
         let project_file_path = Path::new("test_project.plottery");
 
@@ -23,9 +23,18 @@ mod tests {
     #[test]
     fn save_project() {
         let project_name: &str = "test_proj";
+        let project_dir = Path::new(project_name);
+        if project_dir.exists() {
+            std::fs::remove_dir_all(project_dir).unwrap();
+        }
 
-        let project = Project::new(Path::new(".".into()).to_path_buf(), project_name.into());
-        let result = project.save();
+        let project = Project::new(
+            Path::new(&".".to_string()).to_path_buf(),
+            project_name.into(),
+        );
+        assert_eq!(project.exists(), false);
+
+        let result = project.first_time_generation();
         assert!(result.is_ok());
 
         // check if dir test_project exists
@@ -42,7 +51,8 @@ mod tests {
 
         // test loading the project
         let result = std::panic::catch_unwind(|| {
-            let loaded_project = Project::new_from_file(project_config_path.to_path_buf()).unwrap();
+            let loaded_project =
+                Project::load_from_file(project_config_path.to_path_buf()).unwrap();
             assert_eq!(project, loaded_project);
         });
 

@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 geom = { path = "../geom" }
+project = { path = "../project" }
