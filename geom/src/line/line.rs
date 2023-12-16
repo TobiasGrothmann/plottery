@@ -33,18 +33,14 @@ impl Line<'_> {
         } else if orientation < 0.0 {
             return PointLineRelation::Right;
         }
-        return PointLineRelation::OnLine;
+        PointLineRelation::OnLine
     }
 
     pub fn intersection(&self, other: &Line) -> LineIntersection {
-        if self.from == other.from {
-            return LineIntersection::Intersection(self.from.clone());
-        } else if self.from == other.to {
-            return LineIntersection::Intersection(self.from.clone());
-        } else if self.to == other.from {
-            return LineIntersection::Intersection(self.to.clone());
-        } else if self.to == other.to {
-            return LineIntersection::Intersection(self.to.clone());
+        if self.from == other.from || self.from == other.to {
+            return LineIntersection::Intersection(*self.from);
+        } else if self.to == other.from || self.to == other.to {
+            return LineIntersection::Intersection(*self.to);
         }
 
         let x1 = self.from.x;

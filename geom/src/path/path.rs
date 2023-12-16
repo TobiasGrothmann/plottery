@@ -19,22 +19,13 @@ impl Path {
         Self { points: vec![] }
     }
     pub fn new_from(points: Vec<V2>) -> Self {
-        Self { points: points }
+        Self { points }
     }
     pub fn new_from_geo_polygon(geo_polygon: Polygon<f32>) -> Self {
-        Self::from_iter(
-            geo_polygon
-                .exterior()
-                .into_iter()
-                .map(|geo_coord| V2::new_from_geo(geo_coord)),
-        )
+        Self::from_iter(geo_polygon.exterior().into_iter().map(V2::new_from_geo))
     }
     pub fn new_from_geo_line_string(geo_line_string: &LineString<f32>) -> Self {
-        Self::from_iter(
-            geo_line_string
-                .into_iter()
-                .map(|geo_coord| V2::new_from_geo(geo_coord)),
-        )
+        Self::from_iter(geo_line_string.into_iter().map(V2::new_from_geo))
     }
 
     pub fn push(&mut self, point: V2) {
@@ -66,7 +57,13 @@ impl Shape for Path {
     }
 
     fn is_closed(&self) -> bool {
-        self.points.len() > 0 && self.points.first() == self.points.last()
+        !self.points.is_empty() && self.points.first() == self.points.last()
+    }
+}
+
+impl Default for Path {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

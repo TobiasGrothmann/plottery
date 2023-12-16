@@ -19,20 +19,20 @@ impl Rect {
     }
 
     pub fn tr(&self) -> V2 {
-        self.top_right.clone()
+        self.top_right
     }
     pub fn tl(&self) -> V2 {
         V2::new(self.bot_left.x, self.top_right.y)
     }
     pub fn bl(&self) -> V2 {
-        self.bot_left.clone()
+        self.bot_left
     }
     pub fn br(&self) -> V2 {
         V2::new(self.top_right.x, self.bot_left.y)
     }
 
     pub fn size(&self) -> V2 {
-        &self.top_right - &self.bot_left
+        self.top_right - self.bot_left
     }
     pub fn height(&self) -> f32 {
         self.top_right.y - self.bot_left.y
@@ -42,7 +42,7 @@ impl Rect {
     }
 
     pub fn center(&self) -> V2 {
-        &self.bot_left + (self.size() * 0.5)
+        self.bot_left + (self.size() * 0.5)
     }
 
     pub fn left_mid(&self) -> V2 {

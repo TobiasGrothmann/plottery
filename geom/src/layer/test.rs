@@ -13,7 +13,7 @@ mod test_layer {
         l.push(Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0)));
 
         for shape in l.iter() {
-            assert!(shape.get_points(&SampleSettings::default()).len() > 0);
+            assert!(!shape.get_points(&SampleSettings::default()).is_empty());
         }
 
         let l2: Layer = l.clone();

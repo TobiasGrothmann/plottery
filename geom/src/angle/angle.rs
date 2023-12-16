@@ -7,7 +7,7 @@ pub struct Angle {
 
 impl Angle {
     pub fn from_rad(rad: f32) -> Self {
-        Self { rad: rad }
+        Self { rad }
     }
     pub fn from_degree(degree: f32) -> Self {
         Self {
@@ -31,17 +31,17 @@ impl Angle {
     }
 
     pub fn wrap(&self) -> Self {
-        return Angle::from_rad(self.rad % (2.0 * PI));
+        Angle::from_rad(self.rad % (2.0 * PI))
     }
 }
 
-impl Into<f32> for Angle {
-    fn into(self) -> f32 {
-        self.rad
+impl From<Angle> for f32 {
+    fn from(angle: Angle) -> Self {
+        angle.rad
     }
 }
 impl From<f32> for Angle {
     fn from(rad: f32) -> Self {
-        Self { rad: rad }
+        Self { rad }
     }
 }

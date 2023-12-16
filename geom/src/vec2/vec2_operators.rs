@@ -176,7 +176,4 @@ impl PartialEq<V2> for V2 {
     fn eq(&self, _rhs: &V2) -> bool {
         self.dist_manhattan(_rhs) < 0.00001
     }
-    fn ne(&self, _rhs: &V2) -> bool {
-        self.dist_manhattan(_rhs) > 0.00001
-    }
 }

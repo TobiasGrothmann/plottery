@@ -15,10 +15,7 @@ pub struct Circle {
 
 impl Circle {
     pub fn new(center: V2, radius: f32) -> Self {
-        Self {
-            center: center,
-            radius: radius,
-        }
+        Self { center, radius }
     }
 
     pub fn area(&self) -> f32 {
@@ -36,7 +33,7 @@ impl Shape for Circle {
             .max(8);
         let angle_per_step = 2.0 * PI / num_samples as f32;
         (0..num_samples + 1)
-            .map(|i| &self.center + V2::polar(i as f32 * angle_per_step, self.radius))
+            .map(|i| self.center + V2::polar(i as f32 * angle_per_step, self.radius))
             .collect()
     }
     fn clone_box(&self) -> Box<dyn Shape> {
