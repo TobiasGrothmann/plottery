@@ -34,7 +34,7 @@ mod tests {
         );
         assert_eq!(project.exists(), false);
 
-        let result = project.first_time_generation();
+        let result = project.generate_to_disk();
         assert!(result.is_ok());
 
         // check if dir test_project exists
@@ -50,14 +50,26 @@ mod tests {
         assert!(project_config_path.exists());
 
         // test loading the project
-        let result = std::panic::catch_unwind(|| {
-            let loaded_project =
-                Project::load_from_file(project_config_path.to_path_buf()).unwrap();
-            assert_eq!(project, loaded_project);
-        });
+        let loaded_project = Project::load_from_file(project_config_path.to_path_buf()).unwrap();
+        assert_eq!(project, loaded_project);
 
         // clean up
         std::fs::remove_dir_all(project_dir).unwrap();
-        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn compile() {
+        // let project_name: &str = "test_proj_compile2";
+        // let mut temp_project_dir = tempfile::tempdir().unwrap().into_path();
+        // temp_project_dir.push(project_name);
+
+        // let project = Project::new(temp_project_dir, project_name.into());
+        // assert_eq!(project.exists(), false);
+
+        // let result = project.generate_to_disk();
+        // assert!(result.is_ok());
+
+        // let result = project.compile();
+        // assert!(result.is_ok());
     }
 }

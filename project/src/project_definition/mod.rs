@@ -1,3 +1,4 @@
+mod compile_cargo;
 mod generate_project;
 mod project;
 mod project_config;

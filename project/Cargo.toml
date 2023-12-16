@@ -7,7 +7,11 @@ edition = "2021"
 anyhow = "1.0.75"
 cargo-generate = "0.19.0"
 chrono = { version = "0.4.31", features = ["serde"] }
+libloading = "0.8.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_with = "3.4.0"
 thiserror = "1.0.50"
+geom = { path = "../geom" }
+toml = "0.8.8"
+tempfile = "3.8.1"

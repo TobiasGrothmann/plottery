@@ -1227,6 +1227,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "libloading"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c571b676ddfc9a8c12f1f3d3085a7b163966a8fd8098a90640953ce5f6170161"
+dependencies = [
+ "cfg-if",
+ "windows-sys 0.48.0",
+]
+
+[[package]]
 name = "libm"
 version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1600,10 +1610,14 @@ dependencies = [
  "anyhow",
  "cargo-generate",
  "chrono",
+ "geom",
+ "libloading",
  "serde",
  "serde_json",
  "serde_with",
+ "tempfile",
  "thiserror",
+ "toml",
 ]
 
 [[package]]
