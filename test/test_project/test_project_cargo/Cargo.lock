@@ -1867,6 +1867,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "test_project_cargo"
+version = "0.1.0"
+dependencies = [
+ "plottery",
+]
+
+[[package]]
 name = "thiserror"
 version = "1.0.51"
 source = "registry+https://github.com/rust-lang/crates.io-index"

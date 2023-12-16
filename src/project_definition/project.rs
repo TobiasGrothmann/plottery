@@ -1,7 +1,8 @@
 use std::path::PathBuf;
 
-use crate::{project_definition::compile_cargo::compile_cargo_project, ProjectConfig};
+use crate::{project_definition::compile_cargo::compile_cargo_project, Layer, ProjectConfig};
 use anyhow::{Error, Result};
+use libloading::Library;
 
 use super::generate_cargo_project;
 
@@ -120,10 +121,42 @@ impl Project {
         Ok(())
     }
 
-    pub fn compile(&self) -> Result<()> {
+    pub fn compile(&self, release: bool) -> Result<()> {
         let cargo_path = self.get_cargo_path().unwrap();
-        let build_status = compile_cargo_project(cargo_path.clone())?;
+        let build_status = compile_cargo_project(cargo_path.clone(), release)?;
         assert!(build_status.success());
         Ok(())
+    }
+
+    pub fn run_code(&self, release: bool) -> Result<Layer> {
+        let cargo_name = self.get_cargo_toml_name()?;
+
+        let mut lib_path = self.get_cargo_path()?;
+        lib_path.push("target");
+        if release {
+            lib_path.push("release");
+        } else {
+            lib_path.push("debug");
+        }
+        lib_path.push(format!("lib{}.dylib", cargo_name));
+
+        if !lib_path.exists() {
+            return Err(Error::msg(format!(
+                "library does not exist at '{}'",
+                lib_path.to_string_lossy()
+            )));
+        }
+
+        unsafe {
+            let lib = Library::new(lib_path).expect("Failed to load library");
+
+            let generate_func: libloading::Symbol<fn() -> Layer> = lib
+                .get(b"generate")
+                .expect("Failed to get symbol for generation function in library");
+
+            let generated_layer: Layer = generate_func();
+
+            Ok(generated_layer)
+        }
     }
 }

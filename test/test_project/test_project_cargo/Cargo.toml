@@ -1,0 +1,10 @@
+[package]
+name = "test_project_cargo"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+plottery = { path = "../../.." }
+
+[lib]
+crate-type = ["cdylib"]

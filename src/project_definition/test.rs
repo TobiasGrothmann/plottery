@@ -58,18 +58,17 @@ mod tests {
     }
 
     #[test]
-    fn compile() {
-        // let project_name: &str = "test_proj_compile2";
-        // let mut temp_project_dir = tempfile::tempdir().unwrap().into_path();
-        // temp_project_dir.push(project_name);
+    fn compile_and_run() {
+        let mut project_path = Path::new(env!("CARGO_MANIFEST_DIR")).to_path_buf();
+        project_path.push("test/test_project/test_project.plottery");
+        assert!(project_path.exists());
 
-        // let project = Project::new(temp_project_dir, project_name.into());
-        // assert_eq!(project.exists(), false);
+        let project = Project::load_from_file(project_path).unwrap();
+        assert!(project.exists());
 
-        // let result = project.generate_to_disk();
-        // assert!(result.is_ok());
+        project.compile(true).unwrap();
 
-        // let result = project.compile();
-        // assert!(result.is_ok());
+        let generated_layer = project.run_code(true).unwrap();
+        assert!(!generated_layer.is_empty());
     }
 }
