@@ -1,7 +1,8 @@
-use itertools::Itertools;
-use std::slice::Iter;
+use std::{iter::FromIterator, slice::Iter};
 
-use crate::Shape;
+use itertools::Itertools;
+
+use crate::traits::shape::Shape;
 
 pub struct Layer {
     pub shapes: Vec<Box<dyn Shape>>,

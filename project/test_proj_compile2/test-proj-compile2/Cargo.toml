@@ -1,7 +1,0 @@
-[package]
-name = "cargo_project_template"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-geom = { path = "../../geom" }
