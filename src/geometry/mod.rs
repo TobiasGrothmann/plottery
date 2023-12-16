@@ -8,9 +8,7 @@ pub mod vec2_operators;
 mod vec2_test;
 
 pub use angle::Angle;
-pub use angle_operators::*;
 pub use line::Line;
 pub use line::LineIntersection;
 pub use line::PointLineRelation;
 pub use vec2::V2;
-pub use vec2_operators::*;
