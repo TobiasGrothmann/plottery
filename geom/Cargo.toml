@@ -1,5 +1,5 @@
 [package]
-name = "terraplotter-geom"
+name = "geom"
 version = "0.1.0"
 edition = "2021"
 
