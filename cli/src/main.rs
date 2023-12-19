@@ -1,7 +1,9 @@
+use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
-use clap::{Parser, Subcommand};
-use plottery_lib::Project;
+pub mod project_definition;
+pub use project_definition::Project;
+pub use project_definition::ProjectConfig;
 
 #[derive(Debug, Subcommand)]
 enum Commands {

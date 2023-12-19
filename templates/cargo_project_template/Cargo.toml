@@ -4,4 +4,4 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-plottery = { path = "../.." }
+plottery_lib = { path = "../../lib" }

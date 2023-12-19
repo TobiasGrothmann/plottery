@@ -1,4 +1,4 @@
-use geom::{Layer, Circle, V2};
+use plottery_lib::{Layer, Circle, V2};
 
 pub fn generate() -> Layer {
     let mut l = Layer::new();

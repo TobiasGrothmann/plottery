@@ -1,11 +1,7 @@
 pub mod composition;
 pub mod geometry;
-pub mod project_definition;
 pub mod shapes;
 pub mod traits;
-
-pub use project_definition::Project;
-pub use project_definition::ProjectConfig;
 
 pub use geometry::angle::Angle;
 pub use geometry::line::Line;

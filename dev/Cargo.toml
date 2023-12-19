@@ -4,5 +4,4 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-geom = { path = "../geom" }
-project = { path = "../project" }
+plottery_lib = { path = "../lib" }

@@ -1,8 +1,9 @@
 use std::path::PathBuf;
 
-use crate::{project_definition::compile_cargo::compile_cargo_project, Layer, ProjectConfig};
+use crate::{project_definition::compile_cargo::compile_cargo_project, ProjectConfig};
 use anyhow::{Error, Result};
 use libloading::Library;
+use plottery_lib::Layer;
 
 use super::generate_cargo_project;
 
@@ -121,9 +122,16 @@ impl Project {
         Ok(())
     }
 
+    pub fn get_plottery_target_dir(&self) -> Result<PathBuf> {
+        let mut target_dir = self.get_cargo_path()?;
+        target_dir.push("target/plottery");
+        Ok(target_dir)
+    }
+
     pub fn compile(&self, release: bool) -> Result<()> {
         let cargo_path = self.get_cargo_path().unwrap();
-        let build_status = compile_cargo_project(cargo_path.clone(), release)?;
+        let build_status =
+            compile_cargo_project(cargo_path.clone(), self.get_plottery_target_dir()?, release)?;
         assert!(build_status.success());
         Ok(())
     }
@@ -131,8 +139,7 @@ impl Project {
     pub fn run_code(&self, release: bool) -> Result<Layer> {
         let cargo_name = self.get_cargo_toml_name()?;
 
-        let mut lib_path = self.get_cargo_path()?;
-        lib_path.push("target");
+        let mut lib_path = self.get_plottery_target_dir()?;
         if release {
             lib_path.push("release");
         } else {
