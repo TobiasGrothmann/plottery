@@ -42,6 +42,12 @@ impl Shape for Circle {
     fn is_closed(&self) -> bool {
         true
     }
+
+    fn bounding_box(&self) -> (V2, V2) {
+        let min = self.center - V2::new(self.radius, self.radius);
+        let max = self.center + V2::new(self.radius, self.radius);
+        (min, max)
+    }
 }
 
 impl Rotate for Circle {

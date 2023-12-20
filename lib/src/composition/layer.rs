@@ -1,8 +1,12 @@
-use std::{iter::FromIterator, slice::Iter};
+use std::{iter::FromIterator, path::PathBuf, slice::Iter};
 
 use itertools::Itertools;
+use svg::{
+    node::element::{path::Data, Path},
+    Document,
+};
 
-use crate::traits::shape::Shape;
+use crate::{traits::shape::Shape, SampleSettings, V2};
 
 pub struct Layer {
     pub shapes: Vec<Box<dyn Shape>>,
@@ -58,6 +62,67 @@ impl Layer {
     }
     pub fn len_sublayers(&self) -> i32 {
         self.sublayers.len() as i32
+    }
+
+    fn as_svg(&self, sample_settings: &SampleSettings, scale: f32) -> Document {
+        let shapes_points: Vec<Vec<V2>> = self
+            .iter_flattened()
+            .map(|shape| shape.get_points_oversampled(sample_settings))
+            .map(|points| points.iter().map(|point| point * scale).collect_vec())
+            .collect();
+
+        let bounding_box = self.bounding_box();
+        let mut document = Document::new().set(
+            "viewbox",
+            (
+                bounding_box.0.x * scale,
+                bounding_box.0.y * scale,
+                bounding_box.1.x * scale,
+                bounding_box.1.y * scale,
+            ),
+        );
+
+        for shape_points in shapes_points {
+            if shape_points.len() <= 1 {
+                continue;
+            }
+
+            let mut data = Data::new();
+            data = data.move_to(shape_points[0].as_tuple());
+            data = shape_points
+                .iter()
+                .skip(1)
+                .fold(data, |acc, point| acc.line_to(point.as_tuple()));
+
+            if shape_points.first().unwrap() == shape_points.last().unwrap() {
+                data = data.close();
+            }
+
+            let path = Path::new()
+                .set("fill", "none")
+                .set("stroke", "black")
+                .set("stroke-width", 1)
+                .set("d", data);
+
+            document = document.add(path);
+        }
+        document
+    }
+
+    pub fn write_svg(&self, sample_settings: &SampleSettings, path: PathBuf, scale: f32) {
+        let document = self.as_svg(sample_settings, scale);
+        svg::save(path.to_str().unwrap(), &document).unwrap();
+    }
+
+    pub fn bounding_box(&self) -> (V2, V2) {
+        let mut min = V2::new(0.0, 0.0);
+        let mut max = V2::new(0.0, 0.0);
+        for shape in self.shapes.iter() {
+            let (shape_min, shape_max) = shape.bounding_box();
+            min = min.min(&shape_min);
+            max = max.max(&shape_max);
+        }
+        (min, max)
     }
 }
 

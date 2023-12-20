@@ -38,6 +38,9 @@ impl V2 {
             y: self.y,
         }
     }
+    pub fn as_tuple(&self) -> (f32, f32) {
+        (self.x, self.y)
+    }
 
     pub fn min(&self, other: &Self) -> Self {
         V2::new(self.x.min(other.x), self.y.min(other.y))

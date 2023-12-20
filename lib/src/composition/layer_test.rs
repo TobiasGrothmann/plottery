@@ -65,4 +65,30 @@ mod test_layer {
         assert_eq!(l_clone.len_sublayers(), 2);
         assert_eq!(l_clone.len_recursive(), 8);
     }
+
+    #[test]
+    fn bounding_box() {
+        let mut l = Layer::new();
+
+        l.push(Circle::new(V2::new(1.0, 1.0), 1.0));
+        l.push(Path::new_from(vec![V2::new(-0.5, 0.0), V2::new(2.0, 2.0)]));
+        l.push(Rect::new(V2::new(0.0, 0.0), V2::new(3.0, 1.0)));
+
+        let bounding_box = l.bounding_box();
+        assert_eq!(bounding_box.0, V2::new(-0.5, 0.0));
+        assert_eq!(bounding_box.1, V2::new(3.0, 2.0));
+    }
+
+    #[test]
+    fn svg() {
+        let mut l = Layer::new();
+
+        l.push(Circle::new(V2::new(1.0, 1.0), 1.0));
+        l.push(Path::new_from(vec![V2::new(-0.5, 0.0), V2::new(2.0, 2.0)]));
+        l.push(Rect::new(V2::new(0.0, 0.0), V2::new(3.0, 1.0)));
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let svg_path = temp_dir.path().join("test.svg");
+        l.write_svg(&SampleSettings::default(), svg_path, 100.0);
+    }
 }

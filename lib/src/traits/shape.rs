@@ -37,6 +37,13 @@ pub trait Shape {
 
     fn is_closed(&self) -> bool;
 
+    fn bounding_box(&self) -> (V2, V2) {
+        let points = self.get_points(&SampleSettings::default());
+        let min = points.iter().fold(V2::new(0.0, 0.0), |acc, v| acc.min(v));
+        let max = points.iter().fold(V2::new(0.0, 0.0), |acc, v| acc.max(v));
+        (min, max)
+    }
+
     fn get_points_oversampled(&self, sample_settings: &SampleSettings) -> Vec<V2> {
         let points = self.get_points(sample_settings);
         if points.is_empty() {

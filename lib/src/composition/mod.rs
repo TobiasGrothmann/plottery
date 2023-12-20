@@ -1,4 +1,4 @@
 pub mod layer;
-mod test;
+mod layer_test;
 
 pub use layer::Layer;

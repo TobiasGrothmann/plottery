@@ -75,6 +75,10 @@ impl Shape for Rect {
     fn is_closed(&self) -> bool {
         true
     }
+
+    fn bounding_box(&self) -> (V2, V2) {
+        (self.bot_left, self.top_right)
+    }
 }
 
 impl Rotate90 for Rect {
