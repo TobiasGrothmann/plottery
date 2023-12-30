@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-use crate::{Angle, Rotate, Rotate90, SampleSettings, Shape, V2};
+use crate::{Angle, Plottable, Rotate, Rotate90, SampleSettings, V2};
 
 #[derive(Debug, Clone)]
 pub struct Circle {
@@ -21,7 +21,7 @@ impl Circle {
     }
 }
 
-impl Shape for Circle {
+impl Plottable for Circle {
     fn get_points(&self, sample_settings: &SampleSettings) -> Vec<V2> {
         let num_samples = sample_settings
             .get_num_points_for_length(self.circumference())
@@ -31,7 +31,7 @@ impl Shape for Circle {
             .map(|i| self.center + V2::polar(i as f32 * angle_per_step, self.radius))
             .collect()
     }
-    fn clone_box(&self) -> Box<dyn Shape> {
+    fn clone_box(&self) -> Box<dyn Plottable> {
         Box::new(self.clone())
     }
 

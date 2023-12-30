@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test_path {
-    use crate::{Path, Rect, SampleSettings, Shape, V2};
+    use crate::{Path, Plottable, Rect, SampleSettings, V2};
 
     #[test]
     fn path() {

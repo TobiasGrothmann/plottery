@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test_rect {
-    use crate::{Rect, SampleSettings, Shape, V2};
+    use crate::{Plottable, Rect, SampleSettings, V2};
 
     #[test]
     fn rect_calculations() {

@@ -6,10 +6,10 @@ use svg::{
     Document,
 };
 
-use crate::{traits::shape::Shape, SampleSettings, V2};
+use crate::{traits::plottable::Plottable, SampleSettings, V2};
 
 pub struct Layer {
-    pub shapes: Vec<Box<dyn Shape>>,
+    pub shapes: Vec<Box<dyn Plottable>>,
     pub sublayers: Vec<Layer>,
 }
 
@@ -20,17 +20,17 @@ impl Layer {
             sublayers: Vec::new(),
         }
     }
-    pub fn new_from(shapes: Vec<Box<dyn Shape>>) -> Self {
+    pub fn new_from(shapes: Vec<Box<dyn Plottable>>) -> Self {
         Self {
             shapes,
             sublayers: Vec::new(),
         }
     }
 
-    pub fn push<S: Shape + 'static>(&mut self, shape: S) {
+    pub fn push<S: Plottable + 'static>(&mut self, shape: S) {
         self.shapes.push(Box::new(shape));
     }
-    pub fn push_boxed(&mut self, shape: Box<dyn Shape>) {
+    pub fn push_boxed(&mut self, shape: Box<dyn Plottable>) {
         self.shapes.push(shape);
     }
 
@@ -38,7 +38,7 @@ impl Layer {
         self.sublayers.push(layer);
     }
 
-    pub fn iter(&self) -> Iter<'_, Box<dyn Shape>> {
+    pub fn iter(&self) -> Iter<'_, Box<dyn Plottable>> {
         self.shapes.iter()
     }
 
@@ -134,7 +134,7 @@ impl Default for Layer {
 
 pub struct LayerFlattenedIterator<'a> {
     stack: Vec<&'a Layer>,
-    current_layer_iterator: Option<std::slice::Iter<'a, Box<dyn Shape>>>,
+    current_layer_iterator: Option<std::slice::Iter<'a, Box<dyn Plottable>>>,
 }
 
 impl<'a> LayerFlattenedIterator<'a> {
@@ -147,7 +147,7 @@ impl<'a> LayerFlattenedIterator<'a> {
 }
 
 impl<'a> Iterator for LayerFlattenedIterator<'a> {
-    type Item = &'a dyn Shape;
+    type Item = &'a dyn Plottable;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -183,7 +183,7 @@ impl Clone for Layer {
 }
 
 impl IntoIterator for Layer {
-    type Item = Box<dyn Shape>;
+    type Item = Box<dyn Plottable>;
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -191,8 +191,8 @@ impl IntoIterator for Layer {
     }
 }
 
-impl FromIterator<Box<dyn Shape>> for Layer {
-    fn from_iter<I: IntoIterator<Item = Box<dyn Shape>>>(iter: I) -> Self {
+impl FromIterator<Box<dyn Plottable>> for Layer {
+    fn from_iter<I: IntoIterator<Item = Box<dyn Plottable>>>(iter: I) -> Self {
         Layer {
             shapes: iter.into_iter().collect(),
             sublayers: Vec::new(),

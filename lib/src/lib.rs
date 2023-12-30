@@ -14,9 +14,9 @@ pub use shapes::path::Path;
 pub use shapes::rect::Rect;
 
 pub use traits::Masked;
+pub use traits::Plottable;
 pub use traits::Rotate;
 pub use traits::Rotate90;
 pub use traits::SampleSettings;
-pub use traits::Shape;
 
 pub use composition::Layer;

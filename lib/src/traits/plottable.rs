@@ -28,8 +28,8 @@ pub struct Masked {
     pub outside: Layer,
 }
 
-pub trait Shape {
-    fn clone_box(&self) -> Box<dyn Shape>;
+pub trait Plottable {
+    fn clone_box(&self) -> Box<dyn Plottable>;
 
     fn get_points(&self, _: &SampleSettings) -> Vec<V2>;
 
@@ -84,7 +84,7 @@ pub trait Shape {
         MultiLineString(vec![self.as_geo_line_string(sample_settings)])
     }
 
-    fn get_masked(&self, mask: Box<dyn Shape>, sample_settings: &SampleSettings) -> Masked {
+    fn get_masked(&self, mask: Box<dyn Plottable>, sample_settings: &SampleSettings) -> Masked {
         let shape_geo = self.as_geo_multi_line_string(sample_settings);
         let mask_geo = mask.as_geo_polygon(sample_settings);
 
@@ -95,13 +95,13 @@ pub trait Shape {
             masked_inside_geo
                 .iter()
                 .map(Path::new_from_geo_line_string)
-                .map(|path| Box::new(path) as Box<dyn Shape>),
+                .map(|path| Box::new(path) as Box<dyn Plottable>),
         );
         let layer_outside = Layer::from_iter(
             masked_outside_geo
                 .iter()
                 .map(Path::new_from_geo_line_string)
-                .map(|path| Box::new(path) as Box<dyn Shape>),
+                .map(|path| Box::new(path) as Box<dyn Plottable>),
         );
 
         Masked {

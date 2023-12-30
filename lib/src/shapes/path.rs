@@ -2,7 +2,7 @@ use geo_types::{LineString, Polygon};
 use itertools::Itertools;
 use std::{slice::Iter, slice::IterMut};
 
-use crate::{Angle, Rotate, Rotate90, SampleSettings, Shape, V2};
+use crate::{Angle, Plottable, Rotate, Rotate90, SampleSettings, V2};
 
 #[derive(Debug, Clone)]
 pub struct Path {
@@ -35,12 +35,12 @@ impl Path {
     }
 }
 
-impl Shape for Path {
+impl Plottable for Path {
     fn get_points(&self, _: &SampleSettings) -> Vec<V2> {
         self.points.clone()
     }
 
-    fn clone_box(&self) -> Box<dyn Shape> {
+    fn clone_box(&self) -> Box<dyn Plottable> {
         Box::new(self.clone())
     }
 

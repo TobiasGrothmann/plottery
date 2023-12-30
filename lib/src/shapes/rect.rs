@@ -1,4 +1,4 @@
-use crate::{Rotate90, SampleSettings, Shape, V2};
+use crate::{Plottable, Rotate90, SampleSettings, V2};
 
 #[derive(Debug, Clone)]
 pub struct Rect {
@@ -59,12 +59,12 @@ impl Rect {
     }
 }
 
-impl Shape for Rect {
+impl Plottable for Rect {
     fn get_points(&self, _: &SampleSettings) -> Vec<V2> {
         vec![self.bl(), self.tl(), self.tr(), self.br(), self.bl()]
     }
 
-    fn clone_box(&self) -> Box<dyn Shape> {
+    fn clone_box(&self) -> Box<dyn Plottable> {
         Box::new(self.clone())
     }
 

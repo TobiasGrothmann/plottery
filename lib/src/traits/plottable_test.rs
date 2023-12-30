@@ -2,7 +2,7 @@
 mod test_shape {
     use itertools::Itertools;
 
-    use crate::{Circle, Path, Rect, SampleSettings, Shape, V2};
+    use crate::{Circle, Path, Plottable, Rect, SampleSettings, V2};
 
     #[test]
     fn oversampling() {
