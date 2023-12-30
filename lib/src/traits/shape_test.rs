@@ -2,7 +2,7 @@
 mod test_shape {
     use itertools::Itertools;
 
-    use crate::{Path, Rect, SampleSettings, Shape, V2};
+    use crate::{Circle, Path, Rect, SampleSettings, Shape, V2};
 
     #[test]
     fn oversampling() {
@@ -114,5 +114,36 @@ mod test_shape {
             2
         );
         assert_eq!(masked.outside.len(), 2);
+    }
+
+    #[test]
+    fn masking_6_circle() {
+        let center = V2::new(3.0, 3.0);
+        let radius = 0.5;
+        let mask = Circle::new(center.clone(), radius.clone());
+        let mut p = Path::new();
+
+        for _ in 0..200 {
+            p.push(
+                center - V2::xy(radius * 2.0)
+                    + V2::new(
+                        radius * rand::random::<f32>() * 4.0,
+                        radius * rand::random::<f32>() * 4.0,
+                    ),
+            );
+        }
+
+        let masked = p.get_masked(Box::new(mask.clone()), &SampleSettings::default());
+
+        for shape_inside in masked.inside.shapes {
+            for point in shape_inside.get_points(&SampleSettings::default()) {
+                assert!(center.dist(&point) - 0.001 <= radius);
+            }
+        }
+        for shape_outside in masked.outside.shapes {
+            for point in shape_outside.get_points(&SampleSettings::default()) {
+                assert!(center.dist(&point) + 0.001 >= radius);
+            }
+        }
     }
 }
