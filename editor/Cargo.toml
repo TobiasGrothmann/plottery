@@ -1,0 +1,19 @@
+[package]
+name = "plottery_editor"
+version = "0.1.0"
+edition = "2021"
+description = "Plottery Editor to manage Plottery projects."
+
+[package.metadata.bundle]
+name = "Plottery Editor"
+icon = ["assets/icon_512.png"]
+identifier = "de.tobiasgrothmann.plottery"
+version = "0.0.1"
+copyright = "Copyright (c) Tobias Grothmann 2023. All rights reserved."
+category = "Developer Tool"
+short_description = "Editor to manage Plottery projects."
+long_description = "Editor to manage Plottery projects."
+
+[dependencies]
+dioxus = "0.4.3"
+dioxus-desktop = "0.4.3"
