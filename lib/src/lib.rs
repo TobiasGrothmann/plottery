@@ -12,6 +12,7 @@ pub use geometry::vec2::V2;
 pub use shapes::circle::Circle;
 pub use shapes::path::Path;
 pub use shapes::rect::Rect;
+pub use shapes::shape::Shape;
 
 pub use traits::Masked;
 pub use traits::Plottable;

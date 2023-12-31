@@ -25,7 +25,7 @@ mod test_rect {
 
     #[test]
     fn rect_points() {
-        let r = Rect::new(V2::new(1.0, 2.0), V2::new(4.0, 4.0));
+        let r = Rect::new_shape(V2::new(1.0, 2.0), V2::new(4.0, 4.0));
         let points: Vec<_> = r.get_points(&SampleSettings::default());
         assert_eq!(points.first().unwrap(), points.last().unwrap()); // is closed
         assert_eq!(points.len(), 5);

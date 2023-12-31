@@ -7,7 +7,7 @@ pub fn generate() -> Layer {
     // ...
 
     for i in 0..100 {
-        l.push(Circle::new(V2::new((i as f32 * 0.5).sin(), i as f32 * 0.2), 0.5));
+        l.push(Circle::new_shape(V2::new((i as f32 * 0.5).sin(), i as f32 * 0.2), 0.5));
     }
 
     l

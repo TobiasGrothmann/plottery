@@ -2,7 +2,7 @@ use geo_types::Coord;
 
 use crate::{Angle, Rotate, Rotate90};
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 pub struct V2 {
     pub x: f32,
     pub y: f32,

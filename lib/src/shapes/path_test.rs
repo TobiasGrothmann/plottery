@@ -4,7 +4,7 @@ mod test_path {
 
     #[test]
     fn path() {
-        let p = Path::new_from(vec![V2::new(0.0, 0.0), V2::new(1.0, 0.0)]);
+        let p = Path::new_shape_from(vec![V2::new(0.0, 0.0), V2::new(1.0, 0.0)]);
         let points = p.get_points(&SampleSettings::default());
         assert_eq!(points.len(), 2);
     }
@@ -23,7 +23,7 @@ mod test_path {
 
     #[test]
     fn shape() {
-        let p = Path::new_from(vec![
+        let p = Path::new_shape_from(vec![
             V2::new(0.0, 0.0),
             V2::new(1.0, 0.0),
             V2::new(2.0, 1.0),
@@ -31,8 +31,8 @@ mod test_path {
         assert_eq!(p.length(), 1.0 + 2.0_f32.sqrt());
         assert_eq!(p.is_closed(), false);
 
-        let r = Rect::new(V2::new(-1.2, -5.0), V2::new(2.0, 3.1));
-        let p = Path::new_from(r.get_points(&SampleSettings::default()));
+        let r = Rect::new_shape(V2::new(-1.2, -5.0), V2::new(2.0, 3.1));
+        let p = Path::new_shape_from(r.get_points(&SampleSettings::default()));
         assert!((r.length() - p.length()).abs() < 0.00001);
         assert_eq!(p.is_closed(), true);
     }

@@ -6,10 +6,10 @@ use svg::{
     Document,
 };
 
-use crate::{traits::plottable::Plottable, SampleSettings, V2};
+use crate::{traits::plottable::Plottable, SampleSettings, Shape, V2};
 
 pub struct Layer {
-    pub shapes: Vec<Box<dyn Plottable>>,
+    pub shapes: Vec<Shape>,
     pub sublayers: Vec<Layer>,
 }
 
@@ -20,25 +20,21 @@ impl Layer {
             sublayers: Vec::new(),
         }
     }
-    pub fn new_from(shapes: Vec<Box<dyn Plottable>>) -> Self {
+    pub fn new_from(shapes: Vec<Shape>) -> Self {
         Self {
             shapes,
             sublayers: Vec::new(),
         }
     }
 
-    pub fn push<S: Plottable + 'static>(&mut self, shape: S) {
-        self.shapes.push(Box::new(shape));
-    }
-    pub fn push_boxed(&mut self, shape: Box<dyn Plottable>) {
+    pub fn push(&mut self, shape: Shape) {
         self.shapes.push(shape);
     }
-
     pub fn push_layer(&mut self, layer: Layer) {
         self.sublayers.push(layer);
     }
 
-    pub fn iter(&self) -> Iter<'_, Box<dyn Plottable>> {
+    pub fn iter(&self) -> Iter<'_, Shape> {
         self.shapes.iter()
     }
 
@@ -134,7 +130,7 @@ impl Default for Layer {
 
 pub struct LayerFlattenedIterator<'a> {
     stack: Vec<&'a Layer>,
-    current_layer_iterator: Option<std::slice::Iter<'a, Box<dyn Plottable>>>,
+    current_layer_iterator: Option<std::slice::Iter<'a, Shape>>,
 }
 
 impl<'a> LayerFlattenedIterator<'a> {
@@ -147,13 +143,13 @@ impl<'a> LayerFlattenedIterator<'a> {
 }
 
 impl<'a> Iterator for LayerFlattenedIterator<'a> {
-    type Item = &'a dyn Plottable;
+    type Item = &'a Shape;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             if let Some(current_layer_iter) = &mut self.current_layer_iterator {
                 if let Some(shape) = current_layer_iter.next() {
-                    return Some(shape.as_ref());
+                    return Some(shape);
                 }
             }
 
@@ -172,18 +168,14 @@ impl<'a> Iterator for LayerFlattenedIterator<'a> {
 impl Clone for Layer {
     fn clone(&self) -> Self {
         Self {
-            shapes: self
-                .shapes
-                .iter()
-                .map(|shape_box| shape_box.clone_box())
-                .collect_vec(),
+            shapes: self.shapes.iter().cloned().collect_vec(),
             sublayers: self.sublayers.clone(),
         }
     }
 }
 
 impl IntoIterator for Layer {
-    type Item = Box<dyn Plottable>;
+    type Item = Shape;
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -191,8 +183,8 @@ impl IntoIterator for Layer {
     }
 }
 
-impl FromIterator<Box<dyn Plottable>> for Layer {
-    fn from_iter<I: IntoIterator<Item = Box<dyn Plottable>>>(iter: I) -> Self {
+impl FromIterator<Shape> for Layer {
+    fn from_iter<I: IntoIterator<Item = Shape>>(iter: I) -> Self {
         Layer {
             shapes: iter.into_iter().collect(),
             sublayers: Vec::new(),

@@ -6,7 +6,7 @@ mod test_shape {
 
     #[test]
     fn oversampling() {
-        let r = Rect::new(V2::new(0.0, 0.0), V2::new(2.0, 1.0));
+        let r = Rect::new_shape(V2::new(0.0, 0.0), V2::new(2.0, 1.0));
         let sample_settings = SampleSettings {
             points_per_unit: 4.0,
         };
@@ -32,7 +32,7 @@ mod test_shape {
 
     #[test]
     fn oversampling_low_sampling() {
-        let r = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+        let r = Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
         let sample_settings = SampleSettings {
             points_per_unit: 1.0,
         };
@@ -62,50 +62,50 @@ mod test_shape {
 
     #[test]
     fn masking_1() {
-        let mask = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
-        let p = Path::new_from(vec![V2::new(0.5, 0.5), V2::new(1.5, 0.5)]);
+        let mask = Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+        let p = Path::new_shape_from(vec![V2::new(0.5, 0.5), V2::new(1.5, 0.5)]);
 
-        let masked = p.get_masked(Box::new(mask), &SampleSettings::default());
+        let masked = p.get_masked(mask, &SampleSettings::default());
         assert_eq!(masked.inside.len(), 1);
         assert_eq!(masked.outside.len(), 1);
     }
 
     #[test]
     fn masking_2() {
-        let mask = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
-        let p = Path::new_from(vec![V2::new(0.5, 0.5), V2::new(1.5, 1.5)]);
+        let mask = Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+        let p = Path::new_shape_from(vec![V2::new(0.5, 0.5), V2::new(1.5, 1.5)]);
 
-        let masked = p.get_masked(Box::new(mask), &SampleSettings::default());
+        let masked = p.get_masked(mask, &SampleSettings::default());
         assert_eq!(masked.inside.len(), 1);
         assert_eq!(masked.outside.len(), 1);
     }
 
     #[test]
     fn masking_3() {
-        let mask = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
-        let p = Path::new_from(vec![V2::new(1.0, 1.0), V2::new(1.0, 1.5)]);
+        let mask = Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+        let p = Path::new_shape_from(vec![V2::new(1.0, 1.0), V2::new(1.0, 1.5)]);
 
-        let masked = p.get_masked(Box::new(mask), &SampleSettings::default());
+        let masked = p.get_masked(mask, &SampleSettings::default());
         assert_eq!(masked.inside.len(), 0);
         assert_eq!(masked.outside.len(), 1);
     }
 
     #[test]
     fn masking_4() {
-        let mask = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
-        let p = Path::new_from(vec![V2::new(1.0, 1.0), V2::new(0.5, 0.5)]);
+        let mask = Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+        let p = Path::new_shape_from(vec![V2::new(1.0, 1.0), V2::new(0.5, 0.5)]);
 
-        let masked = p.get_masked(Box::new(mask), &SampleSettings::default());
+        let masked = p.get_masked(mask, &SampleSettings::default());
         assert_eq!(masked.inside.len(), 1);
         assert_eq!(masked.outside.len(), 0);
     }
 
     #[test]
     fn masking_5() {
-        let mask = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
-        let p = Path::new_from(vec![V2::new(0.5, 1.2), V2::new(1.2, 0.5)]);
+        let mask = Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+        let p = Path::new_shape_from(vec![V2::new(0.5, 1.2), V2::new(1.2, 0.5)]);
 
-        let masked = p.get_masked(Box::new(mask), &SampleSettings::default());
+        let masked = p.get_masked(mask, &SampleSettings::default());
         assert_eq!(masked.inside.len(), 1);
         assert_eq!(
             masked.inside.shapes[0]
@@ -120,8 +120,8 @@ mod test_shape {
     fn masking_6_circle() {
         let center = V2::new(3.0, 3.0);
         let radius = 0.5;
-        let mask = Circle::new(center.clone(), radius.clone());
-        let mut p = Path::new();
+        let mask = Circle::new_shape(center.clone(), radius.clone());
+        let mut p: Path = Path::new();
 
         for _ in 0..200 {
             p.push(
@@ -133,7 +133,7 @@ mod test_shape {
             );
         }
 
-        let masked = p.get_masked(Box::new(mask.clone()), &SampleSettings::default());
+        let masked = p.get_masked(mask.clone(), &SampleSettings::default());
 
         for shape_inside in masked.inside.shapes {
             for point in shape_inside.get_points(&SampleSettings::default()) {

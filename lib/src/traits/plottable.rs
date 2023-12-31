@@ -1,4 +1,4 @@
-use crate::{Layer, Path, V2};
+use crate::{Layer, Path, Shape, V2};
 
 use geo::BooleanOps;
 use geo_types::{LineString, MultiLineString, Polygon};
@@ -28,9 +28,7 @@ pub struct Masked {
     pub outside: Layer,
 }
 
-pub trait Plottable {
-    fn clone_box(&self) -> Box<dyn Plottable>;
-
+pub trait Plottable: Clone {
     fn get_points(&self, _: &SampleSettings) -> Vec<V2>;
 
     fn length(&self) -> f32;
@@ -84,7 +82,7 @@ pub trait Plottable {
         MultiLineString(vec![self.as_geo_line_string(sample_settings)])
     }
 
-    fn get_masked(&self, mask: Box<dyn Plottable>, sample_settings: &SampleSettings) -> Masked {
+    fn get_masked(&self, mask: Shape, sample_settings: &SampleSettings) -> Masked {
         let shape_geo = self.as_geo_multi_line_string(sample_settings);
         let mask_geo = mask.as_geo_polygon(sample_settings);
 
@@ -94,14 +92,12 @@ pub trait Plottable {
         let layer_inside = Layer::from_iter(
             masked_inside_geo
                 .iter()
-                .map(Path::new_from_geo_line_string)
-                .map(|path| Box::new(path) as Box<dyn Plottable>),
+                .map(Path::new_shape_from_geo_line_string),
         );
         let layer_outside = Layer::from_iter(
             masked_outside_geo
                 .iter()
-                .map(Path::new_from_geo_line_string)
-                .map(|path| Box::new(path) as Box<dyn Plottable>),
+                .map(Path::new_shape_from_geo_line_string),
         );
 
         Masked {

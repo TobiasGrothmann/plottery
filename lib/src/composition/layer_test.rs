@@ -2,15 +2,18 @@
 mod test_layer {
     use itertools::Itertools;
 
-    use crate::{Circle, Layer, Path, Rect, SampleSettings, V2};
+    use crate::{Circle, Layer, Path, Plottable, Rect, SampleSettings, V2};
 
     #[test]
     fn iterator() {
         let mut l = Layer::new();
 
-        l.push(Circle::new(V2::new(1.0, 1.0), 1.0));
-        l.push(Path::new_from(vec![V2::new(0.0, 0.0), V2::new(1.0, 1.0)]));
-        l.push(Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0)));
+        l.push(Circle::new_shape(V2::new(1.0, 1.0), 1.0));
+        l.push(Path::new_shape_from(vec![
+            V2::new(0.0, 0.0),
+            V2::new(1.0, 1.0),
+        ]));
+        l.push(Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0)));
 
         for shape in l.iter() {
             assert!(!shape.get_points(&SampleSettings::default()).is_empty());
@@ -22,7 +25,7 @@ mod test_layer {
 
     #[test]
     fn children() {
-        let shape = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+        let shape = Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
 
         let mut l = Layer::new();
         l.push(shape.clone());
@@ -70,9 +73,12 @@ mod test_layer {
     fn bounding_box() {
         let mut l = Layer::new();
 
-        l.push(Circle::new(V2::new(1.0, 1.0), 1.0));
-        l.push(Path::new_from(vec![V2::new(-0.5, 0.0), V2::new(2.0, 2.0)]));
-        l.push(Rect::new(V2::new(0.0, 0.0), V2::new(3.0, 1.0)));
+        l.push(Circle::new_shape(V2::new(1.0, 1.0), 1.0));
+        l.push(Path::new_shape_from(vec![
+            V2::new(-0.5, 0.0),
+            V2::new(2.0, 2.0),
+        ]));
+        l.push(Rect::new_shape(V2::new(0.0, 0.0), V2::new(3.0, 1.0)));
 
         let bounding_box = l.bounding_box();
         assert_eq!(bounding_box.0, V2::new(-0.5, 0.0));
@@ -83,9 +89,12 @@ mod test_layer {
     fn svg() {
         let mut l = Layer::new();
 
-        l.push(Circle::new(V2::new(1.0, 1.0), 1.0));
-        l.push(Path::new_from(vec![V2::new(-0.5, 0.0), V2::new(2.0, 2.0)]));
-        l.push(Rect::new(V2::new(0.0, 0.0), V2::new(3.0, 1.0)));
+        l.push(Circle::new_shape(V2::new(1.0, 1.0), 1.0));
+        l.push(Path::new_shape_from(vec![
+            V2::new(-0.5, 0.0),
+            V2::new(2.0, 2.0),
+        ]));
+        l.push(Rect::new_shape(V2::new(0.0, 0.0), V2::new(3.0, 1.0)));
 
         let temp_dir = tempfile::tempdir().unwrap();
         let svg_path = temp_dir.path().join("test.svg");

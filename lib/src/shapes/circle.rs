@@ -1,8 +1,8 @@
 use std::f32::consts::PI;
 
-use crate::{Angle, Plottable, Rotate, Rotate90, SampleSettings, V2};
+use crate::{Angle, Plottable, Rotate, Rotate90, SampleSettings, Shape, V2};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Circle {
     pub center: V2,
     pub radius: f32,
@@ -11,6 +11,9 @@ pub struct Circle {
 impl Circle {
     pub fn new(center: V2, radius: f32) -> Self {
         Self { center, radius }
+    }
+    pub fn new_shape(center: V2, radius: f32) -> Shape {
+        Shape::Circle(Self { center, radius })
     }
 
     pub fn area(&self) -> f32 {
@@ -31,9 +34,6 @@ impl Plottable for Circle {
             .map(|i| self.center + V2::polar(i as f32 * angle_per_step, self.radius))
             .collect()
     }
-    fn clone_box(&self) -> Box<dyn Plottable> {
-        Box::new(self.clone())
-    }
 
     fn length(&self) -> f32 {
         self.circumference()
@@ -52,31 +52,55 @@ impl Plottable for Circle {
 
 impl Rotate for Circle {
     fn rotate(&self, angle: &Angle) -> Self {
-        Circle::new(self.center.rotate(angle), self.radius)
+        Circle {
+            center: self.center.rotate(angle),
+            radius: self.radius,
+        }
     }
     fn rotate_around(&self, pivot: &V2, angle: &Angle) -> Self {
-        Circle::new(self.center.rotate_around(pivot, angle), self.radius)
+        Circle {
+            center: self.center.rotate_around(pivot, angle),
+            radius: self.radius,
+        }
     }
 }
 
 impl Rotate90 for Circle {
     fn rotate_90(&self) -> Self {
-        Circle::new(self.center.rotate_90(), self.radius)
+        Circle {
+            center: self.center.rotate_90(),
+            radius: self.radius,
+        }
     }
     fn rotate_180(&self) -> Self {
-        Circle::new(self.center.rotate_180(), self.radius)
+        Circle {
+            center: self.center.rotate_180(),
+            radius: self.radius,
+        }
     }
     fn rotate_270(&self) -> Self {
-        Circle::new(self.center.rotate_270(), self.radius)
+        Circle {
+            center: self.center.rotate_270(),
+            radius: self.radius,
+        }
     }
 
     fn rotate_90_around(&self, pivot: &V2) -> Self {
-        Circle::new(self.center.rotate_90_around(pivot), self.radius)
+        Circle {
+            center: self.center.rotate_90_around(pivot),
+            radius: self.radius,
+        }
     }
     fn rotate_180_around(&self, pivot: &V2) -> Self {
-        Circle::new(self.center.rotate_180_around(pivot), self.radius)
+        Circle {
+            center: self.center.rotate_180_around(pivot),
+            radius: self.radius,
+        }
     }
     fn rotate_270_around(&self, pivot: &V2) -> Self {
-        Circle::new(self.center.rotate_270_around(pivot), self.radius)
+        Circle {
+            center: self.center.rotate_270_around(pivot),
+            radius: self.radius,
+        }
     }
 }

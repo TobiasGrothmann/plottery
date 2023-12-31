@@ -18,7 +18,7 @@ mod test_circle {
     fn circle_points() {
         let center = V2::new(1.0, 2.0);
         let radius = 1.0;
-        let c = Circle::new(center.clone(), radius);
+        let c = Circle::new_shape(center.clone(), radius);
         let sample_settings = SampleSettings::default();
 
         let points = c.get_points(&sample_settings);

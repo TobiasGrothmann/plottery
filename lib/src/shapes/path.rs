@@ -2,25 +2,35 @@ use geo_types::{LineString, Polygon};
 use itertools::Itertools;
 use std::{slice::Iter, slice::IterMut};
 
-use crate::{Angle, Plottable, Rotate, Rotate90, SampleSettings, V2};
+use crate::{Angle, Plottable, Rotate, Rotate90, SampleSettings, Shape, V2};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Path {
     points: Vec<V2>,
 }
 
 impl Path {
     pub fn new() -> Self {
-        Self { points: vec![] }
+        Self { points: Vec::new() }
     }
     pub fn new_from(points: Vec<V2>) -> Self {
         Self { points }
     }
-    pub fn new_from_geo_polygon(geo_polygon: Polygon<f32>) -> Self {
-        Self::from_iter(geo_polygon.exterior().into_iter().map(V2::new_from_geo))
+    pub fn new_shape() -> Shape {
+        Shape::Path(Self { points: vec![] })
     }
-    pub fn new_from_geo_line_string(geo_line_string: &LineString<f32>) -> Self {
-        Self::from_iter(geo_line_string.into_iter().map(V2::new_from_geo))
+    pub fn new_shape_from(points: Vec<V2>) -> Shape {
+        Shape::Path(Self { points })
+    }
+    pub fn new_shape_from_geo_polygon(geo_polygon: Polygon<f32>) -> Shape {
+        Shape::Path(Self::from_iter(
+            geo_polygon.exterior().into_iter().map(V2::new_from_geo),
+        ))
+    }
+    pub fn new_shape_from_geo_line_string(geo_line_string: &LineString<f32>) -> Shape {
+        Shape::Path(Self::from_iter(
+            geo_line_string.into_iter().map(V2::new_from_geo),
+        ))
     }
 
     pub fn push(&mut self, point: V2) {
@@ -40,10 +50,6 @@ impl Plottable for Path {
         self.points.clone()
     }
 
-    fn clone_box(&self) -> Box<dyn Plottable> {
-        Box::new(self.clone())
-    }
-
     fn length(&self) -> f32 {
         self.points
             .iter()
@@ -53,12 +59,6 @@ impl Plottable for Path {
 
     fn is_closed(&self) -> bool {
         !self.points.is_empty() && self.points.first() == self.points.last()
-    }
-}
-
-impl Default for Path {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

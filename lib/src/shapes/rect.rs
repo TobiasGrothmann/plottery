@@ -1,6 +1,6 @@
-use crate::{Plottable, Rotate90, SampleSettings, V2};
+use crate::{Plottable, Rotate90, SampleSettings, Shape, V2};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Rect {
     bot_left: V2,
     top_right: V2,
@@ -12,6 +12,9 @@ impl Rect {
             bot_left: bl.min(&tr),
             top_right: tr.max(&bl),
         }
+    }
+    pub fn new_shape(bl: V2, tr: V2) -> Shape {
+        Shape::Rect(Rect::new(bl, tr))
     }
 
     pub fn tr(&self) -> V2 {
@@ -62,10 +65,6 @@ impl Rect {
 impl Plottable for Rect {
     fn get_points(&self, _: &SampleSettings) -> Vec<V2> {
         vec![self.bl(), self.tl(), self.tr(), self.br(), self.bl()]
-    }
-
-    fn clone_box(&self) -> Box<dyn Plottable> {
-        Box::new(self.clone())
     }
 
     fn length(&self) -> f32 {
