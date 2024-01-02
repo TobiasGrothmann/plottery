@@ -1,0 +1,12 @@
+[package]
+name = "cargo_project_template"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+opener = "0.6.1"
+plottery_lib = { path = "../lib" }
+
+[[bin]]
+name = "open_svg"
+path = "src/main.rs"
