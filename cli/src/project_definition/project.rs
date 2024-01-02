@@ -125,14 +125,19 @@ impl Project {
     pub fn get_plottery_target_dir(&self) -> Result<PathBuf> {
         let mut target_dir = self.get_cargo_path()?;
         target_dir.push("target/plottery");
+        target_dir = target_dir.absolutize()?.to_path_buf();
         Ok(target_dir)
     }
 
     pub fn compile(&self, release: bool) -> Result<()> {
-        let cargo_path = self.get_cargo_path().unwrap();
-        let build_status =
-            compile_cargo_project(cargo_path.clone(), self.get_plottery_target_dir()?, release)?;
-        assert!(build_status.success());
+        let build_status = compile_cargo_project(
+            self.get_cargo_path()?,
+            self.get_plottery_target_dir()?,
+            release,
+        )?;
+        if !build_status.success() {
+            return Err(Error::msg("Failed to compile cargo project"));
+        }
         Ok(())
     }
 
