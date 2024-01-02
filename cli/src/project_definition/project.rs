@@ -1,11 +1,13 @@
-use std::path::PathBuf;
-
-use crate::{project_definition::compile_cargo::compile_cargo_project, ProjectConfig};
-use anyhow::{Error, Result};
-use libloading::Library;
-use plottery_lib::Layer;
-
 use super::generate_cargo_project;
+use crate::{project_definition::compile_cargo::compile_cargo_project, ProjectConfig};
+use path_absolutize::Absolutize;
+use plottery_lib::*;
+
+use anyhow::{Error, Ok, Result};
+use libloading::Library;
+use resvg::{tiny_skia, usvg};
+use std::path::PathBuf;
+use usvg::{fontdb, TreeParsing, TreeTextToPath};
 
 #[derive(Debug, Clone)]
 pub struct Project {
@@ -170,5 +172,35 @@ impl Project {
 
             Ok(generated_layer)
         }
+    }
+
+    pub fn write_svg(&self, path: &PathBuf, release: bool) -> Result<()> {
+        let layer = self.run_code(release)?;
+        layer.write_svg(&path, 10.0)
+    }
+
+    pub fn write_png(&self, path: &PathBuf, release: bool) -> Result<()> {
+        let layer = self.run_code(release)?;
+        let temp_dir = tempfile::tempdir()?;
+        let temp_svg_path = temp_dir.path().join("test.svg");
+        layer.write_svg(&temp_svg_path, 10.0)?;
+
+        let rtree = {
+            let opt = usvg::Options::default();
+            let mut fontdb = fontdb::Database::new();
+            fontdb.load_system_fonts();
+
+            let svg_data = std::fs::read(&temp_svg_path).unwrap();
+            let mut tree = usvg::Tree::from_data(&svg_data, &opt).unwrap();
+            tree.convert_text(&fontdb);
+            resvg::Tree::from_usvg(&tree)
+        };
+
+        let pixmap_size = rtree.size.to_int_size();
+        let mut pixmap = tiny_skia::Pixmap::new(pixmap_size.width(), pixmap_size.height()).unwrap();
+        rtree.render(tiny_skia::Transform::default(), &mut pixmap.as_mut());
+        pixmap.save_png(&path).unwrap();
+
+        Ok(())
     }
 }

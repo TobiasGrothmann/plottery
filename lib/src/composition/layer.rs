@@ -1,5 +1,6 @@
-use std::{error::Error, iter::FromIterator, path::PathBuf, slice::Iter};
+use std::{iter::FromIterator, path::PathBuf, slice::Iter};
 
+use anyhow::{Ok, Result};
 use itertools::Itertools;
 use svg::{node::element::path::Data, Document};
 
@@ -137,7 +138,7 @@ impl Layer {
         document
     }
 
-    pub fn write_svg(&self, path: PathBuf, scale: f32) -> Result<(), Box<dyn Error>> {
+    pub fn write_svg(&self, path: &PathBuf, scale: f32) -> Result<()> {
         let document = self.as_svg(scale);
         svg::save(path.to_str().unwrap(), &document)?;
         Ok(())
