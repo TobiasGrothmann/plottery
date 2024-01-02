@@ -3,7 +3,7 @@ use std::{error::Error, iter::FromIterator, path::PathBuf, slice::Iter};
 use itertools::Itertools;
 use svg::{node::element::path::Data, Document};
 
-use crate::{traits::plottable::Plottable, Rect, Shape, V2};
+use crate::{traits::plottable::Plottable, Circle, Path, Rect, Shape, V2};
 
 pub struct Layer {
     pub shapes: Vec<Shape>,
@@ -26,6 +26,15 @@ impl Layer {
 
     pub fn push(&mut self, shape: Shape) {
         self.shapes.push(shape);
+    }
+    pub fn push_path(&mut self, path: Path) {
+        self.shapes.push(Shape::Path(path));
+    }
+    pub fn push_circle(&mut self, circle: Circle) {
+        self.shapes.push(Shape::Circle(circle));
+    }
+    pub fn push_rect(&mut self, rect: Rect) {
+        self.shapes.push(Shape::Rect(rect));
     }
     pub fn push_layer(&mut self, layer: Layer) {
         self.sublayers.push(layer);
