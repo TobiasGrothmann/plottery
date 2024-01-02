@@ -191,7 +191,7 @@ impl Project {
             fontdb.load_system_fonts();
 
             let svg_data = std::fs::read(&temp_svg_path).unwrap();
-            let mut tree = usvg::Tree::from_data(&svg_data, &opt).unwrap();
+            let mut tree = usvg::Tree::from_data(&svg_data, &opt)?;
             tree.convert_text(&fontdb);
             resvg::Tree::from_usvg(&tree)
         };
@@ -199,7 +199,7 @@ impl Project {
         let pixmap_size = rtree.size.to_int_size();
         let mut pixmap = tiny_skia::Pixmap::new(pixmap_size.width(), pixmap_size.height()).unwrap();
         rtree.render(tiny_skia::Transform::default(), &mut pixmap.as_mut());
-        pixmap.save_png(&path).unwrap();
+        pixmap.save_png(&path)?;
 
         Ok(())
     }
