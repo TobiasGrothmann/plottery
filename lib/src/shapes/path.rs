@@ -36,12 +36,21 @@ impl Path {
     pub fn push(&mut self, point: V2) {
         self.points.push(point);
     }
+    pub fn close(&mut self) {
+        if !self.points.is_empty() {
+            self.points.push(*self.points.first().unwrap());
+        }
+    }
 
     pub fn iter(&self) -> Iter<'_, V2> {
         self.points.iter()
     }
     pub fn iter_mut(&mut self) -> IterMut<'_, V2> {
         self.points.iter_mut()
+    }
+
+    pub fn get_points_ref(&self) -> &Vec<V2> {
+        &self.points
     }
 }
 

@@ -98,6 +98,6 @@ mod test_layer {
 
         let temp_dir = tempfile::tempdir().unwrap();
         let svg_path = temp_dir.path().join("test.svg");
-        l.write_svg(&SampleSettings::default(), svg_path, 100.0);
+        l.write_svg(svg_path, 100.0).unwrap();
     }
 }

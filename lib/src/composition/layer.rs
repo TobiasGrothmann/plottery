@@ -1,12 +1,9 @@
-use std::{iter::FromIterator, path::PathBuf, slice::Iter};
+use std::{error::Error, iter::FromIterator, path::PathBuf, slice::Iter};
 
 use itertools::Itertools;
-use svg::{
-    node::element::{path::Data, Path},
-    Document,
-};
+use svg::{node::element::path::Data, Document};
 
-use crate::{traits::plottable::Plottable, Rect, SampleSettings, Shape, V2};
+use crate::{traits::plottable::Plottable, Rect, Shape, V2};
 
 pub struct Layer {
     pub shapes: Vec<Shape>,
@@ -60,54 +57,81 @@ impl Layer {
         self.sublayers.len() as i32
     }
 
-    fn as_svg(&self, sample_settings: &SampleSettings, scale: f32) -> Document {
-        let shapes_points: Vec<Vec<V2>> = self
-            .iter_flattened()
-            .map(|shape| shape.get_points_oversampled(sample_settings))
-            .map(|points| points.iter().map(|point| point * scale).collect_vec())
-            .collect();
-
+    fn as_svg(&self, scale: f32) -> Document {
         let bounding_box = self.bounding_box();
-        let mut document = Document::new().set(
-            "viewbox",
-            (
-                bounding_box.bl().x * scale,
-                bounding_box.bl().y * scale,
-                bounding_box.tr().x * scale,
-                bounding_box.tr().y * scale,
-            ),
-        );
+        let mut document = Document::new()
+            .set(
+                "viewbox",
+                (
+                    bounding_box.bl().x * scale,
+                    bounding_box.bl().y * scale,
+                    bounding_box.tr().x * scale,
+                    bounding_box.tr().y * scale,
+                ),
+            )
+            .set("width", bounding_box.size().x * scale)
+            .set("height", bounding_box.size().y * scale);
 
-        for shape_points in shapes_points {
-            if shape_points.len() <= 1 {
-                continue;
+        let fill = "none";
+        let stroke = "black";
+        let stroke_width = 0.1;
+
+        for shape in self.iter_flattened() {
+            match shape {
+                Shape::Circle(c) => {
+                    let circle = svg::node::element::Circle::new()
+                        .set("cx", c.center.x * scale)
+                        .set("cy", c.center.y * scale)
+                        .set("r", c.radius * scale)
+                        .set("fill", fill)
+                        .set("stroke", stroke)
+                        .set("stroke-width", stroke_width);
+                    document = document.add(circle);
+                }
+                Shape::Rect(r) => {
+                    let bl = r.bl();
+                    let size = r.size();
+                    let rect = svg::node::element::Rectangle::new()
+                        .set("x", bl.x * scale)
+                        .set("y", bl.y * scale)
+                        .set("width", size.x * scale)
+                        .set("height", size.y * scale)
+                        .set("fill", fill)
+                        .set("stroke", stroke)
+                        .set("stroke-width", stroke_width);
+                    document = document.add(rect);
+                }
+                Shape::Path(p) => {
+                    let points = p.get_points_ref();
+                    if points.len() <= 1 {
+                        continue;
+                    }
+                    let mut data = Data::new();
+                    data = data.move_to(points[0].as_tuple());
+                    data = points
+                        .iter()
+                        .skip(1)
+                        .fold(data, |data, point| data.line_to((point * scale).as_tuple()));
+
+                    if points.first().unwrap() == points.last().unwrap() {
+                        data = data.close();
+                    }
+                    let path = svg::node::element::Path::new()
+                        .set("d", data)
+                        .set("fill", fill)
+                        .set("stroke", stroke)
+                        .set("stroke-width", stroke_width);
+                    document = document.add(path);
+                }
             }
-
-            let mut data = Data::new();
-            data = data.move_to(shape_points[0].as_tuple());
-            data = shape_points
-                .iter()
-                .skip(1)
-                .fold(data, |acc, point| acc.line_to(point.as_tuple()));
-
-            if shape_points.first().unwrap() == shape_points.last().unwrap() {
-                data = data.close();
-            }
-
-            let path = Path::new()
-                .set("fill", "none")
-                .set("stroke", "black")
-                .set("stroke-width", 1)
-                .set("d", data);
-
-            document = document.add(path);
         }
         document
     }
 
-    pub fn write_svg(&self, sample_settings: &SampleSettings, path: PathBuf, scale: f32) {
-        let document = self.as_svg(sample_settings, scale);
-        svg::save(path.to_str().unwrap(), &document).unwrap();
+    pub fn write_svg(&self, path: PathBuf, scale: f32) -> Result<(), Box<dyn Error>> {
+        let document = self.as_svg(scale);
+        svg::save(path.to_str().unwrap(), &document)?;
+        Ok(())
     }
 
     pub fn bounding_box(&self) -> Rect {
