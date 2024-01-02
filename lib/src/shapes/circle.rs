@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-use crate::{Angle, Plottable, Rotate, Rotate90, SampleSettings, Shape, V2};
+use crate::{Angle, Plottable, Rect, Rotate, Rotate90, SampleSettings, Shape, V2};
 
 #[derive(Debug, Clone, Default)]
 pub struct Circle {
@@ -43,10 +43,10 @@ impl Plottable for Circle {
         true
     }
 
-    fn bounding_box(&self) -> (V2, V2) {
+    fn bounding_box(&self) -> Rect {
         let min = self.center - V2::new(self.radius, self.radius);
         let max = self.center + V2::new(self.radius, self.radius);
-        (min, max)
+        Rect::new(min, max)
     }
 }
 

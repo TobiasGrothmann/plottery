@@ -81,8 +81,8 @@ mod test_layer {
         l.push(Rect::new_shape(V2::new(0.0, 0.0), V2::new(3.0, 1.0)));
 
         let bounding_box = l.bounding_box();
-        assert_eq!(bounding_box.0, V2::new(-0.5, 0.0));
-        assert_eq!(bounding_box.1, V2::new(3.0, 2.0));
+        assert_eq!(bounding_box.bl(), V2::new(-0.5, 0.0));
+        assert_eq!(bounding_box.tr(), V2::new(3.0, 2.0));
     }
 
     #[test]

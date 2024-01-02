@@ -6,7 +6,7 @@ use svg::{
     Document,
 };
 
-use crate::{traits::plottable::Plottable, SampleSettings, Shape, V2};
+use crate::{traits::plottable::Plottable, Rect, SampleSettings, Shape, V2};
 
 pub struct Layer {
     pub shapes: Vec<Shape>,
@@ -71,10 +71,10 @@ impl Layer {
         let mut document = Document::new().set(
             "viewbox",
             (
-                bounding_box.0.x * scale,
-                bounding_box.0.y * scale,
-                bounding_box.1.x * scale,
-                bounding_box.1.y * scale,
+                bounding_box.bl().x * scale,
+                bounding_box.bl().y * scale,
+                bounding_box.tr().x * scale,
+                bounding_box.tr().y * scale,
             ),
         );
 
@@ -110,15 +110,15 @@ impl Layer {
         svg::save(path.to_str().unwrap(), &document).unwrap();
     }
 
-    pub fn bounding_box(&self) -> (V2, V2) {
+    pub fn bounding_box(&self) -> Rect {
         let mut min = V2::new(0.0, 0.0);
         let mut max = V2::new(0.0, 0.0);
         for shape in self.shapes.iter() {
-            let (shape_min, shape_max) = shape.bounding_box();
-            min = min.min(&shape_min);
-            max = max.max(&shape_max);
+            let shape_box = shape.bounding_box();
+            min = min.min(&shape_box.bl());
+            max = max.max(&shape_box.tr());
         }
-        (min, max)
+        Rect::new(min, max)
     }
 }
 

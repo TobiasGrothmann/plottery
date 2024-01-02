@@ -75,8 +75,8 @@ impl Plottable for Rect {
         true
     }
 
-    fn bounding_box(&self) -> (V2, V2) {
-        (self.bot_left, self.top_right)
+    fn bounding_box(&self) -> Rect {
+        self.clone()
     }
 }
 
