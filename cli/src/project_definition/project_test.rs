@@ -71,4 +71,24 @@ mod tests {
         let generated_layer = project.run_code(true).unwrap();
         assert!(!generated_layer.is_empty());
     }
+
+    #[test]
+    fn render() {
+        let mut project_path = Path::new(env!("CARGO_MANIFEST_DIR")).to_path_buf();
+        project_path.push("test/test_project/test_project.plottery");
+        assert!(project_path.exists());
+
+        let project = Project::load_from_file(project_path).unwrap();
+        assert!(project.exists());
+
+        let temp_dir = tempfile::tempdir().unwrap();
+
+        let temp_svg_path = temp_dir.path().join("temp.svg");
+        project.write_svg(temp_svg_path.clone(), true).unwrap();
+        assert!(temp_svg_path.exists());
+
+        let temp_png_path = temp_dir.path().join("temp.png");
+        project.write_png(temp_png_path.clone(), true).unwrap();
+        assert!(temp_png_path.exists());
+    }
 }

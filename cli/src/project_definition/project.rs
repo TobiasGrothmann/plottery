@@ -174,16 +174,16 @@ impl Project {
         }
     }
 
-    pub fn write_svg(&self, path: &PathBuf, release: bool) -> Result<()> {
+    pub fn write_svg(&self, path: PathBuf, release: bool) -> Result<()> {
         let layer = self.run_code(release)?;
-        layer.write_svg(&path, 10.0)
+        layer.write_svg(path.clone(), 10.0)
     }
 
-    pub fn write_png(&self, path: &PathBuf, release: bool) -> Result<()> {
+    pub fn write_png(&self, path: PathBuf, release: bool) -> Result<()> {
         let layer = self.run_code(release)?;
         let temp_dir = tempfile::tempdir()?;
         let temp_svg_path = temp_dir.path().join("test.svg");
-        layer.write_svg(&temp_svg_path, 10.0)?;
+        layer.write_svg(temp_svg_path.clone(), 10.0)?;
 
         let rtree = {
             let opt = usvg::Options::default();
@@ -199,7 +199,7 @@ impl Project {
         let pixmap_size = rtree.size.to_int_size();
         let mut pixmap = tiny_skia::Pixmap::new(pixmap_size.width(), pixmap_size.height()).unwrap();
         rtree.render(tiny_skia::Transform::default(), &mut pixmap.as_mut());
-        pixmap.save_png(&path)?;
+        pixmap.save_png(path)?;
 
         Ok(())
     }

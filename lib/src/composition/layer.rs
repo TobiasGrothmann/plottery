@@ -138,7 +138,7 @@ impl Layer {
         document
     }
 
-    pub fn write_svg(&self, path: &PathBuf, scale: f32) -> Result<()> {
+    pub fn write_svg(&self, path: PathBuf, scale: f32) -> Result<()> {
         let document = self.as_svg(scale);
         svg::save(path.to_str().unwrap(), &document)?;
         Ok(())
