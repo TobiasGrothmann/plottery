@@ -9,7 +9,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // save to svg
     let path = PathBuf::from("tmp.svg");
-    art.write_svg(path.clone(), 10.0).unwrap();
+    art.write_svg(&path, 10.0).unwrap();
 
     // open svg
     opener::open(path)?;
