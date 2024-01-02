@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod test_vec2 {
+    use itertools::Itertools;
+
     use crate::{geometry::Angle, Rotate, Rotate90, V2};
 
     #[test]
@@ -143,5 +145,40 @@ mod test_vec2 {
 
         let v = V2::new(1.0, 0.0).max(&V2::new(1.0, 1.0));
         assert_eq!(v, V2::new(1.0, 1.0));
+    }
+
+    #[test]
+    fn len() {
+        let v = V2::new(1.0, 0.0);
+        assert_eq!(v.len(), 1.0);
+
+        let v = V2::new(1.0, 1.0);
+        assert_eq!(v.len(), 2.0_f32.sqrt());
+    }
+
+    #[test]
+    fn din_a_sizes() {
+        let sizes = vec![
+            V2::a0(),
+            V2::a1(),
+            V2::a2(),
+            V2::a3(),
+            V2::a4(),
+            V2::a5(),
+            V2::a6(),
+            V2::a7(),
+            V2::a8(),
+            V2::a9(),
+            V2::a10(),
+        ];
+
+        for (i, (size, size_next)) in sizes.iter().tuple_windows().enumerate() {
+            assert!(size.len() > size_next.len());
+            assert_eq!(size.x, size_next.y);
+
+            let area_target = (100.0 * 100.0) / 2.0_f32.powi(i as i32); // Din a0 is 1m^2 - area gets halved every step
+            let area = size.x * size.y;
+            assert!((area - area_target).abs() < 6.0); // the actually used sizes have quite a big error
+        }
     }
 }

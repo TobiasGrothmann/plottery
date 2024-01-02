@@ -32,6 +32,40 @@ impl V2 {
         }
     }
 
+    pub fn a0() -> Self {
+        Self { x: 84.1, y: 118.9 }
+    }
+    pub fn a1() -> Self {
+        Self { x: 59.4, y: 84.1 }
+    }
+    pub fn a2() -> Self {
+        Self { x: 42.0, y: 59.4 }
+    }
+    pub fn a3() -> Self {
+        Self { x: 29.7, y: 42.0 }
+    }
+    pub fn a4() -> Self {
+        Self { x: 21.0, y: 29.7 }
+    }
+    pub fn a5() -> Self {
+        Self { x: 14.8, y: 21.0 }
+    }
+    pub fn a6() -> Self {
+        Self { x: 10.5, y: 14.8 }
+    }
+    pub fn a7() -> Self {
+        Self { x: 7.4, y: 10.5 }
+    }
+    pub fn a8() -> Self {
+        Self { x: 5.2, y: 7.4 }
+    }
+    pub fn a9() -> Self {
+        Self { x: 3.7, y: 5.2 }
+    }
+    pub fn a10() -> Self {
+        Self { x: 2.6, y: 3.7 }
+    }
+
     pub fn as_geo_coord(&self) -> Coord<f32> {
         Coord {
             x: self.x,
@@ -54,6 +88,10 @@ impl V2 {
     }
     pub fn dist_manhattan(&self, other: &Self) -> f32 {
         (self.x - other.x).abs() + (self.y - other.y).abs()
+    }
+
+    pub fn len(&self) -> f32 {
+        (self.x.powi(2) + self.y.powi(2)).sqrt()
     }
 }
 
