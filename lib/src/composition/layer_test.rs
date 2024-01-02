@@ -101,7 +101,7 @@ mod test_layer {
 
         let temp_dir = tempfile::tempdir().unwrap();
         let svg_path = temp_dir.path().join("test.svg");
-        l.write_svg(svg_path.clone(), 100.0).unwrap();
+        l.write_svg(&svg_path, 100.0).unwrap();
 
         // load svg and check that it is valid
         let mut svg_content = String::new();
