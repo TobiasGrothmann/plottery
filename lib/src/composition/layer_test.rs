@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod test_layer {
+    use std::collections::HashMap;
+
     use itertools::Itertools;
+    use svg::parser::Event;
 
     use crate::{Circle, Layer, Path, Plottable, Rect, SampleSettings, V2};
 
@@ -98,6 +101,36 @@ mod test_layer {
 
         let temp_dir = tempfile::tempdir().unwrap();
         let svg_path = temp_dir.path().join("test.svg");
-        l.write_svg(svg_path, 100.0).unwrap();
+        l.write_svg(svg_path.clone(), 100.0).unwrap();
+
+        // load svg and check that it is valid
+        let mut svg_content = String::new();
+        let mut paths_count: HashMap<&str, usize> = std::collections::HashMap::new();
+        for event in svg::open(svg_path, &mut svg_content).unwrap() {
+            match event {
+                Event::Tag(path, _type, _attributes) => {
+                    if !paths_count.contains_key(path) {
+                        paths_count.insert(path, 0);
+                    }
+                    *paths_count.get_mut(path).unwrap() += 1;
+                }
+                Event::Error(_) => todo!(),
+                Event::Text(_) => todo!(),
+                Event::Comment(_) => todo!(),
+                Event::Declaration(_) => todo!(),
+                Event::Instruction(_) => todo!(),
+            }
+        }
+
+        assert!(paths_count.contains_key("svg"));
+
+        assert!(paths_count.contains_key("path"));
+        assert_eq!(*paths_count.get("path").unwrap(), 1);
+
+        assert!(paths_count.contains_key("circle"));
+        assert_eq!(*paths_count.get("circle").unwrap(), 1);
+
+        assert!(paths_count.contains_key("rect"));
+        assert_eq!(*paths_count.get("rect").unwrap(), 1);
     }
 }
