@@ -18,3 +18,7 @@ libloading = "0.8.1"
 clap = "4.4.11"
 resvg = "0.37.0"
 path-absolutize = "3.1.1"
+
+[[bin]]
+name = "plottery_cli"
+path = "src/main.rs"

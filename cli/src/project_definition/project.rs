@@ -1,15 +1,16 @@
 use super::generate_cargo_project;
 use crate::{project_definition::compile_cargo::compile_cargo_project, ProjectConfig};
-use path_absolutize::Absolutize;
 use plottery_lib::*;
 
 use anyhow::{Error, Ok, Result};
 use libloading::Library;
+use path_absolutize::Absolutize;
 use resvg::{tiny_skia, usvg};
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use usvg::{fontdb, TreeParsing, TreeTextToPath};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Project {
     pub project_config: ProjectConfig,
     pub dir: PathBuf,
