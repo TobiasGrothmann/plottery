@@ -3255,6 +3255,7 @@ dependencies = [
  "dioxus-logger",
  "directories",
  "log",
+ "path-absolutize",
  "plottery_cli",
  "plottery_lib",
  "serde",

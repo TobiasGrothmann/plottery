@@ -12,13 +12,13 @@ use usvg::{fontdb, TreeParsing, TreeTextToPath};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Project {
-    pub project_config: ProjectConfig,
+    pub config: ProjectConfig,
     pub dir: PathBuf,
 }
 
 impl PartialEq for Project {
     fn eq(&self, other: &Self) -> bool {
-        self.project_config == other.project_config
+        self.config == other.config
             && self.dir.to_path_buf().canonicalize().unwrap()
                 == other.dir.to_path_buf().canonicalize().unwrap()
     }
@@ -29,7 +29,7 @@ impl Project {
         let mut project_dir = parent.clone();
         project_dir.push(name.clone());
         Self {
-            project_config: ProjectConfig::new(name),
+            config: ProjectConfig::new(name),
             dir: project_dir,
         }
     }
@@ -38,7 +38,7 @@ impl Project {
         let dir_exsists = self.dir.exists();
 
         let mut project_config_path = self.dir.clone();
-        project_config_path.push(format!("{}.plottery", self.project_config.name));
+        project_config_path.push(format!("{}.plottery", self.config.name));
         let project_config_file_exists = project_config_path.exists();
 
         let cargo_project_exists = self.get_cargo_path().is_ok();
@@ -51,7 +51,7 @@ impl Project {
         let mut project_config_dir = project_config_path.clone();
         project_config_dir.pop();
         let loaded_project = Self {
-            project_config: project_config_file,
+            config: project_config_file,
             dir: project_config_dir,
         };
         assert!(loaded_project.exists());
@@ -66,7 +66,7 @@ impl Project {
 
     pub fn get_project_config_path(&self) -> PathBuf {
         let mut project_config_path = self.dir.clone();
-        project_config_path.push(format!("{}.plottery", self.project_config.name));
+        project_config_path.push(format!("{}.plottery", self.config.name));
         project_config_path
     }
 
@@ -107,7 +107,7 @@ impl Project {
 
         // generate cargo project from template
         if self.get_cargo_path().is_err() {
-            generate_cargo_project(self.dir.clone(), self.project_config.name.clone())?;
+            generate_cargo_project(self.dir.clone(), self.config.name.clone())?;
         }
 
         // create resource dir
@@ -121,7 +121,7 @@ impl Project {
 
     pub fn save_config(&self) -> Result<()> {
         let project_config_path = self.get_project_config_path();
-        self.project_config.save_to_file(&project_config_path)?;
+        self.config.save_to_file(&project_config_path)?;
         Ok(())
     }
 
