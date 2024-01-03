@@ -1,15 +1,14 @@
 #![allow(non_snake_case)]
-use std::path::PathBuf;
-
 use dioxus::prelude::*;
 use dioxus_desktop::{Config, LogicalSize, WindowBuilder, WindowCloseBehaviour};
-use plottery_cli::Project;
-
-use crate::{app_state::AppState, project_overview::ProjectOverview};
 use log::LevelFilter;
+use plottery_cli::Project;
+use std::path::PathBuf;
 
-mod app_state;
-mod project_overview;
+use crate::{components::project_overview::ProjectOverview, model::app_state::AppState};
+
+mod components;
+mod model;
 
 fn main() {
     dioxus_logger::DioxusLogger::new(LevelFilter::Info)
@@ -35,7 +34,7 @@ fn main() {
 
 fn App(cx: Scope) -> Element {
     log::info!("Loading app state");
-    let app_state = AppState::load().unwrap_or_else(|| {
+    let mut app_state = AppState::load().unwrap_or_else(|| {
         log::info!("App state file does not exist. Creating new app state.");
         let new_state = AppState::new();
         new_state.save();
@@ -43,7 +42,16 @@ fn App(cx: Scope) -> Element {
     });
     log::info!("App state contains {} projects", app_state.projects.len());
 
+    app_state.projects.push(
+        Project::load_from_file(PathBuf::from(
+            "/Users/admin/Dropbox/rust/plottery/cli/test/test_project/test_project.plottery",
+        ))
+        .unwrap(),
+    );
+    // app_state.save();
+
     cx.render(rsx! {
+        style { include_str!("./main.css") }
         div {
             h1 { "Projects" }
             main {

@@ -1,0 +1,18 @@
+body {
+  color: #333;
+  background-color: #eee;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  font-family: "Roboto", sans-serif;
+  user-select: none;
+  transition: 0.2s all;
+}
+
+.card {
+  padding: 16px;
+  border-radius: 4px;
+  background-color: #999;
+}
