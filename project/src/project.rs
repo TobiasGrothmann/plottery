@@ -1,5 +1,6 @@
+use crate::{compile_cargo::compile_cargo_project, ProjectConfig};
+
 use super::generate_cargo_project;
-use crate::{project_definition::compile_cargo::compile_cargo_project, ProjectConfig};
 use plottery_lib::*;
 
 use anyhow::{Error, Ok, Result};

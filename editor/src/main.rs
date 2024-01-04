@@ -2,7 +2,7 @@
 use dioxus::prelude::*;
 use dioxus_desktop::{Config, LogicalSize, WindowBuilder, WindowCloseBehaviour};
 use log::LevelFilter;
-use plottery_cli::Project;
+use plottery_project::Project;
 use std::path::PathBuf;
 
 use crate::{components::project_overview::ProjectOverview, model::app_state::AppState};
@@ -55,13 +55,13 @@ fn App(cx: Scope) -> Element {
         div {
             h1 { "Projects" }
             main {
-                app_state.projects.iter().map(|project| {
-                    rsx! {
-                        ProjectOverview {
-                            project: project.clone()
+                    app_state.projects.iter().map(|project| {
+                        rsx! {
+                            ProjectOverview {
+                                project: project.clone()
+                            }
                         }
-                    }
-                })
+                    })
             }
         }
     })

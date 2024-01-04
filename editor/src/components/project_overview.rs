@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use path_absolutize::Absolutize;
-use plottery_cli::Project;
+use plottery_project::Project;
 
 #[derive(PartialEq, Props)]
 pub struct ProjectOverviewProps {

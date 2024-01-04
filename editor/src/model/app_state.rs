@@ -1,7 +1,6 @@
+use plottery_project::Project;
 use serde::{Deserialize, Serialize};
 use std::{fs::File, path::PathBuf};
-
-use plottery_cli::Project;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppState {

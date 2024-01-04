@@ -1,9 +1,6 @@
 use clap::{Parser, Subcommand, ValueEnum};
+use plottery_project::Project;
 use std::path::PathBuf;
-
-pub mod project_definition;
-pub use project_definition::Project;
-pub use project_definition::ProjectConfig;
 
 #[derive(Debug, Clone, ValueEnum, PartialEq)]
 enum RenderType {
