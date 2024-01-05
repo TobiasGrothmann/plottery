@@ -1,6 +1,9 @@
 #![allow(non_snake_case)]
-use dioxus::prelude::*;
-use dioxus_desktop::{Config, LogicalSize, WindowBuilder, WindowCloseBehaviour};
+use dioxus::{html::GlobalAttributes, prelude::*};
+use dioxus_desktop::{
+    tao::menu::{MenuBar, MenuItem},
+    Config, LogicalSize, WindowBuilder, WindowCloseBehaviour,
+};
 use log::LevelFilter;
 use plottery_project::Project;
 use std::path::PathBuf;
@@ -9,6 +12,8 @@ use crate::{components::project_overview::ProjectOverview, model::app_state::App
 
 mod components;
 mod model;
+mod util;
+mod util_test;
 
 fn main() {
     dioxus_logger::DioxusLogger::new(LevelFilter::Info)
@@ -26,7 +31,19 @@ fn main() {
                         width: 1300.0,
                         height: 800.0,
                     })
-                    .with_focused(true),
+                    .with_focused(true)
+                    .with_menu({
+                        let mut menu = MenuBar::new();
+
+                        let mut app_menu = MenuBar::new();
+                        app_menu.add_native_item(MenuItem::Minimize);
+                        app_menu.add_native_item(MenuItem::Hide);
+                        app_menu.add_native_item(MenuItem::EnterFullScreen);
+                        app_menu.add_native_item(MenuItem::Quit);
+
+                        menu.add_submenu("Plottery Editor", true, app_menu);
+                        menu
+                    }),
             )
             .with_close_behaviour(WindowCloseBehaviour::CloseWindow),
     );
@@ -40,11 +57,10 @@ fn App(cx: Scope) -> Element {
         new_state.save();
         new_state
     });
-    log::info!("App state contains {} projects", app_state.projects.len());
 
     app_state.projects.push(
         Project::load_from_file(PathBuf::from(
-            "/Users/admin/Dropbox/rust/plottery/cli/test/test_project/test_project.plottery",
+            "/Users/admin/Dropbox/rust/plottery/project/test/test_project/test_project.plottery",
         ))
         .unwrap(),
     );
@@ -55,6 +71,7 @@ fn App(cx: Scope) -> Element {
         div {
             h1 { "Projects" }
             main {
+                div { class: "project_list",
                     app_state.projects.iter().map(|project| {
                         rsx! {
                             ProjectOverview {
@@ -62,6 +79,7 @@ fn App(cx: Scope) -> Element {
                             }
                         }
                     })
+                }
             }
         }
     })

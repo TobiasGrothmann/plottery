@@ -1,0 +1,25 @@
+.project_overview {
+  display: flex;
+  flex-direction: row;
+  column-gap: var(--gap-0);
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--gap-0);
+}
+
+.project-not-found {
+  background-color: var(--col-err);
+}
+
+.err_header {
+  padding: var(--gap-0);
+  background-color: var(--col-err);
+  border-radius: var(--border-radius);
+}
+
+.grey_text {
+  color: var(--col-fg-1);
+}

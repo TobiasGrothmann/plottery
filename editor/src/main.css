@@ -1,7 +1,4 @@
-body {
-  color: #333;
-  background-color: #eee;
-}
+/* GLOBAL */
 
 * {
   margin: 0;
@@ -9,10 +6,51 @@ body {
   font-family: "Roboto", sans-serif;
   user-select: none;
   transition: 0.2s all;
+
+  /* global variables */
+  --col-bg-0: #202120;
+  --col-bg-1: #373837;
+  --col-fg-0: #e5e5e5;
+  --col-fg-1: #858585;
+  --col-err: #a44;
+
+  --gap-small: 3px;
+  --gap-0: 7px;
+  --gap-1: 14px;
+  --gap-2: 21px;
+
+  --border-radius: 5px;
+}
+
+body {
+  padding: var(--gap-0);
+  color: var(--col-fg-0);
+  background-color: var(--col-bg-0);
+}
+
+p {
+  font-size: 16px;
+}
+h2 {
+  font-size: 20px;
+}
+h1 {
+  font-size: 24px;
+  text-transform: capitalize;
 }
 
 .card {
-  padding: 16px;
-  border-radius: 4px;
-  background-color: #999;
+  padding: var(--gap-1);
+  border-radius: var(--border-radius);
+  background-color: var(--col-bg-1);
+}
+
+/* main.rs */
+
+.project_list {
+  margin-top: var(--gap-0);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  row-gap: 8px;
 }
