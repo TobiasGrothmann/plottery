@@ -1,4 +1,4 @@
-use dioxus::prelude::*;
+use dioxus::{prelude::*, html::svg};
 use path_absolutize::Absolutize;
 use plottery_project::Project;
 
@@ -40,17 +40,19 @@ pub fn ProjectOverview(cx: Scope<ProjectOverviewProps>) -> Element {
                         }
                         button {
                             onclick: move |_event| {
+                                cx.props.project.compile(true).unwrap();
                                 let layer = cx.props.project.run_code(true).unwrap();
+                                layer.write_svg(cx.props.project.get_preview_image_path(), 1.0).unwrap();
                                 log::info!("layer: {:?}", layer);
                             },
                             "Run"
                         }
                     }
                     div { class: "preview",
-                        if preview_image.is_some() {
+                        if preview_image.exists() {
                             cx.render(rsx!(
                                 Image { class: "preview_image",
-                                    img_path: preview_image.unwrap().absolutize().unwrap().to_string_lossy().to_string(),
+                                    img_path: preview_image.absolutize().unwrap().to_string_lossy().to_string()
                                 }
                             ))
                         } else {

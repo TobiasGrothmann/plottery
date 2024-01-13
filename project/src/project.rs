@@ -65,18 +65,14 @@ impl Project {
         resource_dir
     }
 
-    pub fn get_resource_dir_asset_path(&self, asset_name: String) -> Option<PathBuf> {
+    pub fn get_resource_dir_asset_path(&self, asset_name: String) -> PathBuf {
         let mut resource_path = self.get_resource_dir();
         resource_path.push(asset_name);
-        if !resource_path.exists() {
-            return None;
-        }
-
-        Some(resource_path)
+        resource_path
     }
 
-    pub fn get_preview_image_path(&self) -> Option<PathBuf> {
-        self.get_resource_dir_asset_path("preview.png".to_string())
+    pub fn get_preview_image_path(&self) -> PathBuf {
+        self.get_resource_dir_asset_path("preview.svg".to_string())
     }
 
     pub fn get_project_config_path(&self) -> PathBuf {
