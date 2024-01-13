@@ -45,6 +45,12 @@ h1 {
   background-color: var(--col-bg-1);
 }
 
+.err_box {
+  padding: var(--gap-0);
+  background-color: var(--col-err) !important;
+  border-radius: var(--border-radius) !important;
+}
+
 /* main.rs */
 
 .project_list {

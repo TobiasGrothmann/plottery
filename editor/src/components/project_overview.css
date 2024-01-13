@@ -1,6 +1,7 @@
 .project_overview {
   display: flex;
   flex-direction: row;
+  justify-content: space-between;
   column-gap: var(--gap-0);
 }
 
@@ -14,12 +15,10 @@
   background-color: var(--col-err);
 }
 
-.err_header {
-  padding: var(--gap-0);
-  background-color: var(--col-err);
-  border-radius: var(--border-radius);
-}
-
 .grey_text {
   color: var(--col-fg-1);
+}
+
+.preview_image {
+  height: 200px;
 }

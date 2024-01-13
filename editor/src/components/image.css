@@ -1,0 +1,7 @@
+.image {
+  height: 100%;
+}
+
+img {
+  border-radius: var(--border-radius);
+}
