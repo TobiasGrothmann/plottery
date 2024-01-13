@@ -39,6 +39,17 @@ h1 {
   text-transform: capitalize;
 }
 
+button {
+  font-size: 16px;
+  padding: var(--gap-0) var(--gap-1);
+  border-radius: var(--border-radius);
+  background-color: var(--col-fg-0);
+  color: var(--col-bg-0);
+  border: none;
+  cursor: pointer;
+  outline: none;
+}
+
 .card {
   padding: var(--gap-1);
   border-radius: var(--border-radius);

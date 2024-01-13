@@ -6,6 +6,7 @@ use svg::{node::element::path::Data, Document};
 
 use crate::{traits::plottable::Plottable, Circle, Path, Rect, Shape, V2};
 
+#[derive(Debug)]
 pub struct Layer {
     pub shapes: Vec<Shape>,
     pub sublayers: Vec<Layer>,

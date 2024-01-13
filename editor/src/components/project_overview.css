@@ -22,3 +22,9 @@
 .preview_image {
   height: 200px;
 }
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--gap-0);
+}

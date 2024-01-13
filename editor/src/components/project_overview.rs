@@ -31,20 +31,37 @@ pub fn ProjectOverview(cx: Scope<ProjectOverviewProps>) -> Element {
                     }
                 }
             }
-            div { class: "preview",
-                if preview_image.is_some() {
-                    cx.render(rsx!(
-                        Image { class: "preview_image",
-                            img_path: preview_image.unwrap().absolutize().unwrap().to_string_lossy().to_string(),
+            if project_exists {
+                cx.render(rsx!(
+                    div { class: "actions",
+                        button {
+                            onclick: move |_event| cx.props.project.compile(true).unwrap(),
+                            "Compile"
                         }
-                    ))
-                } else {
-                    cx.render(rsx!(
-                        div { class: "err_box",
-                            p { "Preview image could not be found!" }
+                        button {
+                            onclick: move |_event| {
+                                let layer = cx.props.project.run_code(true).unwrap();
+                                log::info!("layer: {:?}", layer);
+                            },
+                            "Run"
                         }
-                    ))
-                }
+                    }
+                    div { class: "preview",
+                        if preview_image.is_some() {
+                            cx.render(rsx!(
+                                Image { class: "preview_image",
+                                    img_path: preview_image.unwrap().absolutize().unwrap().to_string_lossy().to_string(),
+                                }
+                            ))
+                        } else {
+                            cx.render(rsx!(
+                                div { class: "err_box",
+                                    p { "Preview image could not be found!" }
+                                }
+                            ))
+                        }
+                    }
+                ))
             }
         }
     })
