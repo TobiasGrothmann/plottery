@@ -6,6 +6,7 @@ use dioxus::prelude::*;
 pub struct ImageProps {
     pub class: String,
     pub img_path: String,
+    pub redraw_counter: u32,
 }
 
 pub fn Image(cx: Scope<ImageProps>) -> Element {

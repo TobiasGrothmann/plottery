@@ -3276,6 +3276,7 @@ dependencies = [
  "libloading",
  "path-absolutize",
  "plottery_lib",
+ "rand 0.8.5",
  "resvg",
  "serde",
  "serde_json",

@@ -1,4 +1,4 @@
-use dioxus::{prelude::*, html::svg};
+use dioxus::prelude::*;
 use path_absolutize::Absolutize;
 use plottery_project::Project;
 
@@ -12,6 +12,8 @@ pub struct ProjectOverviewProps {
 pub fn ProjectOverview(cx: Scope<ProjectOverviewProps>) -> Element {
     let project_exists = cx.props.project.exists();
     let preview_image = cx.props.project.get_preview_image_path();
+
+    let run_counter = use_state(cx, || 0_u32);
 
     cx.render(rsx! {
         style { include_str!("./project_overview.css") }
@@ -43,6 +45,7 @@ pub fn ProjectOverview(cx: Scope<ProjectOverviewProps>) -> Element {
                                 cx.props.project.compile(true).unwrap();
                                 let layer = cx.props.project.run_code(true).unwrap();
                                 layer.write_svg(cx.props.project.get_preview_image_path(), 1.0).unwrap();
+                                run_counter.set(run_counter.get() + 1);
                                 log::info!("layer: {:?}", layer);
                             },
                             "Run"
@@ -52,7 +55,8 @@ pub fn ProjectOverview(cx: Scope<ProjectOverviewProps>) -> Element {
                         if preview_image.exists() {
                             cx.render(rsx!(
                                 Image { class: "preview_image".to_string(),
-                                    img_path: preview_image.absolutize().unwrap().to_string_lossy().to_string()
+                                    img_path: preview_image.absolutize().unwrap().to_string_lossy().to_string(),
+                                    redraw_counter: *run_counter.get()
                                 }
                             ))
                         } else {
