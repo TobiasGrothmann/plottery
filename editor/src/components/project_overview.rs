@@ -51,7 +51,7 @@ pub fn ProjectOverview(cx: Scope<ProjectOverviewProps>) -> Element {
                     div { class: "preview",
                         if preview_image.exists() {
                             cx.render(rsx!(
-                                Image { class: "preview_image",
+                                Image { class: "preview_image".to_string(),
                                     img_path: preview_image.absolutize().unwrap().to_string_lossy().to_string()
                                 }
                             ))
