@@ -26,6 +26,7 @@ dioxus-logger = { version = "0.4.1", features = ["timestamps"] }
 log = "0.4.20"
 path-absolutize = "3.1.1"
 chrono = "0.4.31"
+dioxus-router = "0.4.3"
 
 [[bin]]
 name = "PlotteryEditor"

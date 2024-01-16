@@ -1,7 +1,8 @@
-.image {
+.Image {
   height: 100%;
 }
 
 img {
   border-radius: var(--border-radius);
+  height: 100%;
 }

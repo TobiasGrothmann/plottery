@@ -1,4 +1,4 @@
-.project_overview {
+.ProjectOverview {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -19,12 +19,12 @@
   color: var(--col-fg-1);
 }
 
-.preview_image {
-  height: 200px;
-}
-
 .actions {
   display: flex;
   flex-direction: column;
   row-gap: var(--gap-0);
+}
+
+.preview {
+  height: 200px;
 }

@@ -2,7 +2,7 @@ use plottery_project::Project;
 use serde::{Deserialize, Serialize};
 use std::{fs::File, path::PathBuf};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AppState {
     pub projects: Vec<Project>,
 }

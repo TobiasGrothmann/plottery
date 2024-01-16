@@ -4,11 +4,11 @@ use dioxus::prelude::*;
 
 #[derive(PartialEq, Props)]
 pub struct ImageProps {
-    pub class: String,
     pub img_path: String,
     pub redraw_counter: u32,
 }
 
+#[component]
 pub fn Image(cx: Scope<ImageProps>) -> Element {
     let ms = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -17,9 +17,8 @@ pub fn Image(cx: Scope<ImageProps>) -> Element {
 
     cx.render(rsx!(
         style { include_str!("./image.css") }
-        div { class: cx.props.class.as_str(),
+        div { class: "Image",
             img {
-                class: "image",
                 src: "{cx.props.img_path.as_str()}?{ms}",
             }
         }

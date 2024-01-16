@@ -1,19 +1,27 @@
 #![allow(non_snake_case)]
-use dioxus::{html::GlobalAttributes, prelude::*};
+use crate::routes::Route;
+use dioxus::prelude::*;
 use dioxus_desktop::{
     tao::menu::{MenuBar, MenuItem},
     Config, LogicalSize, WindowBuilder, WindowCloseBehaviour,
 };
+use dioxus_router::prelude::*;
 use log::LevelFilter;
-use plottery_project::Project;
-use std::path::PathBuf;
-
-use crate::{components::project_overview::ProjectOverview, model::app_state::AppState};
 
 mod components;
 mod model;
+mod router_components;
+mod routes;
 mod util;
 mod util_test;
+
+fn App(cx: Scope) -> Element {
+    cx.render(rsx! {
+        style { include_str!("./main.css") }
+        Router::<Route> {
+        }
+    })
+}
 
 fn main() {
     dioxus_logger::DioxusLogger::new(LevelFilter::Info)
@@ -28,8 +36,8 @@ fn main() {
                 WindowBuilder::new()
                     .with_title("Plottery Editor")
                     .with_inner_size(LogicalSize {
-                        width: 1300.0,
-                        height: 800.0,
+                        width: 1400.0,
+                        height: 950.0,
                     })
                     .with_focused(true)
                     .with_menu({
@@ -47,40 +55,4 @@ fn main() {
             )
             .with_close_behaviour(WindowCloseBehaviour::CloseWindow),
     );
-}
-
-fn App(cx: Scope) -> Element {
-    log::info!("Loading app state");
-    let mut app_state = AppState::load().unwrap_or_else(|| {
-        log::info!("App state file does not exist. Creating new app state.");
-        let new_state = AppState::new();
-        new_state.save();
-        new_state
-    });
-
-    app_state.projects.push(
-        Project::load_from_file(PathBuf::from(
-            "/Users/admin/Dropbox/rust/plottery/project/test/test_project/test_project.plottery",
-        ))
-        .unwrap(),
-    );
-    // app_state.save();
-
-    cx.render(rsx! {
-        style { include_str!("./main.css") }
-        div {
-            h1 { "Projects" }
-            main {
-                div { class: "project_list",
-                    app_state.projects.iter().map(|project| {
-                        rsx! {
-                            ProjectOverview {
-                                project: project.clone()
-                            }
-                        }
-                    })
-                }
-            }
-        }
-    })
 }
