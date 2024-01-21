@@ -179,8 +179,8 @@ impl Project {
             let temp_dir = tempfile::tempdir()?;
             let temp_lib_path = temp_dir
                 .path()
-                .join(format!("temp_lib{}.dylib", rand::random::<u64>()));
-            std::fs::rename(lib_path.clone(), temp_lib_path.clone())?;
+                .join(format!("temp_lib_{}.dylib", rand::random::<u64>()));
+            std::fs::copy(lib_path.clone(), temp_lib_path.clone())?;
             let lib_path = temp_lib_path;
 
             let lib = Library::new(lib_path).expect("Failed to load library");

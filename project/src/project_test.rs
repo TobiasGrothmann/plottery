@@ -81,6 +81,8 @@ mod tests {
         let project = Project::load_from_file(project_path).unwrap();
         assert!(project.exists());
 
+        project.compile(true).unwrap();
+
         let temp_dir = tempfile::tempdir().unwrap();
 
         let temp_svg_path = temp_dir.path().join("temp.svg");
