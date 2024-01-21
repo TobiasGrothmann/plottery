@@ -41,7 +41,10 @@ impl Rect {
     }
 
     pub fn center(&self) -> V2 {
-        self.bot_left + (self.size() * 0.5)
+        V2::new(
+            (self.bot_left.x + self.top_right.x) * 0.5,
+            (self.bot_left.y + self.top_right.y) * 0.5,
+        )
     }
 
     pub fn left_mid(&self) -> V2 {
