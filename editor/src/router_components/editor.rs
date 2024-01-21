@@ -28,24 +28,24 @@ pub fn Editor(cx: Scope, project_path: String) -> Element {
 
         div { class: "Editor",
             div { class: "plot_header",
-                button {
+                button { class: "img_button",
                     onclick: move |_event| {
                         let nav = use_navigator(cx);
                         nav.go_back();
                     },
-                    "<-"
+                    img { src: "icons/back.svg" }
                 }
                 h1 {
                     "{project.config.name}"
                 }
                 div { class: "action_buttons",
-                    button {
+                    button { class: "img_button",
                         onclick: move |_event| {
                             project.compile(true).unwrap();
                         },
-                        "compile"
+                        img { src: "icons/construction.svg" }
                     }
-                    button {
+                    button { class: "img_button",
                         onclick: move |_event| {
                             let new_layer = project.run_code(true);
                             match new_layer {
@@ -57,7 +57,7 @@ pub fn Editor(cx: Scope, project_path: String) -> Element {
                                 Err(e) => {log::error!("Error running code: {}", e)}
                             }
                         },
-                        "run"
+                        img { src: "icons/play.svg" }
                     }
                 }
             }

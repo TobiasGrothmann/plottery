@@ -6,7 +6,7 @@ description = "Plottery Editor to manage Plottery projects."
 
 [package.metadata.bundle]
 name = "Plottery Editor"
-icon = ["assets/icon_512.png"]
+icon = ["plottery/icon_512.png"]
 identifier = "de.tobiasgrothmann.plottery"
 version = "0.0.1"
 copyright = "Copyright (c) Tobias Grothmann 2023. All rights reserved."
@@ -27,6 +27,8 @@ log = "0.4.20"
 path-absolutize = "3.1.1"
 chrono = "0.4.31"
 dioxus-router = "0.4.3"
+open = "5.0.1"
+os_type = "2.6.0"
 
 [[bin]]
 name = "PlotteryEditor"

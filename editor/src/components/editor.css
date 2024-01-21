@@ -1,5 +1,0 @@
-.Editor {
-  display: flex;
-  flex-direction: column;
-  column-gap: var(--gap);
-}

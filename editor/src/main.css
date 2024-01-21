@@ -71,3 +71,14 @@ button {
   background-color: var(--col-err) !important;
   border-radius: var(--border-radius) !important;
 }
+
+.icon_button {
+  padding: var(--gap-0) !important;
+}
+.icon_button img {
+  padding: 0;
+  margin: auto;
+  display: block;
+  width: 30px;
+  height: 30px;
+}

@@ -15,6 +15,7 @@
   align-items: center;
 }
 .action_buttons {
+  margin-left: auto;
   display: flex;
   flex-direction: row;
   column-gap: var(--gap-1);

@@ -18,7 +18,7 @@ pub fn ProjectList(cx: Scope<ProjectListProps>) -> Element {
                     cx.props.app_state.projects.iter().map(|project| {
                         rsx! {
                             ProjectOverview {
-                                project: project.clone()
+                                project: project.clone(),
                             }
                         }
                     })
