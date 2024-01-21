@@ -21,8 +21,11 @@ pub fn Browser(cx: Scope) -> Element {
     // app_state.save();
 
     cx.render(rsx! {
-        ProjectList {
-            app_state: app_state.clone(),
+        style { include_str!("./browser.css") }
+        div { class: "Browser",
+            ProjectList {
+                app_state: app_state.clone(),
+            }
         }
     })
 }

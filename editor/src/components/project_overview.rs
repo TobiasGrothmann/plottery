@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use dioxus_router::{components::Link, hooks::use_navigator};
+use dioxus_router::hooks::use_navigator;
 use path_absolutize::Absolutize;
 use plottery_project::Project;
 
