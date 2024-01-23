@@ -29,6 +29,8 @@ chrono = "0.4.31"
 dioxus-router = "0.4.3"
 open = "5.0.1"
 os_type = "2.6.0"
+dioxus-std = { version = "0.4.2", features = ["utils"] }
+tokio = "1.35.1"
 
 [[bin]]
 name = "PlotteryEditor"

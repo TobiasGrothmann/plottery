@@ -161,6 +161,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-broadcast"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7c48ccdbf6ca6b121e0f586cbc0e73ae440e56c67c30fa0873b4e110d9c26d2b"
+dependencies = [
+ "event-listener 2.5.3",
+ "futures-core",
+]
+
+[[package]]
 name = "async-channel"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1142,6 +1152,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "dioxus-std"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8763c3131f97e769edc2cc0783ff033286e3c7a3295437835b79d390b86b3bf"
+dependencies = [
+ "async-broadcast",
+ "cfg-if",
+ "dioxus",
+ "js-sys",
+ "uuid",
+]
+
+[[package]]
 name = "directories"
 version = "5.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1727,8 +1750,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe9006bed769170c11f845cf00c7c1e9092aeb3f268e007c3e760ac68008070f"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "wasi 0.11.0+wasi-snapshot-preview1",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -3522,6 +3547,7 @@ dependencies = [
  "dioxus-desktop",
  "dioxus-logger",
  "dioxus-router",
+ "dioxus-std",
  "directories",
  "log",
  "open",
@@ -3531,6 +3557,7 @@ dependencies = [
  "plottery_project",
  "serde",
  "serde_json",
+ "tokio",
 ]
 
 [[package]]
@@ -4949,6 +4976,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e395fcf16a7a3d8127ec99782007af141946b4795001f876d54fb0d55978560"
 dependencies = [
  "getrandom 0.2.11",
+ "wasm-bindgen",
 ]
 
 [[package]]
