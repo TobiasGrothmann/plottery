@@ -1,4 +1,7 @@
-use crate::{compile_cargo::compile_cargo_project, ProjectConfig};
+use crate::{
+    compile_cargo::{compile_cargo_project, compile_cargo_project_async},
+    ProjectConfig,
+};
 
 use super::generate_cargo_project;
 use plottery_lib::*;
@@ -8,7 +11,7 @@ use libloading::Library;
 use path_absolutize::Absolutize;
 use resvg::{tiny_skia, usvg};
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::{path::PathBuf, process::Child};
 use usvg::{fontdb, TreeParsing, TreeTextToPath};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -153,6 +156,15 @@ impl Project {
             return Err(Error::msg("Failed to compile cargo project"));
         }
         Ok(())
+    }
+
+    pub fn compile_async(&self, release: bool) -> Result<Child> {
+        let child_process = compile_cargo_project_async(
+            self.get_cargo_path()?,
+            self.get_plottery_target_dir()?,
+            release,
+        )?;
+        Ok(child_process)
     }
 
     pub fn run_code(&self, release: bool) -> Result<Layer> {
