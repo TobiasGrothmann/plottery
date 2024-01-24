@@ -31,6 +31,8 @@ open = "5.0.1"
 os_type = "2.6.0"
 dioxus-std = { version = "0.4.2", features = ["utils"] }
 tokio = "1.35.1"
+notify = "6.1.1"
+nix = { version = "0.27.1", features = ["signal"] }
 
 [[bin]]
 name = "PlotteryEditor"
