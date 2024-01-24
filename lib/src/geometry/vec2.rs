@@ -1,8 +1,9 @@
 use geo_types::Coord;
+use serde::{Deserialize, Serialize};
 
 use crate::{Angle, Rotate, Rotate90};
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, Serialize, Deserialize)]
 pub struct V2 {
     pub x: f32,
     pub y: f32,

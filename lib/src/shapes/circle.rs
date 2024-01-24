@@ -1,8 +1,9 @@
+use serde::{Deserialize, Serialize};
 use std::f32::consts::PI;
 
 use crate::{Angle, Plottable, Rect, Rotate, Rotate90, SampleSettings, Shape, V2};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Circle {
     pub center: V2,
     pub radius: f32,

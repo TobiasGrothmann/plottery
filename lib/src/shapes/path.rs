@@ -1,10 +1,11 @@
 use geo_types::{LineString, Polygon};
 use itertools::Itertools;
+use serde::{Deserialize, Serialize};
 use std::{slice::Iter, slice::IterMut};
 
 use crate::{Angle, Plottable, Rotate, Rotate90, SampleSettings, Shape, V2};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Path {
     points: Vec<V2>,
 }

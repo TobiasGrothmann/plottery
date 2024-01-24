@@ -1,12 +1,12 @@
-use std::{iter::FromIterator, path::PathBuf, slice::Iter};
-
 use anyhow::{Ok, Result};
-use itertools::Itertools;
+use bincode::{deserialize_from, serialize};
+use serde::{Deserialize, Serialize};
+use std::{fs::File, io::Write, iter::FromIterator, path::PathBuf, slice::Iter};
 use svg::{node::element::path::Data, Document};
 
 use crate::{traits::plottable::Plottable, Circle, Path, Rect, Shape, V2};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Layer {
     pub shapes: Vec<Shape>,
     pub sublayers: Vec<Layer>,
@@ -24,6 +24,24 @@ impl Layer {
             shapes,
             sublayers: Vec::new(),
         }
+    }
+    pub fn new_from_file(path: &PathBuf) -> Result<Layer> {
+        let file = File::open(path)?;
+        let decoded: Layer = deserialize_from(&file)?;
+        Ok(decoded)
+    }
+    pub fn new_from_binary(binary_datra: &Vec<u8>) -> Result<Layer> {
+        Ok(deserialize_from(binary_datra.as_slice())?)
+    }
+
+    pub fn write_file(&self, path: &PathBuf) -> Result<()> {
+        let encoded: Vec<u8> = serialize(self)?;
+        let mut file = File::create(path)?;
+        file.write_all(&encoded)?;
+        Ok(())
+    }
+    pub fn to_binary(&self) -> Result<Vec<u8>> {
+        Ok(serialize(self)?)
     }
 
     pub fn push(&mut self, shape: Shape) {
@@ -45,7 +63,6 @@ impl Layer {
     pub fn iter(&self) -> Iter<'_, Shape> {
         self.shapes.iter()
     }
-
     pub fn iter_sublayers(&self) -> Iter<Layer> {
         self.sublayers.iter()
     }
@@ -196,15 +213,6 @@ impl<'a> Iterator for LayerFlattenedIterator<'a> {
             } else {
                 return None;
             }
-        }
-    }
-}
-
-impl Clone for Layer {
-    fn clone(&self) -> Self {
-        Self {
-            shapes: self.shapes.iter().cloned().collect_vec(),
-            sublayers: self.sublayers.clone(),
         }
     }
 }

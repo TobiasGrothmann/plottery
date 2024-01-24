@@ -1,6 +1,7 @@
 use crate::{Plottable, Rotate90, SampleSettings, Shape, V2};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Rect {
     bot_left: V2,
     top_right: V2,

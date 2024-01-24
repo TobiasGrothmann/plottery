@@ -1,9 +1,11 @@
 pub use crate::shapes::circle::Circle;
 pub use crate::shapes::path::Path;
 pub use crate::shapes::rect::Rect;
-use crate::{Plottable, Rotate, SampleSettings, V2};
 
-#[derive(Debug)]
+use crate::{Plottable, Rotate, SampleSettings, V2};
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Serialize, Deserialize)]
 pub enum Shape {
     Circle(Circle),
     Rect(Rect),
