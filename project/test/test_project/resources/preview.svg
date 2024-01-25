@@ -1,9 +1,54 @@
-<svg height="7.9999876" viewbox="0 0 8 7.9999876" width="8" xmlns="http://www.w3.org/2000/svg">
-<circle cx="1" cy="1" fill="none" r="1" stroke="black" stroke-width="0.1"/>
-<circle cx="2" cy="2" fill="none" r="1" stroke="black" stroke-width="0.1"/>
-<circle cx="3" cy="3" fill="none" r="1" stroke="black" stroke-width="0.1"/>
-<circle cx="4" cy="4" fill="none" r="1" stroke="black" stroke-width="0.1"/>
-<circle cx="5" cy="5" fill="none" r="1" stroke="black" stroke-width="0.1"/>
-<circle cx="6" cy="6" fill="none" r="1" stroke="black" stroke-width="0.1"/>
-<circle cx="7" cy="7" fill="none" r="1" stroke="black" stroke-width="0.1"/>
+<svg height="5" viewbox="0 0 3 5" width="3" xmlns="http://www.w3.org/2000/svg">
+<circle cx="1" cy="1" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.0499792" cy="1.02" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.0998334" cy="1.04" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.1494381" cy="1.06" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.1986693" cy="1.08" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.247404" cy="1.1" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.2955202" cy="1.12" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.3428978" cy="1.14" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.3894184" cy="1.16" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.4349656" cy="1.18" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.4794255" cy="1.2" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.5226872" cy="1.22" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.5646424" cy="1.24" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.6051865" cy="1.26" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.6442177" cy="1.28" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.6816387" cy="1.3" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.7173561" cy="1.3199999" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.7512804" cy="1.34" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.7833269" cy="1.36" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.8134155" cy="1.38" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.841471" cy="1.4" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.8674233" cy="1.42" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.8912073" cy="1.44" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.912764" cy="1.46" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.932039" cy="1.48" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.9489846" cy="1.5" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.9635582" cy="1.52" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.9757234" cy="1.54" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.9854498" cy="1.56" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.992713" cy="1.5799999" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.9974949" cy="1.5999999" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.9997838" cy="1.62" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.9995736" cy="1.64" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.996865" cy="1.66" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.9916649" cy="1.6800001" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.9839859" cy="1.7" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.9738476" cy="1.72" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.9612752" cy="1.74" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.9463" cy="1.76" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.9289597" cy="1.78" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.9092975" cy="1.8" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.8873625" cy="1.8199999" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.8632092" cy="1.8399999" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.8368988" cy="1.8599999" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.8084964" cy="1.88" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.7780732" cy="1.9" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.7457052" cy="1.92" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.7114732" cy="1.94" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.6754631" cy="1.96" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<circle cx="1.6377647" cy="1.98" fill="none" r="0.02" stroke="black" stroke-width="0.1"/>
+<path d="M0,0 L3,5" fill="none" stroke="black" stroke-width="0.1"/>
+<rect fill="none" height="4" stroke="black" stroke-width="0.1" width="1" x="1" y="1"/>
 </svg>
