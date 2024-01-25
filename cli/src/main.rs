@@ -9,7 +9,7 @@ enum RenderType {
 }
 
 #[derive(Debug, Clone, Subcommand)]
-enum Commands {
+enum Command {
     New {
         path: String,
         name: String,
@@ -19,7 +19,7 @@ enum Commands {
         project_path: String,
         out_path: String,
     },
-    Compile {
+    Build {
         project_path: String,
     },
 }
@@ -28,13 +28,13 @@ enum Commands {
 #[command(about="CLI helper to create and manager plottery projects", long_about = None)]
 struct Args {
     #[command(subcommand)]
-    command: Commands,
+    command: Command,
 }
 
 pub fn main() {
     let args = Args::parse();
     match args.command {
-        Commands::New { name, path } => {
+        Command::New { name, path } => {
             let project = Project::new(PathBuf::from(path), name.clone());
 
             if project.exists() {
@@ -53,7 +53,7 @@ pub fn main() {
 
             println!("Created project at '{}'", project.dir.to_str().unwrap());
         }
-        Commands::Compile { project_path } => {
+        Command::Build { project_path } => {
             let project_path_buf = PathBuf::from(project_path);
             if project_path_buf.is_dir() {
                 println!(
@@ -69,9 +69,9 @@ pub fn main() {
                 return;
             }
 
-            project.compile(true).unwrap();
+            project.build(true).unwrap();
         }
-        Commands::Render {
+        Command::Render {
             format,
             project_path,
             out_path,
@@ -91,7 +91,7 @@ pub fn main() {
                 return;
             }
 
-            project.compile(true).unwrap();
+            project.build(true).unwrap();
 
             let out_path_buf = PathBuf::from(out_path);
             match format {
