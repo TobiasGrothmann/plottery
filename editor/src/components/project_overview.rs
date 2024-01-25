@@ -75,8 +75,7 @@ pub fn ProjectOverview(cx: Scope<ProjectOverviewProps>) -> Element {
                             }
                             button { class: "icon_button",
                                 onclick: move |_event| {
-                                    let project_dir = cx.props.project.dir.clone();
-                                    open::that(project_dir).unwrap();
+                                    opener::reveal(cx.props.project.dir.clone()).unwrap();
                                 },
                                 img { src: "{folder_logo_path}" }
                             }
