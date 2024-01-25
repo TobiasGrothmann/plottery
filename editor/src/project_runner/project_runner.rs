@@ -1,103 +1,144 @@
-use std::sync::Arc;
-use tokio::task::JoinHandle;
+use dioxus_std::utils::rw::UseRw;
 
-use plottery_project::Project;
+use plottery_project::{read_layer_from_stdout, Project};
+use tokio::{
+    sync::mpsc::error::TryRecvError,
+    time::{self, Duration},
+};
 
-#[derive(Debug, Clone)]
+use crate::router_components::editor::LayerChangeWrapper;
+
+#[derive(Clone)]
 pub struct ProjectRunner {
     project: Project,
-    handle: Option<Arc<JoinHandle<Result<(), ()>>>>,
-    cancel_tx: Option<tokio::sync::mpsc::Sender<()>>,
+    pub cancel_tx: Option<tokio::sync::mpsc::Sender<()>>,
+    layer_rw_output: UseRw<LayerChangeWrapper>,
 }
 
 impl ProjectRunner {
-    pub fn new(project: Project) -> Self {
+    pub fn new(project: Project, layer_rw_output: UseRw<LayerChangeWrapper>) -> Self {
+        log::info!("Creating new ProjectRunner");
         Self {
             project,
-            handle: None,
             cancel_tx: None,
+            layer_rw_output,
         }
-    }
-
-    pub fn cancel(&mut self) {
-        if let Some(cancel_tx) = &self.cancel_tx {
-            match cancel_tx.blocking_send(()) {
-                Ok(_) => {
-                    log::info!("Cancel signal sent");
-                }
-                Err(e) => {
-                    log::error!("Error sending cancel signal {}", e);
-                }
-            }
-        }
-        self.handle = None;
-        self.cancel_tx = None;
     }
 
     pub fn trigger_run_project(&mut self, release: bool) {
-        self.cancel();
+        self.cancel_tx.take(); // cancels the previous run if it exists
 
         let (cancel_tx, mut cancel_rx) = tokio::sync::mpsc::channel::<()>(1);
+        self.cancel_tx = Some(cancel_tx);
         let project = self.project.clone();
 
-        let handle = tokio::spawn(async move {
-            let process = project.compile_async(release);
-            let mut process = match process {
+        let layer_rw = self.layer_rw_output.clone();
+        log::info!("Spawning new task to run project");
+        tokio::spawn(async move {
+            let millis_sleep = 10;
+
+            log::info!("Building...");
+            let build_process = project.build_async(release);
+            let mut build_process = match build_process {
                 Ok(process) => process,
                 Err(e) => {
-                    log::error!("Error compiling project {}", e);
-                    return Err(());
+                    log::error!("Error compiling project: {}", e);
+                    return;
                 }
             };
 
-            // compile while waiting for cancel signal
+            // build while waiting for cancel signal
             loop {
                 match cancel_rx.try_recv() {
                     Ok(_) => {
-                        // cancel has been sent
-                        nix::sys::signal::kill(
-                            nix::unistd::Pid::from_raw(process.id() as i32),
-                            nix::sys::signal::SIGTERM,
-                        )
-                        .unwrap();
-                        process.kill().unwrap();
-                        log::info!("Compilation killed");
-                        return Err(());
+                        log::info!("Unknown error, build cancelled");
+                        return;
                     }
-                    Err(_) => {}
+                    Err(e) => match e {
+                        tokio::sync::mpsc::error::TryRecvError::Empty => {}
+                        tokio::sync::mpsc::error::TryRecvError::Disconnected => {
+                            nix::sys::signal::kill(
+                                nix::unistd::Pid::from_raw(build_process.id() as i32),
+                                nix::sys::signal::SIGTERM,
+                            )
+                            .unwrap();
+                            build_process.kill().unwrap();
+                            log::info!("Build killed - {:?}", e);
+                            return;
+                        }
+                    },
                 }
-                match process.try_wait() {
-                    Ok(Some(_)) => break,     // process has terminated
-                    Ok(None) => {}            // process is still running
-                    Err(_) => return Err(()), // process has failed
+                match build_process.try_wait() {
+                    Ok(Some(_)) => break, // process has terminated
+                    Ok(None) => {}        // process is still running
+                    Err(_) => return,     // process has failed
                 };
-                tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+                time::sleep(Duration::from_millis(millis_sleep)).await;
             }
-            log::info!("Compile finished");
 
             // run while waiting for cancel signal
-            let handle = tokio::spawn(async move { project.run_code(true) });
+            log::info!("Running...");
+            let run_process = project.run_async(release);
+            let mut run_process = match run_process {
+                Ok(process) => process,
+                Err(e) => {
+                    log::error!("Error running project: {}", e);
+                    return;
+                }
+            };
+
             loop {
                 match cancel_rx.try_recv() {
                     Ok(_) => {
-                        handle.abort();
-                        log::info!("Run killed");
-                        return Err(());
+                        log::info!("Unknown error, run cancelled");
+                        return;
                     }
-                    Err(_) => {}
+                    Err(e) => match e {
+                        TryRecvError::Empty => {}
+                        TryRecvError::Disconnected => {
+                            nix::sys::signal::kill(
+                                nix::unistd::Pid::from_raw(run_process.id() as i32),
+                                nix::sys::signal::SIGTERM,
+                            )
+                            .unwrap();
+                            run_process.kill().unwrap();
+                            log::info!("Run killed");
+                            return;
+                        }
+                    },
                 }
-                if handle.is_finished() {
-                    break;
-                }
-                tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+                match run_process.try_wait() {
+                    Ok(Some(_)) => break, // process has terminated
+                    Ok(None) => {}        // process is still running
+                    Err(_) => return,     // process has failed
+                };
+                time::sleep(Duration::from_millis(millis_sleep)).await;
             }
-            let layer = handle.await.unwrap().unwrap();
-            log::info!("Run finished - layer len {}", layer.len());
 
-            Ok(())
+            // getting layer from stdout of project
+            log::info!("Reading layer from stdout...");
+            let layer = read_layer_from_stdout(&mut run_process);
+            let layer = match layer {
+                Ok(layer) => layer,
+                Err(e) => {
+                    log::error!("Error reading layer from project: {}", e);
+                    return;
+                }
+            };
+
+            // Publishing Layer
+            log::info!("Outputting layer...");
+            let change_counter = layer_rw.read().unwrap().change_counter;
+            let write_success: Result<(), dioxus_std::utils::rw::UseRwError> =
+                layer_rw.write(LayerChangeWrapper {
+                    layer: Some(layer),
+                    change_counter: change_counter + 1,
+                });
+            if write_success.is_err() {
+                log::error!("Error using generated Layer.");
+                return;
+            }
         });
-
-        self.handle = Some(Arc::new(handle));
-        self.cancel_tx = Some(cancel_tx);
+        tokio::spawn(async move {}); // TODO: why is this needed?
     }
 }

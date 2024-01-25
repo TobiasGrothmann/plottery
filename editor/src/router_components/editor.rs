@@ -3,9 +3,10 @@ use dioxus_router::hooks::use_navigator;
 use dioxus_std::utils::rw::{use_rw, UseRw};
 use notify::{Config, FsEventWatcher, RecommendedWatcher, RecursiveMode, Watcher};
 use path_absolutize::Absolutize;
+use plottery_lib::Layer;
 use plottery_project::Project;
-use std::path::PathBuf;
-use tokio::task::JoinHandle;
+use std::{path::PathBuf, sync::Arc};
+use tokio::{sync::Mutex, task::JoinHandle};
 
 use crate::{components::image::Image, project_runner::project_runner::ProjectRunner};
 
@@ -13,68 +14,21 @@ fn get_svg_path(project: &Project) -> PathBuf {
     project.get_preview_image_path()
 }
 
-fn run_project(
-    project: &Project,
-    run_counter: UseRw<u32>,
-    busy_running: UseRw<bool>,
-) -> JoinHandle<()> {
-    let project = project.clone();
-    let svg_path = get_svg_path(&project);
-    tokio::spawn(async move {
-        busy_running.write(true).unwrap();
-        match project.compile(true) {
-            Ok(()) => {}
-            Err(e) => {
-                log::error!("Error compiling project {}", e);
-                busy_running.write(false).unwrap();
-                return;
-            }
-        }
-        let new_layer = project.run_code(true);
-        match new_layer {
-            Ok(new_layer) => {
-                match new_layer.write_svg(svg_path, 1.0) {
-                    Ok(_) => {}
-                    Err(e) => {
-                        log::error!("Error writing svg {}", e);
-                        busy_running.write(false).unwrap();
-                        return;
-                    }
-                };
-                let new_run_counter = *run_counter.read().unwrap() + 1;
-                run_counter.write(new_run_counter).unwrap();
-            }
-            Err(e) => {
-                log::error!("Error running code: {}", e)
-            }
-        }
-        busy_running.write(false).unwrap();
-    })
-}
-
 fn start_hot_reload(
-    p: PathBuf,
-    project: &Project,
-    run_counter: UseRw<u32>,
-    busy_running: UseRw<bool>,
+    path_to_watch: PathBuf,
+    project_runner: Arc<Mutex<ProjectRunner>>,
 ) -> (JoinHandle<()>, FsEventWatcher) {
     let (tx, rx) = std::sync::mpsc::channel();
     let mut watcher = RecommendedWatcher::new(tx, Config::default()).unwrap();
-    watcher.watch(&p, RecursiveMode::Recursive).unwrap();
+    watcher
+        .watch(&path_to_watch, RecursiveMode::Recursive)
+        .unwrap();
 
-    let project = project.clone();
-    let run_counter = run_counter.clone();
-    let busy_running = busy_running.clone();
-
-    let handle = tokio::spawn(async move {
-        let last_event_time = std::time::Instant::now();
+    let hot_reload_handle = tokio::spawn(async move {
+        // let project_runner = project_runner.read().unwrap();
         for event in rx {
             match event {
                 Ok(event) => {
-                    if last_event_time.elapsed().as_millis() < 100 {
-                        continue;
-                    }
-
                     let ignore_list = [".DS_Store"];
                     let changed_paths = event.paths.iter().filter(|p| {
                         p.file_name()
@@ -103,14 +57,27 @@ fn start_hot_reload(
                         continue;
                     }
 
-                    run_project(&project, run_counter.to_owned(), busy_running.to_owned());
+                    log::info!("Hot reload triggered");
+                    project_runner.lock().await.trigger_run_project(true);
                 }
-                Err(e) => log::error!("watch error: {:?}", e),
+                Err(e) => log::error!("Hot reload error: {:?}", e),
             }
         }
+        log::info!("Hot reload thread finished");
     });
 
-    (handle, watcher)
+    (hot_reload_handle, watcher)
+}
+
+#[derive(Debug, Clone)]
+pub struct LayerChangeWrapper {
+    pub layer: Option<Layer>,
+    pub change_counter: u32,
+}
+impl PartialEq for LayerChangeWrapper {
+    fn eq(&self, other: &Self) -> bool {
+        self.change_counter == other.change_counter
+    }
 }
 
 #[component]
@@ -119,29 +86,53 @@ pub fn Editor(cx: Scope, project_path: String) -> Element {
         let p = PathBuf::from(project_path.clone());
         Project::load_from_file(p).unwrap()
     });
-    let busy_compiling = use_rw(cx, || false);
+    let project = project_rw.read().unwrap();
     let busy_running = use_rw(cx, || false);
-
-    let run_counter = use_rw(cx, || 0);
 
     let hot_reload_enabled = use_state(cx, || false);
     let hot_reload_watcher = use_state(cx, || None as Option<FsEventWatcher>);
+    let hot_reload_join_handle: &UseState<Option<JoinHandle<()>>> =
+        use_state(cx, || None as Option<JoinHandle<()>>);
+    let hot_reload_path_to_watch = project.get_cargo_path().unwrap().join("src");
 
-    let hot_reload_join_handle = use_state(cx, || None as Option<JoinHandle<()>>);
-    let run_join_handle = use_state(cx, || None as Option<JoinHandle<()>>);
-
-    let project_runner = use_state(cx, || {
-        ProjectRunner::new(project_rw.read().unwrap().clone())
+    let layer = use_rw(cx, || LayerChangeWrapper {
+        layer: None,
+        change_counter: 0,
     });
+    let project_runner = use_rw(cx, || {
+        Arc::new(Mutex::new(ProjectRunner::new(
+            project.clone(),
+            layer.clone(),
+        )))
+    });
+    let project_runner_run_clone = project_runner.clone();
+    let project_runner_test_clone = project_runner.clone();
+    let layer_clone_for_preview = layer.clone();
+
+    let project_clone_for_svg = project_rw.read().unwrap().clone();
+    let layer_clone_for_svg = layer.clone();
+    use_effect(
+        cx,
+        (&layer.read().unwrap().change_counter,),
+        |(_,)| async move {
+            to_owned![layer_clone_for_svg];
+            let new_layer = layer_clone_for_svg.read().unwrap().clone().layer;
+            if let Some(new_layer) = new_layer {
+                let svg_path = get_svg_path(&project_clone_for_svg);
+                match new_layer.write_svg(svg_path, 1.0) {
+                    Ok(_) => log::info!("SVG updated"),
+                    Err(e) => {
+                        log::error!("Error writing svg {}", e);
+                        return;
+                    }
+                };
+            }
+        },
+    );
 
     // clones for closures
     let project_name = project_rw.read().unwrap().config.name.clone();
     let project: Project = project_rw.read().unwrap().clone();
-    let project_run_clone = project.clone();
-    let project_hot_reload_clone = project.clone();
-    let run_counter_run_clone = run_counter.clone();
-    let run_counter_hot_reload_clone = run_counter.clone();
-    let busy_running_hot_reload_clone = busy_running.clone();
 
     cx.render(rsx! {
         style { include_str!("./editor.css") }
@@ -164,32 +155,26 @@ pub fn Editor(cx: Scope, project_path: String) -> Element {
                     }
                     button { class: "img_button",
                         onclick: move |_event| {
-                            // // cancel previous run
-                            // if let Some(handle) = run_join_handle.get() {
-                            //     handle.abort();
-                            // }
-                            // // start running
-                            // let join_handle = run_project(&project_run_clone, run_counter_run_clone.to_owned(), busy_running.to_owned());
-                            // run_join_handle.set(Some(join_handle));
-                            project_runner.with_mut(|runner| {
-                                runner.trigger_run_project(true);
-                            })
+                            project_runner_run_clone.read().unwrap().blocking_lock().trigger_run_project(true);
                         },
                         img { src: "icons/play.svg" }
                     }
+                    button { class: "img_button",
+                        onclick: move |_event| {
+                            let project_runner = (*project_runner.read().unwrap()).clone();
+                            let (hot_reload_handle, watcher) = start_hot_reload(hot_reload_path_to_watch.clone(), project_runner);
+                            hot_reload_join_handle.set(Some(hot_reload_handle));
+                            hot_reload_watcher.set(Some(watcher));
+                        },
+                        p { "Enable Hot Reload" }
+                    }
                     // button { class: "img_button",
                     //     onclick: move |_event| {
-                    //         if let Some(handle) = hot_reload_join_handle.get() {
-                    //             handle.abort();
-                    //         }
-                    //         hot_reload_watcher.set(None);
-
-                    //         let path = project_hot_reload_clone.get_cargo_path().unwrap().join("src");
-                    //         let (join_handle, watcher) = start_hot_reload(path, &project_hot_reload_clone, run_counter_hot_reload_clone.to_owned(), busy_running_hot_reload_clone.to_owned());
-                    //         hot_reload_join_handle.set(Some(join_handle));
-                    //         hot_reload_watcher.set(Some(watcher));
+                    //         let a = project_runner_test_clone.read().unwrap();
+                    //         let cancel_tx = &a.blocking_lock().cancel_tx;
+                    //         log::info!("cancel_tx is {:?}", cancel_tx);
                     //     },
-                    //     "start hot reload"
+                    //     p { "test" }
                     // }
                 }
             }
@@ -203,7 +188,7 @@ pub fn Editor(cx: Scope, project_path: String) -> Element {
                         cx.render(rsx!(
                             Image {
                                 img_path: get_svg_path(&project).absolutize().unwrap().to_string_lossy().to_string(),
-                                redraw_counter: *run_counter.read().unwrap()
+                                redraw_counter: layer_clone_for_preview.read().unwrap().change_counter,
                             }
                         ))
                     } else {
