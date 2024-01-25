@@ -5,7 +5,7 @@ use std::{slice::Iter, slice::IterMut};
 
 use crate::{Angle, Plottable, Rotate, Rotate90, SampleSettings, Shape, V2};
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct Path {
     points: Vec<V2>,
 }

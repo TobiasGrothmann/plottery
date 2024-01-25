@@ -3,7 +3,7 @@ use std::f32::consts::PI;
 
 use crate::{Angle, Plottable, Rect, Rotate, Rotate90, SampleSettings, Shape, V2};
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct Circle {
     pub center: V2,
     pub radius: f32,

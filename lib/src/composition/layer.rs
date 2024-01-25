@@ -6,7 +6,7 @@ use svg::{node::element::path::Data, Document};
 
 use crate::{traits::plottable::Plottable, Circle, Path, Rect, Shape, V2};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Layer {
     pub shapes: Vec<Shape>,
     pub sublayers: Vec<Layer>,
@@ -85,7 +85,7 @@ impl Layer {
         self.sublayers.len() as i32
     }
 
-    fn as_svg(&self, scale: f32) -> Document {
+    pub fn to_svg(&self, scale: f32) -> Document {
         let bounding_box = self.bounding_box();
         let mut document = Document::new()
             .set(
@@ -157,7 +157,7 @@ impl Layer {
     }
 
     pub fn write_svg(&self, path: PathBuf, scale: f32) -> Result<()> {
-        let document = self.as_svg(scale);
+        let document = self.to_svg(scale);
         svg::save(path.to_str().unwrap(), &document)?;
         Ok(())
     }

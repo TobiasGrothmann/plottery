@@ -5,7 +5,7 @@ pub use crate::shapes::rect::Rect;
 use crate::{Plottable, Rotate, SampleSettings, V2};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum Shape {
     Circle(Circle),
     Rect(Rect),
