@@ -1,5 +1,8 @@
 use crate::{
-    compile_cargo::{compile_cargo_project, compile_cargo_project_async},
+    project_util::{
+        build_cargo_project, build_cargo_project_async, read_layer_from_stdout,
+        run_executable_async,
+    },
     ProjectConfig,
 };
 
@@ -7,7 +10,6 @@ use super::generate_cargo_project;
 use plottery_lib::*;
 
 use anyhow::{Error, Ok, Result};
-use libloading::Library;
 use path_absolutize::Absolutize;
 use resvg::{tiny_skia, usvg};
 use serde::{Deserialize, Serialize};
@@ -146,20 +148,20 @@ impl Project {
         Ok(target_dir)
     }
 
-    pub fn compile(&self, release: bool) -> Result<()> {
-        let build_status = compile_cargo_project(
+    pub fn build(&self, release: bool) -> Result<()> {
+        let build_status = build_cargo_project(
             self.get_cargo_path()?,
             self.get_plottery_target_dir()?,
             release,
         )?;
         if !build_status.success() {
-            return Err(Error::msg("Failed to compile cargo project"));
+            return Err(Error::msg("Failed to build cargo project"));
         }
         Ok(())
     }
 
-    pub fn compile_async(&self, release: bool) -> Result<Child> {
-        let child_process = compile_cargo_project_async(
+    pub fn build_async(&self, release: bool) -> Result<Child> {
+        let child_process = build_cargo_project_async(
             self.get_cargo_path()?,
             self.get_plottery_target_dir()?,
             release,
@@ -167,53 +169,40 @@ impl Project {
         Ok(child_process)
     }
 
-    pub fn run_code(&self, release: bool) -> Result<Layer> {
+    pub fn run(&self, release: bool) -> Result<Layer> {
+        let mut child_process = self.run_async(release)?;
+        child_process.wait()?;
+        read_layer_from_stdout(&mut child_process)
+    }
+
+    pub fn run_async(&self, release: bool) -> Result<Child> {
         let cargo_name = self.get_cargo_toml_name()?;
 
-        let mut lib_path = self.get_plottery_target_dir()?;
+        let mut exec_path = self.get_plottery_target_dir()?;
         if release {
-            lib_path.push("release");
+            exec_path.push("release");
         } else {
-            lib_path.push("debug");
+            exec_path.push("debug");
         }
-        lib_path.push(format!("lib{}.dylib", cargo_name));
+        exec_path.push(cargo_name); // TODO: get name from cargo.toml if it has been set?
 
-        if !lib_path.exists() {
+        if !exec_path.exists() {
             return Err(Error::msg(format!(
-                "library does not exist at '{}'",
-                lib_path.to_string_lossy()
+                "Executable does not exist at '{}'",
+                exec_path.to_string_lossy()
             )));
         }
 
-        unsafe {
-            // copy the library to a random path so it will not be cached
-            // otherwise the library will not be reloaded even if it was changed
-            let temp_dir = tempfile::tempdir()?;
-            let temp_lib_path = temp_dir
-                .path()
-                .join(format!("temp_lib_{}.dylib", rand::random::<u64>()));
-            std::fs::copy(lib_path.clone(), temp_lib_path.clone())?;
-            let lib_path = temp_lib_path;
-
-            let lib = Library::new(lib_path).expect("Failed to load library");
-
-            let generate_func: libloading::Symbol<fn() -> Layer> = lib
-                .get(b"generate")
-                .expect("Failed to get symbol for generation function in library");
-
-            let generated_layer: Layer = generate_func();
-
-            Ok(generated_layer)
-        }
+        Ok(run_executable_async(&exec_path)?)
     }
 
     pub fn write_svg(&self, path: PathBuf, release: bool) -> Result<()> {
-        let layer = self.run_code(release)?;
+        let layer = self.run(release)?;
         layer.write_svg(path.clone(), 10.0)
     }
 
     pub fn write_png(&self, path: PathBuf, release: bool) -> Result<()> {
-        let layer = self.run_code(release)?;
+        let layer = self.run(release)?;
         let temp_dir = tempfile::tempdir()?;
         let temp_svg_path = temp_dir.path().join("test.svg");
         layer.write_svg(temp_svg_path.clone(), 10.0)?;

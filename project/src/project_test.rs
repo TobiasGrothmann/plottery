@@ -58,7 +58,7 @@ mod tests {
     }
 
     #[test]
-    fn compile_and_run() {
+    fn build_and_run() {
         let mut project_path = Path::new(env!("CARGO_MANIFEST_DIR")).to_path_buf();
         project_path.push("test/test_project/test_project.plottery");
         assert!(project_path.exists());
@@ -66,9 +66,9 @@ mod tests {
         let project = Project::load_from_file(project_path).unwrap();
         assert!(project.exists());
 
-        project.compile(true).unwrap();
+        project.build(true).unwrap();
 
-        let generated_layer = project.run_code(true).unwrap();
+        let generated_layer = project.run(true).unwrap();
         assert!(!generated_layer.is_empty());
     }
 
@@ -81,7 +81,7 @@ mod tests {
         let project = Project::load_from_file(project_path).unwrap();
         assert!(project.exists());
 
-        project.compile(true).unwrap();
+        project.build(true).unwrap();
 
         let temp_dir = tempfile::tempdir().unwrap();
 
