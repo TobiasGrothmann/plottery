@@ -1,19 +1,17 @@
 use crate::{
-    project_util::{
-        build_cargo_project, build_cargo_project_async, read_layer_from_stdout,
-        run_executable_async,
-    },
-    ProjectConfig,
+    project_util::{build_cargo_project_async, run_executable_async},
+    read_layer_from_stdout, ProjectConfig,
 };
 
 use super::generate_cargo_project;
 use plottery_lib::*;
 
 use anyhow::{Error, Ok, Result};
+use async_process::Child;
 use path_absolutize::Absolutize;
 use resvg::{tiny_skia, usvg};
 use serde::{Deserialize, Serialize};
-use std::{path::PathBuf, process::Child};
+use std::path::PathBuf;
 use usvg::{fontdb, TreeParsing, TreeTextToPath};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -149,33 +147,39 @@ impl Project {
     }
 
     pub fn build(&self, release: bool) -> Result<()> {
-        let build_status = build_cargo_project(
-            self.get_cargo_path()?,
-            self.get_plottery_target_dir()?,
-            release,
-        )?;
-        if !build_status.success() {
-            return Err(Error::msg("Failed to build cargo project"));
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()?;
+        let mut child = rt.block_on(self.build_async(release))?;
+        let build_status = rt.block_on(child.status())?;
+
+        if build_status.success() {
+            Ok(())
+        } else {
+            Err(Error::msg("Failed to build project"))
         }
-        Ok(())
     }
 
-    pub fn build_async(&self, release: bool) -> Result<Child> {
+    pub async fn build_async(&self, release: bool) -> Result<Child> {
         let child_process = build_cargo_project_async(
             self.get_cargo_path()?,
             self.get_plottery_target_dir()?,
             release,
-        )?;
+        )
+        .await?;
         Ok(child_process)
     }
 
     pub fn run(&self, release: bool) -> Result<Layer> {
-        let mut child_process = self.run_async(release)?;
-        child_process.wait()?;
-        read_layer_from_stdout(&mut child_process)
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()?;
+        let mut child = rt.block_on(self.run_async(release))?;
+        let layer = rt.block_on(read_layer_from_stdout(&mut child))?;
+        Ok(layer)
     }
 
-    pub fn run_async(&self, release: bool) -> Result<Child> {
+    pub async fn run_async(&self, release: bool) -> Result<Child> {
         let cargo_name = self.get_cargo_toml_name()?;
 
         let mut exec_path = self.get_plottery_target_dir()?;
@@ -193,7 +197,7 @@ impl Project {
             )));
         }
 
-        Ok(run_executable_async(&exec_path)?)
+        Ok(run_executable_async(&exec_path).await?)
     }
 
     pub fn write_svg(&self, path: PathBuf, release: bool) -> Result<()> {

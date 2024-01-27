@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use dioxus_router::hooks::use_navigator;
-use dioxus_std::utils::rw::{use_rw, UseRw};
+use dioxus_std::utils::rw::use_rw;
 use notify::{Config, FsEventWatcher, RecommendedWatcher, RecursiveMode, Watcher};
 use path_absolutize::Absolutize;
 use plottery_lib::Layer;
@@ -8,7 +8,8 @@ use plottery_project::Project;
 use std::{path::PathBuf, sync::Arc};
 use tokio::{sync::Mutex, task::JoinHandle};
 
-use crate::{components::image::Image, project_runner::project_runner::ProjectRunner};
+use crate::components::image::Image;
+use crate::util::project_runner::ProjectRunner;
 
 fn get_svg_path(project: &Project) -> PathBuf {
     project.get_preview_image_path()
@@ -89,7 +90,7 @@ pub fn Editor(cx: Scope, project_path: String) -> Element {
     let project = project_rw.read().unwrap();
     let busy_running = use_rw(cx, || false);
 
-    let hot_reload_enabled = use_state(cx, || false);
+    // let hot_reload_enabled = use_state(cx, || false);
     let hot_reload_watcher = use_state(cx, || None as Option<FsEventWatcher>);
     let hot_reload_join_handle: &UseState<Option<JoinHandle<()>>> =
         use_state(cx, || None as Option<JoinHandle<()>>);
@@ -106,7 +107,6 @@ pub fn Editor(cx: Scope, project_path: String) -> Element {
         )))
     });
     let project_runner_run_clone = project_runner.clone();
-    let project_runner_test_clone = project_runner.clone();
     let layer_clone_for_preview = layer.clone();
 
     let project_clone_for_svg = project_rw.read().unwrap().clone();
@@ -123,7 +123,6 @@ pub fn Editor(cx: Scope, project_path: String) -> Element {
                     Ok(_) => log::info!("SVG updated"),
                     Err(e) => {
                         log::error!("Error writing svg {}", e);
-                        return;
                     }
                 };
             }
@@ -168,14 +167,6 @@ pub fn Editor(cx: Scope, project_path: String) -> Element {
                         },
                         p { "Enable Hot Reload" }
                     }
-                    // button { class: "img_button",
-                    //     onclick: move |_event| {
-                    //         let a = project_runner_test_clone.read().unwrap();
-                    //         let cancel_tx = &a.blocking_lock().cancel_tx;
-                    //         log::info!("cancel_tx is {:?}", cancel_tx);
-                    //     },
-                    //     p { "test" }
-                    // }
                 }
             }
 

@@ -1,22 +1,10 @@
 use anyhow::{anyhow, Ok, Result}; // Import the `anyhow` crate
+use async_process::{Child, Command, Stdio};
+use futures_lite::AsyncReadExt;
 use plottery_lib::Layer;
-use std::{
-    io::Read,
-    path::PathBuf,
-    process::{Child, Command, ExitStatus, Stdio},
-};
+use std::path::PathBuf;
 
-pub fn build_cargo_project(
-    project_dir: PathBuf,
-    target_dir: PathBuf,
-    release: bool,
-) -> Result<ExitStatus> {
-    let mut child_process = build_cargo_project_async(project_dir, target_dir, release)?;
-    let build_status = child_process.wait()?;
-    Ok(build_status)
-}
-
-pub fn build_cargo_project_async(
+pub async fn build_cargo_project_async(
     project_dir: PathBuf,
     target_dir: PathBuf,
     release: bool,
@@ -34,12 +22,7 @@ pub fn build_cargo_project_async(
     Ok(child_process)
 }
 
-pub fn run_executable(path: &PathBuf) -> Result<Layer> {
-    let mut child_process = run_executable_async(path)?;
-    read_layer_from_stdout(&mut child_process)
-}
-
-pub fn run_executable_async(path: &PathBuf) -> Result<Child> {
+pub async fn run_executable_async(path: &PathBuf) -> Result<Child> {
     let child_process = Command::new(path)
         .args(["std-out"])
         .stdout(Stdio::piped())
@@ -47,16 +30,17 @@ pub fn run_executable_async(path: &PathBuf) -> Result<Child> {
     Ok(child_process)
 }
 
-pub fn read_layer_from_stdout(child_process: &mut Child) -> Result<Layer> {
-    let build_status = child_process.wait()?;
+pub async fn read_layer_from_stdout(child_process: &mut Child) -> Result<Layer> {
+    let build_status = child_process.status().await?;
 
     if build_status.success() {
         let mut buf = Vec::new();
         child_process
             .stdout
-            .as_mut()
+            .take()
             .unwrap()
-            .read_to_end(&mut buf)?;
+            .read_to_end(&mut buf)
+            .await?;
         Ok(Layer::new_from_binary(&buf)?)
     } else {
         Err(anyhow!("Failed to run executable")) // Use the `anyhow!` macro

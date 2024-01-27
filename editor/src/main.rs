@@ -10,11 +10,9 @@ use log::LevelFilter;
 
 mod components;
 mod model;
-mod project_runner;
 mod router_components;
 mod routes;
 mod util;
-mod util_test;
 
 fn App(cx: Scope) -> Element {
     cx.render(rsx! {

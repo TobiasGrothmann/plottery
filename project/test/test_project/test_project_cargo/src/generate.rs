@@ -6,7 +6,9 @@ pub fn generate() -> Layer {
     // generate your art here:
     // ...
 
-    for i in 0..50 {
+    for i in 0..500 {
+        // sleep 10ms
+        std::thread::sleep(std::time::Duration::from_millis(10));
         l.push(Circle::new_shape(
             V2::new((i as f32 * 0.05).sin(), i as f32 * 0.02) + V2::new(1.0, 1.0),
             0.02,
