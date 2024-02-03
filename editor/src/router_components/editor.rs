@@ -8,8 +8,7 @@ use plottery_project::Project;
 use std::{path::PathBuf, sync::Arc};
 use tokio::{sync::Mutex, task::JoinHandle};
 
-use crate::components::image::Image;
-use crate::util::project_runner::ProjectRunner;
+use crate::{components::image::Image, util::ProjectRunner};
 
 fn get_svg_path(project: &Project) -> PathBuf {
     project.get_preview_image_path()

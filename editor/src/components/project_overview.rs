@@ -3,15 +3,22 @@ use dioxus_router::hooks::use_navigator;
 use path_absolutize::Absolutize;
 use plottery_project::Project;
 
-use crate::{util::format_datetime_to_relative, components::image::Image, routes::Route};
+use crate::{components::image::Image, routes::Route, util::format_datetime_to_relative};
 
-#[derive(PartialEq, Props)]
-pub struct ProjectOverviewProps {
+#[derive(Props)]
+pub struct ProjectOverviewProps<'a> {
     pub project: Project,
+    pub on_delete_clicked: EventHandler<'a, Project>,
+}
+
+impl PartialEq for ProjectOverviewProps<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.project == other.project
+    }
 }
 
 #[component]
-pub fn ProjectOverview(cx: Scope<ProjectOverviewProps>) -> Element {
+pub fn ProjectOverview<'a>(cx: Scope<'a, ProjectOverviewProps>) -> Element<'a> {
     let project_exists = cx.props.project.exists();
     let preview_image = cx.props.project.get_preview_image_path();
 
@@ -85,8 +92,7 @@ pub fn ProjectOverview(cx: Scope<ProjectOverviewProps>) -> Element {
             }
             div { class: "actions",
                 button { class: "delete_button",
-                    onclick: move |_event| {
-                    },
+                    onclick: move |_event| { cx.props.on_delete_clicked.call(cx.props.project.clone()) },
                     img { src: "icons/delete.svg" }
                 }
                 if project_exists {

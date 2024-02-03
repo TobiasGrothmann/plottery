@@ -5,6 +5,8 @@ use dioxus_router::hooks::use_navigator;
 use plottery_project::Project;
 use rfd::FileDialog;
 
+use crate::model::app_state::AppState;
+
 #[component]
 pub fn ProjectCreate(cx: Scope) -> Element {
     let target_folder = use_state(cx, || "".to_string());
@@ -68,25 +70,32 @@ pub fn ProjectCreate(cx: Scope) -> Element {
 
                         let name = project_name.get();
                         let re = regex::Regex::new(r"^[a-zA-Z0-9_]+$").unwrap();
-                        if !re.is_match(&name) {
+                        if !re.is_match(name) {
                             error.set("Invalid project name".to_string());
                             return;
                         }
 
+                        let project = Project::new(folder, name.to_string());
+                        if let Err(e) = project.generate_to_disk() {
+                            error.set(e.to_string());
+                            return;
+                        }
+
+                        let app_state = AppState::load();
+                        if app_state.is_none() {
+                            error.set("Failed to load app state.".to_string());
+                            return;
+                        }
+                        let mut app_state = app_state.unwrap();
+
                         // no error
                         error.set("".to_string());
 
-                        let project = Project::new(folder, name.to_string());
-                        match project.generate_to_disk() {
-                            Ok(_) => {
-                                log::info!("Project created");
-                                let nav = use_navigator(cx);
-                                nav.go_back();
-                            },
-                            Err(e) => {
-                                error.set(e.to_string());
-                            }
-                        }
+                        app_state.projects.push(project);
+                        app_state.save();
+
+                        let nav = use_navigator(cx);
+                        nav.go_back();
                     },
                     img { src: "icons/check.svg" },
                 }

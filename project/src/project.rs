@@ -22,9 +22,18 @@ pub struct Project {
 
 impl PartialEq for Project {
     fn eq(&self, other: &Self) -> bool {
-        self.config == other.config
-            && self.dir.to_path_buf().canonicalize().unwrap()
-                == other.dir.to_path_buf().canonicalize().unwrap()
+        if self.config != other.config {
+            return false;
+        }
+
+        let self_dir = self.dir.canonicalize();
+        let other_dir = other.dir.canonicalize();
+        if let (core::result::Result::Ok(self_dir), core::result::Result::Ok(other_dir)) =
+            (self_dir, other_dir)
+        {
+            return self_dir == other_dir;
+        }
+        self.dir.to_string_lossy() == other.dir.to_string_lossy()
     }
 }
 
