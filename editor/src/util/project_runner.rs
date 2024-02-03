@@ -31,6 +31,8 @@ impl ProjectRunner {
         log::info!("Spawning new task to run project");
         tokio::spawn(async move {
             log::info!("Building...");
+
+            // build while waiting for cancel signal
             let build_process = project.build_async(release).await;
             let mut run_process = match build_process {
                 Ok(process) => process,
@@ -40,7 +42,6 @@ impl ProjectRunner {
                 }
             };
 
-            // build while waiting for cancel signal
             tokio::select! {
                 _ = cancel_rx.recv() => {
                     nix::sys::signal::kill(
@@ -110,7 +111,7 @@ impl ProjectRunner {
                 }
             }
 
-            // getting layer from stdout of project
+            // getting layer from stdout of project executable
             log::info!("Reading layer from stdout...");
             let layer = read_layer_from_stdout(&mut run_process).await;
             let layer = match layer {
@@ -133,5 +134,6 @@ impl ProjectRunner {
                 log::error!("Error using generated Layer.");
             }
         });
+        tokio::spawn(async move {}); // this is somehow needed to get tokio to execute the above task
     }
 }

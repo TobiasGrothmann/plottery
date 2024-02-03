@@ -25,7 +25,6 @@ fn start_hot_reload(
         .unwrap();
 
     let hot_reload_handle = tokio::spawn(async move {
-        // let project_runner = project_runner.read().unwrap();
         for event in rx {
             match event {
                 Ok(event) => {
@@ -105,7 +104,8 @@ pub fn Editor(cx: Scope, project_path: String) -> Element {
             layer.clone(),
         )))
     });
-    let project_runner_run_clone = project_runner.clone();
+    let project_runner_run_clone = project_runner.read().unwrap().clone();
+    let project_runner_hot_reload_clone = project_runner_run_clone.clone();
     let layer_clone_for_preview = layer.clone();
 
     let project_clone_for_svg = project_rw.read().unwrap().clone();
@@ -153,14 +153,13 @@ pub fn Editor(cx: Scope, project_path: String) -> Element {
                     }
                     button { class: "img_button",
                         onclick: move |_event| {
-                            project_runner_run_clone.read().unwrap().blocking_lock().trigger_run_project(true);
+                            project_runner_run_clone.blocking_lock().trigger_run_project(true);
                         },
                         img { src: "icons/play.svg" }
                     }
                     button { class: "img_button",
                         onclick: move |_event| {
-                            let project_runner = (*project_runner.read().unwrap()).clone();
-                            let (hot_reload_handle, watcher) = start_hot_reload(hot_reload_path_to_watch.clone(), project_runner);
+                            let (hot_reload_handle, watcher) = start_hot_reload(hot_reload_path_to_watch.clone(), project_runner_hot_reload_clone.clone());
                             hot_reload_join_handle.set(Some(hot_reload_handle));
                             hot_reload_watcher.set(Some(watcher));
                         },
