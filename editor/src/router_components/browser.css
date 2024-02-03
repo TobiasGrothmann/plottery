@@ -1,3 +1,6 @@
 .Browser {
   padding: var(--gap-0);
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--gap-0);
 }

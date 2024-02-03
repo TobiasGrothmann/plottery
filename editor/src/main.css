@@ -60,6 +60,16 @@ button {
   outline: none;
 }
 
+input {
+  font-size: 16px;
+  padding: var(--gap-0);
+  border-radius: var(--border-radius);
+  background-color: var(--col-bg-1);
+  color: var(--col-fg-0);
+  border: none;
+  outline: none;
+}
+
 .card {
   padding: var(--gap-1);
   border-radius: var(--border-radius);

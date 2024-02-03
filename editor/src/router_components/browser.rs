@@ -1,5 +1,6 @@
-use crate::{components::project_list::ProjectList, model::app_state::AppState};
+use crate::{components::project_list::ProjectList, model::app_state::AppState, routes::Route};
 use dioxus::prelude::*;
+use dioxus_router::hooks::use_navigator;
 
 #[component]
 pub fn Browser(cx: Scope) -> Element {
@@ -13,8 +14,16 @@ pub fn Browser(cx: Scope) -> Element {
     cx.render(rsx! {
         style { include_str!("./browser.css") }
         div { class: "Browser",
+            h1 { "Projects" }
             ProjectList {
                 app_state: app_state.clone(),
+            }
+            button { class: "img-button",
+                onclick: move |_event| {
+                    let nav = use_navigator(cx);
+                    nav.push(Route::ProjectCreate {});
+                },
+                img { src: "icons/add.svg" },
             }
         }
     })

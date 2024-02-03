@@ -1,0 +1,27 @@
+.ProjectCreate {
+  padding: var(--gap-0);
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--gap-0);
+}
+
+.input-row {
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--gap-0);
+  width: 100%;
+  max-width: 450px;
+}
+
+.folder-group {
+  display: flex;
+  flex-direction: row;
+  column-gap: var(--gap-0);
+}
+.folder-group .img-button {
+  height: 35px;
+}
+
+.accept {
+  margin-top: var(--gap-4) !important;
+}
