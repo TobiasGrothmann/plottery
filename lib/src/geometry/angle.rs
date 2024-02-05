@@ -6,6 +6,12 @@ pub struct Angle {
     rad: f32,
 }
 
+impl PartialEq for Angle {
+    fn eq(&self, other: &Angle) -> bool {
+        (self.rad - other.to_rad()).abs() < 0.00001
+    }
+}
+
 impl Angle {
     pub fn from_rad(rad: f32) -> Self {
         Self { rad }

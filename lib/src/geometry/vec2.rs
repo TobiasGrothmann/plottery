@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use geo_types::Coord;
 use serde::{Deserialize, Serialize};
 
@@ -97,6 +99,27 @@ impl V2 {
 
     pub fn len(&self) -> f32 {
         (self.x.powi(2) + self.y.powi(2)).sqrt()
+    }
+
+    pub fn angle(&self) -> Angle {
+        let mut rad = self.y.atan2(self.x);
+        if rad < 0.0 {
+            rad += 2.0 * PI;
+        }
+        Angle::from_rad(rad)
+    }
+
+    pub fn normalize(&self) -> Self {
+        let len = self.len();
+        if len == 0.0 {
+            *self
+        } else {
+            *self / len
+        }
+    }
+    pub fn normalize_to(&self, len: f32) -> Self {
+        let len = len / self.len();
+        *self * len
     }
 }
 

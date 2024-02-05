@@ -222,4 +222,34 @@ mod test_vec2 {
             assert!((area - area_target).abs() < 6.0); // the actually used sizes have quite a big error
         }
     }
+
+    #[test]
+    fn normalize() {
+        let v = V2::new(1.0, 0.0).normalize();
+        assert_eq!(v, V2::new(1.0, 0.0));
+
+        let v = V2::new(1.0, 1.0).normalize();
+        assert!((v.len() - 1.0).abs() < 0.00001);
+
+        let v = V2::new(-1.0, 5.0).normalize_to(5.0);
+        assert_eq!(v.len(), 5.0);
+    }
+
+    #[test]
+    fn angle() {
+        let v = V2::new(1.0, 0.0);
+        assert_eq!(v.angle(), Angle::from_degrees(0.0));
+
+        let v = V2::new(0.0, 1.0);
+        assert_eq!(v.angle().to_degree(), 90.0);
+
+        let v = V2::new(-1.0, 0.0);
+        assert_eq!(v.angle(), Angle::from_degrees(180.0));
+
+        let v = V2::new(0.0, -1.0);
+        assert_eq!(v.angle(), Angle::from_degrees(270.0));
+
+        let v = V2::new(1.0, 1.0);
+        assert_eq!(v.angle(), Angle::from_degrees(45.0));
+    }
 }
