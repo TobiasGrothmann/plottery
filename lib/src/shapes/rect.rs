@@ -1,4 +1,7 @@
-use crate::{Plottable, Rotate90, SampleSettings, Shape, V2};
+use crate::{
+    traits::{Offset, Scale, Scale2D},
+    Plottable, Rotate90, SampleSettings, Shape, V2,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
@@ -16,6 +19,13 @@ impl Rect {
     }
     pub fn new_shape(bl: V2, tr: V2) -> Shape {
         Shape::Rect(Rect::new(bl, tr))
+    }
+
+    fn fix_corners_min_max(&mut self) {
+        let bl = self.bot_left.min(&self.top_right);
+        let tr = self.bot_left.max(&self.top_right);
+        self.bot_left = bl;
+        self.top_right = tr;
     }
 
     pub fn tr(&self) -> V2 {
@@ -76,8 +86,8 @@ impl Plottable for Rect {
         true
     }
 
-    fn bounding_box(&self) -> Rect {
-        self.clone()
+    fn bounding_box(&self) -> Option<Rect> {
+        Some(self.clone())
     }
 }
 
@@ -85,11 +95,26 @@ impl Rotate90 for Rect {
     fn rotate_90(&self) -> Self {
         Rect::new(self.bot_left.rotate_90(), self.top_right.rotate_90())
     }
+    fn rotate_90_inplace(&mut self) {
+        self.top_right = self.top_right.rotate_90();
+        self.bot_left = self.bot_left.rotate_90();
+        self.fix_corners_min_max();
+    }
     fn rotate_180(&self) -> Self {
         Rect::new(self.bot_left.rotate_180(), self.top_right.rotate_180())
     }
+    fn rotate_180_inplace(&mut self) {
+        self.top_right = self.top_right.rotate_180();
+        self.bot_left = self.bot_left.rotate_180();
+        self.fix_corners_min_max();
+    }
     fn rotate_270(&self) -> Self {
         Rect::new(self.bot_left.rotate_270(), self.top_right.rotate_270())
+    }
+    fn rotate_270_inplace(&mut self) {
+        self.top_right = self.top_right.rotate_270();
+        self.bot_left = self.bot_left.rotate_270();
+        self.fix_corners_min_max();
     }
 
     fn rotate_90_around(&self, pivot: &V2) -> Self {
@@ -98,16 +123,64 @@ impl Rotate90 for Rect {
             self.top_right.rotate_90_around(pivot),
         )
     }
+    fn rotate_90_around_inplace(&mut self, pivot: &V2) {
+        self.top_right = self.top_right.rotate_90_around(pivot);
+        self.bot_left = self.bot_left.rotate_90_around(pivot);
+        self.fix_corners_min_max();
+    }
     fn rotate_180_around(&self, pivot: &V2) -> Self {
         Rect::new(
             self.bot_left.rotate_180_around(pivot),
             self.top_right.rotate_180_around(pivot),
         )
     }
+    fn rotate_180_around_inplace(&mut self, pivot: &V2) {
+        self.top_right = self.top_right.rotate_180_around(pivot);
+        self.bot_left = self.bot_left.rotate_180_around(pivot);
+        self.fix_corners_min_max();
+    }
     fn rotate_270_around(&self, pivot: &V2) -> Self {
         Rect::new(
             self.bot_left.rotate_270_around(pivot),
             self.top_right.rotate_270_around(pivot),
         )
+    }
+    fn rotate_270_around_inplace(&mut self, pivot: &V2) {
+        self.top_right = self.top_right.rotate_270_around(pivot);
+        self.bot_left = self.bot_left.rotate_270_around(pivot);
+        self.fix_corners_min_max();
+    }
+}
+
+impl Offset for Rect {
+    fn offset(&self, offset: &V2) -> Self {
+        Rect::new(self.bot_left + offset, self.top_right + offset)
+    }
+
+    fn offset_inplace(&mut self, offset: &V2) {
+        self.bot_left += *offset;
+        self.top_right += *offset;
+    }
+}
+
+impl Scale for Rect {
+    fn scale(&self, scale: f32) -> Self {
+        Rect::new(self.bot_left * scale, self.top_right * scale)
+    }
+
+    fn scale_inplace(&mut self, scale: f32) {
+        self.bot_left *= scale;
+        self.top_right *= scale;
+    }
+}
+
+impl Scale2D for Rect {
+    fn scale_2d(&self, scale: &V2) -> Self {
+        Rect::new(self.bot_left * scale, self.top_right * scale)
+    }
+
+    fn scale_2d_inplace(&mut self, scale: &V2) {
+        self.bot_left *= scale;
+        self.top_right *= scale;
     }
 }

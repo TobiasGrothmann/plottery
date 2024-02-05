@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test_rect {
-    use crate::{Plottable, Rect, SampleSettings, V2};
+    use crate::{traits::Scale, Plottable, Rect, Rotate90, SampleSettings, V2};
 
     #[test]
     fn rect_calculations() {
@@ -29,5 +29,29 @@ mod test_rect {
         let points: Vec<_> = r.get_points(&SampleSettings::default());
         assert_eq!(points.first().unwrap(), points.last().unwrap()); // is closed
         assert_eq!(points.len(), 5);
+    }
+
+    #[test]
+    fn scale() {
+        let r = Rect::new(V2::new(1.0, 2.0), V2::new(4.0, 4.0));
+        let r_scaled = r.scale(2.0);
+        assert_eq!(r_scaled.bl(), V2::new(2.0, 4.0));
+        assert_eq!(r_scaled.tr(), V2::new(8.0, 8.0));
+    }
+
+    #[test]
+    fn rotate_bl_tr_order() {
+        let mut r = Rect::new(V2::new(1.0, 2.0), V2::new(4.0, 4.0));
+        r.rotate_180_inplace();
+        assert!(r.bl().x < r.tr().x);
+        assert!(r.bl().y < r.tr().y);
+
+        r.rotate_270_around_inplace(&V2::new(0.5, 0.1));
+        assert!(r.bl().x < r.tr().x);
+        assert!(r.bl().y < r.tr().y);
+
+        r.rotate_90_inplace();
+        assert!(r.bl().x < r.tr().x);
+        assert!(r.bl().y < r.tr().y);
     }
 }

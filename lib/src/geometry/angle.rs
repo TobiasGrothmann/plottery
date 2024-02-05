@@ -10,7 +10,7 @@ impl Angle {
     pub fn from_rad(rad: f32) -> Self {
         Self { rad }
     }
-    pub fn from_degree(degree: f32) -> Self {
+    pub fn from_degrees(degree: f32) -> Self {
         Self {
             rad: (degree / 360.0) * 2.0 * PI,
         }

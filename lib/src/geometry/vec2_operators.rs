@@ -1,4 +1,4 @@
-use std::ops;
+use std::ops::{self, AddAssign, SubAssign};
 
 use super::vec2::V2;
 
@@ -175,5 +175,75 @@ impl ops::Div<f32> for &V2 {
 impl PartialEq<V2> for V2 {
     fn eq(&self, _rhs: &V2) -> bool {
         self.dist_manhattan(_rhs) < 0.00001
+    }
+}
+
+// #################### add_assign, sub_assign, ... ####################
+
+impl AddAssign<V2> for V2 {
+    fn add_assign(&mut self, _rhs: V2) {
+        *self = *self + _rhs;
+    }
+}
+impl AddAssign<&V2> for V2 {
+    fn add_assign(&mut self, _rhs: &V2) {
+        *self = *self + _rhs;
+    }
+}
+
+impl AddAssign<f32> for V2 {
+    fn add_assign(&mut self, _rhs: f32) {
+        *self = *self + _rhs;
+    }
+}
+
+impl SubAssign<V2> for V2 {
+    fn sub_assign(&mut self, _rhs: V2) {
+        *self = *self - _rhs;
+    }
+}
+impl SubAssign<&V2> for V2 {
+    fn sub_assign(&mut self, _rhs: &V2) {
+        *self = *self - _rhs;
+    }
+}
+
+impl SubAssign<f32> for V2 {
+    fn sub_assign(&mut self, _rhs: f32) {
+        *self = *self - _rhs;
+    }
+}
+
+impl ops::MulAssign<V2> for V2 {
+    fn mul_assign(&mut self, _rhs: V2) {
+        *self = *self * _rhs;
+    }
+}
+impl ops::MulAssign<&V2> for V2 {
+    fn mul_assign(&mut self, _rhs: &V2) {
+        *self = *self * _rhs;
+    }
+}
+
+impl ops::MulAssign<f32> for V2 {
+    fn mul_assign(&mut self, _rhs: f32) {
+        *self = *self * _rhs;
+    }
+}
+
+impl ops::DivAssign<V2> for V2 {
+    fn div_assign(&mut self, _rhs: V2) {
+        *self = *self / _rhs;
+    }
+}
+impl ops::DivAssign<&V2> for V2 {
+    fn div_assign(&mut self, _rhs: &V2) {
+        *self = *self / _rhs;
+    }
+}
+
+impl ops::DivAssign<f32> for V2 {
+    fn div_assign(&mut self, _rhs: f32) {
+        *self = *self / _rhs;
     }
 }

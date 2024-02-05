@@ -1,10 +1,13 @@
 use anyhow::{Ok, Result};
 use bincode::{deserialize_from, serialize};
 use serde::{Deserialize, Serialize};
-use std::{fs::File, io::Write, iter::FromIterator, path::PathBuf, slice::Iter};
+use std::{fs::File, io::Write, iter::FromIterator, path::PathBuf, rc::Rc, slice::Iter};
 use svg::{node::element::path::Data, Document};
 
-use crate::{traits::plottable::Plottable, Circle, Path, Rect, Shape, V2};
+use crate::{
+    traits::{plottable::Plottable, Offset, Scale, Scale2D},
+    Circle, Path, Rect, Rotate, Shape, V2,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Layer {
@@ -24,6 +27,9 @@ impl Layer {
             shapes,
             sublayers: Vec::new(),
         }
+    }
+    pub fn new_from_shapes_and_layers(shapes: Vec<Shape>, sublayers: Vec<Layer>) -> Self {
+        Self { shapes, sublayers }
     }
     pub fn new_from_file(path: &PathBuf) -> Result<Layer> {
         let file = File::open(path)?;
@@ -87,6 +93,10 @@ impl Layer {
 
     pub fn to_svg(&self, scale: f32) -> Document {
         let bounding_box = self.bounding_box();
+        if bounding_box.is_none() {
+            return Document::new();
+        }
+        let bounding_box = bounding_box.unwrap();
         let mut document = Document::new()
             .set(
                 "viewbox",
@@ -162,15 +172,57 @@ impl Layer {
         Ok(())
     }
 
-    pub fn bounding_box(&self) -> Rect {
-        let mut min = V2::new(0.0, 0.0);
-        let mut max = V2::new(0.0, 0.0);
-        for shape in self.shapes.iter() {
+    pub fn bounding_box(&self) -> Option<Rect> {
+        let mut min = None;
+        let mut max = None;
+        for shape in self.iter_flattened() {
             let shape_box = shape.bounding_box();
-            min = min.min(&shape_box.bl());
-            max = max.max(&shape_box.tr());
+            if shape_box.is_none() {
+                continue;
+            }
+            let shape_box = shape_box.unwrap();
+            if min.is_none() {
+                min = Some(shape_box.bl());
+            } else {
+                min = Some(min.unwrap().min(&shape_box.bl()));
+            }
+            if max.is_none() {
+                max = Some(shape_box.tr());
+            } else {
+                max = Some(max.unwrap().max(&shape_box.tr()));
+            }
         }
-        Rect::new(min, max)
+        if min.is_none() || max.is_none() {
+            return None;
+        }
+        Some(Rect::new(min.unwrap(), max.unwrap()))
+    }
+
+    fn apply_func_to_shapes_recursive_inplace<F: Fn(&mut Shape)>(&mut self, f: F) {
+        let f = Rc::new(f);
+        self.apply_func_to_shapes_recursive_inplace_internal(f)
+    }
+    fn apply_func_to_shapes_recursive_inplace_internal<F: Fn(&mut Shape)>(&mut self, f: Rc<F>) {
+        for shape in &mut self.shapes {
+            f(shape);
+        }
+        for sublayer in &mut self.sublayers {
+            sublayer.apply_func_to_shapes_recursive_inplace_internal(f.clone());
+        }
+    }
+
+    fn apply_func_to_shapes_recursive<F: Fn(&Shape) -> Shape>(&self, f: F) -> Self {
+        let f = Rc::new(f);
+        self.apply_func_to_shapes_recursive_internal(f)
+    }
+    fn apply_func_to_shapes_recursive_internal<F: Fn(&Shape) -> Shape>(&self, f: Rc<F>) -> Self {
+        Layer::new_from_shapes_and_layers(
+            self.shapes.iter().map(|shape| f(shape)).collect(),
+            self.sublayers
+                .iter()
+                .map(|sublayer| sublayer.apply_func_to_shapes_recursive_internal(f.clone()))
+                .collect(),
+        )
     }
 }
 
@@ -232,5 +284,52 @@ impl FromIterator<Shape> for Layer {
             shapes: iter.into_iter().collect(),
             sublayers: Vec::new(),
         }
+    }
+}
+
+impl Offset for Layer {
+    fn offset(&self, offset: &V2) -> Self {
+        self.apply_func_to_shapes_recursive(|shape| shape.offset(offset))
+    }
+    fn offset_inplace(&mut self, offset: &V2) {
+        self.apply_func_to_shapes_recursive_inplace(|shape| shape.offset_inplace(offset));
+    }
+}
+
+impl Rotate for Layer {
+    fn rotate(&self, angle: &crate::Angle) -> Self {
+        self.apply_func_to_shapes_recursive(|shape| shape.rotate(angle))
+    }
+    fn rotate_inplace(&mut self, angle: &crate::Angle) {
+        self.apply_func_to_shapes_recursive_inplace(|shape| shape.rotate_inplace(angle));
+    }
+
+    fn rotate_around(&self, pivot: &V2, angle: &crate::Angle) -> Self {
+        self.apply_func_to_shapes_recursive(|shape| shape.rotate_around(pivot, angle))
+    }
+    fn rotate_around_inplace(&mut self, pivot: &V2, angle: &crate::Angle) {
+        self.apply_func_to_shapes_recursive_inplace(|shape| {
+            shape.rotate_around_inplace(pivot, angle)
+        });
+    }
+}
+
+impl Scale for Layer {
+    fn scale(&self, factor: f32) -> Self {
+        self.apply_func_to_shapes_recursive(|shape| shape.scale(factor))
+    }
+
+    fn scale_inplace(&mut self, factor: f32) {
+        self.apply_func_to_shapes_recursive_inplace(|shape| shape.scale_inplace(factor));
+    }
+}
+
+impl Scale2D for Layer {
+    fn scale_2d(&self, factor: &V2) -> Self {
+        self.apply_func_to_shapes_recursive(|shape| shape.scale_2d(factor))
+    }
+
+    fn scale_2d_inplace(&mut self, factor: &V2) {
+        self.apply_func_to_shapes_recursive_inplace(|shape| shape.scale_2d_inplace(factor));
     }
 }

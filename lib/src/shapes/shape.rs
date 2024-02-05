@@ -2,7 +2,10 @@ pub use crate::shapes::circle::Circle;
 pub use crate::shapes::path::Path;
 pub use crate::shapes::rect::Rect;
 
-use crate::{Plottable, Rotate, SampleSettings, V2};
+use crate::{
+    traits::{Offset, Scale, Scale2D},
+    Plottable, Rotate, Rotate90, SampleSettings, V2,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -36,6 +39,14 @@ impl Plottable for Shape {
             Shape::Path(p) => p.is_closed(),
         }
     }
+
+    fn bounding_box(&self) -> Option<Rect> {
+        match self {
+            Shape::Circle(c) => c.bounding_box(),
+            Shape::Rect(r) => r.bounding_box(),
+            Shape::Path(p) => p.bounding_box(),
+        }
+    }
 }
 
 impl Clone for Shape {
@@ -58,6 +69,16 @@ impl Rotate for Shape {
             Shape::Path(p) => Shape::Path(p.rotate(angle)),
         }
     }
+    fn rotate_inplace(&mut self, angle: &crate::Angle) {
+        match self {
+            Shape::Circle(c) => c.rotate_inplace(angle),
+            Shape::Rect(r) => {
+                *self =
+                    Path::new_shape_from(vec![r.bl(), r.tl(), r.tr(), r.br(), r.bl()]).rotate(angle)
+            }
+            Shape::Path(p) => p.rotate_inplace(angle),
+        }
+    }
 
     fn rotate_around(&self, pivot: &V2, angle: &crate::Angle) -> Self {
         match self {
@@ -65,6 +86,175 @@ impl Rotate for Shape {
             Shape::Rect(r) => Path::new_shape_from(vec![r.bl(), r.tl(), r.tr(), r.br(), r.bl()])
                 .rotate_around(pivot, angle),
             Shape::Path(p) => Shape::Path(p.rotate_around(pivot, angle)),
+        }
+    }
+    fn rotate_around_inplace(&mut self, pivot: &V2, angle: &crate::Angle) {
+        match self {
+            Shape::Circle(c) => c.rotate_around_inplace(pivot, angle),
+            Shape::Rect(r) => {
+                *self = Path::new_shape_from(vec![r.bl(), r.tl(), r.tr(), r.br(), r.bl()])
+                    .rotate_around(pivot, angle)
+            }
+            Shape::Path(p) => p.rotate_around_inplace(pivot, angle),
+        }
+    }
+}
+
+impl Rotate90 for Shape {
+    fn rotate_90(&self) -> Self {
+        match self {
+            Shape::Circle(c) => Shape::Circle(c.rotate_90()),
+            Shape::Rect(r) => Shape::Rect(r.rotate_90()),
+            Shape::Path(p) => Shape::Path(p.rotate_90()),
+        }
+    }
+    fn rotate_90_inplace(&mut self) {
+        match self {
+            Shape::Circle(c) => c.rotate_90_inplace(),
+            Shape::Rect(r) => r.rotate_90_inplace(),
+            Shape::Path(p) => p.rotate_90_inplace(),
+        }
+    }
+
+    fn rotate_180(&self) -> Self {
+        match self {
+            Shape::Circle(c) => Shape::Circle(c.rotate_180()),
+            Shape::Rect(r) => Shape::Rect(r.rotate_180()),
+            Shape::Path(p) => Shape::Path(p.rotate_180()),
+        }
+    }
+    fn rotate_180_inplace(&mut self) {
+        match self {
+            Shape::Circle(c) => c.rotate_180_inplace(),
+            Shape::Rect(r) => r.rotate_180_inplace(),
+            Shape::Path(p) => p.rotate_180_inplace(),
+        }
+    }
+
+    fn rotate_270(&self) -> Self {
+        match self {
+            Shape::Circle(c) => Shape::Circle(c.rotate_270()),
+            Shape::Rect(r) => Shape::Rect(r.rotate_270()),
+            Shape::Path(p) => Shape::Path(p.rotate_270()),
+        }
+    }
+    fn rotate_270_inplace(&mut self) {
+        match self {
+            Shape::Circle(c) => c.rotate_270_inplace(),
+            Shape::Rect(r) => r.rotate_270_inplace(),
+            Shape::Path(p) => p.rotate_270_inplace(),
+        }
+    }
+
+    fn rotate_90_around(&self, pivot: &V2) -> Self {
+        match self {
+            Shape::Circle(c) => Shape::Circle(c.rotate_90_around(pivot)),
+            Shape::Rect(r) => Shape::Rect(r.rotate_90_around(pivot)),
+            Shape::Path(p) => Shape::Path(p.rotate_90_around(pivot)),
+        }
+    }
+    fn rotate_90_around_inplace(&mut self, pivot: &V2) {
+        match self {
+            Shape::Circle(c) => c.rotate_90_around_inplace(pivot),
+            Shape::Rect(r) => r.rotate_90_around_inplace(pivot),
+            Shape::Path(p) => p.rotate_90_around_inplace(pivot),
+        }
+    }
+
+    fn rotate_180_around(&self, pivot: &V2) -> Self {
+        match self {
+            Shape::Circle(c) => Shape::Circle(c.rotate_180_around(pivot)),
+            Shape::Rect(r) => Shape::Rect(r.rotate_180_around(pivot)),
+            Shape::Path(p) => Shape::Path(p.rotate_180_around(pivot)),
+        }
+    }
+    fn rotate_180_around_inplace(&mut self, pivot: &V2) {
+        match self {
+            Shape::Circle(c) => c.rotate_180_around_inplace(pivot),
+            Shape::Rect(r) => r.rotate_180_around_inplace(pivot),
+            Shape::Path(p) => p.rotate_180_around_inplace(pivot),
+        }
+    }
+
+    fn rotate_270_around(&self, pivot: &V2) -> Self {
+        match self {
+            Shape::Circle(c) => Shape::Circle(c.rotate_270_around(pivot)),
+            Shape::Rect(r) => Shape::Rect(r.rotate_270_around(pivot)),
+            Shape::Path(p) => Shape::Path(p.rotate_270_around(pivot)),
+        }
+    }
+
+    fn rotate_270_around_inplace(&mut self, pivot: &V2) {
+        match self {
+            Shape::Circle(c) => c.rotate_270_around_inplace(pivot),
+            Shape::Rect(r) => r.rotate_270_around_inplace(pivot),
+            Shape::Path(p) => p.rotate_270_around_inplace(pivot),
+        }
+    }
+}
+
+impl Offset for Shape {
+    fn offset(&self, offset: &V2) -> Self {
+        match self {
+            Shape::Circle(c) => Shape::Circle(c.offset(offset)),
+            Shape::Rect(r) => Shape::Rect(r.offset(offset)),
+            Shape::Path(p) => Shape::Path(p.offset(offset)),
+        }
+    }
+
+    fn offset_inplace(&mut self, offset: &V2) {
+        match self {
+            Shape::Circle(c) => c.offset_inplace(offset),
+            Shape::Rect(r) => r.offset_inplace(offset),
+            Shape::Path(p) => p.offset_inplace(offset),
+        }
+    }
+}
+
+impl Scale for Shape {
+    fn scale(&self, scale: f32) -> Self {
+        match self {
+            Shape::Circle(c) => Shape::Circle(c.scale(scale)),
+            Shape::Rect(r) => Shape::Rect(r.scale(scale)),
+            Shape::Path(p) => Shape::Path(p.scale(scale)),
+        }
+    }
+
+    fn scale_inplace(&mut self, scale: f32) {
+        match self {
+            Shape::Circle(c) => c.scale_inplace(scale),
+            Shape::Rect(r) => r.scale_inplace(scale),
+            Shape::Path(p) => p.scale_inplace(scale),
+        }
+    }
+}
+
+impl Scale2D for Shape {
+    fn scale_2d(&self, factor: &V2) -> Self {
+        match self {
+            Shape::Circle(c) => {
+                let mut points = c.get_points(&SampleSettings::default());
+                for p in &mut points {
+                    *p *= factor;
+                }
+                Path::new_shape_from(points)
+            }
+            Shape::Rect(r) => Shape::Rect(r.scale_2d(factor)),
+            Shape::Path(p) => Shape::Path(p.scale_2d(factor)),
+        }
+    }
+
+    fn scale_2d_inplace(&mut self, factor: &V2) {
+        match self {
+            Shape::Circle(c) => {
+                let mut points = c.get_points(&SampleSettings::default());
+                for p in &mut points {
+                    *p *= factor;
+                }
+                *self = Path::new_shape_from(points);
+            }
+            Shape::Rect(r) => r.scale_2d_inplace(factor),
+            Shape::Path(p) => p.scale_2d_inplace(factor),
         }
     }
 }
