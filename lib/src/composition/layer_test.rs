@@ -6,7 +6,7 @@ mod test_layer {
     use svg::parser::Event;
 
     use crate::{
-        traits::Offset, Angle, Circle, Layer, Path, Plottable, Rect, Rotate, SampleSettings, V2,
+        traits::Translate, Angle, Circle, Layer, Path, Plottable, Rect, Rotate, SampleSettings, V2,
     };
 
     #[test]
@@ -148,7 +148,7 @@ mod test_layer {
     }
 
     #[test]
-    fn offset() {
+    fn translate() {
         let mut l = Layer::new();
 
         l.push(Circle::new_shape(V2::new(1.0, 1.0), 1.0));
@@ -162,20 +162,20 @@ mod test_layer {
         sublayer.push(Circle::new_shape(V2::new(1.0, 1.0), 1.0));
         l.push_layer(sublayer);
 
-        let offset_dist = V2::new(2.0, 1.0);
+        let translate_dist = V2::new(2.0, 1.0);
 
-        let l2 = l.offset(&offset_dist);
+        let l2 = l.translate(&translate_dist);
         assert_eq!(l2.iter().len() + 1, l2.iter_flattened().collect_vec().len());
 
         let l_box = l.bounding_box().unwrap();
         let l2_box = l2.bounding_box().unwrap();
         println!("{:?}\n{:?}", l_box, l2_box);
-        assert_eq!(l_box.bl() + offset_dist, l2_box.bl());
-        assert_eq!(l_box.tr() + offset_dist, l2_box.tr());
+        assert_eq!(l_box.bl() + translate_dist, l2_box.bl());
+        assert_eq!(l_box.tr() + translate_dist, l2_box.tr());
     }
 
     #[test]
-    fn offset_inplace() {
+    fn translate_inplace() {
         let mut l = Layer::new();
         l.push(Circle::new_shape(V2::new(1.0, 1.0), 1.0));
 
@@ -183,14 +183,14 @@ mod test_layer {
         sublayer.push(Circle::new_shape(V2::new(2.0, 2.0), 1.0));
         l.push_layer(sublayer);
 
-        let offset_dist = V2::new(2.0, 1.0);
+        let translate_dist = V2::new(2.0, 1.0);
         let l_orig = l.clone();
-        l.offset_inplace(&offset_dist);
+        l.translate_inplace(&translate_dist);
 
         let l_orig_box = l_orig.bounding_box().unwrap();
         let l_box = l.bounding_box().unwrap();
-        assert_eq!(l_orig_box.bl() + offset_dist, l_box.bl());
-        assert_eq!(l_orig_box.tr() + offset_dist, l_box.tr());
+        assert_eq!(l_orig_box.bl() + translate_dist, l_box.bl());
+        assert_eq!(l_orig_box.tr() + translate_dist, l_box.tr());
     }
 
     #[test]

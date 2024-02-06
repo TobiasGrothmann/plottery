@@ -5,7 +5,7 @@ use std::{fs::File, io::Write, iter::FromIterator, path::PathBuf, rc::Rc, slice:
 use svg::{node::element::path::Data, Document};
 
 use crate::{
-    traits::{plottable::Plottable, Offset, Scale, Scale2D},
+    traits::{plottable::Plottable, Scale, Scale2D, Translate},
     Circle, Path, Rect, Rotate, Shape, V2,
 };
 
@@ -287,12 +287,12 @@ impl FromIterator<Shape> for Layer {
     }
 }
 
-impl Offset for Layer {
-    fn offset(&self, offset: &V2) -> Self {
-        self.apply_func_to_shapes_recursive(|shape| shape.offset(offset))
+impl Translate for Layer {
+    fn translate(&self, dist: &V2) -> Self {
+        self.apply_func_to_shapes_recursive(|shape| shape.translate(dist))
     }
-    fn offset_inplace(&mut self, offset: &V2) {
-        self.apply_func_to_shapes_recursive_inplace(|shape| shape.offset_inplace(offset));
+    fn translate_inplace(&mut self, dist: &V2) {
+        self.apply_func_to_shapes_recursive_inplace(|shape| shape.translate_inplace(dist));
     }
 }
 

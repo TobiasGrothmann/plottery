@@ -1,5 +1,5 @@
 use crate::{
-    traits::{Offset, Scale, Scale2D},
+    traits::{Scale, Scale2D, Translate},
     Plottable, Rotate90, SampleSettings, Shape, V2,
 };
 use serde::{Deserialize, Serialize};
@@ -152,14 +152,14 @@ impl Rotate90 for Rect {
     }
 }
 
-impl Offset for Rect {
-    fn offset(&self, offset: &V2) -> Self {
-        Rect::new(self.bot_left + offset, self.top_right + offset)
+impl Translate for Rect {
+    fn translate(&self, dist: &V2) -> Self {
+        Rect::new(self.bot_left + dist, self.top_right + dist)
     }
 
-    fn offset_inplace(&mut self, offset: &V2) {
-        self.bot_left += *offset;
-        self.top_right += *offset;
+    fn translate_inplace(&mut self, dist: &V2) {
+        self.bot_left += *dist;
+        self.top_right += *dist;
     }
 }
 

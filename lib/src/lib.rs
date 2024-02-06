@@ -15,10 +15,10 @@ pub use shapes::rect::Rect;
 pub use shapes::shape::Shape;
 
 pub use traits::Masked;
-pub use traits::Offset;
 pub use traits::Plottable;
 pub use traits::Rotate;
 pub use traits::Rotate90;
 pub use traits::SampleSettings;
+pub use traits::Translate;
 
 pub use composition::Layer;

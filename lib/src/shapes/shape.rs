@@ -3,7 +3,7 @@ pub use crate::shapes::path::Path;
 pub use crate::shapes::rect::Rect;
 
 use crate::{
-    traits::{Offset, Scale, Scale2D},
+    traits::{Scale, Scale2D, Translate},
     Plottable, Rotate, Rotate90, SampleSettings, V2,
 };
 use serde::{Deserialize, Serialize};
@@ -193,20 +193,20 @@ impl Rotate90 for Shape {
     }
 }
 
-impl Offset for Shape {
-    fn offset(&self, offset: &V2) -> Self {
+impl Translate for Shape {
+    fn translate(&self, dist: &V2) -> Self {
         match self {
-            Shape::Circle(c) => Shape::Circle(c.offset(offset)),
-            Shape::Rect(r) => Shape::Rect(r.offset(offset)),
-            Shape::Path(p) => Shape::Path(p.offset(offset)),
+            Shape::Circle(c) => Shape::Circle(c.translate(dist)),
+            Shape::Rect(r) => Shape::Rect(r.translate(dist)),
+            Shape::Path(p) => Shape::Path(p.translate(dist)),
         }
     }
 
-    fn offset_inplace(&mut self, offset: &V2) {
+    fn translate_inplace(&mut self, dist: &V2) {
         match self {
-            Shape::Circle(c) => c.offset_inplace(offset),
-            Shape::Rect(r) => r.offset_inplace(offset),
-            Shape::Path(p) => p.offset_inplace(offset),
+            Shape::Circle(c) => c.translate_inplace(dist),
+            Shape::Rect(r) => r.translate_inplace(dist),
+            Shape::Path(p) => p.translate_inplace(dist),
         }
     }
 }

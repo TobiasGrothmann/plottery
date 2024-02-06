@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::{slice::Iter, slice::IterMut};
 
 use crate::{
-    traits::{Offset, Scale, Scale2D},
+    traits::{Scale, Scale2D, Translate},
     Angle, Plottable, Rotate, Rotate90, SampleSettings, Shape, V2,
 };
 
@@ -204,15 +204,15 @@ impl IntoIterator for Path {
     }
 }
 
-impl Offset for Path {
-    fn offset(&self, offset: &V2) -> Self {
+impl Translate for Path {
+    fn translate(&self, dist: &V2) -> Self {
         Path {
-            points: self.iter().map(|point| point + *offset).collect(),
+            points: self.iter().map(|point| point + *dist).collect(),
         }
     }
-    fn offset_inplace(&mut self, offset: &V2) {
+    fn translate_inplace(&mut self, dist: &V2) {
         for point in self.iter_mut() {
-            *point += *offset;
+            *point += *dist;
         }
     }
 }

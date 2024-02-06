@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::f32::consts::PI;
 
 use crate::{
-    traits::{Offset, Scale},
+    traits::{Scale, Translate},
     Angle, Plottable, Rect, Rotate, Rotate90, SampleSettings, Shape, V2,
 };
 
@@ -140,15 +140,15 @@ impl Rotate90 for Circle {
     }
 }
 
-impl Offset for Circle {
-    fn offset(&self, offset: &V2) -> Self {
+impl Translate for Circle {
+    fn translate(&self, dist: &V2) -> Self {
         Circle {
-            center: self.center + *offset,
+            center: self.center + *dist,
             radius: self.radius,
         }
     }
-    fn offset_inplace(&mut self, offset: &V2) {
-        self.center += *offset;
+    fn translate_inplace(&mut self, dist: &V2) {
+        self.center += *dist;
     }
 }
 
