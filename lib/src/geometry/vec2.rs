@@ -35,6 +35,10 @@ impl V2 {
         }
     }
 
+    pub fn zero() -> Self {
+        Self { x: 0.0, y: 0.0 }
+    }
+
     pub fn a0() -> Self {
         Self { x: 84.1, y: 118.9 }
     }
@@ -67,6 +71,13 @@ impl V2 {
     }
     pub fn a10() -> Self {
         Self { x: 2.6, y: 3.7 }
+    }
+
+    pub fn only_x(&self) -> Self {
+        Self { x: self.x, y: 0.0 }
+    }
+    pub fn only_y(&self) -> Self {
+        Self { x: 0.0, y: self.y }
     }
 
     pub fn as_geo_coord(&self) -> Coord<f32> {
