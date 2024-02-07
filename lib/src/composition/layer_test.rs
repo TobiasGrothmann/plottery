@@ -177,7 +177,7 @@ mod test_layer {
     }
 
     #[test]
-    fn translate_inplace() {
+    fn translate_mut() {
         let mut l = Layer::new();
         l.push(Circle::new_shape(V2::new(1.0, 1.0), 1.0));
 
@@ -187,7 +187,7 @@ mod test_layer {
 
         let translate_dist = V2::new(2.0, 1.0);
         let l_orig = l.clone();
-        l.translate_inplace(&translate_dist);
+        l.translate_mut(&translate_dist);
 
         let l_orig_box = l_orig.bounding_box().unwrap();
         let l_box = l.bounding_box().unwrap();
@@ -206,7 +206,7 @@ mod test_layer {
 
         let pivot = V2::new(3.0, 0.1);
         let mut l2 = l.rotate_around(&pivot, &Angle::from_degrees(55.0));
-        l2.rotate_around_inplace(&pivot, &Angle::from_degrees(-55.0));
+        l2.rotate_around_mut(&pivot, &Angle::from_degrees(-55.0));
 
         let l_box = l.bounding_box().unwrap();
         let l2_box = l2.bounding_box().unwrap();

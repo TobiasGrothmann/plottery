@@ -63,7 +63,7 @@ mod test_circle {
         }
         assert!(c.length() < c_scaled.length());
 
-        c_scaled.scale_2d_inplace(&V2::new(1.0 / 2.0, 1.0 / 3.0)); // scale back to original
+        c_scaled.scale_2d_mut(&V2::new(1.0 / 2.0, 1.0 / 3.0)); // scale back to original
         assert!((c.length() - c_scaled.length()).abs() < 0.001);
     }
 

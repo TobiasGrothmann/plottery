@@ -173,9 +173,9 @@ mod test_vec2 {
     }
 
     #[test]
-    fn rotate_around_inplace() {
+    fn rotate_around_mut() {
         let mut v = V2::new(1.0, 0.0);
-        v.rotate_around_inplace(&V2::new(1.0, 1.0), &Angle::from_degrees(90.0));
+        v.rotate_around_mut(&V2::new(1.0, 1.0), &Angle::from_degrees(90.0));
         assert_eq!(v, V2::new(2.0, 1.0));
     }
 

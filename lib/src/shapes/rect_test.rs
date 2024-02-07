@@ -42,15 +42,15 @@ mod test_rect {
     #[test]
     fn rotate_bl_tr_order() {
         let mut r = Rect::new(V2::new(1.0, 2.0), V2::new(4.0, 4.0));
-        r.rotate_180_inplace();
+        r.rotate_180_mut();
         assert!(r.bl().x < r.tr().x);
         assert!(r.bl().y < r.tr().y);
 
-        r.rotate_270_around_inplace(&V2::new(0.5, 0.1));
+        r.rotate_270_around_mut(&V2::new(0.5, 0.1));
         assert!(r.bl().x < r.tr().x);
         assert!(r.bl().y < r.tr().y);
 
-        r.rotate_90_inplace();
+        r.rotate_90_mut();
         assert!(r.bl().x < r.tr().x);
         assert!(r.bl().y < r.tr().y);
     }

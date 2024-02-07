@@ -107,7 +107,7 @@ impl Rotate90 for Rect {
     fn rotate_90(&self) -> Self {
         Rect::new(self.bot_left.rotate_90(), self.top_right.rotate_90())
     }
-    fn rotate_90_inplace(&mut self) {
+    fn rotate_90_mut(&mut self) {
         self.top_right = self.top_right.rotate_90();
         self.bot_left = self.bot_left.rotate_90();
         self.fix_corners_min_max();
@@ -115,7 +115,7 @@ impl Rotate90 for Rect {
     fn rotate_180(&self) -> Self {
         Rect::new(self.bot_left.rotate_180(), self.top_right.rotate_180())
     }
-    fn rotate_180_inplace(&mut self) {
+    fn rotate_180_mut(&mut self) {
         self.top_right = self.top_right.rotate_180();
         self.bot_left = self.bot_left.rotate_180();
         self.fix_corners_min_max();
@@ -123,7 +123,7 @@ impl Rotate90 for Rect {
     fn rotate_270(&self) -> Self {
         Rect::new(self.bot_left.rotate_270(), self.top_right.rotate_270())
     }
-    fn rotate_270_inplace(&mut self) {
+    fn rotate_270_mut(&mut self) {
         self.top_right = self.top_right.rotate_270();
         self.bot_left = self.bot_left.rotate_270();
         self.fix_corners_min_max();
@@ -135,7 +135,7 @@ impl Rotate90 for Rect {
             self.top_right.rotate_90_around(pivot),
         )
     }
-    fn rotate_90_around_inplace(&mut self, pivot: &V2) {
+    fn rotate_90_around_mut(&mut self, pivot: &V2) {
         self.top_right = self.top_right.rotate_90_around(pivot);
         self.bot_left = self.bot_left.rotate_90_around(pivot);
         self.fix_corners_min_max();
@@ -146,7 +146,7 @@ impl Rotate90 for Rect {
             self.top_right.rotate_180_around(pivot),
         )
     }
-    fn rotate_180_around_inplace(&mut self, pivot: &V2) {
+    fn rotate_180_around_mut(&mut self, pivot: &V2) {
         self.top_right = self.top_right.rotate_180_around(pivot);
         self.bot_left = self.bot_left.rotate_180_around(pivot);
         self.fix_corners_min_max();
@@ -157,7 +157,7 @@ impl Rotate90 for Rect {
             self.top_right.rotate_270_around(pivot),
         )
     }
-    fn rotate_270_around_inplace(&mut self, pivot: &V2) {
+    fn rotate_270_around_mut(&mut self, pivot: &V2) {
         self.top_right = self.top_right.rotate_270_around(pivot);
         self.bot_left = self.bot_left.rotate_270_around(pivot);
         self.fix_corners_min_max();
@@ -169,7 +169,7 @@ impl Translate for Rect {
         Rect::new(self.bot_left + dist, self.top_right + dist)
     }
 
-    fn translate_inplace(&mut self, dist: &V2) {
+    fn translate_mut(&mut self, dist: &V2) {
         self.bot_left += *dist;
         self.top_right += *dist;
     }
@@ -180,7 +180,7 @@ impl Scale for Rect {
         Rect::new(self.bot_left * scale, self.top_right * scale)
     }
 
-    fn scale_inplace(&mut self, scale: f32) {
+    fn scale_mut(&mut self, scale: f32) {
         self.bot_left *= scale;
         self.top_right *= scale;
     }
@@ -191,7 +191,7 @@ impl Scale2D for Rect {
         Rect::new(self.bot_left * scale, self.top_right * scale)
     }
 
-    fn scale_2d_inplace(&mut self, scale: &V2) {
+    fn scale_2d_mut(&mut self, scale: &V2) {
         self.bot_left *= scale;
         self.top_right *= scale;
     }

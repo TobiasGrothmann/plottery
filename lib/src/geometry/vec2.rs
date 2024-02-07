@@ -144,7 +144,7 @@ impl Rotate for V2 {
             self.x * angle_sin + self.y * angle_cos,
         )
     }
-    fn rotate_inplace(&mut self, angle: &Angle) {
+    fn rotate_mut(&mut self, angle: &Angle) {
         *self = self.rotate(angle);
     }
 
@@ -161,7 +161,7 @@ impl Rotate for V2 {
             (x_offset * angle_sin + y_offset * angle_cos) + pivot.y,
         )
     }
-    fn rotate_around_inplace(&mut self, pivot: &V2, angle: &Angle) {
+    fn rotate_around_mut(&mut self, pivot: &V2, angle: &Angle) {
         *self = self.rotate_around(pivot, angle);
     }
 }
@@ -170,42 +170,42 @@ impl Rotate90 for V2 {
     fn rotate_90(&self) -> Self {
         Self::new(-self.y, self.x)
     }
-    fn rotate_90_inplace(&mut self) {
+    fn rotate_90_mut(&mut self) {
         *self = self.rotate_90();
     }
 
     fn rotate_180(&self) -> Self {
         Self::new(-self.x, -self.y)
     }
-    fn rotate_180_inplace(&mut self) {
+    fn rotate_180_mut(&mut self) {
         *self = self.rotate_180();
     }
 
     fn rotate_270(&self) -> Self {
         Self::new(self.y, -self.x)
     }
-    fn rotate_270_inplace(&mut self) {
+    fn rotate_270_mut(&mut self) {
         *self = self.rotate_270();
     }
 
     fn rotate_90_around(&self, pivot: &V2) -> Self {
         Self::new(-self.y + pivot.y + pivot.x, self.x - pivot.x + pivot.y)
     }
-    fn rotate_90_around_inplace(&mut self, pivot: &V2) {
+    fn rotate_90_around_mut(&mut self, pivot: &V2) {
         *self = self.rotate_90_around(pivot);
     }
 
     fn rotate_180_around(&self, pivot: &V2) -> Self {
         Self::new(pivot.x * 2.0 - self.x, pivot.y * 2.0 - self.y)
     }
-    fn rotate_180_around_inplace(&mut self, pivot: &V2) {
+    fn rotate_180_around_mut(&mut self, pivot: &V2) {
         *self = self.rotate_180_around(pivot);
     }
 
     fn rotate_270_around(&self, pivot: &V2) -> Self {
         Self::new(self.y - pivot.y + pivot.x, -self.x + pivot.x + pivot.y)
     }
-    fn rotate_270_around_inplace(&mut self, pivot: &V2) {
+    fn rotate_270_around_mut(&mut self, pivot: &V2) {
         *self = self.rotate_270_around(pivot);
     }
 }

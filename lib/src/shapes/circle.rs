@@ -57,8 +57,8 @@ impl Rotate for Circle {
             radius: self.radius,
         }
     }
-    fn rotate_inplace(&mut self, angle: &Angle) {
-        self.center.rotate_inplace(angle);
+    fn rotate_mut(&mut self, angle: &Angle) {
+        self.center.rotate_mut(angle);
     }
 
     fn rotate_around(&self, pivot: &V2, angle: &Angle) -> Self {
@@ -67,8 +67,8 @@ impl Rotate for Circle {
             radius: self.radius,
         }
     }
-    fn rotate_around_inplace(&mut self, pivot: &V2, angle: &Angle) {
-        self.center.rotate_around_inplace(pivot, angle);
+    fn rotate_around_mut(&mut self, pivot: &V2, angle: &Angle) {
+        self.center.rotate_around_mut(pivot, angle);
     }
 }
 
@@ -79,8 +79,8 @@ impl Rotate90 for Circle {
             radius: self.radius,
         }
     }
-    fn rotate_90_inplace(&mut self) {
-        self.center.rotate_90_inplace();
+    fn rotate_90_mut(&mut self) {
+        self.center.rotate_90_mut();
     }
 
     fn rotate_180(&self) -> Self {
@@ -89,8 +89,8 @@ impl Rotate90 for Circle {
             radius: self.radius,
         }
     }
-    fn rotate_180_inplace(&mut self) {
-        self.center.rotate_180_inplace();
+    fn rotate_180_mut(&mut self) {
+        self.center.rotate_180_mut();
     }
 
     fn rotate_270(&self) -> Self {
@@ -99,8 +99,8 @@ impl Rotate90 for Circle {
             radius: self.radius,
         }
     }
-    fn rotate_270_inplace(&mut self) {
-        self.center.rotate_270_inplace();
+    fn rotate_270_mut(&mut self) {
+        self.center.rotate_270_mut();
     }
 
     fn rotate_90_around(&self, pivot: &V2) -> Self {
@@ -109,8 +109,8 @@ impl Rotate90 for Circle {
             radius: self.radius,
         }
     }
-    fn rotate_90_around_inplace(&mut self, pivot: &V2) {
-        self.center.rotate_90_around_inplace(pivot);
+    fn rotate_90_around_mut(&mut self, pivot: &V2) {
+        self.center.rotate_90_around_mut(pivot);
     }
 
     fn rotate_180_around(&self, pivot: &V2) -> Self {
@@ -119,8 +119,8 @@ impl Rotate90 for Circle {
             radius: self.radius,
         }
     }
-    fn rotate_180_around_inplace(&mut self, pivot: &V2) {
-        self.center.rotate_180_around_inplace(pivot);
+    fn rotate_180_around_mut(&mut self, pivot: &V2) {
+        self.center.rotate_180_around_mut(pivot);
     }
 
     fn rotate_270_around(&self, pivot: &V2) -> Self {
@@ -129,8 +129,8 @@ impl Rotate90 for Circle {
             radius: self.radius,
         }
     }
-    fn rotate_270_around_inplace(&mut self, pivot: &V2) {
-        self.center.rotate_270_around_inplace(pivot);
+    fn rotate_270_around_mut(&mut self, pivot: &V2) {
+        self.center.rotate_270_around_mut(pivot);
     }
 }
 
@@ -141,7 +141,7 @@ impl Translate for Circle {
             radius: self.radius,
         }
     }
-    fn translate_inplace(&mut self, dist: &V2) {
+    fn translate_mut(&mut self, dist: &V2) {
         self.center += *dist;
     }
 }
@@ -153,7 +153,7 @@ impl Scale for Circle {
             radius: self.radius * scale,
         }
     }
-    fn scale_inplace(&mut self, scale: f32) {
+    fn scale_mut(&mut self, scale: f32) {
         self.center *= scale;
         self.radius *= scale;
     }

@@ -45,7 +45,7 @@ impl Path {
             self.points.push(*self.points.first().unwrap());
         }
     }
-    pub fn reverse_inplace(&mut self) {
+    pub fn reverse_mut(&mut self) {
         self.points.reverse();
     }
     pub fn reverse(&self) -> Self {
@@ -97,9 +97,9 @@ impl Rotate for Path {
             points: self.iter().map(|point| point.rotate(angle)).collect(),
         }
     }
-    fn rotate_inplace(&mut self, angle: &Angle) {
+    fn rotate_mut(&mut self, angle: &Angle) {
         for point in self.iter_mut() {
-            point.rotate_inplace(angle);
+            point.rotate_mut(angle);
         }
     }
 
@@ -111,9 +111,9 @@ impl Rotate for Path {
                 .collect(),
         }
     }
-    fn rotate_around_inplace(&mut self, pivot: &V2, angle: &Angle) {
+    fn rotate_around_mut(&mut self, pivot: &V2, angle: &Angle) {
         for point in self.iter_mut() {
-            point.rotate_around_inplace(pivot, angle);
+            point.rotate_around_mut(pivot, angle);
         }
     }
 }
@@ -124,9 +124,9 @@ impl Rotate90 for Path {
             points: self.iter().map(|point| point.rotate_90()).collect(),
         }
     }
-    fn rotate_90_inplace(&mut self) {
+    fn rotate_90_mut(&mut self) {
         for point in self.iter_mut() {
-            point.rotate_90_inplace();
+            point.rotate_90_mut();
         }
     }
 
@@ -135,9 +135,9 @@ impl Rotate90 for Path {
             points: self.iter().map(|point| point.rotate_180()).collect(),
         }
     }
-    fn rotate_180_inplace(&mut self) {
+    fn rotate_180_mut(&mut self) {
         for point in self.iter_mut() {
-            point.rotate_180_inplace();
+            point.rotate_180_mut();
         }
     }
 
@@ -146,9 +146,9 @@ impl Rotate90 for Path {
             points: self.iter().map(|point| point.rotate_270()).collect(),
         }
     }
-    fn rotate_270_inplace(&mut self) {
+    fn rotate_270_mut(&mut self) {
         for point in self.iter_mut() {
-            point.rotate_270_inplace();
+            point.rotate_270_mut();
         }
     }
 
@@ -160,9 +160,9 @@ impl Rotate90 for Path {
                 .collect(),
         }
     }
-    fn rotate_90_around_inplace(&mut self, pivot: &V2) {
+    fn rotate_90_around_mut(&mut self, pivot: &V2) {
         for point in self.iter_mut() {
-            point.rotate_90_around_inplace(pivot);
+            point.rotate_90_around_mut(pivot);
         }
     }
 
@@ -174,9 +174,9 @@ impl Rotate90 for Path {
                 .collect(),
         }
     }
-    fn rotate_180_around_inplace(&mut self, pivot: &V2) {
+    fn rotate_180_around_mut(&mut self, pivot: &V2) {
         for point in self.iter_mut() {
-            point.rotate_180_around_inplace(pivot);
+            point.rotate_180_around_mut(pivot);
         }
     }
 
@@ -188,9 +188,9 @@ impl Rotate90 for Path {
                 .collect(),
         }
     }
-    fn rotate_270_around_inplace(&mut self, pivot: &V2) {
+    fn rotate_270_around_mut(&mut self, pivot: &V2) {
         for point in self.iter_mut() {
-            point.rotate_270_around_inplace(pivot);
+            point.rotate_270_around_mut(pivot);
         }
     }
 }
@@ -210,7 +210,7 @@ impl Translate for Path {
             points: self.iter().map(|point| point + *dist).collect(),
         }
     }
-    fn translate_inplace(&mut self, dist: &V2) {
+    fn translate_mut(&mut self, dist: &V2) {
         for point in self.iter_mut() {
             *point += *dist;
         }
@@ -223,7 +223,7 @@ impl Scale for Path {
             points: self.iter().map(|point| point * scale).collect(),
         }
     }
-    fn scale_inplace(&mut self, scale: f32) {
+    fn scale_mut(&mut self, scale: f32) {
         for point in self.iter_mut() {
             *point *= scale;
         }
@@ -236,7 +236,7 @@ impl Scale2D for Path {
             points: self.iter().map(|point| point * factor).collect(),
         }
     }
-    fn scale_2d_inplace(&mut self, factor: &V2) {
+    fn scale_2d_mut(&mut self, factor: &V2) {
         for point in self.iter_mut() {
             *point *= factor;
         }
