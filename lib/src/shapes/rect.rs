@@ -41,6 +41,19 @@ impl Rect {
         V2::new(self.top_right.x, self.bot_left.y)
     }
 
+    pub fn top_center(&self) -> V2 {
+        V2::new(self.bot_left.x + self.width() * 0.5, self.top_right.y)
+    }
+    pub fn left_center(&self) -> V2 {
+        V2::new(self.bot_left.x, self.bot_left.y + self.height() * 0.5)
+    }
+    pub fn right_center(&self) -> V2 {
+        V2::new(self.top_right.x, self.bot_left.y + self.height() * 0.5)
+    }
+    pub fn bottom_center(&self) -> V2 {
+        V2::new(self.bot_left.x + self.width() * 0.5, self.bot_left.y)
+    }
+
     pub fn size(&self) -> V2 {
         self.top_right - self.bot_left
     }
@@ -53,6 +66,9 @@ impl Rect {
 
     pub fn center(&self) -> V2 {
         self.bot_left + (self.size() * 0.5)
+    }
+    pub fn aspect_ratio(&self) -> f32 {
+        self.width() / self.height()
     }
 
     pub fn left_mid(&self) -> V2 {
