@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 use std::{slice::Iter, slice::IterMut};
 
 use crate::{
-    traits::{Scale, Scale2D, Translate},
-    Angle, Plottable, Rotate, Rotate90, SampleSettings, Shape, V2,
+    traits::{Normalize, Scale, Scale2D, Translate},
+    Angle, BoundingBox, Plottable, Rect, Rotate, Rotate90, SampleSettings, Shape, V2,
 };
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
@@ -240,5 +240,25 @@ impl Scale2D for Path {
         for point in self.iter_mut() {
             *point *= factor;
         }
+    }
+}
+
+impl Normalize for Path {}
+
+impl BoundingBox for Path {
+    fn bounding_box(&self) -> Option<Rect> {
+        let points = self.get_points(&SampleSettings::default());
+        let min = points.iter().fold(None, |acc, v| match acc {
+            None => Some(*v),
+            Some(acc) => Some(acc.min(v)),
+        });
+        let max = points.iter().fold(None, |acc, v| match acc {
+            None => Some(*v),
+            Some(acc) => Some(acc.max(v)),
+        });
+        if min.is_none() || max.is_none() {
+            return None;
+        }
+        Some(Rect::new(min.unwrap(), max.unwrap()))
     }
 }

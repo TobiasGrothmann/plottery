@@ -3,8 +3,8 @@ mod test_circle {
     use std::f32::consts::PI;
 
     use crate::{
-        traits::{Scale, Scale2D},
-        Circle, Path, Plottable, SampleSettings, V2,
+        traits::{normalize::Alignment, Normalize, Scale, Scale2D},
+        BoundingBox, Circle, Path, Plottable, SampleSettings, V2,
     };
 
     #[test]
@@ -65,5 +65,16 @@ mod test_circle {
 
         c_scaled.scale_2d_inplace(&V2::new(1.0 / 2.0, 1.0 / 3.0)); // scale back to original
         assert!((c.length() - c_scaled.length()).abs() < 0.001);
+    }
+
+    #[test]
+    fn normalize() {
+        let c = Circle::new(V2::new(1.0, 2.0), 3.0);
+        let target = crate::Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+        let normalized = c.normalize(&target, Alignment::Center).unwrap();
+        let normalized_bounds = normalized.bounding_box().unwrap();
+
+        assert_eq!(normalized_bounds.bl(), V2::new(0.0, 0.0));
+        assert_eq!(normalized_bounds.tr(), V2::new(1.0, 1.0));
     }
 }

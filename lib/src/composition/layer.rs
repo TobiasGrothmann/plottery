@@ -5,8 +5,8 @@ use std::{fs::File, io::Write, iter::FromIterator, path::PathBuf, rc::Rc, slice:
 use svg::{node::element::path::Data, Document};
 
 use crate::{
-    traits::{plottable::Plottable, Scale, Scale2D, Translate},
-    Circle, Path, Rect, Rotate, Shape, V2,
+    traits::{Normalize, Scale, Scale2D, Translate},
+    BoundingBox, Circle, Path, Rect, Rotate, Shape, V2,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -172,32 +172,6 @@ impl Layer {
         Ok(())
     }
 
-    pub fn bounding_box(&self) -> Option<Rect> {
-        let mut min = None;
-        let mut max = None;
-        for shape in self.iter_flattened() {
-            let shape_box = shape.bounding_box();
-            if shape_box.is_none() {
-                continue;
-            }
-            let shape_box = shape_box.unwrap();
-            if min.is_none() {
-                min = Some(shape_box.bl());
-            } else {
-                min = Some(min.unwrap().min(&shape_box.bl()));
-            }
-            if max.is_none() {
-                max = Some(shape_box.tr());
-            } else {
-                max = Some(max.unwrap().max(&shape_box.tr()));
-            }
-        }
-        if min.is_none() || max.is_none() {
-            return None;
-        }
-        Some(Rect::new(min.unwrap(), max.unwrap()))
-    }
-
     fn apply_func_to_shapes_recursive_inplace<F: Fn(&mut Shape)>(&mut self, f: F) {
         let f = Rc::new(f);
         self.apply_func_to_shapes_recursive_inplace_internal(f)
@@ -331,5 +305,35 @@ impl Scale2D for Layer {
 
     fn scale_2d_inplace(&mut self, factor: &V2) {
         self.apply_func_to_shapes_recursive_inplace(|shape| shape.scale_2d_inplace(factor));
+    }
+}
+
+impl Normalize for Layer {}
+
+impl BoundingBox for Layer {
+    fn bounding_box(&self) -> Option<Rect> {
+        let mut min = None;
+        let mut max = None;
+        for shape in self.iter_flattened() {
+            let shape_box = shape.bounding_box();
+            if shape_box.is_none() {
+                continue;
+            }
+            let shape_box = shape_box.unwrap();
+            if min.is_none() {
+                min = Some(shape_box.bl());
+            } else {
+                min = Some(min.unwrap().min(&shape_box.bl()));
+            }
+            if max.is_none() {
+                max = Some(shape_box.tr());
+            } else {
+                max = Some(max.unwrap().max(&shape_box.tr()));
+            }
+        }
+        if min.is_none() || max.is_none() {
+            return None;
+        }
+        Some(Rect::new(min.unwrap(), max.unwrap()))
     }
 }

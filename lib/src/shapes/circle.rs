@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 use std::f32::consts::PI;
 
 use crate::{
-    traits::{Scale, Translate},
-    Angle, Plottable, Rect, Rotate, Rotate90, SampleSettings, Shape, V2,
+    traits::{Normalize, Scale, Translate},
+    Angle, BoundingBox, Plottable, Rect, Rotate, Rotate90, SampleSettings, Shape, V2,
 };
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
@@ -47,12 +47,6 @@ impl Plottable for Circle {
 
     fn is_closed(&self) -> bool {
         true
-    }
-
-    fn bounding_box(&self) -> Option<Rect> {
-        let min = self.center - V2::new(self.radius, self.radius);
-        let max = self.center + V2::new(self.radius, self.radius);
-        Some(Rect::new(min, max))
     }
 }
 
@@ -162,5 +156,15 @@ impl Scale for Circle {
     fn scale_inplace(&mut self, scale: f32) {
         self.center *= scale;
         self.radius *= scale;
+    }
+}
+
+impl Normalize for Circle {}
+
+impl BoundingBox for Circle {
+    fn bounding_box(&self) -> Option<Rect> {
+        let min = self.center - V2::new(self.radius, self.radius);
+        let max = self.center + V2::new(self.radius, self.radius);
+        Some(Rect::new(min, max))
     }
 }

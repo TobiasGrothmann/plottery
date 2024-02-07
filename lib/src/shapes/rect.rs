@@ -1,6 +1,6 @@
 use crate::{
-    traits::{Scale, Scale2D, Translate},
-    Plottable, Rotate90, SampleSettings, Shape, V2,
+    traits::{Normalize, Scale, Scale2D, Translate},
+    BoundingBox, Plottable, Rotate90, SampleSettings, Shape, V2,
 };
 use serde::{Deserialize, Serialize};
 
@@ -101,10 +101,6 @@ impl Plottable for Rect {
     fn is_closed(&self) -> bool {
         true
     }
-
-    fn bounding_box(&self) -> Option<Rect> {
-        Some(self.clone())
-    }
 }
 
 impl Rotate90 for Rect {
@@ -198,5 +194,13 @@ impl Scale2D for Rect {
     fn scale_2d_inplace(&mut self, scale: &V2) {
         self.bot_left *= scale;
         self.top_right *= scale;
+    }
+}
+
+impl Normalize for Rect {}
+
+impl BoundingBox for Rect {
+    fn bounding_box(&self) -> Option<Rect> {
+        Some(self.clone())
     }
 }

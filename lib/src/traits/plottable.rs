@@ -1,4 +1,4 @@
-use crate::{Layer, Path, Rect, Shape, V2};
+use crate::{Layer, Path, Shape, V2};
 
 use geo::BooleanOps;
 use geo_types::{LineString, MultiLineString, Polygon};
@@ -34,22 +34,6 @@ pub trait Plottable: Clone {
     fn length(&self) -> f32;
 
     fn is_closed(&self) -> bool;
-
-    fn bounding_box(&self) -> Option<Rect> {
-        let points = self.get_points(&SampleSettings::default());
-        let min = points.iter().fold(None, |acc, v| match acc {
-            None => Some(*v),
-            Some(acc) => Some(acc.min(v)),
-        });
-        let max = points.iter().fold(None, |acc, v| match acc {
-            None => Some(*v),
-            Some(acc) => Some(acc.max(v)),
-        });
-        if min.is_none() || max.is_none() {
-            return None;
-        }
-        Some(Rect::new(min.unwrap(), max.unwrap()))
-    }
 
     fn get_points_oversampled(&self, sample_settings: &SampleSettings) -> Vec<V2> {
         let points = self.get_points(sample_settings);

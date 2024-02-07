@@ -3,8 +3,8 @@ pub use crate::shapes::path::Path;
 pub use crate::shapes::rect::Rect;
 
 use crate::{
-    traits::{Scale, Scale2D, Translate},
-    Plottable, Rotate, Rotate90, SampleSettings, V2,
+    traits::{Normalize, Scale, Scale2D, Translate},
+    BoundingBox, Plottable, Rotate, Rotate90, SampleSettings, V2,
 };
 use serde::{Deserialize, Serialize};
 
@@ -37,14 +37,6 @@ impl Plottable for Shape {
             Shape::Circle(c) => c.is_closed(),
             Shape::Rect(r) => r.is_closed(),
             Shape::Path(p) => p.is_closed(),
-        }
-    }
-
-    fn bounding_box(&self) -> Option<Rect> {
-        match self {
-            Shape::Circle(c) => c.bounding_box(),
-            Shape::Rect(r) => r.bounding_box(),
-            Shape::Path(p) => p.bounding_box(),
         }
     }
 }
@@ -255,6 +247,18 @@ impl Scale2D for Shape {
             }
             Shape::Rect(r) => r.scale_2d_inplace(factor),
             Shape::Path(p) => p.scale_2d_inplace(factor),
+        }
+    }
+}
+
+impl Normalize for Shape {}
+
+impl BoundingBox for Shape {
+    fn bounding_box(&self) -> Option<Rect> {
+        match self {
+            Shape::Circle(c) => c.bounding_box(),
+            Shape::Rect(r) => r.bounding_box(),
+            Shape::Path(p) => p.bounding_box(),
         }
     }
 }

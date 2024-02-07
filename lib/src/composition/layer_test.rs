@@ -6,7 +6,9 @@ mod test_layer {
     use svg::parser::Event;
 
     use crate::{
-        traits::Translate, Angle, Circle, Layer, Path, Plottable, Rect, Rotate, SampleSettings, V2,
+        traits::{normalize::Alignment, Translate},
+        Angle, BoundingBox, Circle, Layer, Normalize, Path, Plottable, Rect, Rotate,
+        SampleSettings, V2,
     };
 
     #[test]
@@ -210,5 +212,26 @@ mod test_layer {
         let l2_box = l2.bounding_box().unwrap();
         assert_eq!(l_box.bl(), l2_box.bl());
         assert_eq!(l_box.tr(), l2_box.tr());
+    }
+
+    #[test]
+    fn normalize() {
+        let mut l = Layer::new();
+        l.push(Circle::new_shape(V2::new(1.0, 1.0), 3.0));
+
+        l.push_layer(Layer::new_from(vec![Circle::new_shape(
+            V2::new(2.0, 2.0),
+            4.0,
+        )]));
+
+        let l_normalized = l
+            .normalize(
+                &Rect::new(V2::new(0.5, 0.5), V2::new(1.0, 1.0)),
+                Alignment::Center,
+            )
+            .unwrap();
+        let l_normalized_bounds = l_normalized.bounding_box().unwrap();
+        assert_eq!(l_normalized_bounds.bl(), V2::new(0.5, 0.5));
+        assert_eq!(l_normalized_bounds.tr(), V2::new(1.0, 1.0));
     }
 }
