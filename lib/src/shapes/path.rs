@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 use std::{slice::Iter, slice::IterMut};
 
 use crate::{
-    traits::{Normalize, Scale, Scale2D, Translate},
+    geometry::TransformMatrix,
+    traits::{Normalize, Scale, Scale2D, Transform, Translate},
     Angle, BoundingBox, Plottable, Rect, Rotate, Rotate90, SampleSettings, Shape, V2,
 };
 
@@ -260,5 +261,18 @@ impl BoundingBox for Path {
             return None;
         }
         Some(Rect::new(min.unwrap(), max.unwrap()))
+    }
+}
+
+impl Transform for Path {
+    fn transform(&self, matrix: &TransformMatrix) -> Self {
+        Path {
+            points: self.iter().map(|point| matrix.mul_vector(point)).collect(),
+        }
+    }
+    fn transform_mut(&mut self, matrix: &TransformMatrix) {
+        for point in self.iter_mut() {
+            *point = matrix.mul_vector(point);
+        }
     }
 }

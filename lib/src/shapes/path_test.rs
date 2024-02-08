@@ -1,6 +1,10 @@
 #[cfg(test)]
 mod test_path {
-    use crate::{traits::Scale, Path, Plottable, Rect, SampleSettings, V2};
+    use crate::{
+        geometry::TransformMatrix,
+        traits::{transform::Transform, Scale},
+        Path, Plottable, Rect, SampleSettings, Translate, V2,
+    };
 
     #[test]
     fn path() {
@@ -49,6 +53,23 @@ mod test_path {
         assert_eq!(
             p_scaled.get_points(&SampleSettings::default())[1],
             V2::new(2.0, 1.0)
+        );
+    }
+
+    #[test]
+    fn transform() {
+        let p = Path::new_shape_from(vec![V2::new(0.0, 0.1), V2::new(1.0, 0.5)]);
+
+        let scale = TransformMatrix::scale_2d(&V2::xy(2.0));
+        let translate = TransformMatrix::translate(&V2::new(1.0, 0.0));
+        let combined = TransformMatrix::combine_transforms(&[scale, translate]);
+
+        let transformed = p.transform(&combined);
+        let transformed_2 = p.scale(2.0).translate(&V2::new(1.0, 0.0));
+
+        assert_eq!(
+            transformed.get_points(&SampleSettings::default()),
+            transformed_2.get_points(&SampleSettings::default())
         );
     }
 }

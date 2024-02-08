@@ -3,7 +3,8 @@ pub use crate::shapes::path::Path;
 pub use crate::shapes::rect::Rect;
 
 use crate::{
-    traits::{Normalize, Scale, Scale2D, Translate},
+    geometry::TransformMatrix,
+    traits::{Normalize, Scale, Scale2D, Transform, Translate},
     BoundingBox, Plottable, Rotate, Rotate90, SampleSettings, V2,
 };
 use serde::{Deserialize, Serialize};
@@ -259,6 +260,54 @@ impl BoundingBox for Shape {
             Shape::Circle(c) => c.bounding_box(),
             Shape::Rect(r) => r.bounding_box(),
             Shape::Path(p) => p.bounding_box(),
+        }
+    }
+}
+
+impl Transform for Shape {
+    fn transform(&self, matrix: &TransformMatrix) -> Self {
+        match self {
+            Shape::Circle(c) => Shape::Path(
+                c.get_points(&SampleSettings::default())
+                    .iter()
+                    .map(|p| matrix.mul_vector(p))
+                    .collect::<Path>(),
+            ),
+            Shape::Rect(r) => {
+                let points = vec![
+                    matrix.mul_vector(&r.bl()),
+                    matrix.mul_vector(&r.tl()),
+                    matrix.mul_vector(&r.tr()),
+                    matrix.mul_vector(&r.br()),
+                    matrix.mul_vector(&r.bl()),
+                ];
+                Path::new_shape_from(points)
+            }
+            Shape::Path(p) => Shape::Path(p.transform(matrix)),
+        }
+    }
+
+    fn transform_mut(&mut self, matrix: &TransformMatrix) {
+        match self {
+            Shape::Circle(c) => {
+                let points = c
+                    .get_points(&SampleSettings::default())
+                    .iter()
+                    .map(|p| matrix.mul_vector(p))
+                    .collect::<Path>();
+                *self = Shape::Path(points);
+            }
+            Shape::Rect(r) => {
+                let points = vec![
+                    matrix.mul_vector(&r.bl()),
+                    matrix.mul_vector(&r.tl()),
+                    matrix.mul_vector(&r.tr()),
+                    matrix.mul_vector(&r.br()),
+                    matrix.mul_vector(&r.bl()),
+                ];
+                *self = Path::new_shape_from(points);
+            }
+            Shape::Path(p) => p.transform_mut(matrix),
         }
     }
 }

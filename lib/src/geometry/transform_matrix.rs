@@ -1,5 +1,7 @@
 use crate::{Angle, V2};
 
+use super::TransformMatrixBuilder;
+
 // matrix in the format:
 // tl tr u
 // bl br v
@@ -15,6 +17,10 @@ pub struct TransformMatrix {
 }
 
 impl TransformMatrix {
+    pub fn builder() -> TransformMatrixBuilder {
+        TransformMatrixBuilder::default()
+    }
+
     pub fn identity() -> Self {
         Self {
             tl: 1.0,
@@ -26,19 +32,15 @@ impl TransformMatrix {
         }
     }
 
-    pub fn scale_2d(x: f32, y: f32) -> Self {
+    pub fn scale_2d(scale: &V2) -> Self {
         Self {
-            tl: x,
+            tl: scale.x,
             bl: 0.0,
             tr: 0.0,
-            br: y,
+            br: scale.y,
             u: 0.0,
             v: 0.0,
         }
-    }
-
-    pub fn scale(scalar: f32) -> Self {
-        Self::scale_2d(scalar, scalar)
     }
 
     pub fn rotate(angle: &Angle) -> Self {
@@ -53,11 +55,11 @@ impl TransformMatrix {
         }
     }
 
-    pub fn shear(x: f32, y: f32) -> Self {
+    pub fn shear(dist: &V2) -> Self {
         Self {
             tl: 1.0,
-            bl: y,
-            tr: x,
+            bl: dist.y,
+            tr: dist.x,
             br: 1.0,
             u: 0.0,
             v: 0.0,
@@ -86,14 +88,14 @@ impl TransformMatrix {
         }
     }
 
-    pub fn translate(x: f32, y: f32) -> Self {
+    pub fn translate(offset: &V2) -> Self {
         Self {
             tl: 1.0,
             bl: 0.0,
             tr: 0.0,
             br: 1.0,
-            u: x,
-            v: y,
+            u: offset.x,
+            v: offset.y,
         }
     }
 
@@ -118,6 +120,7 @@ impl TransformMatrix {
     pub fn combine_transforms(transforms: &[TransformMatrix]) -> Self {
         transforms
             .iter()
+            .rev()
             .fold(TransformMatrix::identity(), |acc, t| acc.mul_matrix(t))
     }
 }
