@@ -35,6 +35,13 @@ impl V2 {
         }
     }
 
+    pub fn swap(&self) -> Self {
+        Self {
+            x: self.y,
+            y: self.x,
+        }
+    }
+
     pub fn zero() -> Self {
         Self { x: 0.0, y: 0.0 }
     }
