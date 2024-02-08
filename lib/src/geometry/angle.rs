@@ -37,6 +37,10 @@ impl Angle {
         self.rad / (2.0 * PI)
     }
 
+    pub fn sin_cos(&self) -> (f32, f32) {
+        (self.rad.sin(), self.rad.cos())
+    }
+
     pub fn wrap(&self) -> Self {
         Angle::from_rad(self.rad % (2.0 * PI))
     }
