@@ -2,7 +2,11 @@
 mod tests {
     use std::path::Path;
 
-    use crate::{LibSource, Project, ProjectConfig};
+    use anyhow::Ok;
+
+    use crate::{
+        cargo_project_template::generate_cargo_project_to_disk, LibSource, Project, ProjectConfig,
+    };
 
     #[test]
     fn save_project_config() -> anyhow::Result<()> {
@@ -103,6 +107,20 @@ mod tests {
         project.write_png(temp_png_path.clone(), true)?;
         assert!(temp_png_path.exists());
 
+        Ok(())
+    }
+
+    #[test]
+    fn test_embed_project_template_generation() -> anyhow::Result<()> {
+        let temp_dir = tempfile::tempdir().unwrap();
+        generate_cargo_project_to_disk(
+            temp_dir.path().to_path_buf(),
+            "a_test_project",
+            LibSource::Cargo,
+        )?;
+
+        assert!(temp_dir.path().join("Cargo.toml").exists());
+        assert!(temp_dir.path().join("src").exists());
         Ok(())
     }
 }

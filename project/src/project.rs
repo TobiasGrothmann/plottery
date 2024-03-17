@@ -1,9 +1,9 @@
 use crate::{
+    generate_cargo_project_to_disk,
     project_util::{build_cargo_project_async, run_executable_async},
     read_layer_from_stdout, LibSource, ProjectConfig,
 };
 
-use super::generate_cargo_project;
 use plottery_lib::*;
 
 use anyhow::{Error, Ok, Result};
@@ -130,7 +130,8 @@ impl Project {
 
         // generate cargo project from template
         if self.get_cargo_path().is_err() {
-            generate_cargo_project(self.dir.clone(), self.config.name.clone(), lib_source)?;
+            let cargo_dir = self.dir.join(&self.config.name);
+            generate_cargo_project_to_disk(cargo_dir, &self.config.name, lib_source)?;
         }
 
         // create resource dir

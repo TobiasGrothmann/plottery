@@ -1,4 +1,5 @@
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::Subcommand;
+use clap::{Parser, ValueEnum};
 use plottery_project::{LibSource, Project};
 use std::path::PathBuf;
 

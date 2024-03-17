@@ -11,7 +11,6 @@ anyhow = "1.0.75"
 plottery_lib = { path = "../lib" }
 itertools = "0.12.0"
 path-absolutize = "3.1.1"
-cargo-generate = "0.19.0"
 chrono = { version = "0.4.31", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -22,3 +21,5 @@ rand = "0.8.5"
 async-process = "2.0.1"
 futures-lite = "2.2.0"
 tokio = { version = "1.35.1", features = ["rt"] }
+rust-embed = "8.0.0"
+vfs = { version = "0.12.0", features = ["embedded-fs"] }
