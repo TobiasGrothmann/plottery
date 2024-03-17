@@ -2,7 +2,7 @@
 mod tests {
     use std::path::Path;
 
-    use crate::{Project, ProjectConfig};
+    use crate::{LibSource, Project, ProjectConfig};
 
     #[test]
     fn save_project_config() {
@@ -21,7 +21,7 @@ mod tests {
     }
 
     #[test]
-    fn save_project() {
+    fn save_project() -> anyhow::Result<()> {
         let project_name: &str = "test_proj";
         let project_dir = Path::new(project_name);
         if project_dir.exists() {
@@ -34,8 +34,10 @@ mod tests {
         );
         assert_eq!(project.exists(), false);
 
-        let result = project.generate_to_disk();
-        assert!(result.is_ok());
+        let cargo_workspace = Path::new(env!("CARGO_MANIFEST_DIR")).to_path_buf();
+        project.generate_to_disk(LibSource::Path {
+            path: cargo_workspace.join("lib"),
+        })?;
 
         // check if dir test_project exists
         let project_dir = Path::new(project_name);
@@ -55,6 +57,8 @@ mod tests {
 
         // clean up
         std::fs::remove_dir_all(project_dir).unwrap();
+
+        Ok(())
     }
 
     #[test]
@@ -66,8 +70,10 @@ mod tests {
         let project = Project::load_from_file(project_path).unwrap();
         assert!(project.exists());
 
-        project.build(true).unwrap();
+        // build debug
+        project.build(false).unwrap();
 
+        // run release
         let generated_layer = project.run(true).unwrap();
         assert!(!generated_layer.is_empty());
     }

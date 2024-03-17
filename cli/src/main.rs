@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand, ValueEnum};
-use plottery_project::Project;
+use plottery_project::{LibSource, Project};
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, ValueEnum, PartialEq)]
@@ -45,7 +45,7 @@ pub fn main() {
                 return;
             }
 
-            let result = project.generate_to_disk();
+            let result = project.generate_to_disk(LibSource::Cargo);
             if result.is_err() {
                 println!("Failed to create project: {}", result.unwrap_err());
                 return;

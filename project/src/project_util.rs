@@ -9,14 +9,15 @@ pub async fn build_cargo_project_async(
     target_dir: PathBuf,
     release: bool,
 ) -> Result<Child> {
-    let build_type = if release { "--release" } else { "--debug" };
+    let mut args = vec!["build".to_string()];
+    if release {
+        args.push("--release".to_string());
+    }
+    args.push("--target-dir".to_string());
+    args.push(target_dir.to_string_lossy().to_string());
+
     let child_process = Command::new("cargo")
-        .args([
-            "build",
-            build_type,
-            "--target-dir",
-            target_dir.to_string_lossy().as_ref(),
-        ])
+        .args(args)
         .current_dir(project_dir)
         .spawn()?;
     Ok(child_process)

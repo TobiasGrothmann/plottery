@@ -1,6 +1,6 @@
 use crate::{
     project_util::{build_cargo_project_async, run_executable_async},
-    read_layer_from_stdout, ProjectConfig,
+    read_layer_from_stdout, LibSource, ProjectConfig,
 };
 
 use super::generate_cargo_project;
@@ -124,13 +124,13 @@ impl Project {
         Ok(name.to_string())
     }
 
-    pub fn generate_to_disk(&self) -> Result<()> {
+    pub fn generate_to_disk(&self, lib_source: LibSource) -> Result<()> {
         std::fs::create_dir_all(&self.dir)?;
         self.save_config()?;
 
         // generate cargo project from template
         if self.get_cargo_path().is_err() {
-            generate_cargo_project(self.dir.clone(), self.config.name.clone())?;
+            generate_cargo_project(self.dir.clone(), self.config.name.clone(), lib_source)?;
         }
 
         // create resource dir

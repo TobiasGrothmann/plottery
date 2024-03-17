@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use dioxus::prelude::*;
 use dioxus_router::hooks::use_navigator;
-use plottery_project::Project;
+use plottery_project::{LibSource, Project};
 use rfd::FileDialog;
 
 use crate::model::app_state::AppState;
@@ -76,7 +76,7 @@ pub fn ProjectCreate(cx: Scope) -> Element {
                         }
 
                         let project = Project::new(folder, name.to_string());
-                        if let Err(e) = project.generate_to_disk() {
+                        if let Err(e) = project.generate_to_disk(LibSource::Cargo) {
                             error.set(e.to_string());
                             return;
                         }
