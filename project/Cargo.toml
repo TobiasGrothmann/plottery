@@ -2,6 +2,9 @@
 name = "plottery_project"
 version = "0.1.0"
 edition = "2021"
+description = "Project management library of Plottery, a creative coding framework for generative vector graphics and pen plotting."
+authors = ["Tobias Grothmann <tobiasgrothmannplotterart@gmail.com>"]
+
 
 [dependencies]
 anyhow = "1.0.75"

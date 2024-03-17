@@ -2,17 +2,17 @@
 name = "plottery_editor"
 version = "0.1.0"
 edition = "2021"
-description = "Plottery Editor to manage Plottery projects."
+description = "Graphical Editor of Plottery, a creative coding framework for generative vector graphics and pen plotting."
+authors = ["Tobias Grothmann <tobiasgrothmannplotterart@gmail.com>"]
 
 [package.metadata.bundle]
 name = "Plottery Editor"
 icon = ["plottery/icon_512.png"]
 identifier = "de.tobiasgrothmann.plottery"
-version = "0.0.1"
 copyright = "Copyright (c) Tobias Grothmann 2023. All rights reserved."
-category = "Developer Tool"
-short_description = "Editor to manage Plottery projects."
-long_description = "Editor to manage Plottery projects."
+category = "Creative Coding"
+short_description = "Graphical Editor of Plottery, a creative coding framework for generative vector graphics and pen plotting."
+long_description = "Graphical Editor of Plottery, a creative coding framework for generative vector graphics and pen plotting."
 
 [dependencies]
 dioxus = "0.4.3"
