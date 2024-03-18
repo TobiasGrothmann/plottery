@@ -1,3 +1,4 @@
+use crate::util::format_svg;
 use dioxus::prelude::*;
 use dioxus_router::hooks::use_navigator;
 use dioxus_std::utils::rw::use_rw;
@@ -142,7 +143,7 @@ pub fn Editor(cx: Scope, project_path: String) -> Element {
                         let nav = use_navigator(cx);
                         nav.go_back();
                     },
-                    img { src: "icons/back.svg" }
+                    img { src: "{format_svg(include_bytes!(\"../../public/icons/back.svg\"))}" }
                 }
                 h1 {
                     "{project_name}"
@@ -155,7 +156,7 @@ pub fn Editor(cx: Scope, project_path: String) -> Element {
                         onclick: move |_event| {
                             project_runner_run_clone.blocking_lock().trigger_run_project(true);
                         },
-                        img { src: "icons/play.svg" }
+                        img { src: "{format_svg(include_bytes!(\"../../public/icons/play.svg\"))}" }
                     }
                     button { class: "img_button",
                         onclick: move |_event| {

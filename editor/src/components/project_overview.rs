@@ -1,3 +1,4 @@
+use crate::util::format_svg;
 use dioxus::prelude::*;
 use dioxus_router::hooks::use_navigator;
 use path_absolutize::Absolutize;
@@ -22,14 +23,15 @@ pub fn ProjectOverview<'a>(cx: Scope<'a, ProjectOverviewProps>) -> Element<'a> {
     let project_exists = cx.props.project.exists();
     let preview_image = cx.props.project.get_preview_image_path();
 
-    let folder_logo_path = if cfg!(target_os = "windows") {
-        "icons/explorer.svg"
+    let icon_folder = if cfg!(target_os = "windows") {
+        format_svg(include_bytes!("../../public/icons/explorer.svg"))
     } else if cfg!(target_os = "macos") {
-        "icons/finder.svg"
+        format_svg(include_bytes!("../../public/icons/finder.svg"))
     } else {
-        "icons/linux_folder.svg"
+        format_svg(include_bytes!("../../public/icons/linux_folder.svg"))
     };
-    
+
+
     cx.render(rsx! {
         style { include_str!("./project_overview.css") }
         div { class: "ProjectOverview card",
@@ -78,13 +80,13 @@ pub fn ProjectOverview<'a>(cx: Scope<'a, ProjectOverviewProps>) -> Element<'a> {
                                         .spawn()
                                         .unwrap();
                                 },
-                                img { src: "icons/vscode.svg" }
+                                img { src: "{format_svg(include_bytes!(\"../../public/icons/vscode.svg\"))}" }
                             }
                             button { class: "icon_button",
                                 onclick: move |_event| {
                                     opener::reveal(cx.props.project.dir.clone()).unwrap();
                                 },
-                                img { src: "{folder_logo_path}" }
+                                img { src: "{icon_folder}" }
                             }
                         }
                     ))
@@ -93,7 +95,7 @@ pub fn ProjectOverview<'a>(cx: Scope<'a, ProjectOverviewProps>) -> Element<'a> {
             div { class: "actions",
                 button { class: "delete_button",
                     onclick: move |_event| { cx.props.on_delete_clicked.call(cx.props.project.clone()) },
-                    img { src: "icons/delete.svg" }
+                    img { src: "{format_svg(include_bytes!(\"../../public/icons/delete.svg\"))}" }
                 }
                 if project_exists {
                     cx.render(rsx!(
@@ -104,7 +106,7 @@ pub fn ProjectOverview<'a>(cx: Scope<'a, ProjectOverviewProps>) -> Element<'a> {
                                     project_path: cx.props.project.get_project_config_path().absolutize().unwrap().to_string_lossy().to_string()
                                 });
                             },
-                            img { src: "icons/forward.svg" }
+                            img { src: "{format_svg(include_bytes!(\"../../public/icons/forward.svg\"))}" }
                         }
                     ))
                 }

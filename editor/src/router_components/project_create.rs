@@ -1,9 +1,9 @@
-use std::path::PathBuf;
-
+use crate::util::format_svg;
 use dioxus::prelude::*;
 use dioxus_router::hooks::use_navigator;
 use plottery_project::{LibSource, Project};
 use rfd::FileDialog;
+use std::path::PathBuf;
 
 use crate::model::app_state::AppState;
 
@@ -39,7 +39,7 @@ pub fn ProjectCreate(cx: Scope) -> Element {
                                 target_folder.set(path.to_string_lossy().to_string());
                             }
                         },
-                        img { src: "icons/folder_open.svg" },
+                        img { src: "{format_svg(include_bytes!(\"../../public/icons/folder_open.svg\"))}" },
                     }
                 }
                 div { class: "input-row",
@@ -97,7 +97,7 @@ pub fn ProjectCreate(cx: Scope) -> Element {
                         let nav = use_navigator(cx);
                         nav.go_back();
                     },
-                    img { src: "icons/check.svg" },
+                    img { src: "{format_svg(include_bytes!(\"../../public/icons/check.svg\"))}" },
                 }
             }
         }

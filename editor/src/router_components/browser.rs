@@ -1,3 +1,4 @@
+use crate::util::format_svg;
 use crate::{components::project_list::ProjectList, model::app_state::AppState, routes::Route};
 use dioxus::prelude::*;
 use dioxus_router::hooks::use_navigator;
@@ -29,10 +30,9 @@ pub fn Browser(cx: Scope) -> Element {
             }
             button { class: "img-button",
                 onclick: move |_event| {
-                    let nav = use_navigator(cx);
-                    nav.push(Route::ProjectCreate {});
+                    use_navigator(cx).push(Route::ProjectCreate {});
                 },
-                img { src: "icons/add.svg" },
+                img { src: "{format_svg(include_bytes!(\"../../public/icons/add.svg\"))}" }
             }
         }
     })
