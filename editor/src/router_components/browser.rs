@@ -1,3 +1,4 @@
+use crate::components::navigation::Navigation;
 use crate::util::format_svg;
 use crate::{components::project_list::ProjectList, model::app_state::AppState, routes::Route};
 use dioxus::prelude::*;
@@ -17,8 +18,8 @@ pub fn Browser(cx: Scope) -> Element {
 
     cx.render(rsx! {
         style { include_str!("./browser.css") }
+        Navigation { page_name: "Projects" }
         div { class: "Browser",
-            h1 { "Projects" }
             ProjectList {
                 app_state: app_state.get().clone(),
                 on_delete_clicked: move |project: Project| {

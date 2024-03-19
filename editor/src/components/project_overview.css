@@ -17,7 +17,7 @@
   height: 130px;
   background-color: var(--col-fg-0);
   border-radius: var(--border-radius);
-  padding: var(--gap-0);
+  padding: var(--gap-1);
 }
 .project-not-found {
   background-color: var(--col-err);

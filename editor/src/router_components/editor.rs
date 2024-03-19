@@ -1,6 +1,5 @@
-use crate::util::format_svg;
+use crate::{components::navigation::Navigation, util::format_svg};
 use dioxus::prelude::*;
-use dioxus_router::hooks::use_navigator;
 use dioxus_std::utils::rw::use_rw;
 use notify::{Config, FsEventWatcher, RecommendedWatcher, RecursiveMode, Watcher};
 use path_absolutize::Absolutize;
@@ -135,19 +134,10 @@ pub fn Editor(cx: Scope, project_path: String) -> Element {
 
     cx.render(rsx! {
         style { include_str!("./editor.css") }
+        Navigation { page_name: "{project_name}" }
 
         div { class: "Editor",
             div { class: "plot_header",
-                button { class: "img_button",
-                    onclick: move |_event| {
-                        let nav = use_navigator(cx);
-                        nav.go_back();
-                    },
-                    img { src: "{format_svg(include_bytes!(\"../../public/icons/back.svg\"))}" }
-                }
-                h1 {
-                    "{project_name}"
-                }
                 div { class: "action_buttons",
                     if *busy_running.read().unwrap() {
                         cx.render(rsx!("busy running"))

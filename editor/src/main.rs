@@ -17,7 +17,8 @@ mod util;
 fn App(cx: Scope) -> Element {
     cx.render(rsx! {
         style { include_str!("./main.css") }
-        Router::<Route> {
+        body {
+            Router::<Route> {}
         }
     })
 }

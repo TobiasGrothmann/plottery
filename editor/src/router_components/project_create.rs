@@ -1,4 +1,4 @@
-use crate::util::format_svg;
+use crate::{components::navigation::Navigation, util::format_svg};
 use dioxus::prelude::*;
 use dioxus_router::hooks::use_navigator;
 use plottery_project::{LibSource, Project};
@@ -16,10 +16,9 @@ pub fn ProjectCreate(cx: Scope) -> Element {
 
     cx.render(rsx! {
         style { include_str!("./project_create.css") }
+        Navigation { page_name: "Create new project" }
 
         div { class: "ProjectCreate",
-            h1 { "Create Project" }
-
             div { class: "input-row",
                 div { class: "folder-group",
                     input {
