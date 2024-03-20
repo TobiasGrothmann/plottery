@@ -13,6 +13,9 @@ impl PartialEq for Angle {
 }
 
 impl Angle {
+    pub fn zero() -> Self {
+        Self { rad: 0.0 }
+    }
     pub fn from_rad(rad: f32) -> Self {
         Self { rad }
     }

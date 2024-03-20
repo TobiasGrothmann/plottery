@@ -1,4 +1,4 @@
-use std::f32::consts::PI;
+use std::{f32::consts::PI, iter::Sum};
 
 use geo_types::Coord;
 use serde::{Deserialize, Serialize};
@@ -214,5 +214,11 @@ impl Rotate90 for V2 {
     }
     fn rotate_270_around_mut(&mut self, pivot: &V2) {
         *self = self.rotate_270_around(pivot);
+    }
+}
+
+impl Sum for V2 {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(V2::zero(), |a, b| a + b)
     }
 }
