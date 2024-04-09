@@ -3,9 +3,9 @@ use geometry_predicates::orient2d;
 use crate::V2;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct Line<'a> {
-    pub from: &'a V2,
-    pub to: &'a V2,
+pub struct Line {
+    pub from: V2,
+    pub to: V2,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -21,7 +21,11 @@ pub enum LineIntersection {
     Intersection(V2),
 }
 
-impl Line<'_> {
+impl Line {
+    pub fn new(from: V2, to: V2) -> Self {
+        Self { from, to }
+    }
+
     pub fn point_relation(&self, point: &V2) -> PointLineRelation {
         let orientation = orient2d(
             [self.from.x as f64, self.from.y as f64],
@@ -38,9 +42,9 @@ impl Line<'_> {
 
     pub fn intersection(&self, other: &Line) -> LineIntersection {
         if self.from == other.from || self.from == other.to {
-            return LineIntersection::Intersection(*self.from);
+            return LineIntersection::Intersection(self.from);
         } else if self.to == other.from || self.to == other.to {
-            return LineIntersection::Intersection(*self.to);
+            return LineIntersection::Intersection(self.to);
         }
 
         let x1 = self.from.x;
@@ -78,7 +82,7 @@ impl Line<'_> {
 
     pub fn closest_point_on_infinite_line(&self, point: &V2) -> V2 {
         if self.from == self.to {
-            return *self.from;
+            return self.from;
         }
         let l = self.to - self.from;
         let t = (point - self.from).dot(&l) / l.len_squared();
@@ -87,15 +91,15 @@ impl Line<'_> {
 
     pub fn closest_point(&self, point: &V2) -> V2 {
         if self.from == self.to {
-            return *self.from;
+            return self.from;
         }
         let l = self.to - self.from;
         let t = (point - self.from).dot(&l) / l.len_squared();
         if t < 0.0 {
-            return *self.from;
+            return self.from;
         }
         if t > 1.0 {
-            return *self.to;
+            return self.to;
         }
         self.from + l * t
     }
