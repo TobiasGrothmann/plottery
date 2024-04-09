@@ -1,6 +1,6 @@
 use crate::{
-    traits::{Normalize, Scale, Scale2D, Translate},
-    BoundingBox, Plottable, Rotate90, SampleSettings, Shape, V2,
+    traits::{ClosestPoint, Normalize, Scale, Scale2D, Translate},
+    BoundingBox, Path, Plottable, Rotate90, SampleSettings, Shape, V2,
 };
 use serde::{Deserialize, Serialize};
 
@@ -202,5 +202,12 @@ impl Normalize for Rect {}
 impl BoundingBox for Rect {
     fn bounding_box(&self) -> Option<Rect> {
         Some(self.clone())
+    }
+}
+
+impl ClosestPoint for Rect {
+    fn closest_point(&self, _: &SampleSettings, point: &V2) -> Option<V2> {
+        Path::new_from(vec![self.bl(), self.tl(), self.tr(), self.br(), self.bl()])
+            .closest_point(&SampleSettings::default(), point)
     }
 }

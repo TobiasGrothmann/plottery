@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod test_rect {
-    use crate::{traits::Scale, Plottable, Rect, Rotate90, SampleSettings, V2};
+    use crate::{
+        traits::{ClosestPoint, Scale},
+        Plottable, Rect, Rotate90, SampleSettings, V2,
+    };
 
     #[test]
     fn rect_calculations() {
@@ -53,5 +56,40 @@ mod test_rect {
         r.rotate_90_mut();
         assert!(r.bl().x < r.tr().x);
         assert!(r.bl().y < r.tr().y);
+    }
+
+    #[test]
+    fn closest_point() {
+        let r = Rect::new(V2::new(1.0, 2.0), V2::new(4.0, 4.0));
+
+        let point = V2::new(1.0, 2.0);
+        assert_eq!(
+            r.closest_point(&SampleSettings::default(), &point),
+            Some(point)
+        );
+
+        let point = V2::new(1.5, 2.0);
+        assert_eq!(
+            r.closest_point(&SampleSettings::default(), &point),
+            Some(point)
+        );
+
+        let point = V2::new(0.0, 0.0);
+        assert_eq!(
+            r.closest_point(&SampleSettings::default(), &point),
+            Some(r.bl())
+        );
+
+        let point = V2::new(1.2, 3.0);
+        assert_eq!(
+            r.closest_point(&SampleSettings::default(), &point),
+            Some(V2::new(1.0, 3.0))
+        );
+
+        let point = V2::new(0.8, 3.0);
+        assert_eq!(
+            r.closest_point(&SampleSettings::default(), &point),
+            Some(V2::new(1.0, 3.0))
+        );
     }
 }

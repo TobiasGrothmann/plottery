@@ -5,7 +5,7 @@ use std::{slice::Iter, slice::IterMut};
 
 use crate::{
     geometry::TransformMatrix,
-    traits::{Normalize, Scale, Scale2D, Transform, Translate},
+    traits::{ClosestPoint, Normalize, Scale, Scale2D, Transform, Translate},
     Angle, BoundingBox, Plottable, Rect, Rotate, Rotate90, SampleSettings, Shape, V2,
 };
 
@@ -274,5 +274,28 @@ impl Transform for Path {
         for point in self.iter_mut() {
             *point = matrix.mul_vector(point);
         }
+    }
+}
+
+impl ClosestPoint for Path {
+    fn closest_point(&self, sample_settings: &SampleSettings, point: &V2) -> Option<V2> {
+        let points_and_distances: Vec<(V2, f32)> = self
+            .get_line_segments(sample_settings)
+            .iter()
+            .map(|line| {
+                let closest_point = line.closest_point(point);
+                let dist_sqaured = closest_point.dist_squared(point);
+                (closest_point, dist_sqaured)
+            })
+            .collect();
+
+        let closest =
+            points_and_distances
+                .iter()
+                .min_by(|(_, dist_sqaured_a), (_, dist_sqaured_b)| {
+                    dist_sqaured_a.partial_cmp(dist_sqaured_b).unwrap()
+                });
+
+        closest.map(|closest| closest.0)
     }
 }

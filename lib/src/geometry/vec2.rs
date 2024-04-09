@@ -111,6 +111,9 @@ impl V2 {
     pub fn dist(&self, other: &Self) -> f32 {
         ((self.x - other.x).powi(2) + (self.y - other.y).powi(2)).sqrt()
     }
+    pub fn dist_squared(&self, other: &Self) -> f32 {
+        (self.x - other.x).powi(2) + (self.y - other.y).powi(2)
+    }
     pub fn dist_manhattan(&self, other: &Self) -> f32 {
         (self.x - other.x).abs() + (self.y - other.y).abs()
     }

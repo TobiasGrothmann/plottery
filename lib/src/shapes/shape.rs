@@ -314,25 +314,10 @@ impl Transform for Shape {
 
 impl ClosestPoint for Shape {
     fn closest_point(&self, sample_settings: &SampleSettings, point: &V2) -> Option<V2> {
-        let line_segments = match self {
-            Shape::Circle(c) => return c.closest_point(sample_settings, point),
-            Shape::Rect(r) => r.get_line_segments(sample_settings),
-            Shape::Path(p) => p.get_line_segments(sample_settings),
-        };
-
-        let points_and_distances: Vec<(V2, f32)> = line_segments
-            .iter()
-            .map(|line| {
-                let closest_point = line.closest_point(point);
-                let distance = closest_point.dist(point);
-                (closest_point, distance)
-            })
-            .collect();
-
-        let closest = points_and_distances
-            .iter()
-            .min_by(|(_, distance1), (_, distance2)| distance1.partial_cmp(distance2).unwrap());
-
-        closest.map(|closest| closest.0)
+        match self {
+            Shape::Circle(c) => c.closest_point(sample_settings, point),
+            Shape::Rect(r) => r.closest_point(sample_settings, point),
+            Shape::Path(p) => p.closest_point(sample_settings, point),
+        }
     }
 }
