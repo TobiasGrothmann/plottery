@@ -1,4 +1,4 @@
-use crate::{Layer, Path, Shape, V2};
+use crate::{Layer, Line, Path, Shape, V2};
 
 use geo::BooleanOps;
 use geo_types::{LineString, MultiLineString, Polygon};
@@ -30,6 +30,14 @@ pub struct Masked {
 
 pub trait Plottable: Clone {
     fn get_points(&self, _: &SampleSettings) -> Vec<V2>;
+
+    fn get_line_segments(&self, sample_settings: &SampleSettings) -> Vec<Line> {
+        self.get_points(sample_settings)
+            .iter()
+            .tuple_windows()
+            .map(|(from, to)| Line::new(*from, *to))
+            .collect()
+    }
 
     fn length(&self) -> f32;
 
@@ -96,6 +104,27 @@ pub trait Plottable: Clone {
         Masked {
             inside: layer_inside,
             outside: layer_outside,
+        }
+    }
+
+    fn closest_point(&self, sample_settings: &SampleSettings, point: &V2) -> Option<V2> {
+        let points_and_distances = self
+            .get_line_segments(sample_settings)
+            .iter()
+            .map(|line| {
+                let closest_point = line.closest_point(point);
+                let distance = closest_point.dist(point);
+                (closest_point, distance)
+            })
+            .collect_vec();
+
+        let closest = points_and_distances
+            .iter()
+            .min_by(|(_, distance1), (_, distance2)| distance1.partial_cmp(distance2).unwrap());
+
+        match closest {
+            Some(closest) => Some(closest.0),
+            None => None,
         }
     }
 }
