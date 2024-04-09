@@ -116,7 +116,10 @@ impl V2 {
     }
 
     pub fn len(&self) -> f32 {
-        (self.x.powi(2) + self.y.powi(2)).sqrt()
+        (self.x * self.x + self.y * self.y).sqrt()
+    }
+    pub fn len_squared(&self) -> f32 {
+        self.x * self.x + self.y * self.y
     }
 
     pub fn angle(&self) -> Angle {

@@ -119,5 +119,49 @@ mod test_line {
                 LineIntersection::Intersection(line1.from.clone())
             );
         }
+
+        #[test]
+        fn closest_point() {
+            let line = Line {
+                from: &V2::new(0.0, 0.0),
+                to: &V2::new(3.0, 3.0),
+            };
+
+            let point = V2::new(3.0, 3.0);
+            assert_eq!(line.closest_point(&point), point);
+
+            let point = V2::new(5.0, 5.0);
+            assert_eq!(line.closest_point(&point), line.to.clone());
+
+            let point = V2::new(1.5, 1.5);
+            assert_eq!(line.closest_point(&point), point);
+
+            let point = V2::new(0.0, 3.0);
+            assert_eq!(line.closest_point(&point), V2::new(1.5, 1.5));
+
+            let point = V2::new(3.0, 0.0);
+            assert_eq!(line.closest_point(&point), V2::new(1.5, 1.5));
+
+            let point = V2::new(100.0, 0.0);
+            assert_eq!(line.closest_point(&point), V2::new(3.0, 3.0));
+
+            let point = V2::new(0.0, 5.0);
+            assert_eq!(line.closest_point(&point), V2::new(2.5, 2.5));
+
+            let point = V2::new(5.0, 0.0);
+            assert_eq!(line.closest_point(&point), V2::new(2.5, 2.5));
+        }
+
+        #[test]
+        fn closest_point_line_points_coincident() {
+            // special case where line starts and ends at the same point
+            let line = Line {
+                from: &V2::new(0.0, 0.0),
+                to: &V2::new(0.0, 0.0),
+            };
+
+            let point = V2::new(1.0, 1.0);
+            assert_eq!(line.closest_point(&point), V2::new(0.0, 0.0));
+        }
     }
 }

@@ -198,6 +198,15 @@ mod test_vec2 {
     }
 
     #[test]
+    fn len_squared() {
+        let v = V2::new(1.0, 0.0);
+        assert_eq!(v.len_squared(), 1.0);
+
+        let v = V2::new(1.0, 1.0);
+        assert_eq!(v.len_squared(), 2.0_f32);
+    }
+
+    #[test]
     fn din_a_sizes() {
         let sizes = vec![
             V2::a0(),

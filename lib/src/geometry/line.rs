@@ -75,4 +75,28 @@ impl Line<'_> {
 
         LineIntersection::Intersection(V2::new(x, y))
     }
+
+    pub fn closest_point_on_infinite_line(&self, point: &V2) -> V2 {
+        if self.from == self.to {
+            return *self.from;
+        }
+        let l = self.to - self.from;
+        let t = (point - self.from).dot(&l) / l.len_squared();
+        self.from + l * t
+    }
+
+    pub fn closest_point(&self, point: &V2) -> V2 {
+        if self.from == self.to {
+            return *self.from;
+        }
+        let l = self.to - self.from;
+        let t = (point - self.from).dot(&l) / l.len_squared();
+        if t < 0.0 {
+            return *self.from;
+        }
+        if t > 1.0 {
+            return *self.to;
+        }
+        self.from + l * t
+    }
 }
