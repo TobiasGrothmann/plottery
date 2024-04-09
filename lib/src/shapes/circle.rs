@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::f32::consts::PI;
 
 use crate::{
-    traits::{Normalize, Scale, Translate},
+    traits::{ClosestPoint, Normalize, Scale, Translate},
     Angle, BoundingBox, Plottable, Rect, Rotate, Rotate90, SampleSettings, Shape, V2,
 };
 
@@ -166,5 +166,16 @@ impl BoundingBox for Circle {
         let min = self.center - V2::new(self.radius, self.radius);
         let max = self.center + V2::new(self.radius, self.radius);
         Some(Rect::new(min, max))
+    }
+}
+
+impl ClosestPoint for Circle {
+    fn closest_point(&self, _: &SampleSettings, point: &V2) -> Option<V2> {
+        let direction = point - self.center;
+        if direction == V2::zero() {
+            // point is at the center
+            return Some(self.center + V2::new(self.radius, 0.0));
+        }
+        Some(self.center + direction.normalize_to(self.radius))
     }
 }

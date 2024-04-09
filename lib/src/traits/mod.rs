@@ -1,4 +1,5 @@
 pub mod bounding_box;
+pub mod closest_point;
 pub mod normalize;
 mod normalize_test;
 pub mod plottable;
@@ -11,6 +12,7 @@ pub mod transform;
 pub mod translate;
 
 pub use bounding_box::BoundingBox;
+pub use closest_point::ClosestPoint;
 pub use normalize::Normalize;
 pub use plottable::{Masked, Plottable, SampleSettings};
 pub use rotate::Rotate;

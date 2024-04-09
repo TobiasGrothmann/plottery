@@ -3,7 +3,7 @@ mod test_circle {
     use std::f32::consts::PI;
 
     use crate::{
-        traits::{normalize::Alignment, Normalize, Scale, Scale2D},
+        traits::{normalize::Alignment, ClosestPoint, Normalize, Scale, Scale2D},
         BoundingBox, Circle, Path, Plottable, SampleSettings, V2,
     };
 
@@ -76,5 +76,28 @@ mod test_circle {
 
         assert_eq!(normalized_bounds.bl(), V2::new(0.0, 0.0));
         assert_eq!(normalized_bounds.tr(), V2::new(1.0, 1.0));
+    }
+
+    #[test]
+    fn closest_point() {
+        let c = Circle::new(V2::new(1.0, 1.0), 1.0);
+
+        let point = V2::new(1.0, 1.0);
+        assert_eq!(
+            c.closest_point(&SampleSettings::default(), &point),
+            Some(V2::new(2.0, 1.0))
+        );
+
+        let point = V2::new(2.0, 1.0);
+        assert_eq!(
+            c.closest_point(&SampleSettings::default(), &point),
+            Some(point)
+        );
+
+        let point = V2::new(2.0, 2.0);
+        assert_eq!(
+            c.closest_point(&SampleSettings::default(), &point),
+            Some(V2::new(1.7071068, 1.7071068))
+        );
     }
 }
