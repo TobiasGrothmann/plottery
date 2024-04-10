@@ -261,4 +261,34 @@ mod test_vec2 {
         let v = V2::new(1.0, 1.0);
         assert_eq!(v.angle(), Angle::from_degrees(45.0));
     }
+
+    #[test]
+    fn project() {
+        let v = V2::new(0.0, 1.0);
+        let v_proj = v.project_onto(&V2::new(1.0, 1.0));
+        assert_eq!(v_proj, V2::new(0.5, 0.5));
+
+        let v = V2::new(1.0, 1.0);
+        let v_proj = v.project_onto(&V2::new(1.0, 0.0));
+        assert_eq!(v_proj, V2::new(1.0, 0.0));
+
+        let v = V2::new(-3.0, -2.0);
+        let v_proj = v.project_onto(&V2::new(-1.0, 0.0));
+        assert_eq!(v_proj, V2::new(-3.0, 0.0));
+    }
+
+    #[test]
+    fn lerp() {
+        let v1 = V2::new(1.0, 1.0);
+        let v2 = V2::new(3.0, 2.0);
+
+        let v_lerp = v1.lerp(&v2, 0.0);
+        assert_eq!(v_lerp, v1);
+
+        let v_lerp = v1.lerp(&v2, 1.0);
+        assert_eq!(v_lerp, v2);
+
+        let v_lerp = v1.lerp(&v2, 0.5);
+        assert_eq!(v_lerp, V2::new(2.0, 1.5));
+    }
 }

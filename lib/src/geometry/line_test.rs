@@ -118,5 +118,13 @@ mod test_line {
             let point = V2::new(1.0, 1.0);
             assert_eq!(line.closest_point(&point), V2::new(0.0, 0.0));
         }
+
+        #[test]
+        fn project() {
+            let line = Line::new(V2::new(0.0, 1.0), V2::new(1.0, 2.0));
+
+            let point = V2::new(0.0, 2.0);
+            assert_eq!(line.project(&point), V2::new(0.5, 1.5));
+        }
     }
 }

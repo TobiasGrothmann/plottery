@@ -145,6 +145,23 @@ impl V2 {
         let len = len / self.len();
         *self * len
     }
+
+    /// project a point onto the infinite line defined by the vector
+    pub fn project_onto(&self, other: &Self) -> Self {
+        let length_squared = other.len_squared();
+        let dot_product = self.dot(other);
+        V2::new(
+            (dot_product / length_squared) * other.x,
+            (dot_product / length_squared) * other.y,
+        )
+    }
+
+    pub fn lerp(&self, other: &Self, t: f32) -> Self {
+        V2::new(
+            self.x + t * (other.x - self.x),
+            self.y + t * (other.y - self.y),
+        )
+    }
 }
 
 impl Rotate for V2 {

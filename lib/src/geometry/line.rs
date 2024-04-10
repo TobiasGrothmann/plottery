@@ -26,6 +26,18 @@ impl Line {
         Self { from, to }
     }
 
+    /// vector from `from` to `to`
+    pub fn vector(&self) -> V2 {
+        self.to - self.from
+    }
+    pub fn mid(&self) -> V2 {
+        (self.from + self.to) * 0.5
+    }
+    /// project a point onto this infinite line
+    pub fn project(&self, point: &V2) -> V2 {
+        self.from + (point - self.from).project_onto(&self.vector())
+    }
+
     pub fn point_relation(&self, point: &V2) -> PointLineRelation {
         let orientation = orient2d(
             [self.from.x as f64, self.from.y as f64],
