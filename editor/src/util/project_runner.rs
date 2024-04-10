@@ -91,47 +91,29 @@ impl ProjectRunner {
                     .unwrap();
                     run_process.kill().unwrap();
                     log::info!("Run killed");
-                    return;
                 }
-                run_status = run_process.status() => {
-                    match run_status {
-                        Ok(status) => {
-                            if status.success() {
-                                log::info!("Run successful");
-                            } else {
-                                log::info!("Run failed");
-                                return;
-                            }
-                        }
+                layer = read_layer_from_stdout(&mut run_process) => {
+                    // getting layer from stdout of project executable
+                    let layer = match layer {
+                        Ok(layer) => layer,
                         Err(e) => {
-                            log::error!("Error getting run status: {}", e);
+                            log::error!("Error reading layer from project: {}", e);
                             return;
                         }
+                    };
+
+                    // Publishing Layer
+                    log::info!("Outputting layer...");
+                    let change_counter = layer_rw.read().unwrap().change_counter;
+                    let write_success: Result<(), dioxus_std::utils::rw::UseRwError> =
+                        layer_rw.write(LayerChangeWrapper {
+                            layer: Some(layer),
+                            change_counter: change_counter + 1,
+                        });
+                    if write_success.is_err() {
+                        log::error!("Error using generated Layer.");
                     }
                 }
-            }
-
-            // getting layer from stdout of project executable
-            log::info!("Reading layer from stdout...");
-            let layer = read_layer_from_stdout(&mut run_process).await;
-            let layer = match layer {
-                Ok(layer) => layer,
-                Err(e) => {
-                    log::error!("Error reading layer from project: {}", e);
-                    return;
-                }
-            };
-
-            // Publishing Layer
-            log::info!("Outputting layer...");
-            let change_counter = layer_rw.read().unwrap().change_counter;
-            let write_success: Result<(), dioxus_std::utils::rw::UseRwError> =
-                layer_rw.write(LayerChangeWrapper {
-                    layer: Some(layer),
-                    change_counter: change_counter + 1,
-                });
-            if write_success.is_err() {
-                log::error!("Error using generated Layer.");
             }
         });
         tokio::spawn(async move {}); // this is somehow needed to get tokio to execute the above task
