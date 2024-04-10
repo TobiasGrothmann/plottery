@@ -65,6 +65,47 @@ impl Path {
     pub fn get_points_ref(&self) -> &Vec<V2> {
         &self.points
     }
+
+    pub fn rounded_chaikins(&self, iterations: i32) -> Self {
+        let mut new_points = self.points.clone();
+        for _ in 0..iterations {
+            new_points = Self::rounded_chaikins_iteration(new_points);
+        }
+        Self::new_from(new_points)
+    }
+
+    fn rounded_chaikins_iteration(points: Vec<V2>) -> Vec<V2> {
+        if points.len() <= 2 {
+            return points;
+        }
+
+        let mut new_points = Vec::with_capacity(points.len() * 2 + 1);
+
+        if points.first().unwrap() == points.last().unwrap() {
+            // if shape was closed, the beginning to end corner needs to be cut of as well
+            for i in 0..(points.len() - 1) {
+                let vec = points[(i + 1) % points.len()] - points[i];
+                new_points.push(points[i] + vec * 0.25);
+                new_points.push(points[i] + vec * 0.75);
+            }
+            new_points.push(*new_points.first().unwrap());
+        } else {
+            new_points.push(*points.first().unwrap());
+            new_points.push(points[0] + (points[1] - points[0]) * 0.75); // in first segment only 0.75 is needed
+            for i in 1..(points.len() - 2) {
+                let vec = points[i + 1] - points[i];
+                new_points.push(points[i] + vec * 0.25);
+                new_points.push(points[i] + vec * 0.75);
+            }
+            new_points.push(
+                points[points.len() - 2]
+                    + (points[points.len() - 1] - points[points.len() - 2]) * 0.25,
+            ); // in last segment only 0.25 is needed
+            new_points.push(*points.last().unwrap());
+        }
+
+        new_points
+    }
 }
 
 impl Plottable for Path {

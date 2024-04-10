@@ -117,4 +117,46 @@ mod test_path {
             Some(V2::new(6.0, 0.0))
         );
     }
+
+    #[test]
+    fn chaikins() {
+        let p = Path::new_from(vec![
+            V2::new(0.0, 0.0),
+            V2::new(1.0, 0.0),
+            V2::new(1.0, 1.0),
+        ]);
+
+        let p_rounded = p.rounded_chaikins(1);
+        let points = p_rounded.get_points(&SampleSettings::default());
+        assert_eq!(points.len(), 4);
+        assert_eq!(points[0], V2::new(0.0, 0.0));
+        assert_eq!(points[1], V2::new(0.75, 0.0));
+        assert_eq!(points[2], V2::new(1.0, 0.25));
+        assert_eq!(points[3], V2::new(1.0, 1.0));
+        assert!(!p_rounded.is_closed());
+    }
+
+    #[test]
+    fn chaikins_closed() {
+        let p = Path::new_from(vec![
+            V2::new(0.0, 0.0),
+            V2::new(1.0, 0.0),
+            V2::new(1.0, 1.0),
+            V2::new(0.0, 1.0),
+            V2::new(0.0, 0.0),
+        ]);
+
+        let p_rounded = p.rounded_chaikins(1);
+        let points = p_rounded.get_points(&SampleSettings::default());
+        assert_eq!(points.len(), 9);
+        assert_eq!(points[0], V2::new(0.25, 0.0));
+        assert_eq!(points[1], V2::new(0.75, 0.0));
+        assert_eq!(points[2], V2::new(1.0, 0.25));
+        assert_eq!(points[3], V2::new(1.0, 0.75));
+        assert_eq!(points[4], V2::new(0.75, 1.0));
+        assert_eq!(points[5], V2::new(0.25, 1.0));
+        assert_eq!(points[6], V2::new(0.0, 0.75));
+        assert_eq!(points[7], V2::new(0.0, 0.25));
+        assert!(p_rounded.is_closed());
+    }
 }
