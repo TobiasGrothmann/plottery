@@ -96,6 +96,12 @@ impl V2 {
     pub fn as_tuple(&self) -> (f32, f32) {
         (self.x, self.y)
     }
+    pub fn as_array(&self) -> [f32; 2] {
+        [self.x, self.y]
+    }
+    pub fn as_vec(&self) -> Vec<f32> {
+        vec![self.x, self.y]
+    }
 
     pub fn dot(&self, other: &Self) -> f32 {
         self.x * other.x + self.y * other.y
@@ -104,8 +110,14 @@ impl V2 {
     pub fn min(&self, other: &Self) -> Self {
         V2::new(self.x.min(other.x), self.y.min(other.y))
     }
+    pub fn min_axis(&self) -> f32 {
+        self.x.min(self.y)
+    }
     pub fn max(&self, other: &Self) -> Self {
         V2::new(self.x.max(other.x), self.y.max(other.y))
+    }
+    pub fn max_axis(&self) -> f32 {
+        self.x.max(self.y)
     }
 
     pub fn dist(&self, other: &Self) -> f32 {
@@ -142,8 +154,7 @@ impl V2 {
         }
     }
     pub fn normalize_to(&self, len: f32) -> Self {
-        let len = len / self.len();
-        *self * len
+        *self * len / self.len()
     }
 
     /// project a point onto the infinite line defined by the vector
@@ -161,6 +172,25 @@ impl V2 {
             self.x + t * (other.x - self.x),
             self.y + t * (other.y - self.y),
         )
+    }
+
+    pub fn clamp_len(&self, min_len: f32, max_len: f32) -> Self {
+        let len = self.len();
+        if len < min_len {
+            *self * (min_len / len)
+        } else if len > max_len {
+            *self * (max_len / len)
+        } else {
+            *self
+        }
+    }
+
+    pub fn map(&self, f: fn(f32) -> f32) -> Self {
+        V2::new(f(self.x), f(self.y))
+    }
+
+    pub fn sqrt(&self) -> Self {
+        V2::new(self.x.sqrt(), self.y.sqrt())
     }
 }
 

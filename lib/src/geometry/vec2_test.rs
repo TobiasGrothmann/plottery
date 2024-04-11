@@ -291,4 +291,22 @@ mod test_vec2 {
         let v_lerp = v1.lerp(&v2, 0.5);
         assert_eq!(v_lerp, V2::new(2.0, 1.5));
     }
+
+    #[test]
+    fn clamp_len() {
+        let v = V2::new(1.0, 0.0).clamp_len(0.0, 1.0);
+        assert_eq!(v, V2::new(1.0, 0.0));
+
+        let v = V2::new(1.0, 0.0).clamp_len(0.0, 0.5);
+        assert_eq!(v, V2::new(0.5, 0.0));
+
+        let v = V2::new(1.0, 1.0).clamp_len(0.0, 1.0);
+        assert_eq!(v, V2::xy(1.0 / 2.0_f32.sqrt()));
+    }
+
+    #[test]
+    fn map() {
+        let v = V2::new(1.0, 2.0).map(|val| val * 2.0);
+        assert_eq!(v, V2::new(2.0, 4.0));
+    }
 }

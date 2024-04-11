@@ -74,7 +74,7 @@ pub trait Plottable: Clone {
         let coords = self
             .get_points(sample_settings)
             .iter()
-            .map(|v| v.as_geo_coord())
+            .map(V2::as_geo_coord)
             .collect_vec();
         LineString(coords)
     }
