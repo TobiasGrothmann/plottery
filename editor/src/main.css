@@ -64,6 +64,9 @@ button {
   cursor: pointer;
   outline: none;
 }
+button:hover {
+  filter: brightness(1.25);
+}
 
 input {
   font-size: 16px;
