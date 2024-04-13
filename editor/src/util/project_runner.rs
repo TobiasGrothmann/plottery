@@ -1,22 +1,21 @@
-use dioxus_std::utils::rw::UseRw;
-
 use crate::router_components::editor::LayerChangeWrapper;
+use dioxus::signals::{Readable, SyncSignal, Writable};
 use plottery_project::{read_layer_from_stdout, Project};
 
 #[derive(Clone)]
 pub struct ProjectRunner {
     project: Project,
-    pub cancel_tx: Option<tokio::sync::mpsc::Sender<()>>,
-    layer_rw_output: UseRw<LayerChangeWrapper>,
+    cancel_tx: Option<tokio::sync::mpsc::Sender<()>>,
+    layer: SyncSignal<LayerChangeWrapper>,
 }
 
 impl ProjectRunner {
-    pub fn new(project: Project, layer_rw_output: UseRw<LayerChangeWrapper>) -> Self {
+    pub fn new(project: Project, layer: SyncSignal<LayerChangeWrapper>) -> Self {
         log::info!("Creating new ProjectRunner");
         Self {
             project,
             cancel_tx: None,
-            layer_rw_output,
+            layer,
         }
     }
 
@@ -27,7 +26,8 @@ impl ProjectRunner {
         self.cancel_tx = Some(cancel_tx);
         let project = self.project.clone();
 
-        let layer_rw = self.layer_rw_output.clone();
+        let mut layer_clone = self.layer.clone();
+
         log::info!("Spawning new task to run project");
         tokio::spawn(async move {
             log::info!("Building...");
@@ -92,9 +92,9 @@ impl ProjectRunner {
                     run_process.kill().unwrap();
                     log::info!("Run killed");
                 }
-                layer = read_layer_from_stdout(&mut run_process) => {
+                new_layer = read_layer_from_stdout(&mut run_process) => {
                     // getting layer from stdout of project executable
-                    let layer = match layer {
+                    let new_layer = match new_layer {
                         Ok(layer) => layer,
                         Err(e) => {
                             log::error!("Error reading layer from project: {}", e);
@@ -104,15 +104,13 @@ impl ProjectRunner {
 
                     // Publishing Layer
                     log::info!("Outputting layer...");
-                    let change_counter = layer_rw.read().unwrap().change_counter;
-                    let write_success: Result<(), dioxus_std::utils::rw::UseRwError> =
-                        layer_rw.write(LayerChangeWrapper {
-                            layer: Some(layer),
+                    let change_counter = layer_clone.read().change_counter;
+                    layer_clone.set(
+                        LayerChangeWrapper {
+                            layer: Some(new_layer),
                             change_counter: change_counter + 1,
-                        });
-                    if write_success.is_err() {
-                        log::error!("Error using generated Layer.");
-                    }
+                        }
+                    );
                 }
             }
         });

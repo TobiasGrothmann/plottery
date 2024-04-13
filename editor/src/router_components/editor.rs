@@ -1,6 +1,5 @@
 use crate::{components::navigation::Navigation, util::format_svg};
 use dioxus::prelude::*;
-use dioxus_std::utils::rw::use_rw;
 use notify::{Config, FsEventWatcher, RecommendedWatcher, RecursiveMode, Watcher};
 use path_absolutize::Absolutize;
 use plottery_lib::Layer;
@@ -80,77 +79,62 @@ impl PartialEq for LayerChangeWrapper {
 }
 
 #[component]
-pub fn Editor(cx: Scope, project_path: String) -> Element {
-    let project_rw = use_rw(cx, || {
+pub fn Editor(project_path: String) -> Element {
+    let project = use_signal(|| {
         let p = PathBuf::from(project_path.clone());
         Project::load_from_file(p).unwrap()
     });
-    let project = project_rw.read().unwrap();
-    let busy_running = use_rw(cx, || false);
+    let busy_running = use_signal(|| false);
 
-    // let hot_reload_enabled = use_state(cx, || false);
-    let hot_reload_watcher = use_state(cx, || None as Option<FsEventWatcher>);
-    let hot_reload_join_handle: &UseState<Option<JoinHandle<()>>> =
-        use_state(cx, || None as Option<JoinHandle<()>>);
-    let hot_reload_path_to_watch = project.get_cargo_path().unwrap().join("src");
+    let hot_reload_enabled = use_signal_sync(|| false);
+    let mut hot_reload_watcher = use_signal_sync(|| None as Option<FsEventWatcher>);
+    let mut hot_reload_join_handle = use_signal_sync(|| None as Option<JoinHandle<()>>);
+    let hot_reload_path_to_watch = project.read().get_cargo_path().unwrap().join("src");
 
-    let layer = use_rw(cx, || LayerChangeWrapper {
+    let layer = use_signal_sync(|| LayerChangeWrapper {
         layer: None,
         change_counter: 0,
     });
-    let project_runner = use_rw(cx, || {
+    let project_runner = use_signal_sync(|| {
         Arc::new(Mutex::new(ProjectRunner::new(
-            project.clone(),
+            project.read().clone(),
             layer.clone(),
         )))
     });
-    let project_runner_run_clone = project_runner.read().unwrap().clone();
-    let project_runner_hot_reload_clone = project_runner_run_clone.clone();
-    let layer_clone_for_preview = layer.clone();
 
-    let project_clone_for_svg = project_rw.read().unwrap().clone();
-    let layer_clone_for_svg = layer.clone();
-    use_effect(
-        cx,
-        (&layer.read().unwrap().change_counter,),
-        |(_,)| async move {
-            to_owned![layer_clone_for_svg];
-            let new_layer = layer_clone_for_svg.read().unwrap().clone().layer;
-            if let Some(new_layer) = new_layer {
-                let svg_path = get_svg_path(&project_clone_for_svg);
-                match new_layer.write_svg(svg_path, 1.0) {
-                    Ok(_) => log::info!("SVG updated"),
-                    Err(e) => {
-                        log::error!("Error writing svg {}", e);
-                    }
-                };
-            }
-        },
-    );
+    use_resource(move || async move {
+        let new_layer = layer.read().clone().layer;
+        if let Some(new_layer) = new_layer {
+            let svg_path = get_svg_path(&project.read().clone());
+            match new_layer.write_svg(svg_path, 1.0) {
+                Ok(_) => log::info!("SVG updated"),
+                Err(e) => {
+                    log::error!("Error writing svg {}", e);
+                }
+            };
+        };
+    })
+    .unwrap();
 
-    // clones for closures
-    let project_name = project_rw.read().unwrap().config.name.clone();
-    let project: Project = project_rw.read().unwrap().clone();
-
-    cx.render(rsx! {
-        style { include_str!("./editor.css") }
-        Navigation { page_name: "{project_name}" }
+    rsx! {
+        style { { include_str!("./editor.css") } }
+        Navigation { page_name: "{project.read().config.name.clone()}" }
 
         div { class: "Editor",
             div { class: "plot_header",
                 div { class: "action_buttons",
-                    if *busy_running.read().unwrap() {
-                        cx.render(rsx!("busy running"))
+                    if *busy_running.read() {
+                        "busy running"
                     }
                     button { class: "img_button",
                         onclick: move |_event| {
-                            project_runner_run_clone.blocking_lock().trigger_run_project(true);
+                            project_runner.read().try_lock().unwrap().trigger_run_project(false);
                         },
                         img { src: "{format_svg(include_bytes!(\"../../public/icons/play.svg\"))}" }
                     }
                     button { class: "img_button",
                         onclick: move |_event| {
-                            let (hot_reload_handle, watcher) = start_hot_reload(hot_reload_path_to_watch.clone(), project_runner_hot_reload_clone.clone());
+                            let (hot_reload_handle, watcher) = start_hot_reload(hot_reload_path_to_watch.clone(), project_runner.read().clone());
                             hot_reload_join_handle.set(Some(hot_reload_handle));
                             hot_reload_watcher.set(Some(watcher));
                         },
@@ -161,25 +145,21 @@ pub fn Editor(cx: Scope, project_path: String) -> Element {
 
             div { class: "plot_and_params",
                 div { class: "params",
-                    p { "Parameters" } 
+                    p { "Parameters" }
                 }
                 div { class: "plot",
-                    if get_svg_path(&project).exists() {
-                        cx.render(rsx!(
-                            Image {
-                                img_path: get_svg_path(&project).absolutize().unwrap().to_string_lossy().to_string(),
-                                redraw_counter: layer_clone_for_preview.read().unwrap().change_counter,
-                            }
-                        ))
+                    if get_svg_path(&project.read()).exists() {
+                        Image {
+                            img_path: get_svg_path(&project.read()).absolutize().unwrap().to_string_lossy().to_string(),
+                            redraw_counter: layer.read().change_counter,
+                        }
                     } else {
-                        cx.render(rsx!(
-                            div { class: "err_box",
-                                p { "SVG could not be found!" }
-                            }
-                        ))
+                        div { class: "err_box",
+                            p { "SVG could not be found!" }
+                        }
                     }
                 }
             }
         }
-    })
+    }
 }

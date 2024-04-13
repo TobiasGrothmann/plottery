@@ -6,8 +6,8 @@ use dioxus_router::hooks::use_navigator;
 use plottery_project::Project;
 
 #[component]
-pub fn Browser(cx: Scope) -> Element {
-    let app_state = use_state(cx, || {
+pub fn Browser() -> Element {
+    let mut app_state = use_signal(|| {
         AppState::load().unwrap_or_else(|| {
             log::info!("App state file does not exist. Creating new app state.");
             let new_state = AppState::new();
@@ -16,25 +16,25 @@ pub fn Browser(cx: Scope) -> Element {
         })
     });
 
-    cx.render(rsx! {
-        style { include_str!("./browser.css") }
+    rsx! {
+        style { { include_str!("./browser.css") } }
         Navigation { page_name: "Projects" }
         div { class: "Browser",
             ProjectList {
-                app_state: app_state.get().clone(),
+                app_state: app_state,
                 on_delete_clicked: move |project: Project| {
-                    let mut app_state_deref = app_state.get().to_owned();
-                    app_state_deref.projects.retain(|p| *p != project);
-                    app_state_deref.save();
-                    app_state.set(app_state_deref);
+                    let mut new_app_state = app_state.read().clone();
+                    new_app_state.projects.retain(|p| *p != project);
+                    new_app_state.save();
+                    app_state.set(new_app_state);
                 }
             }
             button { class: "img-button",
                 onclick: move |_event| {
-                    use_navigator(cx).push(Route::ProjectCreate {});
+                    use_navigator().push(Route::ProjectCreate {});
                 },
                 img { src: "{format_svg(include_bytes!(\"../../public/icons/add.svg\"))}" }
             }
         }
-    })
+    }
 }

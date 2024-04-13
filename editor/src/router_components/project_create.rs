@@ -8,14 +8,14 @@ use std::path::PathBuf;
 use crate::model::app_state::AppState;
 
 #[component]
-pub fn ProjectCreate(cx: Scope) -> Element {
-    let target_folder = use_state(cx, || "".to_string());
-    let project_name = use_state(cx, || "".to_string());
+pub fn ProjectCreate() -> Element {
+    let mut target_folder = use_signal(|| "".to_string());
+    let mut project_name = use_signal(|| "".to_string());
 
-    let error = use_state(cx, || "".to_string());
+    let mut error = use_signal(|| "".to_string());
 
-    cx.render(rsx! {
-        style { include_str!("./project_create.css") }
+    rsx! {
+        style { { include_str!("./project_create.css") } }
         Navigation { page_name: "Create new project" }
 
         div { class: "ProjectCreate",
@@ -25,9 +25,9 @@ pub fn ProjectCreate(cx: Scope) -> Element {
                         name: "folder",
                         style: "flex: 1;",
                         required: true,
-                        value: target_folder.get().as_str(),
-                        placeholder: "path/to/folder",
-                        onchange: move |event| target_folder.set(event.value.clone())
+                        value: target_folder,
+                        placeholder: "target folder",
+                        onchange: move |event| target_folder.set(event.value())
                     }
                     button { class: "img-button",
                         onclick: move |_event| {
@@ -45,31 +45,38 @@ pub fn ProjectCreate(cx: Scope) -> Element {
                     input {
                         name: "name",
                         required: true,
-                        value: project_name.get().as_str(),
-                        placeholder: "awesome_project",
-                        onchange: move |event| project_name.set(event.value.clone())
+                        value: "{project_name}",
+                        placeholder: "project name",
+                        onchange: move |event| project_name.set(event.value())
                     }
                 }
 
-                if !error.get().is_empty() {
-                    cx.render(rsx! {
-                        div { class: "err_box",
-                            p { error.get().clone() }
-                        }
-                    })
+                if !error.read().is_empty() {
+                    div { class: "err_box",
+                        p { "{error}" }
+                    }
                 }
 
                 button { class: "img-button accept",
                     onclick: move |_event| {
-                        let folder = PathBuf::from(target_folder.get());
+                        if target_folder.read().is_empty() {
+                            error.set("Please pick a target folder.".to_string());
+                            return;
+                        }
+                        let folder = PathBuf::from(target_folder.read().clone());
                         if !folder.exists() {
                             error.set("Folder does not exist".to_string());
                             return;
                         }
 
-                        let name = project_name.get();
+                        let name: String = project_name.read().clone();
+                        if name.contains(' ') {
+                            error.set("Invalid project name - spaces are not allowed.".to_string());
+                            return;
+                        }
+
                         let re = regex::Regex::new(r"^[a-zA-Z0-9_]+$").unwrap();
-                        if !re.is_match(name) {
+                        if !re.is_match(&name) {
                             error.set("Invalid project name".to_string());
                             return;
                         }
@@ -93,12 +100,12 @@ pub fn ProjectCreate(cx: Scope) -> Element {
                         app_state.projects.push(project);
                         app_state.save();
 
-                        let nav = use_navigator(cx);
+                        let nav = use_navigator();
                         nav.go_back();
                     },
                     img { src: "{format_svg(include_bytes!(\"../../public/icons/check.svg\"))}" },
                 }
             }
         }
-    })
+    }
 }
