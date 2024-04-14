@@ -5,7 +5,11 @@ mod test_layer {
     use itertools::Itertools;
     use svg::parser::Event;
 
-    use crate::{Circle, Layer, Path, Plottable, Rect, SampleSettings, V2};
+    use crate::{
+        traits::{normalize::Alignment, Translate},
+        Angle, BoundingBox, Circle, Layer, Normalize, Path, Plottable, Rect, Rotate,
+        SampleSettings, V2,
+    };
 
     #[test]
     fn iterator() {
@@ -83,9 +87,20 @@ mod test_layer {
         ]));
         l.push(Rect::new_shape(V2::new(0.0, 0.0), V2::new(3.0, 1.0)));
 
-        let bounding_box = l.bounding_box();
+        let bounding_box = l.bounding_box().unwrap();
         assert_eq!(bounding_box.bl(), V2::new(-0.5, 0.0));
         assert_eq!(bounding_box.tr(), V2::new(3.0, 2.0));
+    }
+
+    #[test]
+    fn bounding_box_2() {
+        let mut l = Layer::new();
+
+        l.push(Circle::new_shape(V2::new(2.0, 3.0), 1.0));
+
+        let bounding_box = l.bounding_box().unwrap();
+        assert_eq!(bounding_box.bl(), V2::new(1.0, 2.0));
+        assert_eq!(bounding_box.tr(), V2::new(3.0, 4.0));
     }
 
     #[test]
@@ -132,5 +147,91 @@ mod test_layer {
 
         assert!(paths_count.contains_key("rect"));
         assert_eq!(*paths_count.get("rect").unwrap(), 1);
+    }
+
+    #[test]
+    fn translate() {
+        let mut l = Layer::new();
+
+        l.push(Circle::new_shape(V2::new(1.0, 1.0), 1.0));
+        l.push(Path::new_shape_from(vec![
+            V2::new(0.0, 0.0),
+            V2::new(1.0, 1.0),
+        ]));
+        l.push(Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0)));
+
+        let mut sublayer = Layer::new();
+        sublayer.push(Circle::new_shape(V2::new(1.0, 1.0), 1.0));
+        l.push_layer(sublayer);
+
+        let translate_dist = V2::new(2.0, 1.0);
+
+        let l2 = l.translate(&translate_dist);
+        assert_eq!(l2.iter().len() + 1, l2.iter_flattened().collect_vec().len());
+
+        let l_box = l.bounding_box().unwrap();
+        let l2_box = l2.bounding_box().unwrap();
+        println!("{:?}\n{:?}", l_box, l2_box);
+        assert_eq!(l_box.bl() + translate_dist, l2_box.bl());
+        assert_eq!(l_box.tr() + translate_dist, l2_box.tr());
+    }
+
+    #[test]
+    fn translate_mut() {
+        let mut l = Layer::new();
+        l.push(Circle::new_shape(V2::new(1.0, 1.0), 1.0));
+
+        let mut sublayer = Layer::new();
+        sublayer.push(Circle::new_shape(V2::new(2.0, 2.0), 1.0));
+        l.push_layer(sublayer);
+
+        let translate_dist = V2::new(2.0, 1.0);
+        let l_orig = l.clone();
+        l.translate_mut(&translate_dist);
+
+        let l_orig_box = l_orig.bounding_box().unwrap();
+        let l_box = l.bounding_box().unwrap();
+        assert_eq!(l_orig_box.bl() + translate_dist, l_box.bl());
+        assert_eq!(l_orig_box.tr() + translate_dist, l_box.tr());
+    }
+
+    #[test]
+    fn rotate() {
+        let mut l = Layer::new();
+        l.push(Circle::new_shape(V2::new(1.0, 1.0), 1.0));
+
+        let mut sublayer = Layer::new();
+        sublayer.push(Circle::new_shape(V2::new(2.0, 2.0), 1.0));
+        l.push_layer(sublayer);
+
+        let pivot = V2::new(3.0, 0.1);
+        let mut l2 = l.rotate_around(&pivot, &Angle::from_degrees(55.0));
+        l2.rotate_around_mut(&pivot, &Angle::from_degrees(-55.0));
+
+        let l_box = l.bounding_box().unwrap();
+        let l2_box = l2.bounding_box().unwrap();
+        assert_eq!(l_box.bl(), l2_box.bl());
+        assert_eq!(l_box.tr(), l2_box.tr());
+    }
+
+    #[test]
+    fn normalize() {
+        let mut l = Layer::new();
+        l.push(Circle::new_shape(V2::new(1.0, 1.0), 3.0));
+
+        l.push_layer(Layer::new_from(vec![Circle::new_shape(
+            V2::new(2.0, 2.0),
+            4.0,
+        )]));
+
+        let l_normalized = l
+            .normalize(
+                &Rect::new(V2::new(0.5, 0.5), V2::new(1.0, 1.0)),
+                Alignment::Center,
+            )
+            .unwrap();
+        let l_normalized_bounds = l_normalized.bounding_box().unwrap();
+        assert_eq!(l_normalized_bounds.bl(), V2::new(0.5, 0.5));
+        assert_eq!(l_normalized_bounds.tr(), V2::new(1.0, 1.0));
     }
 }

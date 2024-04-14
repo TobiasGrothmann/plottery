@@ -2,7 +2,10 @@
 mod test_circle {
     use std::f32::consts::PI;
 
-    use crate::{Circle, Plottable, SampleSettings, V2};
+    use crate::{
+        traits::{normalize::Alignment, ClosestPoint, Normalize, Scale, Scale2D},
+        BoundingBox, Circle, Path, Plottable, SampleSettings, V2,
+    };
 
     #[test]
     fn circle_calculations() {
@@ -27,5 +30,74 @@ mod test_circle {
             assert!((point.dist(&center) - radius).abs() < 0.00001); // radius distance from center
         }
         assert_eq!(points.first().unwrap(), points.last().unwrap()); // is closed
+    }
+
+    #[test]
+    fn scale() {
+        let c = Circle::new(V2::new(1.0, 2.0), 3.0);
+        let c_scaled = c.scale(2.0);
+        assert_eq!(c_scaled.center, V2::new(2.0, 4.0));
+        assert_eq!(c_scaled.radius, 6.0);
+    }
+
+    #[test]
+    fn scale_shape() {
+        let c = Circle::new_shape(V2::new(1.0, 2.0), 3.0);
+        let c_scaled = c.scale(2.0);
+        assert_eq!(c.length() * 2.0, c_scaled.length());
+
+        let c_p = Path::new_shape_from(c.get_points(&SampleSettings::default()));
+        let c_scaled_p = Path::new_shape_from(c_scaled.get_points(&SampleSettings::default()));
+        assert!((c_p.length() * 2.0 - c_scaled_p.length()).abs() < 0.001);
+    }
+
+    #[test]
+    fn scale_shape_2d() {
+        let c = Circle::new_shape(V2::new(1.0, 2.0), 3.0);
+        let mut c_scaled = c.scale_2d(&V2::new(2.0, 3.0));
+
+        match c_scaled {
+            crate::Shape::Circle(_) => panic!("Expected Path, got circle {:?}", c_scaled),
+            crate::Shape::Rect(_) => panic!("Expected Path, got rect {:?}", c_scaled),
+            crate::Shape::Path(_) => {}
+        }
+        assert!(c.length() < c_scaled.length());
+
+        c_scaled.scale_2d_mut(&V2::new(1.0 / 2.0, 1.0 / 3.0)); // scale back to original
+        assert!((c.length() - c_scaled.length()).abs() < 0.001);
+    }
+
+    #[test]
+    fn normalize() {
+        let c = Circle::new(V2::new(1.0, 2.0), 3.0);
+        let target = crate::Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+        let normalized = c.normalize(&target, Alignment::Center).unwrap();
+        let normalized_bounds = normalized.bounding_box().unwrap();
+
+        assert_eq!(normalized_bounds.bl(), V2::new(0.0, 0.0));
+        assert_eq!(normalized_bounds.tr(), V2::new(1.0, 1.0));
+    }
+
+    #[test]
+    fn closest_point() {
+        let c = Circle::new(V2::new(1.0, 1.0), 1.0);
+
+        let point = V2::new(1.0, 1.0);
+        assert_eq!(
+            c.closest_point(&SampleSettings::default(), &point),
+            Some(V2::new(2.0, 1.0))
+        );
+
+        let point = V2::new(2.0, 1.0);
+        assert_eq!(
+            c.closest_point(&SampleSettings::default(), &point),
+            Some(point)
+        );
+
+        let point = V2::new(2.0, 2.0);
+        assert_eq!(
+            c.closest_point(&SampleSettings::default(), &point),
+            Some(V2::new(1.7071068, 1.7071068))
+        );
     }
 }

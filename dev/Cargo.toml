@@ -1,7 +1,0 @@
-[package]
-name = "dev"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-plottery_lib = { path = "../lib" }

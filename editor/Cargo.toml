@@ -1,0 +1,41 @@
+[package]
+name = "plottery_editor"
+version = "0.1.0"
+edition = "2021"
+description = "Graphical Editor of Plottery, a creative coding framework for generative vector graphics and pen plotting."
+authors = ["Tobias Grothmann <tobiasgrothmannplotterart@gmail.com>"]
+
+[package.metadata.bundle]
+name = "Plottery Editor"
+icon = ["plottery/icon_512.png"]
+identifier = "de.tobiasgrothmann.plottery"
+copyright = "Copyright (c) Tobias Grothmann 2023. All rights reserved."
+category = "Creative Coding"
+short_description = "Graphical Editor of Plottery, a creative coding framework for generative vector graphics and pen plotting."
+long_description = "Graphical Editor of Plottery, a creative coding framework for generative vector graphics and pen plotting."
+
+[dependencies]
+dioxus = { version= "0.5.1", features = ["desktop"] }
+directories = "5.0.1"
+plottery_lib = { path = "../lib" }
+plottery_project = { path = "../project" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+dioxus-logger = { version = "0.4.1", features = ["timestamps"] }
+log = "0.4.20"
+path-absolutize = "3.1.1"
+chrono = "0.4.31"
+dioxus-router = "0.5.0"
+os_type = "2.6.0"
+dioxus-std = { version = "0.5.0", features = ["utils"] }
+tokio = "1.35.1"
+notify = "6.1.1"
+nix = { version = "0.28.0", features = ["signal"] }
+opener = { version = "0.7.0", features = ["reveal"] }
+rfd = "0.14.1"
+regex = "1.10.3"
+base64 = "0.22.0"
+
+[[bin]]
+name = "PlotteryEditor"
+path = "src/main.rs"

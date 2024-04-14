@@ -1,8 +1,11 @@
+use std::{f32::consts::PI, iter::Sum};
+
 use geo_types::Coord;
+use serde::{Deserialize, Serialize};
 
 use crate::{Angle, Rotate, Rotate90};
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, Serialize, Deserialize)]
 pub struct V2 {
     pub x: f32,
     pub y: f32,
@@ -25,11 +28,22 @@ impl V2 {
             y: geo_coord.y,
         }
     }
-    pub fn polar(angle: f32, distance: f32) -> Self {
+    pub fn polar(angle: Angle, distance: f32) -> Self {
         Self {
-            x: angle.cos() * distance,
-            y: angle.sin() * distance,
+            x: angle.to_rad().cos() * distance,
+            y: angle.to_rad().sin() * distance,
         }
+    }
+
+    pub fn swap(&self) -> Self {
+        Self {
+            x: self.y,
+            y: self.x,
+        }
+    }
+
+    pub fn zero() -> Self {
+        Self { x: 0.0, y: 0.0 }
     }
 
     pub fn a0() -> Self {
@@ -66,6 +80,13 @@ impl V2 {
         Self { x: 2.6, y: 3.7 }
     }
 
+    pub fn only_x(&self) -> Self {
+        Self { x: self.x, y: 0.0 }
+    }
+    pub fn only_y(&self) -> Self {
+        Self { x: 0.0, y: self.y }
+    }
+
     pub fn as_geo_coord(&self) -> Coord<f32> {
         Coord {
             x: self.x,
@@ -75,23 +96,101 @@ impl V2 {
     pub fn as_tuple(&self) -> (f32, f32) {
         (self.x, self.y)
     }
+    pub fn as_array(&self) -> [f32; 2] {
+        [self.x, self.y]
+    }
+    pub fn as_vec(&self) -> Vec<f32> {
+        vec![self.x, self.y]
+    }
+
+    pub fn dot(&self, other: &Self) -> f32 {
+        self.x * other.x + self.y * other.y
+    }
 
     pub fn min(&self, other: &Self) -> Self {
         V2::new(self.x.min(other.x), self.y.min(other.y))
     }
+    pub fn min_axis(&self) -> f32 {
+        self.x.min(self.y)
+    }
     pub fn max(&self, other: &Self) -> Self {
         V2::new(self.x.max(other.x), self.y.max(other.y))
+    }
+    pub fn max_axis(&self) -> f32 {
+        self.x.max(self.y)
     }
 
     pub fn dist(&self, other: &Self) -> f32 {
         ((self.x - other.x).powi(2) + (self.y - other.y).powi(2)).sqrt()
+    }
+    pub fn dist_squared(&self, other: &Self) -> f32 {
+        (self.x - other.x).powi(2) + (self.y - other.y).powi(2)
     }
     pub fn dist_manhattan(&self, other: &Self) -> f32 {
         (self.x - other.x).abs() + (self.y - other.y).abs()
     }
 
     pub fn len(&self) -> f32 {
-        (self.x.powi(2) + self.y.powi(2)).sqrt()
+        (self.x * self.x + self.y * self.y).sqrt()
+    }
+    pub fn len_squared(&self) -> f32 {
+        self.x * self.x + self.y * self.y
+    }
+
+    pub fn angle(&self) -> Angle {
+        let mut rad = self.y.atan2(self.x);
+        if rad < 0.0 {
+            rad += 2.0 * PI;
+        }
+        Angle::from_rad(rad)
+    }
+
+    pub fn normalize(&self) -> Self {
+        let len = self.len();
+        if len == 0.0 {
+            *self
+        } else {
+            *self / len
+        }
+    }
+    pub fn normalize_to(&self, len: f32) -> Self {
+        *self * len / self.len()
+    }
+
+    /// project a point onto the infinite line defined by the vector
+    pub fn project_onto(&self, other: &Self) -> Self {
+        let length_squared = other.len_squared();
+        let dot_product = self.dot(other);
+        V2::new(
+            (dot_product / length_squared) * other.x,
+            (dot_product / length_squared) * other.y,
+        )
+    }
+
+    pub fn lerp(&self, other: &Self, t: f32) -> Self {
+        V2::new(
+            self.x + t * (other.x - self.x),
+            self.y + t * (other.y - self.y),
+        )
+    }
+
+    pub fn clamp_len(&self, min_len: f32, max_len: f32) -> Self {
+        let len = self.len();
+        if len < min_len {
+            *self * (min_len / len)
+        } else if len > max_len {
+            *self * (max_len / len)
+        } else {
+            *self
+        }
+    }
+
+    pub fn map(&self, f: fn(f32) -> f32) -> Self {
+        V2::new(f(self.x), f(self.y))
+    }
+
+    pub fn sqrt(&self) -> Self {
+        V2::new(self.x.sqrt(), self.y.sqrt())
     }
 }
 
@@ -105,6 +204,10 @@ impl Rotate for V2 {
             self.x * angle_sin + self.y * angle_cos,
         )
     }
+    fn rotate_mut(&mut self, angle: &Angle) {
+        *self = self.rotate(angle);
+    }
+
     fn rotate_around(&self, pivot: &V2, angle: &Angle) -> Self {
         let angle = angle.to_rad();
         let angle_sin = angle.sin();
@@ -118,26 +221,57 @@ impl Rotate for V2 {
             (x_offset * angle_sin + y_offset * angle_cos) + pivot.y,
         )
     }
+    fn rotate_around_mut(&mut self, pivot: &V2, angle: &Angle) {
+        *self = self.rotate_around(pivot, angle);
+    }
 }
 
 impl Rotate90 for V2 {
     fn rotate_90(&self) -> Self {
         Self::new(-self.y, self.x)
     }
+    fn rotate_90_mut(&mut self) {
+        *self = self.rotate_90();
+    }
+
     fn rotate_180(&self) -> Self {
         Self::new(-self.x, -self.y)
     }
+    fn rotate_180_mut(&mut self) {
+        *self = self.rotate_180();
+    }
+
     fn rotate_270(&self) -> Self {
         Self::new(self.y, -self.x)
+    }
+    fn rotate_270_mut(&mut self) {
+        *self = self.rotate_270();
     }
 
     fn rotate_90_around(&self, pivot: &V2) -> Self {
         Self::new(-self.y + pivot.y + pivot.x, self.x - pivot.x + pivot.y)
     }
+    fn rotate_90_around_mut(&mut self, pivot: &V2) {
+        *self = self.rotate_90_around(pivot);
+    }
+
     fn rotate_180_around(&self, pivot: &V2) -> Self {
         Self::new(pivot.x * 2.0 - self.x, pivot.y * 2.0 - self.y)
     }
+    fn rotate_180_around_mut(&mut self, pivot: &V2) {
+        *self = self.rotate_180_around(pivot);
+    }
+
     fn rotate_270_around(&self, pivot: &V2) -> Self {
         Self::new(self.y - pivot.y + pivot.x, -self.x + pivot.x + pivot.y)
+    }
+    fn rotate_270_around_mut(&mut self, pivot: &V2) {
+        *self = self.rotate_270_around(pivot);
+    }
+}
+
+impl Sum for V2 {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(V2::zero(), |a, b| a + b)
     }
 }

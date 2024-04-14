@@ -14,10 +14,16 @@ pub use shapes::path::Path;
 pub use shapes::rect::Rect;
 pub use shapes::shape::Shape;
 
+pub use traits::BoundingBox;
 pub use traits::Masked;
 pub use traits::Plottable;
 pub use traits::Rotate;
 pub use traits::Rotate90;
 pub use traits::SampleSettings;
+pub use traits::Scale;
+pub use traits::Scale2D;
+pub use traits::Translate;
+pub use traits::{normalize::Alignment, Normalize};
 
+pub use composition::Frame;
 pub use composition::Layer;

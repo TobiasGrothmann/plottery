@@ -2,19 +2,20 @@
 name = "plottery_lib"
 version = "0.1.0"
 edition = "2021"
+description = "Core geometry library of Plottery, a creative coding framework for generative vector graphics and pen plotting."
+authors = ["Tobias Grothmann <tobiasgrothmannplotterart@gmail.com>"]
 
 [dependencies]
-geo = "0.27.0"
+geo = "0.28.0"
 geo-types = "0.7.12"
 geometry-predicates = "0.3.0"
 itertools = "0.12.0"
 anyhow = "1.0.75"
-chrono = { version = "0.4.31", features = ["serde"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-thiserror = "1.0.50"
-svg = "0.14.0"
-rand = "0.8.5"
+svg = "0.16.0"
+serde-binary = "0.5.0"
+serde = { version = "1.0.195", features = ["derive"] }
+bincode = "1.3.3"
 
 [dev-dependencies]
 tempfile = "3.8.1"
+rand = "0.8.5"

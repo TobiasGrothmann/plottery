@@ -1,0 +1,44 @@
+use anyhow::{Ok, Result}; // Import the `anyhow` crate
+use async_process::{Child, Command, Stdio};
+use futures_lite::AsyncReadExt;
+use plottery_lib::Layer;
+use std::path::PathBuf;
+
+pub async fn build_cargo_project_async(
+    project_dir: PathBuf,
+    target_dir: PathBuf,
+    release: bool,
+) -> Result<Child> {
+    let mut args = vec!["build".to_string()];
+    if release {
+        args.push("--release".to_string());
+    }
+    args.push("--target-dir".to_string());
+    args.push(target_dir.to_string_lossy().to_string());
+
+    let child_process = Command::new("cargo")
+        .args(args)
+        .current_dir(project_dir)
+        .spawn()?;
+    Ok(child_process)
+}
+
+pub async fn run_executable_async(path: &PathBuf) -> Result<Child> {
+    let child_process = Command::new(path)
+        .args(["std-out"])
+        .stdout(Stdio::piped())
+        .spawn()?;
+    Ok(child_process)
+}
+
+pub async fn read_layer_from_stdout(child_process: &mut Child) -> Result<Layer> {
+    let mut buf = Vec::new();
+    match &mut child_process.stdout {
+        Some(stdout) => {
+            (*stdout).read_to_end(&mut buf).await?;
+        }
+        None => {}
+    }
+
+    Ok(Layer::new_from_binary(&buf)?)
+}

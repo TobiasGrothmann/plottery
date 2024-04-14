@@ -1,4 +1,4 @@
-use crate::{Layer, Path, Rect, Shape, V2};
+use crate::{Layer, Line, Path, Shape, V2};
 
 use geo::BooleanOps;
 use geo_types::{LineString, MultiLineString, Polygon};
@@ -31,16 +31,17 @@ pub struct Masked {
 pub trait Plottable: Clone {
     fn get_points(&self, _: &SampleSettings) -> Vec<V2>;
 
+    fn get_line_segments(&self, sample_settings: &SampleSettings) -> Vec<Line> {
+        self.get_points(sample_settings)
+            .iter()
+            .tuple_windows()
+            .map(|(from, to)| Line::new(*from, *to))
+            .collect()
+    }
+
     fn length(&self) -> f32;
 
     fn is_closed(&self) -> bool;
-
-    fn bounding_box(&self) -> Rect {
-        let points = self.get_points(&SampleSettings::default());
-        let min = points.iter().fold(V2::new(0.0, 0.0), |acc, v| acc.min(v));
-        let max = points.iter().fold(V2::new(0.0, 0.0), |acc, v| acc.max(v));
-        Rect::new(min, max)
-    }
 
     fn get_points_oversampled(&self, sample_settings: &SampleSettings) -> Vec<V2> {
         let points = self.get_points(sample_settings);
@@ -73,7 +74,7 @@ pub trait Plottable: Clone {
         let coords = self
             .get_points(sample_settings)
             .iter()
-            .map(|v| v.as_geo_coord())
+            .map(V2::as_geo_coord)
             .collect_vec();
         LineString(coords)
     }

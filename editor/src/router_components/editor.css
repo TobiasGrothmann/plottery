@@ -1,0 +1,55 @@
+.Editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--gap-1);
+}
+
+.plot_header {
+  padding: var(--gap-0);
+  display: flex;
+  flex-direction: row;
+  column-gap: var(--gap-2);
+  background-color: var(--col-bg-2);
+  align-items: center;
+}
+.action_buttons {
+  margin-left: auto;
+  display: flex;
+  flex-direction: row;
+  column-gap: var(--gap-1);
+}
+
+.plot_and_params {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  column-gap: var(--gap-1);
+}
+.params {
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--gap-0);
+  background-color: var(--col-bg-1);
+  padding: var(--gap-1);
+}
+.plot {
+  flex: 1;
+  background-color: white;
+  padding: var(--gap-0);
+}
+
+.active_button {
+  background-color: var(--col-active);
+  color: var(--col-fg-0);
+}
+
+.running_state {
+  padding: var(--gap-0) var(--gap-1);
+  border-radius: var(--border-radius);
+  background-color: var(--col-bg-3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

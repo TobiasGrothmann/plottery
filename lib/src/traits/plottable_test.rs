@@ -61,7 +61,7 @@ mod test_shape {
     }
 
     #[test]
-    fn masking_1() {
+    fn masking_0() {
         let mask = Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
         let p = Path::new_shape_from(vec![V2::new(0.5, 0.5), V2::new(1.5, 0.5)]);
 
@@ -71,7 +71,7 @@ mod test_shape {
     }
 
     #[test]
-    fn masking_2() {
+    fn masking_1() {
         let mask = Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
         let p = Path::new_shape_from(vec![V2::new(0.5, 0.5), V2::new(1.5, 1.5)]);
 
@@ -81,7 +81,7 @@ mod test_shape {
     }
 
     #[test]
-    fn masking_3() {
+    fn masking_2() {
         let mask = Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
         let p = Path::new_shape_from(vec![V2::new(1.0, 1.0), V2::new(1.0, 1.5)]);
 
@@ -91,7 +91,7 @@ mod test_shape {
     }
 
     #[test]
-    fn masking_4() {
+    fn masking_3() {
         let mask = Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
         let p = Path::new_shape_from(vec![V2::new(1.0, 1.0), V2::new(0.5, 0.5)]);
 
@@ -101,7 +101,7 @@ mod test_shape {
     }
 
     #[test]
-    fn masking_5() {
+    fn masking_4() {
         let mask = Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
         let p = Path::new_shape_from(vec![V2::new(0.5, 1.2), V2::new(1.2, 0.5)]);
 
@@ -117,7 +117,7 @@ mod test_shape {
     }
 
     #[test]
-    fn masking_6_circle() {
+    fn masking_5_circle() {
         let center = V2::new(3.0, 3.0);
         let radius = 0.5;
         let mask = Circle::new_shape(center.clone(), radius.clone());

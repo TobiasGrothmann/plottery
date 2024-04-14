@@ -5,6 +5,20 @@ mod test_vec2 {
     use crate::{geometry::Angle, Rotate, Rotate90, V2};
 
     #[test]
+    fn polar() {
+        assert_eq!(V2::polar(Angle::from_rad(0.0), 1.0), V2::new(1.0, 0.0));
+        assert_eq!(
+            V2::polar(Angle::from_degrees(180.0), 1.0),
+            V2::new(-1.0, 0.0)
+        );
+        assert_eq!(V2::polar(Angle::from_degrees(90.0), 5.0), V2::new(0.0, 5.0));
+        assert_eq!(
+            V2::polar(Angle::from_degrees(45.0), 1.0),
+            V2::xy(1.0 / 2.0f32.sqrt())
+        );
+    }
+
+    #[test]
     fn add() {
         let v = V2::new(1.0, 2.0) + V2::new(1.0, 1.0);
         assert_eq!(v.x, 2.0);
@@ -13,6 +27,11 @@ mod test_vec2 {
         let v = V2::new(5.0, 5.0) + V2::xy(-5.0);
         assert_eq!(v.x, 0.0);
         assert_eq!(v.y, 0.0);
+
+        let mut v = V2::new(5.0, 5.0);
+        v += V2::new(-5.0, 5.0);
+        assert_eq!(v.x, 0.0);
+        assert_eq!(v.y, 10.0);
     }
 
     #[test]
@@ -24,6 +43,11 @@ mod test_vec2 {
         let v = V2::new(5.0, 5.0) - V2::xy(-5.0);
         assert_eq!(v.x, 10.0);
         assert_eq!(v.y, 10.0);
+
+        let mut v = V2::new(5.0, 5.0);
+        v -= V2::new(5.0, 0.0);
+        assert_eq!(v.x, 0.0);
+        assert_eq!(v.y, 5.0);
     }
 
     #[test]
@@ -35,6 +59,11 @@ mod test_vec2 {
         let v = V2::new(5.0, 5.0) * V2::xy(-5.0);
         assert_eq!(v.x, -25.0);
         assert_eq!(v.y, -25.0);
+
+        let mut v = V2::new(5.0, 5.0);
+        v *= V2::xy(2.0);
+        assert_eq!(v.x, 10.0);
+        assert_eq!(v.y, 10.0);
     }
 
     #[test]
@@ -46,6 +75,11 @@ mod test_vec2 {
         let v = V2::new(5.0, 5.0) / V2::xy(-5.0);
         assert_eq!(v.x, -1.0);
         assert_eq!(v.y, -1.0);
+
+        let mut v = V2::new(5.0, 5.0);
+        v /= 5.0;
+        assert_eq!(v.x, 1.0);
+        assert_eq!(v.y, 1.0);
     }
 
     #[test]
@@ -71,11 +105,11 @@ mod test_vec2 {
     #[test]
     fn rotate() {
         let v = V2::new(1.0, 0.0);
-        let v_new = v.rotate(&Angle::from_degree(90.0));
+        let v_new = v.rotate(&Angle::from_degrees(90.0));
         assert_eq!(v_new, V2::new(0.0, 1.0));
 
         let v = V2::new(1.0, 0.0);
-        let v_new = v.rotate(&Angle::from_degree(-90.0));
+        let v_new = v.rotate(&Angle::from_degrees(-90.0));
         assert_eq!(v_new, V2::new(0.0, -1.0));
 
         let v = V2::new(1.0, 0.0);
@@ -119,23 +153,30 @@ mod test_vec2 {
         let pivot = V2::new(-5.0, 4.221);
 
         let v1 = v.rotate_90_around(&pivot);
-        let v2 = v.rotate_around(&pivot, &Angle::from_degree(90.0));
+        let v2 = v.rotate_around(&pivot, &Angle::from_degrees(90.0));
         assert_eq!(v1, v2);
 
         let v1 = v.rotate_180_around(&pivot);
-        let v2 = v.rotate_around(&pivot, &Angle::from_degree(180.0));
+        let v2 = v.rotate_around(&pivot, &Angle::from_degrees(180.0));
         assert_eq!(v1, v2);
 
         let v1 = v.rotate_270_around(&pivot);
-        let v2 = v.rotate_around(&pivot, &Angle::from_degree(270.0));
+        let v2 = v.rotate_around(&pivot, &Angle::from_degrees(270.0));
         assert_eq!(v1, v2);
     }
 
     #[test]
     fn rotate_around() {
         let v = V2::new(1.0, 0.0);
-        let v_new = v.rotate_around(&V2::new(1.0, 1.0), &Angle::from_degree(90.0));
+        let v_new = v.rotate_around(&V2::new(1.0, 1.0), &Angle::from_degrees(90.0));
         assert_eq!(v_new, V2::new(2.0, 1.0));
+    }
+
+    #[test]
+    fn rotate_around_mut() {
+        let mut v = V2::new(1.0, 0.0);
+        v.rotate_around_mut(&V2::new(1.0, 1.0), &Angle::from_degrees(90.0));
+        assert_eq!(v, V2::new(2.0, 1.0));
     }
 
     #[test]
@@ -154,6 +195,15 @@ mod test_vec2 {
 
         let v = V2::new(1.0, 1.0);
         assert_eq!(v.len(), 2.0_f32.sqrt());
+    }
+
+    #[test]
+    fn len_squared() {
+        let v = V2::new(1.0, 0.0);
+        assert_eq!(v.len_squared(), 1.0);
+
+        let v = V2::new(1.0, 1.0);
+        assert_eq!(v.len_squared(), 2.0_f32);
     }
 
     #[test]
@@ -180,5 +230,83 @@ mod test_vec2 {
             let area = size.x * size.y;
             assert!((area - area_target).abs() < 6.0); // the actually used sizes have quite a big error
         }
+    }
+
+    #[test]
+    fn normalize() {
+        let v = V2::new(1.0, 0.0).normalize();
+        assert_eq!(v, V2::new(1.0, 0.0));
+
+        let v = V2::new(1.0, 1.0).normalize();
+        assert!((v.len() - 1.0).abs() < 0.00001);
+
+        let v = V2::new(-1.0, 5.0).normalize_to(5.0);
+        assert_eq!(v.len(), 5.0);
+    }
+
+    #[test]
+    fn angle() {
+        let v = V2::new(1.0, 0.0);
+        assert_eq!(v.angle(), Angle::from_degrees(0.0));
+
+        let v = V2::new(0.0, 1.0);
+        assert_eq!(v.angle().to_degree(), 90.0);
+
+        let v = V2::new(-1.0, 0.0);
+        assert_eq!(v.angle(), Angle::from_degrees(180.0));
+
+        let v = V2::new(0.0, -1.0);
+        assert_eq!(v.angle(), Angle::from_degrees(270.0));
+
+        let v = V2::new(1.0, 1.0);
+        assert_eq!(v.angle(), Angle::from_degrees(45.0));
+    }
+
+    #[test]
+    fn project() {
+        let v = V2::new(0.0, 1.0);
+        let v_proj = v.project_onto(&V2::new(1.0, 1.0));
+        assert_eq!(v_proj, V2::new(0.5, 0.5));
+
+        let v = V2::new(1.0, 1.0);
+        let v_proj = v.project_onto(&V2::new(1.0, 0.0));
+        assert_eq!(v_proj, V2::new(1.0, 0.0));
+
+        let v = V2::new(-3.0, -2.0);
+        let v_proj = v.project_onto(&V2::new(-1.0, 0.0));
+        assert_eq!(v_proj, V2::new(-3.0, 0.0));
+    }
+
+    #[test]
+    fn lerp() {
+        let v1 = V2::new(1.0, 1.0);
+        let v2 = V2::new(3.0, 2.0);
+
+        let v_lerp = v1.lerp(&v2, 0.0);
+        assert_eq!(v_lerp, v1);
+
+        let v_lerp = v1.lerp(&v2, 1.0);
+        assert_eq!(v_lerp, v2);
+
+        let v_lerp = v1.lerp(&v2, 0.5);
+        assert_eq!(v_lerp, V2::new(2.0, 1.5));
+    }
+
+    #[test]
+    fn clamp_len() {
+        let v = V2::new(1.0, 0.0).clamp_len(0.0, 1.0);
+        assert_eq!(v, V2::new(1.0, 0.0));
+
+        let v = V2::new(1.0, 0.0).clamp_len(0.0, 0.5);
+        assert_eq!(v, V2::new(0.5, 0.0));
+
+        let v = V2::new(1.0, 1.0).clamp_len(0.0, 1.0);
+        assert_eq!(v, V2::xy(1.0 / 2.0_f32.sqrt()));
+    }
+
+    #[test]
+    fn map() {
+        let v = V2::new(1.0, 2.0).map(|val| val * 2.0);
+        assert_eq!(v, V2::new(2.0, 4.0));
     }
 }
