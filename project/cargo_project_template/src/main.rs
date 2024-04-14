@@ -44,15 +44,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                     art.write_svg(path, scale)?;
                 }
                 None => {
-                    let temp_dir = tempfile::tempdir()?;
-                    let path = temp_dir.path().join("tmp.svg");
+                    let path = std::env::temp_dir().join("{{project-name}}.svg");
                     let art = generate();
                     art.write_svg(path.clone(), scale)?;
-                    opener::open(path)?;
 
-                    // wait for opener
-                    // TODO: find a better way
-                    std::thread::sleep(std::time::Duration::from_secs(1));
+                    open::that_in_background(path).join().unwrap().unwrap();
                 }
             }
         }
