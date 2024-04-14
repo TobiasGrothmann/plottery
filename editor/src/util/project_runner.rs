@@ -30,7 +30,7 @@ impl ProjectRunner {
         self.cancel_tx = Some(cancel_tx);
         let project = self.project.clone();
 
-        let mut layer_clone = self.layer.clone();
+        let mut layer_copy = self.layer;
 
         log::info!("Spawning new task to run project");
         tokio::spawn(async move {
@@ -150,8 +150,8 @@ impl ProjectRunner {
                         msg: "updating editor".to_string(),
                     });
 
-                    let change_counter = layer_clone.read().change_counter;
-                    layer_clone.set(
+                    let change_counter = layer_copy.read().change_counter;
+                    layer_copy.set(
                         LayerChangeWrapper {
                             layer: Some(new_layer),
                             change_counter: change_counter + 1,

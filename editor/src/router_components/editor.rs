@@ -98,16 +98,13 @@ pub enum RunningState {
 }
 impl RunningState {
     pub fn is_busy(&self) -> bool {
-        match self {
-            RunningState::Idle {} => false,
-            _ => true,
-        }
+        !matches!(self, RunningState::Idle {})
     }
     pub fn is_error(&self) -> bool {
-        match self {
-            RunningState::BuildFailed { .. } | RunningState::RunFailed { .. } => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            RunningState::BuildFailed { .. } | RunningState::RunFailed { .. }
+        )
     }
     pub fn get_msg(&self) -> String {
         match self {
@@ -146,7 +143,7 @@ pub fn Editor(project_path: String) -> Element {
     let project_runner = use_signal_sync(|| {
         Arc::new(Mutex::new(ProjectRunner::new(
             project.read().clone(),
-            layer.clone(),
+            layer,
         )))
     });
 
@@ -194,7 +191,13 @@ pub fn Editor(project_path: String) -> Element {
                         button { class: "img_button",
                             onclick: move |_event| {
                                 running_state.set(RunningState::Preparing { msg: "preparing".to_string() });
-                                project_runner.read().try_lock().unwrap().trigger_run_project(false, running_state);
+                                match project_runner.read().try_lock() {
+                                    Ok(mut runner) => runner.trigger_run_project(false, running_state),
+                                    Err(e) => {
+                                        log::error!("Error preparing to run: {:?}", e);
+                                        running_state.set(RunningState::RunFailed { msg: format!("Error preparing to run: {}", e) });
+                                    },
+                                }
                             },
                             img { src: "{format_svg(include_bytes!(\"../../public/icons/play.svg\"))}" }
                         }
@@ -210,7 +213,7 @@ pub fn Editor(project_path: String) -> Element {
                                 let (handle, watcher) = start_hot_reload(
                                     hot_reload_path_to_watch.clone(),
                                     project_runner.read().clone(),
-                                    running_state.clone(),
+                                    running_state,
                                 );
                                 hot_reload_join_handle.set(Some(handle));
                                 hot_reload_watcher.set(Some(watcher));

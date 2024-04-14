@@ -31,7 +31,7 @@ pub fn Browser() -> Element {
             }
             button { class: "img_button",
                 onclick: move |_event| {
-                    use_navigator().push(Route::ProjectCreate {});
+                    use_navigator().push(Route::ProjectAdd {});
                 },
                 img { src: "{format_svg(include_bytes!(\"../../public/icons/add.svg\"))}" }
             }

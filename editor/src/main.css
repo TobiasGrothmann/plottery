@@ -14,13 +14,17 @@
   --col-bg-3: #606260;
   --col-fg-0: #e5e5e5;
   --col-fg-1: #858585;
+  --col-fg-2: #707070;
   --col-err: #a44;
   --col-active: #494;
+  --col-selected: #449;
 
   --gap-small: 3px;
   --gap-0: 7px;
   --gap-1: 14px;
   --gap-2: 21px;
+  --gap-3: 35px;
+  --gap-4: 55px;
 
   --border-radius: 5px;
 }

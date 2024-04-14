@@ -1,4 +1,5 @@
-use crate::router_components::{Browser, Editor, ProjectCreate};
+use crate::router_components::add_project::ProjectAdd;
+use crate::router_components::{Browser, Editor};
 use dioxus::prelude::*;
 use dioxus_router::prelude::*;
 
@@ -8,6 +9,6 @@ pub enum Route {
     Browser {},
     #[route("/editor/:project_path")]
     Editor { project_path: String },
-    #[route("/project_create")]
-    ProjectCreate {},
+    #[route("/project_add")]
+    ProjectAdd {},
 }
