@@ -29,7 +29,7 @@ pub fn ProjectCreate() -> Element {
                         placeholder: "target folder",
                         onchange: move |event| target_folder.set(event.value())
                     }
-                    button { class: "img-button",
+                    button { class: "img_button",
                         onclick: move |_event| {
                             let path = FileDialog::new()
                             .set_directory("/")
@@ -57,7 +57,7 @@ pub fn ProjectCreate() -> Element {
                     }
                 }
 
-                button { class: "img-button accept",
+                button { class: "img_button accept",
                     onclick: move |_event| {
                         if target_folder.read().is_empty() {
                             error.set("Please pick a target folder.".to_string());

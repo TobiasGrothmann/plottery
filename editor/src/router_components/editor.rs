@@ -16,6 +16,7 @@ fn get_svg_path(project: &Project) -> PathBuf {
 fn start_hot_reload(
     path_to_watch: PathBuf,
     project_runner: Arc<Mutex<ProjectRunner>>,
+    running_state: SyncSignal<RunningState>,
 ) -> (JoinHandle<()>, FsEventWatcher) {
     let (tx, rx) = std::sync::mpsc::channel();
     let mut watcher = RecommendedWatcher::new(tx, Config::default()).unwrap();
@@ -56,7 +57,10 @@ fn start_hot_reload(
                     }
 
                     log::info!("Hot reload triggered");
-                    project_runner.lock().await.trigger_run_project(true);
+                    project_runner
+                        .lock()
+                        .await
+                        .trigger_run_project(true, running_state);
                 }
                 Err(e) => log::error!("Hot reload error: {:?}", e),
             }
@@ -78,15 +82,59 @@ impl PartialEq for LayerChangeWrapper {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum RunningState {
+    Idle,
+    Preparing { msg: String },
+    StartingBuild { msg: String },
+    Building { msg: String },
+    BuildFailed { msg: String },
+    BuildKilled { msg: String },
+    StartingRun { msg: String },
+    Running { msg: String },
+    RunFailed { msg: String },
+    RunKilled { msg: String },
+    Updating { msg: String },
+}
+impl RunningState {
+    pub fn is_busy(&self) -> bool {
+        match self {
+            RunningState::Idle {} => false,
+            _ => true,
+        }
+    }
+    pub fn is_error(&self) -> bool {
+        match self {
+            RunningState::BuildFailed { .. } | RunningState::RunFailed { .. } => true,
+            _ => false,
+        }
+    }
+    pub fn get_msg(&self) -> String {
+        match self {
+            RunningState::Idle {} => "".to_string(),
+            RunningState::Preparing { msg } => msg.clone(),
+            RunningState::StartingBuild { msg } => msg.clone(),
+            RunningState::Building { msg } => msg.clone(),
+            RunningState::BuildFailed { msg } => msg.clone(),
+            RunningState::BuildKilled { msg } => msg.clone(),
+            RunningState::StartingRun { msg } => msg.clone(),
+            RunningState::Running { msg } => msg.clone(),
+            RunningState::RunFailed { msg } => msg.clone(),
+            RunningState::RunKilled { msg } => msg.clone(),
+            RunningState::Updating { msg } => msg.clone(),
+        }
+    }
+}
+
 #[component]
 pub fn Editor(project_path: String) -> Element {
     let project = use_signal(|| {
         let p = PathBuf::from(project_path.clone());
         Project::load_from_file(p).unwrap()
     });
-    let busy_running = use_signal(|| false);
 
-    let hot_reload_enabled = use_signal_sync(|| false);
+    let mut running_state = use_signal_sync(|| RunningState::Idle);
+
     let mut hot_reload_watcher = use_signal_sync(|| None as Option<FsEventWatcher>);
     let mut hot_reload_join_handle = use_signal_sync(|| None as Option<JoinHandle<()>>);
     let hot_reload_path_to_watch = project.read().get_cargo_path().unwrap().join("src");
@@ -102,6 +150,8 @@ pub fn Editor(project_path: String) -> Element {
         )))
     });
 
+    let hot_reload_is_enabled = move || hot_reload_watcher.read().is_some();
+
     use_resource(move || async move {
         let new_layer = layer.read().clone().layer;
         if let Some(new_layer) = new_layer {
@@ -116,6 +166,18 @@ pub fn Editor(project_path: String) -> Element {
     })
     .unwrap();
 
+    let hot_reload_button_class = if hot_reload_is_enabled() {
+        "active_button"
+    } else {
+        ""
+    };
+
+    let running_state_class = if running_state.read().is_error() {
+        "running_state err_box"
+    } else {
+        "running_state"
+    };
+
     rsx! {
         style { { include_str!("./editor.css") } }
         Navigation { page_name: "{project.read().config.name.clone()}" }
@@ -123,22 +185,38 @@ pub fn Editor(project_path: String) -> Element {
         div { class: "Editor",
             div { class: "plot_header",
                 div { class: "action_buttons",
-                    if *busy_running.read() {
-                        "busy running"
+                    if running_state.read().is_busy() {
+                        div { class: "{running_state_class}",
+                            p { "{running_state.read().get_msg()}" }
+                        }
                     }
-                    button { class: "img_button",
-                        onclick: move |_event| {
-                            project_runner.read().try_lock().unwrap().trigger_run_project(false);
-                        },
-                        img { src: "{format_svg(include_bytes!(\"../../public/icons/play.svg\"))}" }
+                    if !hot_reload_is_enabled() {
+                        button { class: "img_button",
+                            onclick: move |_event| {
+                                running_state.set(RunningState::Preparing { msg: "preparing".to_string() });
+                                project_runner.read().try_lock().unwrap().trigger_run_project(false, running_state);
+                            },
+                            img { src: "{format_svg(include_bytes!(\"../../public/icons/play.svg\"))}" }
+                        }
                     }
-                    button { class: "img_button",
+                    button { class: "img_button {hot_reload_button_class}",
                         onclick: move |_event| {
-                            let (hot_reload_handle, watcher) = start_hot_reload(hot_reload_path_to_watch.clone(), project_runner.read().clone());
-                            hot_reload_join_handle.set(Some(hot_reload_handle));
-                            hot_reload_watcher.set(Some(watcher));
+                            if hot_reload_is_enabled() {
+                                // Disable hot reload
+                                hot_reload_watcher.set(None);
+                                hot_reload_join_handle.set(None);
+                            } else {
+                                // Enable hot reload
+                                let (handle, watcher) = start_hot_reload(
+                                    hot_reload_path_to_watch.clone(),
+                                    project_runner.read().clone(),
+                                    running_state.clone(),
+                                );
+                                hot_reload_join_handle.set(Some(handle));
+                                hot_reload_watcher.set(Some(watcher));
+                            }
                         },
-                        p { "Enable Hot Reload" }
+                        p { "hot reload" }
                     }
                 }
             }

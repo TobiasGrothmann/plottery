@@ -11,9 +11,11 @@
   --col-bg-0: #202120;
   --col-bg-1: #373837;
   --col-bg-2: #484948;
+  --col-bg-3: #606260;
   --col-fg-0: #e5e5e5;
   --col-fg-1: #858585;
   --col-err: #a44;
+  --col-active: #494;
 
   --gap-small: 3px;
   --gap-0: 7px;
@@ -63,9 +65,17 @@ button {
   border: none;
   cursor: pointer;
   outline: none;
+  min-height: 45px;
 }
 button:hover {
   filter: brightness(1.25);
+}
+
+.img_button {
+  /* center the containing img */
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 input {

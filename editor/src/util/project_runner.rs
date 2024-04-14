@@ -1,4 +1,4 @@
-use crate::router_components::editor::LayerChangeWrapper;
+use crate::router_components::editor::{LayerChangeWrapper, RunningState};
 use dioxus::signals::{Readable, SyncSignal, Writable};
 use plottery_project::{read_layer_from_stdout, Project};
 
@@ -19,7 +19,11 @@ impl ProjectRunner {
         }
     }
 
-    pub fn trigger_run_project(&mut self, release: bool) {
+    pub fn trigger_run_project(
+        &mut self,
+        release: bool,
+        mut running_state: SyncSignal<RunningState>,
+    ) {
         self.cancel_tx.take(); // cancels the previous run if it exists
 
         let (cancel_tx, mut cancel_rx) = tokio::sync::mpsc::channel::<()>(1);
@@ -30,7 +34,10 @@ impl ProjectRunner {
 
         log::info!("Spawning new task to run project");
         tokio::spawn(async move {
-            log::info!("Building...");
+            log::info!("starting build...");
+            running_state.set(RunningState::StartingBuild {
+                msg: "starting build".to_string(),
+            });
 
             // build while waiting for cancel signal
             let build_process = project.build_async(release).await;
@@ -38,9 +45,17 @@ impl ProjectRunner {
                 Ok(process) => process,
                 Err(e) => {
                     log::error!("Error compiling project: {}", e);
+                    running_state.set(RunningState::BuildFailed {
+                        msg: "starting build failed".to_string(),
+                    });
                     return;
                 }
             };
+
+            log::info!("Building...");
+            running_state.set(RunningState::Building {
+                msg: "building".to_string(),
+            });
 
             tokio::select! {
                 _ = cancel_rx.recv() => {
@@ -51,20 +66,28 @@ impl ProjectRunner {
                     .unwrap();
                     run_process.kill().unwrap();
                     log::info!("Build killed");
+                    running_state.set(RunningState::BuildKilled {
+                        msg: "build killed".to_string(),
+                    });
                     return;
                 }
                 build_status = run_process.status() => {
                     match build_status {
                         Ok(status) => {
-                            if status.success() {
-                                log::info!("Build successful");
-                            } else {
-                                log::info!("Build failed");
+                            if !status.success() {
+                                let msg = format!("build failed (exit code: {})", status.code().unwrap_or(-1));
+                                log::info!("{}", msg);
+                                running_state.set(RunningState::BuildFailed {
+                                    msg,
+                                });
                                 return;
                             }
                         }
                         Err(e) => {
                             log::error!("Error getting build status: {}", e);
+                            running_state.set(RunningState::BuildFailed {
+                                msg: "build failed (no status)".to_string(),
+                            });
                             return;
                         }
                     }
@@ -72,15 +95,27 @@ impl ProjectRunner {
             }
 
             // run while waiting for cancel signal
-            log::info!("Running...");
+            log::info!("starting run...");
+            running_state.set(RunningState::StartingRun {
+                msg: "starting run".to_string(),
+            });
+
             let run_process = project.run_async(release).await;
             let mut run_process = match run_process {
                 Ok(process) => process,
                 Err(e) => {
                     log::error!("Error running project: {}", e);
+                    running_state.set(RunningState::RunFailed {
+                        msg: "run failed".to_string(),
+                    });
                     return;
                 }
             };
+
+            log::info!("running...");
+            running_state.set(RunningState::Running {
+                msg: "running".to_string(),
+            });
 
             tokio::select! {
                 _ = cancel_rx.recv() => {
@@ -90,20 +125,31 @@ impl ProjectRunner {
                     )
                     .unwrap();
                     run_process.kill().unwrap();
-                    log::info!("Run killed");
+
+                    log::info!("run killed");
+                    running_state.set(RunningState::RunKilled {
+                        msg: "run killed".to_string(),
+                    });
                 }
                 new_layer = read_layer_from_stdout(&mut run_process) => {
                     // getting layer from stdout of project executable
                     let new_layer = match new_layer {
                         Ok(layer) => layer,
                         Err(e) => {
-                            log::error!("Error reading layer from project: {}", e);
+                            running_state.set(RunningState::RunFailed {
+                                msg: "run failed".to_string(),
+                            });
+                            log::error!("Error receiving layer from project: {}", e);
                             return;
                         }
                     };
 
                     // Publishing Layer
-                    log::info!("Outputting layer...");
+                    log::info!("updating editor...");
+                    running_state.set(RunningState::Updating {
+                        msg: "updating editor".to_string(),
+                    });
+
                     let change_counter = layer_clone.read().change_counter;
                     layer_clone.set(
                         LayerChangeWrapper {
@@ -113,6 +159,8 @@ impl ProjectRunner {
                     );
                 }
             }
+
+            running_state.set(RunningState::Idle);
         });
         tokio::spawn(async move {}); // this is somehow needed to get tokio to execute the above task
     }

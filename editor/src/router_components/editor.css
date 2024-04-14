@@ -39,3 +39,17 @@
   background-color: white;
   padding: var(--gap-0);
 }
+
+.active_button {
+  background-color: var(--col-active);
+  color: var(--col-fg-0);
+}
+
+.running_state {
+  padding: var(--gap-0) var(--gap-1);
+  border-radius: var(--border-radius);
+  background-color: var(--col-bg-3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
