@@ -25,15 +25,12 @@ struct StringReplacement {
     to: String,
 }
 
-pub fn generate_cargo_project_to_disk(
-    out_dir: PathBuf,
-    project_name: &str,
-    lib_source: LibSource,
-) -> Result<()> {
-    let fs = get_fs();
-    std::fs::create_dir_all(&out_dir)?;
-
-    let lib_include = match lib_source {
+fn get_plottery_subcrate(
+    plottery_home_subdir: &str,
+    lib_source: &LibSource,
+    crate_name: &str,
+) -> Result<String> {
+    let lib_source_for_toml = match lib_source {
         LibSource::PlotteryHome => {
             let plottery_home = match std::env::var("PLOTTERY_HOME") {
                 Ok(home) => Path::new(&home).to_path_buf(),
@@ -44,7 +41,7 @@ pub fn generate_cargo_project_to_disk(
                 }
             };
             let plottery_home_lib = plottery_home
-                .join("lib")
+                .join(plottery_home_subdir)
                 .absolutize()
                 .unwrap()
                 .to_path_buf();
@@ -59,19 +56,37 @@ pub fn generate_cargo_project_to_disk(
                 .unwrap()
                 .to_string_lossy()
                 .to_string();
-            format!("plottery_lib = {{ path = \"{}\" }}", path)
+            format!("{} = {{ path = \"{}\" }}", crate_name, path)
         }
         LibSource::Path { path } => {
             let path = path.to_string_lossy().to_string();
-            format!("plottery_lib = {{ path = \"{}\" }}", path)
+            format!("{} = {{ path = \"{}\" }}", crate_name, path)
         }
-        LibSource::Cargo => "plottery_lib = \"0.*\"".to_string(),
+        LibSource::Cargo => format!("{} = \"0.*\"", crate_name),
     };
+    Ok(lib_source_for_toml)
+}
+
+pub fn generate_cargo_project_to_disk(
+    out_dir: PathBuf,
+    project_name: &str,
+    lib_source: LibSource,
+) -> Result<()> {
+    let fs = get_fs();
+    std::fs::create_dir_all(&out_dir)?;
+
+    let plottery_lib_include = get_plottery_subcrate("lib", &lib_source, "plottery_lib")?;
+    let plottery_project_include =
+        get_plottery_subcrate("project", &lib_source, "plottery_project")?;
 
     let string_replacements = vec![
         StringReplacement {
             from: "{{plottery-lib-include}}".to_string(),
-            to: lib_include,
+            to: plottery_lib_include,
+        },
+        StringReplacement {
+            from: "{{plottery-project-include}}".to_string(),
+            to: plottery_project_include,
         },
         StringReplacement {
             from: "{{project-name}}".to_string(),
