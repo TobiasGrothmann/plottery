@@ -10,3 +10,4 @@ proc-macro = true
 syn = ">=2.0.59"
 quote = "1.0"
 plottery_project_params = { path = "../project_params" }
+proc-macro2 = ">=1.0"
