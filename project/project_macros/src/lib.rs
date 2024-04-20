@@ -170,14 +170,14 @@ fn plottery_params_impl(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
     // GET PARAMS
     let parameter_vector_items = get_parameters_vector_items(data);
     let get_params_impl = quote! {
-        fn get_params(&self) -> Vec<ProjectParam> {
+        fn get_params(&self) -> std::vec::Vec<ProjectParam> {
             vec![
                 #(#parameter_vector_items)*
             ]
         }
     };
 
-    // NEW FROM LIST
+    // NEW FROM MAP
     let constructor_fields = get_constructor_fields_items(data);
     let new_from_map_impl = quote! {
         fn new_from_map(params: &std::collections::HashMap<String, ProjectParam>) -> Self {
@@ -187,11 +187,23 @@ fn plottery_params_impl(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
         }
     };
 
+    // NEW FROM LIST (calls new_from_map internally)
+    let new_from_list_impl = quote! {
+        fn new_from_list(parms: std::vec::Vec<ProjectParam>) -> Self {
+            let mut map = std::collections::HashMap::new();
+            for param in parms {
+                map.insert(param.name.clone(), param);
+            }
+            Self::new_from_map(&map)
+        }
+    };
+
     // TRAIT IMPLEMENTATION
     let expanded = quote! {
         impl PlotteryParamsDefinition for #name {
             #get_params_impl
             #new_from_map_impl
+            #new_from_list_impl
         }
     };
     TokenStream::from(expanded)
