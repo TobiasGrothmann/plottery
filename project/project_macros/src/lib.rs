@@ -1,9 +1,12 @@
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
-use syn::{self, Field, Ident};
+use syn::{
+    self, punctuated::Punctuated,Field, Ident,
+    Lit, Meta, Token,
+};
 
-#[proc_macro_derive(PlotteryParamsDefinition, attributes(default))]
+#[proc_macro_derive(PlotteryParamsDefinition, attributes(value, range))]
 pub fn plottery_params(input: TokenStream) -> TokenStream {
     let ast = syn::parse(input).unwrap();
     plottery_params_impl(&ast)
@@ -50,30 +53,88 @@ fn get_parameters_vector_items(data: &syn::DataStruct) -> Vec<proc_macro2::Token
         .iter()
         .map(|field| {
             let field_type = &field.ty;
-            let default_value = quote!(#field_type::default());
-            let default_value = field
-                .attrs
-                .iter()
-                .find_map(|attr| {
-                    if attr.path().is_ident("default") {
-                        let value = &attr
-                            .meta
-                            .require_name_value()
-                            .expect("default attribute must have a value")
-                            .value;
-                        Some(quote!(#value))
-                    } else {
-                        None
-                    }
-                })
-                .unwrap_or(default_value);
-
+            let field_type_name = get_field_type_name(field);
             let field_name = field.ident.as_ref().unwrap().to_string();
-            quote! {
-                ProjectParam::new(#field_name, ProjectParamValue::Float(#default_value)),
+
+            let mut default_value: proc_macro2::TokenStream = quote!(#field_type::default());
+            let mut range: Option<(proc_macro2::TokenStream, proc_macro2::TokenStream)> = None;
+
+            for attr in &field.attrs {
+                match &attr.meta {
+                    Meta::List(list) => {
+                        // #[default(1.0)]a
+                        if list.path.is_ident("value") {
+                            let attribute_name = list.path.get_ident().unwrap().to_string();
+                            let args = list
+                                .parse_args_with(Punctuated::<Lit, Token![,]>::parse_terminated)
+                                .unwrap_or_else(|_| panic!("Failed to parse attribute arguments for attribute '{}'", attribute_name));
+                            let num_expected_args = 1;
+                            if args.len() != num_expected_args {
+                                panic!("Invalid number of arguments for attribute '{}'. Expected {}, found {}", attribute_name, num_expected_args, args.len());
+                            }
+
+                            let argument = {
+                                let parsed_args = list
+                                    .parse_args_with(Punctuated::<Lit, Token![,]>::parse_terminated)
+                                    .unwrap_or_else(|_| panic!("Failed to parse attribute arguments for attribute '{}'", attribute_name));
+                                parsed_args.first().unwrap().clone()
+                            };
+
+                            default_value = quote!(#argument);
+                        }
+
+                        // #[range(0.0, 1.0)]
+                        if list.path.is_ident("range") {
+                            let attribute_name = list.path.get_ident().unwrap().to_string();
+                            let args = list
+                                .parse_args_with(Punctuated::<Lit, Token![,]>::parse_terminated)
+                                .unwrap_or_else(|_| panic!("Failed to parse attribute arguments for attribute '{}'", attribute_name));
+                            let num_expected_args = 2;
+                            if args.len() != num_expected_args {
+                                panic!("Invalid number of arguments for attribute '{}'. Expected {}, found {}", attribute_name, num_expected_args, args.len());
+                            }
+
+                            let arguments = list.parse_args_with(Punctuated::<Lit, Token![,]>::parse_terminated)
+                                .unwrap();
+                            let min = arguments.first().unwrap();
+                            let max = arguments.last().unwrap();
+                            range = Some((quote!(#min), quote!(#max)));
+                        }
+                    }
+                    Meta::Path(_) => panic!("Invalid attribute. Expected list. e.g. #[value(1.0)]"),
+                    Meta::NameValue(_) => panic!("Invalid attribute. Expected list. e.g. #[value(1.0)]"),
+                }
             }
+
+            match field_type_name.as_str() {
+                "f32" => {
+                    if let Some((min, max)) = range {
+                        quote! {
+                            ProjectParam::new(#field_name, ProjectParamValue::FloatRanged{val: #default_value, min: #min, max: #max}),
+                        }
+                    } else {
+                        quote! {
+                            ProjectParam::new(#field_name, ProjectParamValue::Float(#default_value)),
+                        }
+                    }
+                },
+                "i32" => {
+                    if let Some((min, max)) = range {
+                        quote! {
+                            ProjectParam::new(#field_name, ProjectParamValue::IntRanged{val: #default_value, min: #min, max: #max}),
+                        }
+                    } else {
+                        quote! {
+                            ProjectParam::new(#field_name, ProjectParamValue::Int(#default_value)),
+                        }
+                    }
+                },
+                _ => panic!("Invalid field type: {}", field_type_name),
+            }
+
+            
         })
-        .collect()
+        .collect::<Vec<_>>()
 }
 
 fn get_constructor_fields_items(data: &syn::DataStruct) -> Vec<proc_macro2::TokenStream> {
