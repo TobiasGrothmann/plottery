@@ -170,7 +170,7 @@ fn plottery_params_impl(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
     // GET PARAMS
     let parameter_vector_items = get_parameters_vector_items(data);
     let get_params_impl = quote! {
-        fn get_params(&self) -> std::vec::Vec<ProjectParam> {
+        fn param_defaults_list() -> std::vec::Vec<ProjectParam> {
             vec![
                 #(#parameter_vector_items)*
             ]
@@ -198,12 +198,21 @@ fn plottery_params_impl(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
         }
     };
 
+    // NEW WITH DEFAULTS
+    let new_with_defaults_impl = quote! {
+        fn new_with_defaults() -> Self {
+            Self::new_from_list(Self::param_defaults_list())
+        }
+    };
+
     // TRAIT IMPLEMENTATION
     let expanded = quote! {
         impl PlotteryParamsDefinition for #name {
             #get_params_impl
             #new_from_map_impl
+
             #new_from_list_impl
+            #new_with_defaults_impl
         }
     };
     TokenStream::from(expanded)
