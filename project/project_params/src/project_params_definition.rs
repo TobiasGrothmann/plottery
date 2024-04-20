@@ -4,5 +4,5 @@ use crate::ProjectParam;
 
 pub trait PlotteryParamsDefinition {
     fn get_params(&self) -> Vec<ProjectParam>;
-    fn new_from_list(params: &HashMap<String, ProjectParam>) -> Self;
+    fn new_from_map(params: &HashMap<String, ProjectParam>) -> Self;
 }

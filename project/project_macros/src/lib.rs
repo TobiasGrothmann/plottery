@@ -179,8 +179,8 @@ fn plottery_params_impl(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
 
     // NEW FROM LIST
     let constructor_fields = get_constructor_fields_items(data);
-    let new_from_list_impl = quote! {
-        fn new_from_list(params: &std::collections::HashMap<String, ProjectParam>) -> Self {
+    let new_from_map_impl = quote! {
+        fn new_from_map(params: &std::collections::HashMap<String, ProjectParam>) -> Self {
             Self {
                 #(#constructor_fields)*
             }
@@ -191,7 +191,7 @@ fn plottery_params_impl(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
     let expanded = quote! {
         impl PlotteryParamsDefinition for #name {
             #get_params_impl
-            #new_from_list_impl
+            #new_from_map_impl
         }
     };
     TokenStream::from(expanded)
