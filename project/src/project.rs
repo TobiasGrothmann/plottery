@@ -1,7 +1,7 @@
 use crate::{
     generate_cargo_project_to_disk,
     project_util::{build_cargo_project_async, run_project_executable_async},
-    read_object_from_stdout, LibSource, ProjectConfig, ProjectParam,
+    read_object_from_stdout, LibSource, ProjectConfig, ProjectParam, ProjectParamsListWrapper,
 };
 
 use plottery_lib::*;
@@ -156,6 +156,18 @@ impl Project {
         Ok(target_dir)
     }
 
+    pub fn get_plottery_binary_path(&self, release: bool) -> Result<PathBuf> {
+        let cargo_name = self.get_cargo_toml_name()?;
+        let mut bin_path = self.get_plottery_target_dir()?;
+        if release {
+            bin_path.push("release");
+        } else {
+            bin_path.push("debug");
+        }
+        bin_path.push(cargo_name); // TODO: get name from cargo.toml if it has been set?
+        Ok(bin_path)
+    }
+
     pub fn build(&self, release: bool) -> Result<()> {
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
@@ -190,25 +202,38 @@ impl Project {
     }
 
     pub async fn run_async(&self, release: bool, params: Vec<ProjectParam>) -> Result<Child> {
-        let cargo_name = self.get_cargo_toml_name()?;
-
-        let mut exec_path = self.get_plottery_target_dir()?;
-        if release {
-            exec_path.push("release");
-        } else {
-            exec_path.push("debug");
-        }
-        exec_path.push(cargo_name); // TODO: get name from cargo.toml if it has been set?
-
-        if !exec_path.exists() {
+        let bin_path = self.get_plottery_binary_path(release)?;
+        if !bin_path.exists() {
             return Err(Error::msg(format!(
-                "Executable does not exist at '{}'",
-                exec_path.to_string_lossy()
+                "Executable does not exist at '{}'.",
+                bin_path.to_string_lossy()
             )));
         }
-
         let arguments = vec!["std-out", "--piped-params", "true"];
-        Ok(run_project_executable_async(&exec_path, &arguments, Some(params)).await?)
+        Ok(run_project_executable_async(&bin_path, &arguments, Some(params)).await?)
+    }
+
+    pub fn run_get_params(&self, release: bool) -> Result<ProjectParamsListWrapper> {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()?;
+        let mut child = rt.block_on(self.run_get_params_async(release))?;
+        let params = rt.block_on(read_object_from_stdout::<ProjectParamsListWrapper>(
+            &mut child,
+        ))?;
+        Ok(params)
+    }
+
+    pub async fn run_get_params_async(&self, release: bool) -> Result<Child> {
+        let bin_path = self.get_plottery_binary_path(release)?;
+        if !bin_path.exists() {
+            return Err(Error::msg(format!(
+                "Executable does not exist at '{}'.",
+                bin_path.to_string_lossy()
+            )));
+        }
+        let arguments = vec!["params"];
+        Ok(run_project_executable_async(&bin_path, &arguments, None).await?)
     }
 
     pub fn write_svg(&self, path: PathBuf, release: bool, params: Vec<ProjectParam>) -> Result<()> {

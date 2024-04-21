@@ -3,7 +3,7 @@ use dioxus::prelude::*;
 use notify::{Config, FsEventWatcher, RecommendedWatcher, RecursiveMode, Watcher};
 use path_absolutize::Absolutize;
 use plottery_lib::Layer;
-use plottery_project::Project;
+use plottery_project::{Project, ProjectParamsListWrapper};
 use std::{path::PathBuf, sync::Arc};
 use tokio::{sync::Mutex, task::JoinHandle};
 
@@ -61,7 +61,7 @@ fn start_hot_reload(
                         .lock()
                         .await
                         // TODO
-                        .trigger_run_project(true, running_state, vec![]);
+                        .trigger_run_project(true, running_state);
                 }
                 Err(e) => log::error!("Hot reload error: {:?}", e),
             }
@@ -91,6 +91,10 @@ pub enum RunningState {
     Building { msg: String },
     BuildFailed { msg: String },
     BuildKilled { msg: String },
+    StartingGetParams { msg: String },
+    GetParams { msg: String },
+    GetParamsFailed { msg: String },
+    GetParamsKilled { msg: String },
     StartingRun { msg: String },
     Running { msg: String },
     RunFailed { msg: String },
@@ -104,7 +108,9 @@ impl RunningState {
     pub fn is_error(&self) -> bool {
         matches!(
             self,
-            RunningState::BuildFailed { .. } | RunningState::RunFailed { .. }
+            RunningState::BuildFailed { .. }
+                | RunningState::RunFailed { .. }
+                | RunningState::GetParamsFailed { .. }
         )
     }
     pub fn get_msg(&self) -> String {
@@ -120,6 +126,10 @@ impl RunningState {
             RunningState::RunFailed { msg } => msg.clone(),
             RunningState::RunKilled { msg } => msg.clone(),
             RunningState::Updating { msg } => msg.clone(),
+            RunningState::StartingGetParams { msg } => msg.clone(),
+            RunningState::GetParams { msg } => msg.clone(),
+            RunningState::GetParamsFailed { msg } => msg.clone(),
+            RunningState::GetParamsKilled { msg } => msg.clone(),
         }
     }
 }
@@ -141,10 +151,13 @@ pub fn Editor(project_path: String) -> Element {
         layer: None,
         change_counter: 0,
     });
+    let params = use_signal_sync(|| ProjectParamsListWrapper::new(vec![]));
+
     let project_runner = use_signal_sync(|| {
         Arc::new(Mutex::new(ProjectRunner::new(
             project.read().clone(),
             layer,
+            params,
         )))
     });
 
@@ -194,7 +207,7 @@ pub fn Editor(project_path: String) -> Element {
                                 running_state.set(RunningState::Preparing { msg: "preparing".to_string() });
                                 match project_runner.read().try_lock() {
                                     // TODO
-                                    Ok(mut runner) => runner.trigger_run_project(false, running_state, vec![]),
+                                    Ok(mut runner) => runner.trigger_run_project(false, running_state),
                                     Err(e) => {
                                         log::error!("Error preparing to run: {:?}", e);
                                         running_state.set(RunningState::RunFailed { msg: format!("Error preparing to run: {}", e) });
@@ -228,7 +241,11 @@ pub fn Editor(project_path: String) -> Element {
 
             div { class: "plot_and_params",
                 div { class: "params",
-                    p { "Parameters" }
+                    for param in params.read().list.iter() {
+                        div { class: "param",
+                            p { "{param.name.clone()}" }
+                        }
+                    }
                 }
                 div { class: "plot",
                     if get_svg_path(&project.read()).exists() {

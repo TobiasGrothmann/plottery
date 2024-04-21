@@ -1,22 +1,28 @@
 use crate::router_components::editor::{LayerChangeWrapper, RunningState};
 use dioxus::signals::{Readable, SyncSignal, Writable};
 use plottery_lib::Layer;
-use plottery_project::{read_object_from_stdout, Project, ProjectParam};
+use plottery_project::{read_object_from_stdout, Project, ProjectParamsListWrapper};
 
 #[derive(Clone)]
 pub struct ProjectRunner {
     project: Project,
     cancel_tx: Option<tokio::sync::mpsc::Sender<()>>,
     layer: SyncSignal<LayerChangeWrapper>,
+    params: SyncSignal<ProjectParamsListWrapper>,
 }
 
 impl ProjectRunner {
-    pub fn new(project: Project, layer: SyncSignal<LayerChangeWrapper>) -> Self {
+    pub fn new(
+        project: Project,
+        layer: SyncSignal<LayerChangeWrapper>,
+        params: SyncSignal<ProjectParamsListWrapper>,
+    ) -> Self {
         log::info!("Creating new ProjectRunner");
         Self {
             project,
             cancel_tx: None,
             layer,
+            params,
         }
     }
 
@@ -24,7 +30,6 @@ impl ProjectRunner {
         &mut self,
         release: bool,
         mut running_state: SyncSignal<RunningState>,
-        params: Vec<ProjectParam>,
     ) {
         self.cancel_tx.take(); // cancels the previous run if it exists
 
@@ -33,6 +38,7 @@ impl ProjectRunner {
         let project = self.project.clone();
 
         let mut layer_copy = self.layer;
+        let mut params_copy = self.params;
 
         log::info!("Spawning new task to run project");
         tokio::spawn(async move {
@@ -96,13 +102,74 @@ impl ProjectRunner {
                 }
             }
 
+            // run get params while waiting for cancel signal
+            log::info!("starting get params...");
+            running_state.set(RunningState::StartingGetParams {
+                msg: "starting get params".to_string(),
+            });
+
+            let get_params_process = project.run_get_params_async(release).await;
+            let mut get_params_process = match get_params_process {
+                Ok(process) => process,
+                Err(e) => {
+                    log::error!("Error getting params from project: {}", e);
+                    running_state.set(RunningState::GetParamsFailed {
+                        msg: "get params failed".to_string(),
+                    });
+                    return;
+                }
+            };
+
+            log::info!("getting params...");
+            running_state.set(RunningState::GetParams {
+                msg: "getting params".to_string(),
+            });
+
+            let read_params = tokio::select! {
+                _ = cancel_rx.recv() => {
+                    nix::sys::signal::kill(
+                        nix::unistd::Pid::from_raw(get_params_process.id() as i32),
+                        nix::sys::signal::SIGTERM,
+                    )
+                    .expect("Failed to kill get params process");
+                    run_process.kill().expect("Failed to kill get params process");
+
+                    log::info!("get params killed");
+                    running_state.set(RunningState::GetParamsKilled {
+                        msg: "get params killed".to_string(),
+                    });
+                    None
+                }
+                params_read = read_object_from_stdout::<ProjectParamsListWrapper>(&mut get_params_process) => {
+                    // getting layer from stdout of project executable
+                    match params_read {
+                        Ok(params_read) => Some(params_read),
+                        Err(e) => {
+                            running_state.set(RunningState::RunFailed {
+                                msg: "get params failed".to_string(),
+                            });
+                            log::error!("Error receiving params from project: {}", e);
+                            None
+                        }
+                    }
+                }
+            };
+            if read_params.is_none() {
+                return;
+            }
+            let read_params = read_params.unwrap();
+
+            let new_params =
+                ProjectParamsListWrapper::new_combined(&params_copy.read().list, &read_params.list);
+            params_copy.set(new_params.clone());
+
             // run while waiting for cancel signal
             log::info!("starting run...");
             running_state.set(RunningState::StartingRun {
                 msg: "starting run".to_string(),
             });
 
-            let run_process = project.run_async(release, params).await;
+            let run_process = project.run_async(release, new_params.list).await;
             let mut run_process = match run_process {
                 Ok(process) => process,
                 Err(e) => {
