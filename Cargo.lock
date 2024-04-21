@@ -3307,7 +3307,6 @@ dependencies = [
  "path-absolutize",
  "plottery_lib",
  "plottery_project_macros",
- "plottery_project_params",
  "resvg",
  "rust-embed",
  "serde",
@@ -3325,14 +3324,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.59",
-]
-
-[[package]]
-name = "plottery_project_params"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "serde",
 ]
 
 [[package]]

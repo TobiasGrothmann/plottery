@@ -2,9 +2,10 @@ use anyhow::{Ok, Result};
 use async_process::{Child, Command, Stdio};
 use bincode::{deserialize_from, serialize};
 use futures_lite::{AsyncReadExt, AsyncWriteExt};
-use plottery_project_params::{ProjectParam, ProjectParamsListWrapper};
 use serde::de::DeserializeOwned;
 use std::path::PathBuf;
+
+use crate::{ProjectParam, ProjectParamsListWrapper};
 
 pub async fn build_cargo_project_async(
     project_dir: PathBuf,

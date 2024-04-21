@@ -1,7 +1,7 @@
 use crate::{
     generate_cargo_project_to_disk,
     project_util::{build_cargo_project_async, run_project_executable_async},
-    read_object_from_stdout, LibSource, ProjectConfig,
+    read_object_from_stdout, LibSource, ProjectConfig, ProjectParam,
 };
 
 use plottery_lib::*;
@@ -9,7 +9,6 @@ use plottery_lib::*;
 use anyhow::{Error, Ok, Result};
 use async_process::Child;
 use path_absolutize::Absolutize;
-use plottery_project_params::ProjectParam;
 use resvg::{tiny_skia, usvg};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -180,13 +179,6 @@ impl Project {
         .await?;
         Ok(child_process)
     }
-
-    // let mut params: Vec<ProjectParam> = Vec::new();
-    //     params.push(ProjectParam::new(
-    //         "circle_size",
-    //         ProjectParamValue::Float(0.33),
-    //     ));
-    //     params.push(ProjectParam::new("num_circles", ProjectParamValue::Int(40)));
 
     pub fn run(&self, release: bool, params: Vec<ProjectParam>) -> Result<Layer> {
         let rt = tokio::runtime::Builder::new_current_thread()
