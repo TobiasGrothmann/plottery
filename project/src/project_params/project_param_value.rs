@@ -24,6 +24,13 @@ impl ProjectParamValue {
             )),
         }
     }
+    pub fn set_f32(&mut self, new_val: f32) {
+        match self {
+            ProjectParamValue::Float(val) => *val = new_val,
+            ProjectParamValue::FloatRanged { val, min, max } => *val = new_val.clamp(*min, *max),
+            _ => panic!("Failed to set_f32 - Type is '{}'.", self.get_type_name()),
+        }
+    }
 
     pub fn get_i32(&self) -> Result<i32> {
         match self {
@@ -37,6 +44,13 @@ impl ProjectParamValue {
                 "Failed to get_i32 - Expected value to be of type 'int' but found {}",
                 self.get_type_name()
             )),
+        }
+    }
+    pub fn set_i32(&mut self, new_val: i32) {
+        match self {
+            ProjectParamValue::Int(val) => *val = new_val,
+            ProjectParamValue::IntRanged { val, min, max } => *val = new_val.clamp(*min, *max),
+            _ => panic!("Failed to set_i32 - Type is '{}'.", self.get_type_name()),
         }
     }
 

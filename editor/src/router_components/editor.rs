@@ -3,7 +3,7 @@ use dioxus::prelude::*;
 use notify::{Config, FsEventWatcher, RecommendedWatcher, RecursiveMode, Watcher};
 use path_absolutize::Absolutize;
 use plottery_lib::Layer;
-use plottery_project::{Project, ProjectParamsListWrapper};
+use plottery_project::{Project, ProjectParamValue, ProjectParamsListWrapper};
 use std::{path::PathBuf, sync::Arc};
 use tokio::{sync::Mutex, task::JoinHandle};
 
@@ -151,7 +151,7 @@ pub fn Editor(project_path: String) -> Element {
         layer: None,
         change_counter: 0,
     });
-    let params = use_signal_sync(|| ProjectParamsListWrapper::new(vec![]));
+    let mut params = use_signal_sync(|| ProjectParamsListWrapper::new(vec![]));
 
     let project_runner = use_signal_sync(|| {
         Arc::new(Mutex::new(ProjectRunner::new(
@@ -241,9 +241,35 @@ pub fn Editor(project_path: String) -> Element {
 
             div { class: "plot_and_params",
                 div { class: "params",
-                    for param in params.read().list.iter() {
+                    for param in params.read().list.iter().cloned() {
                         div { class: "param",
                             p { "{param.name.clone()}" }
+                            input {
+                                name: "{param.name.clone()}",
+                                required: true,
+                                value: match param.value {
+                                    ProjectParamValue::Float(val) => val.to_string(),
+                                    ProjectParamValue::FloatRanged { val, min: _, max: _ } => val.to_string(),
+                                    ProjectParamValue::Int(val) => val.to_string(),
+                                    ProjectParamValue::IntRanged { val, min: _, max: _ } => val.to_string(),
+                                },
+                                placeholder: "value",
+                                onchange: move |event| {
+                                    let mut new_params = params.read().clone();
+                                    for param_field in new_params.list.iter_mut() {
+                                        if param_field.name == param.name.clone() {
+                                            let new_val = event.value().parse().unwrap();
+                                            match param_field.value {
+                                                ProjectParamValue::Float(_) => param_field.value.set_f32(new_val),
+                                                ProjectParamValue::FloatRanged { .. } => param_field.value.set_f32(new_val),
+                                                ProjectParamValue::Int(_) => param_field.value.set_i32(new_val.round() as i32),
+                                                ProjectParamValue::IntRanged { .. } => param_field.value.set_i32(new_val.round() as i32),
+                                            }
+                                        }
+                                    }
+                                    params.set(new_params);
+                                }
+                            }
                         }
                     }
                 }

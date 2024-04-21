@@ -29,6 +29,7 @@ mod tests {
         ]);
 
         let combined = ProjectParamsListWrapper::new_combined(&old.list, &new.list);
+        assert_eq!(combined.list.len(), expected.list.len());
         for (i, param) in combined.list.iter().enumerate() {
             assert_eq!(param, &expected.list[i]);
             assert_eq!(param.value, expected.list[i].value);
