@@ -83,7 +83,7 @@ mod tests {
         let project = genrate_temp_project(temp_dir.path().to_path_buf(), project_name)?;
         assert!(project.exists());
 
-        let release = false;
+        let release = true;
 
         // build
         project.build(release)?;
@@ -93,26 +93,16 @@ mod tests {
         let generated_layer = project.run(release, vec![])?;
         assert!(!generated_layer.is_empty());
 
-        Ok(())
-    }
-
-    #[test]
-    fn render() -> Result<()> {
-        let project_name: &str = "test_proj";
-        let temp_dir = tempfile::tempdir()?;
-        let project = genrate_temp_project(temp_dir.path().to_path_buf(), project_name)?;
-        assert!(project.exists());
-
-        let release = false;
-
         // build debug
         project.build(release)?;
 
+        // test saving svg
         // TODO: handle params
         let temp_svg_path = temp_dir.path().join("temp.svg");
         project.write_svg(temp_svg_path.clone(), release, vec![])?;
         assert!(temp_svg_path.exists());
 
+        // test saving png
         // TODO: handle params
         let temp_png_path = temp_dir.path().join("temp.png");
         project.write_png(temp_png_path.clone(), release, vec![])?;
