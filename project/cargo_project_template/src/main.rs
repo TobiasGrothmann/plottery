@@ -1,4 +1,6 @@
 use clap::{Parser, Subcommand};
+use plottery_project::{PlotteryParamsDefinition, ProjectParam};
+use serde_json::from_reader;
 use std::error::Error;
 use std::io::{self, Write};
 use std::path::PathBuf;
@@ -12,7 +14,11 @@ enum RunCommand {
         path: Option<String>,
         scale: Option<f32>,
     },
-    StdOut {},
+    StdOut {
+        #[arg(long, short)]
+        piped_params: Option<bool>,
+    },
+    Dry {},
 }
 
 #[derive(Parser, Debug)]
@@ -23,6 +29,11 @@ enum RunCommand {
 struct Args {
     #[command(subcommand)]
     command: RunCommand,
+}
+
+fn read_params_from_stdin() -> Result<Vec<ProjectParam>, Box<dyn Error>> {
+    Ok(from_reader(std::io::stdin())
+        .map_err(|e| format!("Failed to read list of params from stdin: {}", e))?)
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -40,23 +51,38 @@ fn main() -> Result<(), Box<dyn Error>> {
                             path_string
                         );
                     }
-                    let art = generate();
+                    let art = generate(Params::new_with_defaults());
                     art.write_svg(path, scale)?;
                 }
                 None => {
-                    let path = std::env::temp_dir().join("{{project-name}}.svg");
-                    let art = generate();
+                    let path = std::env::temp_dir().join("test2.svg");
+                    let art = generate(Params::new_with_defaults());
                     art.write_svg(path.clone(), scale)?;
 
-                    open::that_in_background(path).join().unwrap().unwrap();
+                    open::that_in_background(path)
+                        .join()
+                        .expect("Failed to open svg.")
+                        .expect("Failed to open svg.");
                 }
             }
         }
-        RunCommand::StdOut {} => {
+        RunCommand::StdOut { piped_params } => {
+            let wait_for_stdin = piped_params.unwrap_or(false);
+
+            let params = if wait_for_stdin {
+                let list = read_params_from_stdin()?;
+                Params::new_from_list(list)
+            } else {
+                Params::new_with_defaults()
+            };
+
             let mut stdout = io::stdout().lock();
-            let art = generate();
-            let binary = art.to_binary().unwrap();
+            let art = generate(params);
+            let binary = art.to_binary().expect("Failed to convert layer to binary.");
             stdout.write_all(&binary)?;
+        }
+        RunCommand::Dry {} => {
+            generate(Params::new_with_defaults());
         }
     }
     Ok(())

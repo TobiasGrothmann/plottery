@@ -1,6 +1,7 @@
 use crate::router_components::editor::{LayerChangeWrapper, RunningState};
 use dioxus::signals::{Readable, SyncSignal, Writable};
-use plottery_project::{read_layer_from_stdout, Project};
+use plottery_lib::Layer;
+use plottery_project::{read_object_from_stdout, Project, ProjectParam};
 
 #[derive(Clone)]
 pub struct ProjectRunner {
@@ -23,6 +24,7 @@ impl ProjectRunner {
         &mut self,
         release: bool,
         mut running_state: SyncSignal<RunningState>,
+        params: Vec<ProjectParam>,
     ) {
         self.cancel_tx.take(); // cancels the previous run if it exists
 
@@ -63,8 +65,8 @@ impl ProjectRunner {
                         nix::unistd::Pid::from_raw(run_process.id() as i32),
                         nix::sys::signal::SIGTERM,
                     )
-                    .unwrap();
-                    run_process.kill().unwrap();
+                    .expect("Failed to kill build process");
+                    run_process.kill().expect("Failed to kill build process");
                     log::info!("Build killed");
                     running_state.set(RunningState::BuildKilled {
                         msg: "build killed".to_string(),
@@ -100,7 +102,7 @@ impl ProjectRunner {
                 msg: "starting run".to_string(),
             });
 
-            let run_process = project.run_async(release).await;
+            let run_process = project.run_async(release, params).await;
             let mut run_process = match run_process {
                 Ok(process) => process,
                 Err(e) => {
@@ -123,15 +125,15 @@ impl ProjectRunner {
                         nix::unistd::Pid::from_raw(run_process.id() as i32),
                         nix::sys::signal::SIGTERM,
                     )
-                    .unwrap();
-                    run_process.kill().unwrap();
+                    .expect("Failed to kill run process");
+                    run_process.kill().expect("Failed to kill run process");
 
                     log::info!("run killed");
                     running_state.set(RunningState::RunKilled {
                         msg: "run killed".to_string(),
                     });
                 }
-                new_layer = read_layer_from_stdout(&mut run_process) => {
+                new_layer = read_object_from_stdout::<Layer>(&mut run_process) => {
                     // getting layer from stdout of project executable
                     let new_layer = match new_layer {
                         Ok(layer) => layer,

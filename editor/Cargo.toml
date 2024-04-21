@@ -15,11 +15,12 @@ short_description = "Graphical Editor of Plottery, a creative coding framework f
 long_description = "Graphical Editor of Plottery, a creative coding framework for generative vector graphics and pen plotting."
 
 [dependencies]
-dioxus = { version= "0.5.1", features = ["desktop"] }
+dioxus = { version = "0.5.1", features = ["desktop"] }
 directories = "5.0.1"
 plottery_lib = { path = "../lib" }
 plottery_project = { path = "../project" }
 serde = { version = "1.0", features = ["derive"] }
+serde-binary = "0.5.0"
 serde_json = "1.0"
 dioxus-logger = { version = "0.4.1", features = ["timestamps"] }
 log = "0.4.20"

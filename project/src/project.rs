@@ -1,7 +1,7 @@
 use crate::{
     generate_cargo_project_to_disk,
-    project_util::{build_cargo_project_async, run_executable_async},
-    read_layer_from_stdout, LibSource, ProjectConfig,
+    project_util::{build_cargo_project_async, run_project_executable_async},
+    read_object_from_stdout, LibSource, ProjectConfig,
 };
 
 use plottery_lib::*;
@@ -9,6 +9,7 @@ use plottery_lib::*;
 use anyhow::{Error, Ok, Result};
 use async_process::Child;
 use path_absolutize::Absolutize;
+use plottery_project_params::ProjectParam;
 use resvg::{tiny_skia, usvg};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -180,16 +181,23 @@ impl Project {
         Ok(child_process)
     }
 
-    pub fn run(&self, release: bool) -> Result<Layer> {
+    // let mut params: Vec<ProjectParam> = Vec::new();
+    //     params.push(ProjectParam::new(
+    //         "circle_size",
+    //         ProjectParamValue::Float(0.33),
+    //     ));
+    //     params.push(ProjectParam::new("num_circles", ProjectParamValue::Int(40)));
+
+    pub fn run(&self, release: bool, params: Vec<ProjectParam>) -> Result<Layer> {
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()?;
-        let mut child = rt.block_on(self.run_async(release))?;
-        let layer = rt.block_on(read_layer_from_stdout(&mut child))?;
+        let mut child = rt.block_on(self.run_async(release, params))?;
+        let layer = rt.block_on(read_object_from_stdout::<Layer>(&mut child))?;
         Ok(layer)
     }
 
-    pub async fn run_async(&self, release: bool) -> Result<Child> {
+    pub async fn run_async(&self, release: bool, params: Vec<ProjectParam>) -> Result<Child> {
         let cargo_name = self.get_cargo_toml_name()?;
 
         let mut exec_path = self.get_plottery_target_dir()?;
@@ -207,16 +215,17 @@ impl Project {
             )));
         }
 
-        Ok(run_executable_async(&exec_path).await?)
+        let arguments = vec!["std-out", "--piped-params", "true"];
+        Ok(run_project_executable_async(&exec_path, &arguments, Some(params)).await?)
     }
 
-    pub fn write_svg(&self, path: PathBuf, release: bool) -> Result<()> {
-        let layer = self.run(release)?;
+    pub fn write_svg(&self, path: PathBuf, release: bool, params: Vec<ProjectParam>) -> Result<()> {
+        let layer = self.run(release, params)?;
         layer.write_svg(path.clone(), 10.0)
     }
 
-    pub fn write_png(&self, path: PathBuf, release: bool) -> Result<()> {
-        let layer = self.run(release)?;
+    pub fn write_png(&self, path: PathBuf, release: bool, params: Vec<ProjectParam>) -> Result<()> {
+        let layer = self.run(release, params)?;
         let temp_dir = tempfile::tempdir()?;
         let temp_svg_path = temp_dir.path().join("test.svg");
         layer.write_svg(temp_svg_path.clone(), 10.0)?;
@@ -226,14 +235,15 @@ impl Project {
             let mut fontdb = fontdb::Database::new();
             fontdb.load_system_fonts();
 
-            let svg_data = std::fs::read(&temp_svg_path).unwrap();
+            let svg_data = std::fs::read(&temp_svg_path).expect("Failed to read svg file");
             let mut tree = usvg::Tree::from_data(&svg_data, &opt)?;
             tree.convert_text(&fontdb);
             resvg::Tree::from_usvg(&tree)
         };
 
         let pixmap_size = rtree.size.to_int_size();
-        let mut pixmap = tiny_skia::Pixmap::new(pixmap_size.width(), pixmap_size.height()).unwrap();
+        let mut pixmap = tiny_skia::Pixmap::new(pixmap_size.width(), pixmap_size.height())
+            .expect("Failed to create pixmap");
         rtree.render(tiny_skia::Transform::default(), &mut pixmap.as_mut());
         pixmap.save_png(path)?;
 

@@ -1,17 +1,24 @@
 use plottery_lib::*;
+use plottery_project::*;
 
-pub fn generate() -> Layer {
+#[derive(Debug, Clone, PlotteryParamsDefinition)]
+pub struct Params {
+    #[value(0.2)]
+    #[range(0.2, 0.8)]
+    pub circle_size: f32,
+
+    #[value(10)]
+    #[range(5, 500)]
+    pub num_circles: i32,
+}
+
+pub fn generate(params: Params) -> Layer {
     let mut l = Layer::new();
 
-    // generate your art here:
-    // ...
-
-    for i in 0..500 {
-        // sleep 10ms
-        std::thread::sleep(std::time::Duration::from_millis(10));
+    for i in 0..params.num_circles {
         l.push(Circle::new_shape(
-            V2::new((i as f32 * 0.05).sin(), i as f32 * 0.02) + V2::new(1.0, 1.0),
-            0.02,
+            V2::new((i as f32 * 0.5).sin(), i as f32 * 0.2) + V2::new(1.0, 1.0),
+            params.circle_size,
         ));
     }
 

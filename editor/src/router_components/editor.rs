@@ -60,7 +60,8 @@ fn start_hot_reload(
                     project_runner
                         .lock()
                         .await
-                        .trigger_run_project(true, running_state);
+                        // TODO
+                        .trigger_run_project(true, running_state, vec![]);
                 }
                 Err(e) => log::error!("Hot reload error: {:?}", e),
             }
@@ -192,7 +193,8 @@ pub fn Editor(project_path: String) -> Element {
                             onclick: move |_event| {
                                 running_state.set(RunningState::Preparing { msg: "preparing".to_string() });
                                 match project_runner.read().try_lock() {
-                                    Ok(mut runner) => runner.trigger_run_project(false, running_state),
+                                    // TODO
+                                    Ok(mut runner) => runner.trigger_run_project(false, running_state, vec![]),
                                     Err(e) => {
                                         log::error!("Error preparing to run: {:?}", e);
                                         running_state.set(RunningState::RunFailed { msg: format!("Error preparing to run: {}", e) });

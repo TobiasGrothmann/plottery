@@ -1,23 +1,24 @@
 use plottery_lib::*;
+use plottery_project::*;
 
-pub fn define_parameters() -> Vec<ProjectParam> {
-    vec![ProjectParam {
-        name: "number of circles".to_string(),
-        category: "general".to_string(),
-        value: ProjectParamValue::Float(0.0),
-    }]
+#[derive(Debug, Clone, PlotteryParamsDefinition)]
+pub struct Params {
+    #[value(0.2)]
+    #[range(0.2, 0.8)]
+    pub circle_size: f32,
+
+    #[value(10)]
+    #[range(5, 500)]
+    pub num_circles: i32,
 }
 
-pub fn generate(params: HashMap<String, ProjectParam>) -> Layer {
+pub fn generate(params: Params) -> Layer {
     let mut l = Layer::new();
 
-    // generate your art here:
-    // ...
-
-    for i in 0..params["number of circles"].get_float() as i32 {
+    for i in 0..params.num_circles {
         l.push(Circle::new_shape(
             V2::new((i as f32 * 0.5).sin(), i as f32 * 0.2) + V2::new(1.0, 1.0),
-            0.2,
+            params.circle_size,
         ));
     }
 

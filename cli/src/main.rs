@@ -97,10 +97,12 @@ pub fn main() {
             let out_path_buf = PathBuf::from(out_path);
             match format {
                 RenderType::Svg => {
-                    project.write_svg(out_path_buf, true).unwrap();
+                    // TODO: handle params?
+                    project.write_svg(out_path_buf, true, vec![]).unwrap();
                 }
                 RenderType::Png => {
-                    project.write_png(out_path_buf, true).unwrap();
+                    // TODO: handle params?
+                    project.write_png(out_path_buf, true, vec![]).unwrap();
                 }
             }
         }

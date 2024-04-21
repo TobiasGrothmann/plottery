@@ -8,7 +8,7 @@ use syn::{
 
 #[proc_macro_derive(PlotteryParamsDefinition, attributes(value, range))]
 pub fn plottery_params(input: TokenStream) -> TokenStream {
-    let ast = syn::parse(input).unwrap();
+    let ast = syn::parse(input).expect("Failed to parse macro.");
     plottery_params_impl(&ast)
 }
 
@@ -54,7 +54,7 @@ fn get_parameters_vector_items(data: &syn::DataStruct) -> Vec<proc_macro2::Token
         .map(|field| {
             let field_type = &field.ty;
             let field_type_name = get_field_type_name(field);
-            let field_name = field.ident.as_ref().unwrap().to_string();
+            let field_name = field.ident.as_ref().expect("Failed to get struct field name.").to_string();
 
             let mut default_value: proc_macro2::TokenStream = quote!(#field_type::default());
             let mut range: Option<(proc_macro2::TokenStream, proc_macro2::TokenStream)> = None;
@@ -64,7 +64,7 @@ fn get_parameters_vector_items(data: &syn::DataStruct) -> Vec<proc_macro2::Token
                     Meta::List(list) => {
                         // #[default(1.0)]a
                         if list.path.is_ident("value") {
-                            let attribute_name = list.path.get_ident().unwrap().to_string();
+                            let attribute_name = list.path.get_ident().expect("Failed to get attribute name").to_string();
                             let args = list
                                 .parse_args_with(Punctuated::<Lit, Token![,]>::parse_terminated)
                                 .unwrap_or_else(|_| panic!("Failed to parse attribute arguments for attribute '{}'", attribute_name));
@@ -77,7 +77,7 @@ fn get_parameters_vector_items(data: &syn::DataStruct) -> Vec<proc_macro2::Token
                                 let parsed_args = list
                                     .parse_args_with(Punctuated::<Lit, Token![,]>::parse_terminated)
                                     .unwrap_or_else(|_| panic!("Failed to parse attribute arguments for attribute '{}'", attribute_name));
-                                parsed_args.first().unwrap().clone()
+                                parsed_args.first().expect("Invalid number of arguments.").clone()
                             };
 
                             default_value = quote!(#argument);
@@ -85,7 +85,7 @@ fn get_parameters_vector_items(data: &syn::DataStruct) -> Vec<proc_macro2::Token
 
                         // #[range(0.0, 1.0)]
                         if list.path.is_ident("range") {
-                            let attribute_name = list.path.get_ident().unwrap().to_string();
+                            let attribute_name = list.path.get_ident().expect("Failed to get attribute name").to_string();
                             let args = list
                                 .parse_args_with(Punctuated::<Lit, Token![,]>::parse_terminated)
                                 .unwrap_or_else(|_| panic!("Failed to parse attribute arguments for attribute '{}'", attribute_name));
@@ -95,9 +95,9 @@ fn get_parameters_vector_items(data: &syn::DataStruct) -> Vec<proc_macro2::Token
                             }
 
                             let arguments = list.parse_args_with(Punctuated::<Lit, Token![,]>::parse_terminated)
-                                .unwrap();
-                            let min = arguments.first().unwrap();
-                            let max = arguments.last().unwrap();
+                                .expect("Failed to parse attribute argument");
+                            let min = arguments.first().expect("Invalid number of arguments.");
+                            let max = arguments.last().expect("Invalid number of arguments.");
                             range = Some((quote!(#min), quote!(#max)));
                         }
                     }
@@ -145,8 +145,11 @@ fn get_constructor_fields_items(data: &syn::DataStruct) -> Vec<proc_macro2::Toke
             let field_name = field.ident.as_ref().expect("Failed to access field.");
             let field_type_name = get_field_type_name(field);
             let accessor_function = Ident::new(&format!("get_{}", field_type_name), Span::call_site());
+
+            // TODO: use default if field is not available?
+
             quote! {
-                #field_name: params.get(stringify!(#field_name)).unwrap().value.#accessor_function().unwrap(),
+                #field_name: params.get(stringify!(#field_name)).unwrap_or_else(|| panic!("Field '{}' is missing in params from stdin.", stringify!(#field_name))).value.#accessor_function().unwrap(),
             }
         })
         .collect()

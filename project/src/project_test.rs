@@ -80,7 +80,8 @@ mod tests {
         project.build(false)?;
 
         // run release
-        let generated_layer = project.run(true)?;
+        // TODO: handle params
+        let generated_layer = project.run(true, vec![])?;
         assert!(!generated_layer.is_empty());
 
         Ok(())
@@ -99,12 +100,14 @@ mod tests {
 
         let temp_dir = tempfile::tempdir()?;
 
+        // TODO: handle params
         let temp_svg_path = temp_dir.path().join("temp.svg");
-        project.write_svg(temp_svg_path.clone(), true)?;
+        project.write_svg(temp_svg_path.clone(), true, vec![])?;
         assert!(temp_svg_path.exists());
 
+        // TODO: handle params
         let temp_png_path = temp_dir.path().join("temp.png");
-        project.write_png(temp_png_path.clone(), true)?;
+        project.write_png(temp_png_path.clone(), true, vec![])?;
         assert!(temp_png_path.exists());
 
         Ok(())

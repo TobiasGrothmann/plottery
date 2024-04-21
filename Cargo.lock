@@ -3273,6 +3273,7 @@ dependencies = [
  "regex",
  "rfd",
  "serde",
+ "serde-binary",
  "serde_json",
  "tokio",
 ]
@@ -3301,6 +3302,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-process",
+ "bincode",
  "chrono",
  "futures-lite",
  "itertools 0.12.1",
@@ -3312,6 +3314,7 @@ dependencies = [
  "resvg",
  "rust-embed",
  "serde",
+ "serde-binary",
  "serde_json",
  "tempfile",
  "tokio",
@@ -3336,7 +3339,7 @@ dependencies = [
  "anyhow",
  "plottery_lib",
  "serde",
- "serde_json",
+ "serde-binary",
 ]
 
 [[package]]
