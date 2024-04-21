@@ -3273,7 +3273,6 @@ dependencies = [
  "regex",
  "rfd",
  "serde",
- "serde-binary",
  "serde_json",
  "tokio",
 ]
@@ -3305,16 +3304,13 @@ dependencies = [
  "bincode",
  "chrono",
  "futures-lite",
- "itertools 0.12.1",
  "path-absolutize",
  "plottery_lib",
  "plottery_project_macros",
  "plottery_project_params",
- "rand 0.8.5",
  "resvg",
  "rust-embed",
  "serde",
- "serde-binary",
  "serde_json",
  "tempfile",
  "tokio",
@@ -3326,7 +3322,6 @@ dependencies = [
 name = "plottery_project_macros"
 version = "0.1.0"
 dependencies = [
- "plottery_project_params",
  "proc-macro2",
  "quote",
  "syn 2.0.59",
@@ -3337,9 +3332,7 @@ name = "plottery_project_params"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "plottery_lib",
  "serde",
- "serde-binary",
 ]
 
 [[package]]

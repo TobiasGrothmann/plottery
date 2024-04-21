@@ -6,5 +6,3 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.75"
 serde = { version = "1.0", features = ["derive"] }
-serde-binary = "0.5.0"
-plottery_lib = { path = "../../lib" }
