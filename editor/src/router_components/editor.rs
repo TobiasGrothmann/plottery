@@ -15,6 +15,7 @@ fn get_svg_path(project: &Project) -> PathBuf {
 
 fn start_hot_reload(
     path_to_watch: PathBuf,
+    release: bool,
     project_runner: Arc<Mutex<ProjectRunner>>,
     running_state: SyncSignal<RunningState>,
 ) -> (JoinHandle<()>, FsEventWatcher) {
@@ -60,8 +61,7 @@ fn start_hot_reload(
                     project_runner
                         .lock()
                         .await
-                        // TODO
-                        .trigger_run_project(true, running_state);
+                        .trigger_run_project(release, running_state);
                 }
                 Err(e) => log::error!("Hot reload error: {:?}", e),
             }
@@ -189,6 +189,8 @@ pub fn Editor(project_path: String) -> Element {
         "running_state"
     };
 
+    let release = true;
+
     rsx! {
         style { { include_str!("./editor.css") } }
         Navigation { page_name: "{project.read().config.name.clone()}" }
@@ -206,8 +208,7 @@ pub fn Editor(project_path: String) -> Element {
                             onclick: move |_event| {
                                 running_state.set(RunningState::Preparing { msg: "preparing".to_string() });
                                 match project_runner.read().try_lock() {
-                                    // TODO
-                                    Ok(mut runner) => runner.trigger_run_project(false, running_state),
+                                    Ok(mut runner) => runner.trigger_run_project(release, running_state),
                                     Err(e) => {
                                         log::error!("Error preparing to run: {:?}", e);
                                         running_state.set(RunningState::RunFailed { msg: format!("Error preparing to run: {}", e) });
@@ -227,6 +228,7 @@ pub fn Editor(project_path: String) -> Element {
                                 // Enable hot reload
                                 let (handle, watcher) = start_hot_reload(
                                     hot_reload_path_to_watch.clone(),
+                                    release,
                                     project_runner.read().clone(),
                                     running_state,
                                 );
@@ -268,6 +270,13 @@ pub fn Editor(project_path: String) -> Element {
                                         }
                                     }
                                     params.set(new_params);
+                                    match project_runner.read().try_lock() {
+                                        Ok(mut runner) => runner.trigger_run_project(release, running_state),
+                                        Err(e) => {
+                                            log::error!("Error preparing to run: {:?}", e);
+                                            running_state.set(RunningState::RunFailed { msg: format!("Error preparing to run: {}", e) });
+                                        },
+                                    }
                                 }
                             }
                         }
