@@ -58,11 +58,16 @@ fn get_plottery_subcrate(
                 .to_string();
             format!("{} = {{ path = \"{}\" }}", crate_name, path)
         }
-        LibSource::Path { path } => {
-            let path = path.to_string_lossy().to_string();
-            format!("{} = {{ path = \"{}\" }}", crate_name, path)
+        LibSource::Path {
+            path: plottery_home_path,
+        } => {
+            let sub_crate_path = plottery_home_path
+                .join(plottery_home_subdir)
+                .to_string_lossy()
+                .to_string();
+            format!("{} = {{ path = \"{}\" }}", crate_name, sub_crate_path)
         }
-        LibSource::Cargo => format!("{} = \"0.*\"", crate_name),
+        LibSource::Cargo => format!("{} = \">=0.1\"", crate_name),
     };
     Ok(lib_source_for_toml)
 }

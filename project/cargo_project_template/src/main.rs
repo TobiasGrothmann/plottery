@@ -1,8 +1,8 @@
+use bincode::serialize;
 use clap::{Parser, Subcommand};
-use plottery_project::{PlotteryParamsDefinition, ProjectParam};
-use serde_json::from_reader;
+use plottery_project::{PlotteryParamsDefinition, ProjectParam, ProjectParamsListWrapper};
 use std::error::Error;
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::path::PathBuf;
 
 mod generate;
@@ -19,6 +19,7 @@ enum RunCommand {
         piped_params: Option<bool>,
     },
     Dry {},
+    Params {},
 }
 
 #[derive(Parser, Debug)]
@@ -32,8 +33,10 @@ struct Args {
 }
 
 fn read_params_from_stdin() -> Result<Vec<ProjectParam>, Box<dyn Error>> {
-    Ok(from_reader(std::io::stdin())
-        .map_err(|e| format!("Failed to read list of params from stdin: {}", e))?)
+    let mut buffer = Vec::new();
+    io::stdin().read_to_end(&mut buffer)?;
+    let params_list_wrapper: ProjectParamsListWrapper = bincode::deserialize(&buffer)?;
+    Ok(params_list_wrapper.list)
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -83,6 +86,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         RunCommand::Dry {} => {
             generate(Params::new_with_defaults());
+        }
+        RunCommand::Params {} => {
+            let mut stdout = io::stdout().lock();
+            let params_list = ProjectParamsListWrapper::new(Params::param_defaults_list());
+            let binary = serialize(&params_list)?;
+            stdout.write_all(&binary)?;
         }
     }
     Ok(())
