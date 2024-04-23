@@ -39,7 +39,7 @@ pub fn Editor(project_path: String) -> Element {
     });
 
     // ui state
-    let mut project_params = use_signal_sync(|| ProjectParamsListWrapper::new(vec![]));
+    let project_params = use_signal_sync(|| ProjectParamsListWrapper::new(vec![]));
     let layer = use_signal_sync(|| LayerChangeWrapper {
         layer: None,
         change_counter: 0,
