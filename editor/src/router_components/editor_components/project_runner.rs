@@ -1,4 +1,6 @@
-use crate::router_components::editor::{LayerChangeWrapper, RunningState};
+use crate::router_components::{
+    editor::LayerChangeWrapper, editor_components::running_state::RunningState,
+};
 use dioxus::signals::{Readable, SyncSignal, Writable};
 use plottery_lib::Layer;
 use plottery_project::{read_object_from_stdout, Project, ProjectParamsListWrapper};
