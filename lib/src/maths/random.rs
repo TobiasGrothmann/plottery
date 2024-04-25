@@ -3,10 +3,6 @@ use rand_distr::{Distribution, Normal, SkewNormal};
 
 use super::thread_local::RNG;
 
-pub fn rand(to: f32) -> f32 {
-    RNG.with_borrow_mut(|rng: &mut rand::prelude::StdRng| rng.gen::<f32>() * to)
-}
-
 pub fn rand_range(from: f32, to: f32) -> f32 {
     RNG.with_borrow_mut(|rng: &mut rand::prelude::StdRng| rng.gen_range(from..to))
 }
