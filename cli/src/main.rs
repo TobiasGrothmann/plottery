@@ -36,7 +36,7 @@ pub fn main() {
     let args = Args::parse();
     match args.command {
         Command::New { name, path } => {
-            let project = Project::new(PathBuf::from(path), name.clone());
+            let project = Project::new(PathBuf::from(path), &name);
 
             if project.exists() {
                 println!(

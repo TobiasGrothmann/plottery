@@ -87,6 +87,10 @@ impl Project {
         self.get_resource_dir_asset_path("preview.svg")
     }
 
+    pub fn get_params_path(&self) -> PathBuf {
+        self.get_resource_dir_asset_path("params")
+    }
+
     pub fn get_project_config_path(&self) -> PathBuf {
         let mut project_config_path = self.dir.clone();
         project_config_path.push(format!("{}.plottery", self.config.name));

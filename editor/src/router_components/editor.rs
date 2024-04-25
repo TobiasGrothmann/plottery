@@ -6,6 +6,7 @@ use crate::{
     },
     util::format_svg,
 };
+use bincode::{deserialize, serialize};
 use dioxus::prelude::*;
 use notify::FsEventWatcher;
 use path_absolutize::Absolutize;
@@ -39,30 +40,33 @@ pub fn Editor(project_path: String) -> Element {
     });
 
     // ui state
-    let project_params = use_signal_sync(|| ProjectParamsListWrapper::new(vec![]));
-    let layer = use_signal_sync(|| LayerChangeWrapper {
+    let project_params = use_signal_sync(|| {
+        // read params from binary file
+        let params_file_path = project.read().get_params_path();
+        match std::fs::read(params_file_path) {
+            Ok(params_binary) => {
+                deserialize(&params_binary).expect("Failed to deserialize project params")
+            }
+            Err(_) => ProjectParamsListWrapper::new(vec![]),
+        }
+    });
+    let layer_change_wrapper = use_signal_sync(|| LayerChangeWrapper {
         layer: None,
         change_counter: 0,
     });
 
-    // running project
-    let mut running_state = use_signal_sync(|| RunningState::Idle);
-    let project_runner = use_signal_sync(|| {
-        Arc::new(Mutex::new(ProjectRunner::new(
-            project.read().clone(),
-            layer,
-            project_params,
-        )))
+    // hooks for changes in project
+    // params
+    use_memo(move || {
+        let params_binary =
+            serialize(&(*project_params.read())).expect("Failed to serialize project params");
+        let params_file_path = project.read().get_params_path();
+        std::fs::write(params_file_path, params_binary)
+            .expect("Failed to write project params to file");
     });
-
-    // hot reload
-    let mut hot_reload_watcher = use_signal_sync(|| None as Option<FsEventWatcher>);
-    let mut hot_reload_join_handle = use_signal_sync(|| None as Option<JoinHandle<()>>);
-    let hot_reload_path_to_watch = project.read().get_cargo_path().unwrap().join("src");
-    let hot_reload_is_enabled = move || hot_reload_watcher.read().is_some();
-
-    use_resource(move || async move {
-        let new_layer = layer.read().clone().layer;
+    // layer
+    use_memo(move || {
+        let new_layer = layer_change_wrapper.read().clone().layer;
         if let Some(new_layer) = new_layer {
             let svg_path = get_svg_path(&project.read().clone());
             match new_layer.write_svg(svg_path, 1.0) {
@@ -72,8 +76,23 @@ pub fn Editor(project_path: String) -> Element {
                 }
             };
         };
-    })
-    .unwrap();
+    });
+
+    // running project
+    let mut running_state = use_signal_sync(|| RunningState::Idle);
+    let project_runner = use_signal_sync(|| {
+        Arc::new(Mutex::new(ProjectRunner::new(
+            project.read().clone(),
+            layer_change_wrapper,
+            project_params,
+        )))
+    });
+
+    // hot reload
+    let mut hot_reload_watcher = use_signal_sync(|| None as Option<FsEventWatcher>);
+    let mut hot_reload_join_handle = use_signal_sync(|| None as Option<JoinHandle<()>>);
+    let hot_reload_path_to_watch = project.read().get_cargo_path().unwrap().join("src");
+    let hot_reload_is_enabled = move || hot_reload_watcher.read().is_some();
 
     let hot_reload_button_class = if hot_reload_is_enabled() {
         "active_button"
@@ -152,7 +171,7 @@ pub fn Editor(project_path: String) -> Element {
                     if get_svg_path(&project.read()).exists() {
                         Image {
                             img_path: get_svg_path(&project.read()).absolutize().unwrap().to_string_lossy().to_string(),
-                            redraw_counter: layer.read().change_counter,
+                            redraw_counter: layer_change_wrapper.read().change_counter,
                         }
                     } else {
                         div { class: "err_box",

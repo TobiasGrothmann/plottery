@@ -3258,6 +3258,7 @@ name = "plottery_editor"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.0",
+ "bincode",
  "chrono",
  "dioxus",
  "dioxus-logger",
