@@ -1,5 +1,6 @@
 pub mod composition;
 pub mod geometry;
+pub mod maths;
 pub mod shapes;
 pub mod traits;
 
@@ -27,3 +28,5 @@ pub use traits::{normalize::Alignment, Normalize};
 
 pub use composition::Frame;
 pub use composition::Layer;
+
+pub use maths::*;

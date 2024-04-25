@@ -34,6 +34,9 @@ impl V2 {
             y: angle.to_rad().sin() * distance,
         }
     }
+    pub fn random_unit() -> Self {
+        Self::polar(Angle::rand(), 1.0)
+    }
 
     pub fn swap(&self) -> Self {
         Self {

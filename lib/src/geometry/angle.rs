@@ -29,6 +29,11 @@ impl Angle {
             rad: rotations * 2.0 * PI,
         }
     }
+    pub fn rand() -> Self {
+        Self {
+            rad: rand::random::<f32>() * 2.0 * PI,
+        }
+    }
 
     pub fn to_rad(&self) -> f32 {
         self.rad
