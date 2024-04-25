@@ -3,7 +3,7 @@ use std::{f32::consts::PI, iter::Sum};
 use geo_types::Coord;
 use serde::{Deserialize, Serialize};
 
-use crate::{Angle, Rotate, Rotate90};
+use crate::{rand_range, Angle, Rotate, Rotate90};
 
 #[derive(Debug, Copy, Clone, Default, Serialize, Deserialize)]
 pub struct V2 {
@@ -34,8 +34,13 @@ impl V2 {
             y: angle.to_rad().sin() * distance,
         }
     }
-    pub fn random_unit() -> Self {
+    pub fn random_unit_circle() -> Self {
         Self::polar(Angle::rand(), 1.0)
+    }
+    pub fn random_unit_disk() -> Self {
+        let angle = Angle::rand();
+        let radius = rand_range(0.0, 1.0).sqrt();
+        Self::polar(angle, radius)
     }
 
     pub fn swap(&self) -> Self {
