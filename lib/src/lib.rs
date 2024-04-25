@@ -29,4 +29,4 @@ pub use traits::{normalize::Alignment, Normalize};
 pub use composition::Frame;
 pub use composition::Layer;
 
-pub use maths::noise::*;
+pub use maths::*;

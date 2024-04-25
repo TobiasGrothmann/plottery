@@ -1,43 +1,6 @@
-use std::cell::RefCell;
-
-use fastnoise_lite::{FastNoiseLite, NoiseType};
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use crate::V2;
 
-thread_local! {
-    static PERLIN: RefCell<FastNoiseLite> = {
-        let mut noise = FastNoiseLite::new();
-        noise.set_noise_type(Some(NoiseType::Perlin));
-        RefCell::new(noise)
-    };
-    static SIMPLEX: RefCell<FastNoiseLite> = {
-        let mut noise = FastNoiseLite::new();
-        noise.set_noise_type(Some(NoiseType::OpenSimplex2S));
-        RefCell::new(noise)
-    };
-    static WORLEY: RefCell<FastNoiseLite> = {
-        let mut noise = FastNoiseLite::new();
-        noise.set_noise_type(Some(NoiseType::Cellular));
-        RefCell::new(noise)
-    };
-}
-
-pub fn seed(seed: i32) {
-    PERLIN.with_borrow_mut(|noise| noise.set_seed(Some(seed)));
-    SIMPLEX.with_borrow_mut(|noise| noise.set_seed(Some(seed)));
-    WORLEY.with_borrow_mut(|noise| noise.set_seed(Some(seed)));
-}
-
-pub fn seed_random() {
-    let seed = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_micros() as i32;
-    PERLIN.with_borrow_mut(|noise| noise.set_seed(Some(seed)));
-    SIMPLEX.with_borrow_mut(|noise| noise.set_seed(Some(seed)));
-    WORLEY.with_borrow_mut(|noise| noise.set_seed(Some(seed)));
-}
+use super::thread_local::{PERLIN, SIMPLEX, WORLEY};
 
 pub fn perlin_2d(location: &V2) -> f32 {
     let val = PERLIN.with_borrow(|noise| noise.get_noise_2d(location.x, location.y));

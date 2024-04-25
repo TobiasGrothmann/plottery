@@ -3,7 +3,8 @@ mod test_noise {
     use rand::random;
 
     use crate::{
-        perlin_2d, perlin_3d, seed, seed_random, simplex_2d, simplex_3d, worley_2d, worley_3d, V2,
+        maths::thread_local::{seed, seed_random},
+        perlin_2d, perlin_3d, simplex_2d, simplex_3d, worley_2d, worley_3d, V2,
     };
 
     #[test]
