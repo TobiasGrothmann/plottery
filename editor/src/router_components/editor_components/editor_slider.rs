@@ -45,6 +45,7 @@ pub fn EditorSlider(mut props: EditorSliderProps) -> Element {
     let slider_value_string = use_memo(move || {
         format!("{:.5}", slider_value.read())
             .trim_end_matches('0')
+            .trim_end_matches('.')
             .to_string()
     });
 

@@ -10,5 +10,5 @@
 .param {
   display: flex;
   flex-direction: column;
-  row-gap: var(--gap-0);
+  row-gap: var(--gap-small);
 }
