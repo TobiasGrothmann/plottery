@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{fmt::format, sync::Arc};
 
 use dioxus::prelude::*;
 use plottery_project::{ProjectParam, ProjectParamValue, ProjectParamsListWrapper};
@@ -17,14 +17,49 @@ pub struct EditorSliderProps {
 
 #[component]
 pub fn EditorSlider(mut props: EditorSliderProps) -> Element {
+    let slider_step = match props.param.value {
+        ProjectParamValue::FloatRanged { val: _, min, max } => {
+            ((max - min) / 100_000_f32).to_string()
+        }
+        ProjectParamValue::IntRanged {
+            val: _,
+            min: _,
+            max: _,
+        } => "1".to_string(),
+        _ => panic!("Unexpected Error"),
+    };
+
+    let mut slider_value = use_signal(|| match props.param.value {
+        ProjectParamValue::FloatRanged {
+            val,
+            min: _,
+            max: _,
+        } => val,
+        ProjectParamValue::IntRanged {
+            val,
+            min: _,
+            max: _,
+        } => val as f32,
+        _ => panic!("Unexpected Error"),
+    });
+    let slider_value_string = use_memo(move || {
+        format!("{:.5}", slider_value.read())
+            .trim_end_matches('0')
+            .to_string()
+    });
+
     rsx! {
+        style { { include_str!("editor_slider.css") } }
         div { class: "EditorSlider",
+            p { class: "slider_value",
+                "{slider_value_string}"
+            }
             input {
                 class: "slider",
                 name: "{props.param.name.clone()}",
                 required: true,
                 r#type: "range",
-                step: "0.01",
+                step: slider_step,
                 min: match props.param.value {
                     ProjectParamValue::FloatRanged { val: _, min, max: _ } => min.to_string(),
                     ProjectParamValue::IntRanged { val: _, min, max: _ } => min.to_string(),
@@ -35,10 +70,10 @@ pub fn EditorSlider(mut props: EditorSliderProps) -> Element {
                     ProjectParamValue::IntRanged { val: _, min: _, max } => max.to_string(),
                     _ => panic!("Unexpected Error"),
                 },
-                value: match props.param.value {
-                    ProjectParamValue::FloatRanged { val, min: _, max: _ } => val.to_string(),
-                    ProjectParamValue::IntRanged { val, min: _, max: _ } => val.to_string(),
-                    _ => panic!("Unexpected Error"),
+                value: slider_value.to_string(),
+                oninput: move |event| {
+                    let new_value = event.value().parse::<f32>().unwrap();
+                    slider_value.set(new_value);
                 },
                 onchange: move |event| {
                     let mut new_params = props.project_params.read().clone();

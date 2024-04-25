@@ -2,41 +2,13 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  row-gap: var(--gap-0);
+  row-gap: var(--gap-1);
   background-color: var(--col-bg-1);
   padding: var(--gap-1);
 }
 
-.slider {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 0;
-  -webkit-appearance: none; /* Override default CSS styles */
-  appearance: none;
-  width: 100%; /* Full-width */
-  height: 20px; /* Specified height */
-  background: #d3d3d3; /* Grey background */
-  outline: none; /* Remove outline */
-  opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
-  border-radius: 0;
-}
-.slider:hover {
-  opacity: 1;
-}
-
-/* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
-.slider::-webkit-slider-thumb {
-  -webkit-appearance: none; /* Override default look */
-  appearance: none;
-  width: 30px; /* Set a specific slider handle width */
-  height: 20px; /* Slider handle height */
-  background: #04aa6d; /* Green background */
-  cursor: pointer; /* Cursor on hover */
-}
-
-.slider::-moz-range-thumb {
-  width: 30px; /* Set a specific slider handle width */
-  height: 20px; /* Slider handle height */
-  background: #04aa6d; /* Green background */
-  cursor: pointer; /* Cursor on hover */
+.param {
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--gap-0);
 }

@@ -20,7 +20,7 @@ impl ProjectParamValue {
             } => Ok(*val),
             _ => Err(anyhow::anyhow!(
                 "Failed to get_f32 - Expected value to be of type 'float' but found {}",
-                self.get_type_name()
+                self.type_name()
             )),
         }
     }
@@ -28,7 +28,7 @@ impl ProjectParamValue {
         match self {
             ProjectParamValue::Float(val) => *val = new_val,
             ProjectParamValue::FloatRanged { val, min, max } => *val = new_val.clamp(*min, *max),
-            _ => panic!("Failed to set_f32 - Type is '{}'.", self.get_type_name()),
+            _ => panic!("Failed to set_f32 - Type is '{}'.", self.type_name()),
         }
     }
 
@@ -42,7 +42,7 @@ impl ProjectParamValue {
             } => Ok(*val),
             _ => Err(anyhow::anyhow!(
                 "Failed to get_i32 - Expected value to be of type 'int' but found {}",
-                self.get_type_name()
+                self.type_name()
             )),
         }
     }
@@ -50,16 +50,25 @@ impl ProjectParamValue {
         match self {
             ProjectParamValue::Int(val) => *val = new_val,
             ProjectParamValue::IntRanged { val, min, max } => *val = new_val.clamp(*min, *max),
-            _ => panic!("Failed to set_i32 - Type is '{}'.", self.get_type_name()),
+            _ => panic!("Failed to set_i32 - Type is '{}'.", self.type_name()),
         }
     }
 
-    pub fn get_type_name(&self) -> String {
+    pub fn type_name(&self) -> String {
         match self {
             ProjectParamValue::Float(_) => "f32".to_string(),
             ProjectParamValue::FloatRanged { .. } => "f32 (ranged)".to_string(),
             ProjectParamValue::Int(_) => "i32".to_string(),
             ProjectParamValue::IntRanged { .. } => "i32 (ranged)".to_string(),
+        }
+    }
+
+    pub fn value_as_string(&self) -> String {
+        match self {
+            ProjectParamValue::Float(val) => val.to_string(),
+            ProjectParamValue::FloatRanged { val, .. } => val.to_string(),
+            ProjectParamValue::Int(val) => val.to_string(),
+            ProjectParamValue::IntRanged { val, .. } => val.to_string(),
         }
     }
 }

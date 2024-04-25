@@ -67,7 +67,7 @@ impl ProjectRunner {
                 msg: "building".to_string(),
             });
 
-            tokio::select! {
+            let success: bool = tokio::select! {
                 _ = cancel_rx.recv() => {
                     nix::sys::signal::kill(
                         nix::unistd::Pid::from_raw(run_process.id() as i32),
@@ -79,10 +79,10 @@ impl ProjectRunner {
                     running_state.set(RunningState::BuildKilled {
                         msg: "build killed".to_string(),
                     });
-                    return;
+                    false
                 }
                 build_status = run_process.status() => {
-                    match build_status {
+                    let success: bool = match build_status {
                         Ok(status) => {
                             if !status.success() {
                                 let msg = format!("build failed (exit code: {})", status.code().unwrap_or(-1));
@@ -90,7 +90,9 @@ impl ProjectRunner {
                                 running_state.set(RunningState::BuildFailed {
                                     msg,
                                 });
-                                return;
+                                false
+                            } else {
+                                true
                             }
                         }
                         Err(e) => {
@@ -98,10 +100,14 @@ impl ProjectRunner {
                             running_state.set(RunningState::BuildFailed {
                                 msg: "build failed (no status)".to_string(),
                             });
-                            return;
+                            false
                         }
-                    }
+                    };
+                    success
                 }
+            };
+            if !success {
+                return;
             }
 
             // run get params while waiting for cancel signal

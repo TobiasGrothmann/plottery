@@ -11,7 +11,7 @@ pub struct ProjectParam {
 impl PartialEq for ProjectParam {
     fn eq(&self, other: &Self) -> bool {
         let name_equal = self.name == other.name;
-        let type_equal = self.value.get_type_name() == other.value.get_type_name();
+        let type_equal = self.value.type_name() == other.value.type_name();
         name_equal && type_equal
     }
 }
@@ -22,5 +22,9 @@ impl ProjectParam {
             name: name.to_string(),
             value,
         }
+    }
+
+    pub fn formatted_name(&self) -> String {
+        self.name.replace("_", " ").to_lowercase()
     }
 }

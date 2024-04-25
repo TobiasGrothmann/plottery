@@ -26,8 +26,7 @@ pub fn ParamsEditor(props: ParamsEditorProps) -> Element {
         div { class: "ParamsEditor",
             for param in props.project_params.read().list.iter().cloned() {
                 div { class: "param",
-                    p { "{param.name.clone()}" }
-
+                    p { "{param.formatted_name()}" }
                     match param.value {
                         ProjectParamValue::Float(_) | ProjectParamValue::Int(_) => {
                             rsx! {

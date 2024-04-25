@@ -91,6 +91,9 @@ input {
   border: none;
   outline: none;
 }
+input:hover {
+  filter: brightness(1.25);
+}
 
 .card {
   padding: var(--gap-1);
