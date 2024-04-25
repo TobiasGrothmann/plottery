@@ -26,8 +26,6 @@ log = "0.4.20"
 path-absolutize = "3.1.1"
 chrono = "0.4.31"
 dioxus-router = "0.5.0"
-os_type = "2.6.0"
-dioxus-std = { version = "0.5.0", features = ["utils"] }
 tokio = "1.35.1"
 notify = "6.1.1"
 nix = { version = "0.28.0", features = ["signal"] }
