@@ -25,6 +25,6 @@ impl ProjectParam {
     }
 
     pub fn formatted_name(&self) -> String {
-        self.name.replace("_", " ").to_lowercase()
+        self.name.replace('_', " ").to_lowercase()
     }
 }

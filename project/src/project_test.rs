@@ -38,7 +38,7 @@ mod tests {
 
     #[test]
     fn save_project_config() -> Result<()> {
-        let project_file = ProjectConfig::new("project_name".to_string());
+        let project_file = ProjectConfig::new("project_name");
         let project_file_path = Path::new("test_project.plottery");
 
         project_file.save_to_file(&project_file_path)?;

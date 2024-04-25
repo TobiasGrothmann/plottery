@@ -1,4 +1,4 @@
-use std::{fmt::format, sync::Arc};
+use std::sync::Arc;
 
 use dioxus::prelude::*;
 use plottery_project::{ProjectParam, ProjectParamValue, ProjectParamsListWrapper};

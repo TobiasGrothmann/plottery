@@ -38,9 +38,9 @@ impl PartialEq for Project {
 }
 
 impl Project {
-    pub fn new(parent: PathBuf, name: String) -> Self {
+    pub fn new(parent: PathBuf, name: &str) -> Self {
         let mut project_dir = parent.clone();
-        project_dir.push(name.clone());
+        project_dir.push(name);
         Self {
             config: ProjectConfig::new(name),
             dir: project_dir,
@@ -77,14 +77,14 @@ impl Project {
         resource_dir
     }
 
-    pub fn get_resource_dir_asset_path(&self, asset_name: String) -> PathBuf {
+    pub fn get_resource_dir_asset_path(&self, asset_name: &str) -> PathBuf {
         let mut resource_path = self.get_resource_dir();
         resource_path.push(asset_name);
         resource_path
     }
 
     pub fn get_preview_image_path(&self) -> PathBuf {
-        self.get_resource_dir_asset_path("preview.svg".to_string())
+        self.get_resource_dir_asset_path("preview.svg")
     }
 
     pub fn get_project_config_path(&self) -> PathBuf {

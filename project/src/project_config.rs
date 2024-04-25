@@ -22,9 +22,9 @@ impl PartialEq for ProjectConfig {
 }
 
 impl ProjectConfig {
-    pub fn new(name: String) -> Self {
+    pub fn new(name: &str) -> Self {
         Self {
-            name,
+            name: name.to_string(),
             created_date: Utc::now(),
             last_modified_date: Utc::now(),
         }

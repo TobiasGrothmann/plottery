@@ -81,7 +81,7 @@ pub fn ProjectCreate() -> Element {
                         return;
                     }
 
-                    let project = Project::new(folder, name.to_string());
+                    let project = Project::new(folder, &name);
                     if let Err(e) = project.generate_to_disk(LibSource::Cargo) {
                         error.set(e.to_string());
                         return;
