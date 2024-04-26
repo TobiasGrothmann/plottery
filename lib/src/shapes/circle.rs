@@ -26,6 +26,9 @@ impl Circle {
     pub fn circumference(&self) -> f32 {
         self.radius * 2.0 * PI
     }
+    pub fn contains_point(&self, point: &V2) -> bool {
+        point.dist(&self.center) <= self.radius
+    }
 }
 
 impl Plottable for Circle {

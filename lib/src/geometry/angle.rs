@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::f32::consts::PI;
 
+use crate::GR;
+
 #[derive(Debug, Clone, Serialize, Deserialize, Copy)]
 pub struct Angle {
     rad: f32,
@@ -35,6 +37,25 @@ impl Angle {
         }
     }
 
+    pub fn quarter_rotation() -> Self {
+        Self::from_rotations(0.25)
+    }
+    pub fn half_rotation() -> Self {
+        Self::from_rotations(0.5)
+    }
+    pub fn golden_ratio() -> Self {
+        Self::from_rotations(GR)
+    }
+    pub fn golden_ratio_inverse() -> Self {
+        Self::from_rotations(1.0 / GR)
+    }
+    pub fn root_two() -> Self {
+        Self::from_rotations(2.0_f32.sqrt())
+    }
+    pub fn root_two_inverse() -> Self {
+        Self::from_rotations(1.0 / 2.0_f32.sqrt())
+    }
+
     pub fn to_rad(&self) -> f32 {
         self.rad
     }
@@ -49,7 +70,7 @@ impl Angle {
         (self.rad.sin(), self.rad.cos())
     }
 
-    pub fn wrap(&self) -> Self {
+    pub fn mod_2_pi(&self) -> Self {
         Angle::from_rad(self.rad % (2.0 * PI))
     }
 }

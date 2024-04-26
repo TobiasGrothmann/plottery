@@ -60,6 +60,22 @@ impl V2 {
         Self { x: 0.0, y: 0.0 }
     }
 
+    pub fn din_a(number: u8) -> Self {
+        match number {
+            0 => Self::a0(),
+            1 => Self::a1(),
+            2 => Self::a2(),
+            3 => Self::a3(),
+            4 => Self::a4(),
+            5 => Self::a5(),
+            6 => Self::a6(),
+            7 => Self::a7(),
+            8 => Self::a8(),
+            9 => Self::a9(),
+            10 => Self::a10(),
+            _ => panic!("DIN A number out of range."),
+        }
+    }
     pub fn a0() -> Self {
         Self { x: 84.1, y: 118.9 }
     }

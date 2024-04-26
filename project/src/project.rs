@@ -218,7 +218,6 @@ impl Project {
             )));
         }
         let arguments = vec!["std-out", "--piped-params", "true"];
-        println!("params in run: {:?}", params);
         Ok(run_project_executable_async(&bin_path, &arguments, Some(params)).await?)
     }
 
