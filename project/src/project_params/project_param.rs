@@ -12,7 +12,28 @@ impl PartialEq for ProjectParam {
     fn eq(&self, other: &Self) -> bool {
         let name_equal = self.name == other.name;
         let type_equal = self.value.type_name() == other.value.type_name();
-        name_equal && type_equal
+
+        let range_equal = match (&self.value, &other.value) {
+            (
+                ProjectParamValue::FloatRanged { val: _, min, max },
+                ProjectParamValue::FloatRanged {
+                    val: _,
+                    min: min_other,
+                    max: max_other,
+                },
+            ) => min == min_other && max == max_other,
+            (
+                ProjectParamValue::IntRanged { val: _, min, max },
+                ProjectParamValue::IntRanged {
+                    val: _,
+                    min: min_other,
+                    max: max_other,
+                },
+            ) => min == min_other && max == max_other,
+            _ => true,
+        };
+
+        name_equal && type_equal && range_equal
     }
 }
 
