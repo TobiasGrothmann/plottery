@@ -1,5 +1,5 @@
 use crate::{
-    components::navigation::Navigation,
+    components::{loading::Loading, navigation::Navigation},
     router_components::editor_components::{
         params_editor::ParamsEditor, project_hot_reload::start_hot_reload,
         project_runner::ProjectRunner, running_state::RunningState,
@@ -115,7 +115,7 @@ pub fn Editor(project_path: String) -> Element {
         div { class: "Editor",
             div { class: "plot_header",
                 div { class: "action_buttons",
-                    if running_state.read().is_busy() {
+                    if !matches!(*running_state.read(), RunningState::Idle {}) {
                         div { class: "{running_state_class}",
                             p { "{running_state.read().get_msg()}" }
                         }
@@ -169,6 +169,9 @@ pub fn Editor(project_path: String) -> Element {
                 }
                 div { class: "plot",
                     if get_svg_path(&project.read()).exists() {
+                        if running_state.read().is_busy() {
+                            Loading {}
+                        }
                         Image {
                             img_path: get_svg_path(&project.read()).absolutize().unwrap().to_string_lossy().to_string(),
                             redraw_counter: layer_change_wrapper.read().change_counter,

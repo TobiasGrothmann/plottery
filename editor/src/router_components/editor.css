@@ -31,6 +31,7 @@
   display: flex;
 }
 .plot {
+  position: relative;
   flex: 1;
   background-color: white;
   padding: var(--gap-0);

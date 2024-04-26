@@ -18,7 +18,16 @@ pub enum RunningState {
 }
 impl RunningState {
     pub fn is_busy(&self) -> bool {
-        !matches!(self, RunningState::Idle {})
+        !matches!(
+            self,
+            RunningState::Idle {}
+                | RunningState::BuildFailed { .. }
+                | RunningState::RunFailed { .. }
+                | RunningState::GetParamsFailed { .. }
+                | RunningState::BuildKilled { .. }
+                | RunningState::RunKilled { .. }
+                | RunningState::GetParamsKilled { .. }
+        )
     }
     pub fn is_error(&self) -> bool {
         matches!(
