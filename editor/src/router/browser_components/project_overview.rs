@@ -24,11 +24,11 @@ pub fn ProjectOverview(props: ProjectOverviewProps) -> Element {
     let preview_image = props.project.read().get_preview_image_path();
 
     let icon_folder = if cfg!(target_os = "windows") {
-        format_svg(include_bytes!("../../public/icons/explorer.svg"))
+        format_svg(include_bytes!("../../../public/icons/explorer.svg"))
     } else if cfg!(target_os = "macos") {
-        format_svg(include_bytes!("../../public/icons/finder.svg"))
+        format_svg(include_bytes!("../../../public/icons/finder.svg"))
     } else {
-        format_svg(include_bytes!("../../public/icons/linux_folder.svg"))
+        format_svg(include_bytes!("../../../public/icons/linux_folder.svg"))
     };
 
     rsx! {
@@ -72,7 +72,7 @@ pub fn ProjectOverview(props: ProjectOverviewProps) -> Element {
                                     .spawn()
                                     .unwrap();
                             },
-                            img { src: "{format_svg(include_bytes!(\"../../public/icons/vscode.svg\"))}" }
+                            img { src: "{format_svg(include_bytes!(\"../../../public/icons/vscode.svg\"))}" }
                         }
                         button { class: "icon_button",
                             onclick: move |_event| {
@@ -86,7 +86,7 @@ pub fn ProjectOverview(props: ProjectOverviewProps) -> Element {
             div { class: "actions",
                 button { class: "delete_button",
                     onclick: move |_event| { props.on_delete_clicked.call(props.project.read().clone()) },
-                    img { src: "{format_svg(include_bytes!(\"../../public/icons/delete.svg\"))}" }
+                    img { src: "{format_svg(include_bytes!(\"../../../public/icons/delete.svg\"))}" }
                 }
                 if project_exists {
                     button { class: "icon_button",
@@ -96,7 +96,7 @@ pub fn ProjectOverview(props: ProjectOverviewProps) -> Element {
                                 project_path: props.project.read().get_project_config_path().absolutize().unwrap().to_string_lossy().to_string()
                             });
                         },
-                        img { src: "{format_svg(include_bytes!(\"../../public/icons/forward.svg\"))}" }
+                        img { src: "{format_svg(include_bytes!(\"../../../public/icons/forward.svg\"))}" }
                     }
                 }
             }

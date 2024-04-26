@@ -1,7 +1,9 @@
 use dioxus::prelude::*;
 use plottery_project::Project;
 
-use crate::{components::project_overview::ProjectOverview, model::app_state::AppState};
+use crate::{
+    model::app_state::AppState, router::browser_components::project_overview::ProjectOverview,
+};
 
 #[derive(Props, Clone)]
 pub struct ProjectListProps {

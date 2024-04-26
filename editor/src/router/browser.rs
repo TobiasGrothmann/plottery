@@ -1,6 +1,8 @@
 use crate::components::navigation::Navigation;
+use crate::model::app_state::AppState;
+use crate::router::browser_components::project_list::ProjectList;
+use crate::routes::Route;
 use crate::util::format_svg;
-use crate::{components::project_list::ProjectList, model::app_state::AppState, routes::Route};
 use dioxus::prelude::*;
 use dioxus_router::hooks::use_navigator;
 use plottery_project::Project;
