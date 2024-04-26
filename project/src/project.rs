@@ -1,7 +1,7 @@
 use crate::{
     generate_cargo_project_to_disk,
     project_util::{build_cargo_project_async, run_project_executable_async},
-    read_object_from_stdout, LibSource, ProjectConfig, ProjectParam, ProjectParamsListWrapper,
+    read_object_from_stdout, LibSource, ProjectConfig, ProjectParamsListWrapper,
 };
 
 use plottery_lib::*;
@@ -196,7 +196,7 @@ impl Project {
         Ok(child_process)
     }
 
-    pub fn run(&self, release: bool, params: Vec<ProjectParam>) -> Result<Layer> {
+    pub fn run(&self, release: bool, params: &ProjectParamsListWrapper) -> Result<Layer> {
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()?;
@@ -205,7 +205,11 @@ impl Project {
         Ok(layer)
     }
 
-    pub async fn run_async(&self, release: bool, params: Vec<ProjectParam>) -> Result<Child> {
+    pub async fn run_async(
+        &self,
+        release: bool,
+        params: &ProjectParamsListWrapper,
+    ) -> Result<Child> {
         let bin_path = self.get_plottery_binary_path(release)?;
         if !bin_path.exists() {
             return Err(Error::msg(format!(
@@ -214,6 +218,7 @@ impl Project {
             )));
         }
         let arguments = vec!["std-out", "--piped-params", "true"];
+        println!("params in run: {:?}", params);
         Ok(run_project_executable_async(&bin_path, &arguments, Some(params)).await?)
     }
 
@@ -240,12 +245,22 @@ impl Project {
         Ok(run_project_executable_async(&bin_path, &arguments, None).await?)
     }
 
-    pub fn write_svg(&self, path: PathBuf, release: bool, params: Vec<ProjectParam>) -> Result<()> {
+    pub fn write_svg(
+        &self,
+        path: PathBuf,
+        release: bool,
+        params: &ProjectParamsListWrapper,
+    ) -> Result<()> {
         let layer = self.run(release, params)?;
         layer.write_svg(path.clone(), 10.0)
     }
 
-    pub fn write_png(&self, path: PathBuf, release: bool, params: Vec<ProjectParam>) -> Result<()> {
+    pub fn write_png(
+        &self,
+        path: PathBuf,
+        release: bool,
+        params: &ProjectParamsListWrapper,
+    ) -> Result<()> {
         let layer = self.run(release, params)?;
         let temp_dir = tempfile::tempdir()?;
         let temp_svg_path = temp_dir.path().join("test.svg");

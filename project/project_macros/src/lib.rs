@@ -146,8 +146,6 @@ fn get_constructor_fields_items(data: &syn::DataStruct) -> Vec<proc_macro2::Toke
             let field_type_name = get_field_type_name(field);
             let accessor_function = Ident::new(&format!("get_{}", field_type_name), Span::call_site());
 
-            // TODO: use default if field is not available?
-
             quote! {
                 #field_name: params.get(stringify!(#field_name)).unwrap_or_else(|| panic!("Field '{}' is missing in params from stdin.", stringify!(#field_name))).value.#accessor_function().unwrap(),
             }

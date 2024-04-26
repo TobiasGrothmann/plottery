@@ -88,24 +88,25 @@ mod tests {
         // build
         project.build(release)?;
 
+        // run to get params
+        let params = project.run_get_params(release)?;
+        assert!(params.list.len() == 2);
+
         // run
-        // TODO: handle params
-        let generated_layer = project.run(release, vec![])?;
+        let generated_layer = project.run(release, &params)?;
         assert!(!generated_layer.is_empty());
 
         // build debug
         project.build(release)?;
 
         // test saving svg
-        // TODO: handle params
         let temp_svg_path = temp_dir.path().join("temp.svg");
-        project.write_svg(temp_svg_path.clone(), release, vec![])?;
+        project.write_svg(temp_svg_path.clone(), release, &params)?;
         assert!(temp_svg_path.exists());
 
         // test saving png
-        // TODO: handle params
         let temp_png_path = temp_dir.path().join("temp.png");
-        project.write_png(temp_png_path.clone(), release, vec![])?;
+        project.write_png(temp_png_path.clone(), release, &params)?;
         assert!(temp_png_path.exists());
 
         Ok(())

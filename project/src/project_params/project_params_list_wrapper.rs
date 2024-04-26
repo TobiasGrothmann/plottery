@@ -11,6 +11,9 @@ impl ProjectParamsListWrapper {
     pub fn new(list: Vec<ProjectParam>) -> Self {
         Self { list }
     }
+    pub fn empty() -> Self {
+        Self { list: Vec::new() }
+    }
 
     pub fn new_combined(old: &[ProjectParam], new: &[ProjectParam]) -> Self {
         let mut out_list = Vec::new();

@@ -177,7 +177,7 @@ impl ProjectRunner {
                 msg: "starting run".to_string(),
             });
 
-            let run_process = project.run_async(release, new_params.list).await;
+            let run_process = project.run_async(release, &new_params).await;
             let mut run_process = match run_process {
                 Ok(process) => process,
                 Err(e) => {

@@ -92,17 +92,20 @@ pub fn main() {
                 return;
             }
 
-            project.build(true).unwrap();
+            let release = true;
+            project.build(release).unwrap();
+
+            let params = project
+                .run_get_params(release)
+                .expect("Failed to get params");
 
             let out_path_buf = PathBuf::from(out_path);
             match format {
                 RenderType::Svg => {
-                    // TODO: handle params?
-                    project.write_svg(out_path_buf, true, vec![]).unwrap();
+                    project.write_svg(out_path_buf, release, &params).unwrap();
                 }
                 RenderType::Png => {
-                    // TODO: handle params?
-                    project.write_png(out_path_buf, true, vec![]).unwrap();
+                    project.write_png(out_path_buf, release, &params).unwrap();
                 }
             }
         }

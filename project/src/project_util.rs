@@ -5,7 +5,7 @@ use futures_lite::{AsyncReadExt, AsyncWriteExt};
 use serde::de::DeserializeOwned;
 use std::path::PathBuf;
 
-use crate::{ProjectParam, ProjectParamsListWrapper};
+use crate::ProjectParamsListWrapper;
 
 pub async fn build_cargo_project_async(
     project_dir: PathBuf,
@@ -27,9 +27,9 @@ pub async fn build_cargo_project_async(
 }
 
 pub async fn run_project_executable_async(
-    path: &PathBuf,                    // path to the executable
-    arguments: &Vec<&str>,             // arguments for the executable invocation
-    params: Option<Vec<ProjectParam>>, // will be piped into stdin of the child process
+    path: &PathBuf,                            // path to the executable
+    arguments: &Vec<&str>,                     // arguments for the executable invocation
+    params: Option<&ProjectParamsListWrapper>, // will be piped into stdin of the child process
 ) -> Result<Child> {
     let exec_stdin = if params.is_some() {
         Stdio::piped()
@@ -45,8 +45,7 @@ pub async fn run_project_executable_async(
 
     if let Some(params) = params {
         if let Some(mut stdin) = child_process.stdin.take() {
-            let params_list = ProjectParamsListWrapper::new(params);
-            let binary = serialize(&params_list)?;
+            let binary = serialize(&params)?;
             stdin.write_all(&binary).await?;
         } else {
             return Err(anyhow::Error::msg("Failed to open stdin on child process"));
