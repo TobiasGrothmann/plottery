@@ -13,11 +13,21 @@
   background-color: var(--col-bg-2);
   align-items: center;
 }
-.action_buttons {
+.run_actions {
   margin-left: auto;
   display: flex;
   flex-direction: row;
   column-gap: var(--gap-1);
+}
+.open_actions {
+  margin-top: auto;
+  display: flex;
+  flex-direction: row;
+  column-gap: var(--gap-0);
+}
+.open_actions button {
+  color: var(--col-fg-0);
+  background-color: var(--col-bg-2);
 }
 
 .plot_and_params {

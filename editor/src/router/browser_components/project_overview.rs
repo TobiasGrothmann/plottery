@@ -23,14 +23,6 @@ pub fn ProjectOverview(props: ProjectOverviewProps) -> Element {
     let project_exists = props.project.read().exists();
     let preview_image = props.project.read().get_preview_image_path();
 
-    let icon_folder = if cfg!(target_os = "windows") {
-        format_svg(include_bytes!("../../../public/icons/explorer.svg"))
-    } else if cfg!(target_os = "macos") {
-        format_svg(include_bytes!("../../../public/icons/finder.svg"))
-    } else {
-        format_svg(include_bytes!("../../../public/icons/linux_folder.svg"))
-    };
-
     rsx! {
         style { { include_str!("./project_overview.css") } }
         div { class: "ProjectOverview card",
@@ -60,26 +52,6 @@ pub fn ProjectOverview(props: ProjectOverviewProps) -> Element {
                     p {
                         span { "{format_datetime_to_relative(&props.project.read().config.last_modified_date)}" }
                         span { class: "grey_text", " ago" }
-                    }
-                }
-                if project_exists {
-                    div { class: "open_actions",
-                        button { class: "icon_button",
-                            onclick: move |_event| {
-                                let project_dir = props.project.read().dir.clone();
-                                std::process::Command::new("code")
-                                    .arg(project_dir)
-                                    .spawn()
-                                    .unwrap();
-                            },
-                            img { src: "{format_svg(include_bytes!(\"../../../public/icons/vscode.svg\"))}" }
-                        }
-                        button { class: "icon_button",
-                            onclick: move |_event| {
-                                opener::reveal(props.project.read().dir.clone()).unwrap();
-                            },
-                            img { src: "{icon_folder}" }
-                        }
                     }
                 }
             }

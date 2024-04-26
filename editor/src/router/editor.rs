@@ -39,6 +39,8 @@ pub fn Editor(project_path: String) -> Element {
         Project::load_from_file(p).unwrap()
     });
 
+    let release = true;
+
     // ui state
     let project_params = use_signal_sync(|| {
         // read params from binary file
@@ -106,7 +108,13 @@ pub fn Editor(project_path: String) -> Element {
         "running_state"
     };
 
-    let release = true;
+    let icon_folder = if cfg!(target_os = "windows") {
+        format_svg(include_bytes!("../../public/icons/explorer.svg"))
+    } else if cfg!(target_os = "macos") {
+        format_svg(include_bytes!("../../public/icons/finder.svg"))
+    } else {
+        format_svg(include_bytes!("../../public/icons/linux_folder.svg"))
+    };
 
     rsx! {
         style { { include_str!("./editor.css") } }
@@ -114,7 +122,25 @@ pub fn Editor(project_path: String) -> Element {
 
         div { class: "Editor",
             div { class: "plot_header",
-                div { class: "action_buttons",
+                div { class: "open_actions",
+                    button { class: "icon_button",
+                        onclick: move |_event| {
+                            let project_dir = project.read().dir.clone();
+                            std::process::Command::new("code")
+                                .arg(project_dir)
+                                .spawn()
+                                .unwrap();
+                        },
+                        img { src: "{format_svg(include_bytes!(\"../../public/icons/vscode.svg\"))}" }
+                    }
+                    button { class: "icon_button",
+                        onclick: move |_event| {
+                            opener::reveal(project.read().dir.clone()).unwrap();
+                        },
+                        img { src: "{icon_folder}" }
+                    }
+                }
+                div { class: "run_actions",
                     if !matches!(*running_state.read(), RunningState::Idle {}) {
                         div { class: "{running_state_class}",
                             p { "{running_state.read().get_msg()}" }

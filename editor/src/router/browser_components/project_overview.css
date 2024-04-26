@@ -23,17 +23,6 @@
   background-color: var(--col-err);
 }
 
-.open_actions {
-  margin-top: auto;
-  display: flex;
-  flex-direction: row;
-  column-gap: var(--gap-0);
-}
-.open_actions button {
-  color: var(--col-fg-0);
-  background-color: var(--col-bg-2);
-}
-
 .actions {
   margin-left: auto;
   display: flex;
