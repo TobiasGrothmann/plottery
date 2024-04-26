@@ -1,6 +1,6 @@
 use crate::{
     components::{loading::Loading, navigation::Navigation},
-    router_components::editor_components::{
+    router::editor_components::{
         params_editor::ParamsEditor, project_hot_reload::start_hot_reload,
         project_runner::ProjectRunner, running_state::RunningState,
     },

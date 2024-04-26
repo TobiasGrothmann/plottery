@@ -9,7 +9,7 @@ use log::LevelFilter;
 
 mod components;
 mod model;
-mod router_components;
+mod router;
 mod routes;
 mod util;
 

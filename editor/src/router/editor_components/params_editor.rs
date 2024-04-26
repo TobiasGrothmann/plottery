@@ -4,7 +4,7 @@ use dioxus::prelude::*;
 use plottery_project::{ProjectParamValue, ProjectParamsListWrapper};
 use tokio::sync::Mutex;
 
-use crate::router_components::editor_components::{
+use crate::router::editor_components::{
     editor_number_field::EditorNumberField, editor_slider::EditorSlider,
     running_state::RunningState,
 };

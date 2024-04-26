@@ -1,5 +1,5 @@
-use crate::router_components::add_project::ProjectAdd;
-use crate::router_components::{Browser, Editor};
+use crate::router::add_project::ProjectAdd;
+use crate::router::{Browser, Editor};
 use dioxus::prelude::*;
 use dioxus_router::prelude::*;
 
