@@ -29,6 +29,10 @@ impl Circle {
     pub fn contains_point(&self, point: &V2) -> bool {
         point.dist(&self.center) <= self.radius
     }
+
+    pub fn to_shape(&self) -> Shape {
+        Shape::Circle(self.clone())
+    }
 }
 
 impl Plottable for Circle {

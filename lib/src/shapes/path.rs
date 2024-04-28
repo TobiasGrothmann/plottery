@@ -106,6 +106,10 @@ impl Path {
 
         new_points
     }
+
+    pub fn to_shape(&self) -> Shape {
+        Shape::Path(self.clone())
+    }
 }
 
 impl Plottable for Path {

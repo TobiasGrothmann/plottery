@@ -65,6 +65,11 @@ impl Layer {
     pub fn push_layer(&mut self, layer: Layer) {
         self.sublayers.push(layer);
     }
+    pub fn push_layer_flat(&mut self, layer: Layer) {
+        for shape in layer {
+            self.shapes.push(shape);
+        }
+    }
 
     pub fn iter(&self) -> Iter<'_, Shape> {
         self.shapes.iter()
