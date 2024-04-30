@@ -150,7 +150,7 @@ impl Layer {
                         continue;
                     }
                     let mut data = Data::new();
-                    data = data.move_to(points[0].as_tuple());
+                    data = data.move_to((points[0] * scale).as_tuple());
                     data = points
                         .iter()
                         .skip(1)
