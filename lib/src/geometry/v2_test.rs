@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod test_vec2 {
+mod test_v2 {
     use itertools::Itertools;
 
     use crate::{geometry::Angle, Rotate, Rotate90, V2};

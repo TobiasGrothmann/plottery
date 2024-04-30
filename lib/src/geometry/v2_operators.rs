@@ -1,6 +1,6 @@
 use std::ops::{self, AddAssign, SubAssign};
 
-use super::vec2::V2;
+use super::v2::V2;
 
 // #################### ADDITION ####################
 

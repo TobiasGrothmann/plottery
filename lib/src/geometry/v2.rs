@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{rand_range, Angle, Rect, Rotate, Rotate90};
 
+use super::v2i::V2i;
+
 #[derive(Debug, Copy, Clone, Default, Serialize, Deserialize)]
 pub struct V2 {
     pub x: f32,
@@ -34,6 +36,22 @@ impl V2 {
             y: angle.to_rad().sin() * distance,
         }
     }
+    pub fn zero() -> Self {
+        Self { x: 0.0, y: 0.0 }
+    }
+    pub fn up() -> Self {
+        Self { x: 0.0, y: 1.0 }
+    }
+    pub fn right() -> Self {
+        Self { x: 1.0, y: 0.0 }
+    }
+    pub fn down() -> Self {
+        Self { x: 0.0, y: -1.0 }
+    }
+    pub fn left() -> Self {
+        Self { x: 0.0, y: -1.0 }
+    }
+
     pub fn random_unit_circle() -> Self {
         Self::polar(Angle::rand(), 1.0)
     }
@@ -47,17 +65,6 @@ impl V2 {
             rand_range(rect.bl().x, rect.tr().x),
             rand_range(rect.bl().y, rect.tr().y),
         )
-    }
-
-    pub fn swap(&self) -> Self {
-        Self {
-            x: self.y,
-            y: self.x,
-        }
-    }
-
-    pub fn zero() -> Self {
-        Self { x: 0.0, y: 0.0 }
     }
 
     pub fn din_a(number: u8) -> Self {
@@ -110,6 +117,13 @@ impl V2 {
         Self { x: 2.6, y: 3.7 }
     }
 
+    pub fn swap(&self) -> Self {
+        Self {
+            x: self.y,
+            y: self.x,
+        }
+    }
+
     pub fn only_x(&self) -> Self {
         Self { x: self.x, y: 0.0 }
     }
@@ -131,6 +145,36 @@ impl V2 {
     }
     pub fn as_vec(&self) -> Vec<f32> {
         vec![self.x, self.y]
+    }
+
+    pub fn round(&self) -> Self {
+        Self {
+            x: self.x.round(),
+            y: self.y.round(),
+        }
+    }
+    pub fn round_to_int(&self) -> V2i {
+        V2i::new(self.x.round() as i32, self.y.round() as i32)
+    }
+
+    pub fn ceil(&self) -> Self {
+        Self {
+            x: self.x.ceil(),
+            y: self.y.ceil(),
+        }
+    }
+    pub fn ceil_to_int(&self) -> V2i {
+        V2i::new(self.x.ceil() as i32, self.y.ceil() as i32)
+    }
+
+    pub fn floor(&self) -> Self {
+        Self {
+            x: self.x.floor(),
+            y: self.y.floor(),
+        }
+    }
+    pub fn floor_to_int(&self) -> V2i {
+        V2i::new(self.x.floor() as i32, self.y.floor() as i32)
     }
 
     pub fn dot(&self, other: &Self) -> f32 {
