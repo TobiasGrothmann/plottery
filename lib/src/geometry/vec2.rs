@@ -3,7 +3,7 @@ use std::{f32::consts::PI, iter::Sum};
 use geo_types::Coord;
 use serde::{Deserialize, Serialize};
 
-use crate::{rand_range, Angle, Rotate, Rotate90};
+use crate::{rand_range, Angle, Rect, Rotate, Rotate90};
 
 #[derive(Debug, Copy, Clone, Default, Serialize, Deserialize)]
 pub struct V2 {
@@ -41,6 +41,12 @@ impl V2 {
         let angle = Angle::rand();
         let radius = rand_range(0.0, 1.0).sqrt();
         Self::polar(angle, radius)
+    }
+    pub fn random_in_rect(rect: &Rect) -> Self {
+        Self::new(
+            rand_range(rect.bl().x, rect.tr().x),
+            rand_range(rect.bl().y, rect.tr().y),
+        )
     }
 
     pub fn swap(&self) -> Self {
