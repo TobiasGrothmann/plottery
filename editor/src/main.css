@@ -36,7 +36,6 @@ html {
   height: 100vh;
   max-height: 100vh;
   max-width: 100vw;
-  overflow: hidden;
 }
 body {
   width: 100vw;
