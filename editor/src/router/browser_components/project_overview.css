@@ -2,37 +2,45 @@
   display: flex;
   flex-direction: row;
   column-gap: var(--gap-1);
+  border-radius: var(--border-radius);
+  background-color: var(--col-bg-1);
+}
+.ProjectOverview:hover {
+  background-color: var(--col-bg-2);
 }
 
 .grey_text {
   color: var(--col-fg-1);
 }
-
-.summary {
-  display: flex;
-  flex-direction: column;
-  row-gap: var(--gap-0);
+.project-not-found {
+  background-color: var(--col-err);
 }
+
 .preview {
   height: 130px;
   background-color: var(--col-fg-0);
   border-radius: var(--border-radius);
   padding: var(--gap-1);
 }
-.project-not-found {
-  background-color: var(--col-err);
+
+.summary {
+  padding: var(--gap-1);
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--gap-0);
 }
 
 .actions {
+  padding: var(--gap-1);
   margin-left: auto;
   display: flex;
   flex-direction: column;
   row-gap: var(--gap-0);
 }
+.actions button {
+  background-color: var(--col-fg-1);
+}
 .delete_button {
   margin-bottom: auto;
   background-color: transparent !important;
-}
-.actions button {
-  background-color: var(--col-fg-1);
 }

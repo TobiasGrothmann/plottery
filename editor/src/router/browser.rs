@@ -31,7 +31,7 @@ pub fn Browser() -> Element {
                     app_state.set(new_app_state);
                 }
             }
-            button { class: "img_button",
+            button { class: "img_button add_button",
                 onclick: move |_event| {
                     use_navigator().push(Route::ProjectAdd {});
                 },

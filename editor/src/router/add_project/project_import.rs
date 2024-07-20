@@ -56,6 +56,7 @@ pub fn ProjectImport() -> Element {
     let navigator = use_navigator();
 
     rsx! {
+        style { { include_str!("./project_import.css") } }
         div { class: "ProjectImport",
             div { class: "input_row",
                 p { "Pick existing Plottery project " }

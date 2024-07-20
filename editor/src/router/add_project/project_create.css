@@ -1,0 +1,15 @@
+.ProjectCreate {
+  display: grid;
+  grid-template-columns: max-content 1fr max-content;
+  grid-auto-rows: auto;
+  align-items: center;
+  column-gap: var(--gap-1);
+  row-gap: var(--gap-1);
+
+  width: 100%;
+  max-width: 1500px;
+}
+
+.accept {
+  margin-top: var(--gap-2);
+}

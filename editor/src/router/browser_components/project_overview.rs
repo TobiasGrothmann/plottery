@@ -25,7 +25,7 @@ pub fn ProjectOverview(props: ProjectOverviewProps) -> Element {
 
     rsx! {
         style { { include_str!("./project_overview.css") } }
-        div { class: "ProjectOverview card",
+        div { class: "ProjectOverview",
             if project_exists {
                 div { class: "preview",
                     if preview_image.exists() {

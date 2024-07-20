@@ -14,50 +14,50 @@ pub fn ProjectCreate() -> Element {
     let mut error = use_signal(|| "".to_string());
 
     rsx! {
+        style { { include_str!("./project_create.css") } }
         div { class: "ProjectCreate",
-            div { class: "input_row",
-                p { "Target folder" }
-                input {
-                    name: "folder",
-                    style: "flex: 1;",
-                    required: true,
-                    value: target_folder,
-                    placeholder: "target folder",
-                    onchange: move |event| target_folder.set(event.value())
-                }
-                button { class: "folder_button",
-                    onclick: move |_event| {
-                        let path = FileDialog::new()
-                        .pick_folder();
-                        if let Some(path) = path {
-                            target_folder.set(path.to_string_lossy().to_string());
-                        }
-                    },
-                    img { class: "folder_img",
-                        src: "{format_svg(include_bytes!(\"../../../public/icons/folder_open.svg\"))}"
-                    },
-                }
+            p { "Target folder" }
+            input {
+                name: "folder",
+                style: "flex: 1;",
+                required: true,
+                value: target_folder,
+                placeholder: "target folder",
+                onchange: move |event| target_folder.set(event.value())
+            }
+            button { class: "folder_button",
+                onclick: move |_event| {
+                    let path = FileDialog::new()
+                    .pick_folder();
+                    if let Some(path) = path {
+                        target_folder.set(path.to_string_lossy().to_string());
+                    }
+                },
+                img { class: "folder_img",
+                    src: "{format_svg(include_bytes!(\"../../../public/icons/folder_open.svg\"))}"
+                },
             }
 
-            div { class: "input_row",
-                p { "Project name" }
-                input {
-                    name: "name",
-                    style: "flex: 1;",
-                    required: true,
-                    value: "{project_name}",
-                    placeholder: "project name",
-                    onchange: move |event| project_name.set(event.value())
-                }
+            p { "Project name" }
+            input {
+                name: "name",
+                style: "flex: 1;",
+                required: true,
+                value: "{project_name}",
+                placeholder: "project name",
+                onchange: move |event| project_name.set(event.value()),
+                grid_column: "span 2",
             }
 
             if !error.read().is_empty() {
                 div { class: "err_box",
+                    grid_column: "span 3",
                     p { "{error}" }
                 }
             }
 
             button { class: "img_button accept",
+                grid_column: "span 3",
                 onclick: move |_event| {
                     if target_folder.read().is_empty() {
                         error.set("Please pick a target folder.".to_string());
