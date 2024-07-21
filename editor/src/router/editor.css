@@ -40,12 +40,24 @@
   width: 400px;
   display: flex;
 }
+.plot_and_console {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--gap-1);
+}
 .plot {
   position: relative;
   flex: 1;
   background-color: white;
   padding: var(--gap-0);
   overflow-x: scroll;
+}
+.console {
+  position: relative;
+  height: 160px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .active_button {

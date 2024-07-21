@@ -3,6 +3,8 @@ use dioxus::signals::{Readable, SyncSignal, Writable};
 use plottery_lib::Layer;
 use plottery_project::{read_object_from_stdout, Project, ProjectParamsListWrapper};
 
+use super::editor_console::EditorConsole;
+
 #[derive(Clone)]
 pub struct ProjectRunner {
     project: Project,
@@ -17,7 +19,6 @@ impl ProjectRunner {
         layer: SyncSignal<LayerChangeWrapper>,
         params: SyncSignal<ProjectParamsListWrapper>,
     ) -> Self {
-        log::info!("Creating new ProjectRunner");
         Self {
             project,
             cancel_tx: None,
@@ -30,6 +31,7 @@ impl ProjectRunner {
         &mut self,
         release: bool,
         mut running_state: SyncSignal<RunningState>,
+        console: SyncSignal<EditorConsole>,
     ) {
         self.cancel_tx.take(); // cancels the previous run if it exists
 
@@ -40,9 +42,9 @@ impl ProjectRunner {
         let mut layer_copy = self.layer;
         let mut params_copy = self.params;
 
-        log::info!("Spawning new task to run project");
+        console.read().info("Spawning new task to run project");
         tokio::spawn(async move {
-            log::info!("starting build...");
+            console.read().info("starting build...");
             running_state.set(RunningState::StartingBuild {
                 msg: "starting build".to_string(),
             });
@@ -52,7 +54,9 @@ impl ProjectRunner {
             let mut run_process = match build_process {
                 Ok(process) => process,
                 Err(e) => {
-                    log::error!("Error compiling project: {}", e);
+                    console
+                        .read()
+                        .error(format!("Error compiling project: {}", e).as_str());
                     running_state.set(RunningState::BuildFailed {
                         msg: "starting build failed".to_string(),
                     });
@@ -60,7 +64,7 @@ impl ProjectRunner {
                 }
             };
 
-            log::info!("Building...");
+            console.read().info("Building...");
             running_state.set(RunningState::Building {
                 msg: "building".to_string(),
             });
@@ -73,7 +77,7 @@ impl ProjectRunner {
                     )
                     .expect("Failed to kill build process");
                     run_process.kill().expect("Failed to kill build process");
-                    log::info!("Build killed");
+                    console.read().error("Build killed");
                     running_state.set(RunningState::BuildKilled {
                         msg: "build killed".to_string(),
                     });
@@ -84,7 +88,7 @@ impl ProjectRunner {
                         Ok(status) => {
                             if !status.success() {
                                 let msg = format!("build failed (exit code: {})", status.code().unwrap_or(-1));
-                                log::info!("{}", msg);
+                                console.read().info(msg.as_str());
                                 running_state.set(RunningState::BuildFailed {
                                     msg,
                                 });
@@ -94,7 +98,7 @@ impl ProjectRunner {
                             }
                         }
                         Err(e) => {
-                            log::error!("Error getting build status: {}", e);
+                            console.read().error(format!("Error getting build status: {}", e).as_str());
                             running_state.set(RunningState::BuildFailed {
                                 msg: "build failed (no status)".to_string(),
                             });
@@ -109,7 +113,7 @@ impl ProjectRunner {
             }
 
             // run get params while waiting for cancel signal
-            log::info!("starting get params...");
+            console.read().info("starting get params...");
             running_state.set(RunningState::StartingGetParams {
                 msg: "starting get params".to_string(),
             });
@@ -118,7 +122,9 @@ impl ProjectRunner {
             let mut get_params_process = match get_params_process {
                 Ok(process) => process,
                 Err(e) => {
-                    log::error!("Error getting params from project: {}", e);
+                    console
+                        .read()
+                        .error(format!("Error getting params from project: {}", e).as_str());
                     running_state.set(RunningState::GetParamsFailed {
                         msg: "get params failed".to_string(),
                     });
@@ -126,7 +132,7 @@ impl ProjectRunner {
                 }
             };
 
-            log::info!("getting params...");
+            console.read().info("getting params...");
             running_state.set(RunningState::GetParams {
                 msg: "getting params".to_string(),
             });

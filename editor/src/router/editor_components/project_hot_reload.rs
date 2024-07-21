@@ -4,13 +4,16 @@ use dioxus::signals::SyncSignal;
 use notify::{Config, FsEventWatcher, RecommendedWatcher, RecursiveMode, Watcher};
 use tokio::{sync::Mutex, task::JoinHandle};
 
-use super::{project_runner::ProjectRunner, running_state::RunningState};
+use super::{
+    editor_console::EditorConsole, project_runner::ProjectRunner, running_state::RunningState,
+};
 
 pub fn start_hot_reload(
     path_to_watch: PathBuf,
     release: bool,
     project_runner: Arc<Mutex<ProjectRunner>>,
     running_state: SyncSignal<RunningState>,
+    console: SyncSignal<EditorConsole>,
 ) -> (JoinHandle<()>, FsEventWatcher) {
     let (tx, rx) = std::sync::mpsc::channel();
     let mut watcher = RecommendedWatcher::new(tx, Config::default()).unwrap();
@@ -51,10 +54,11 @@ pub fn start_hot_reload(
                     }
 
                     log::info!("Hot reload triggered");
-                    project_runner
-                        .lock()
-                        .await
-                        .trigger_run_project(release, running_state);
+                    project_runner.lock().await.trigger_run_project(
+                        release,
+                        running_state,
+                        console,
+                    );
                 }
                 Err(e) => log::error!("Hot reload error: {:?}", e),
             }

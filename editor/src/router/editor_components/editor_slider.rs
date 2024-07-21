@@ -4,7 +4,9 @@ use dioxus::prelude::*;
 use plottery_project::{ProjectParam, ProjectParamValue, ProjectParamsListWrapper};
 use tokio::sync::Mutex;
 
-use super::{project_runner::ProjectRunner, running_state::RunningState};
+use super::{
+    editor_console::EditorConsole, project_runner::ProjectRunner, running_state::RunningState,
+};
 
 #[derive(PartialEq, Props, Clone)]
 pub struct EditorSliderProps {
@@ -12,6 +14,7 @@ pub struct EditorSliderProps {
     project_params: SyncSignal<ProjectParamsListWrapper>,
     project_runner: SyncSignal<Arc<Mutex<ProjectRunner>>>,
     running_state: SyncSignal<RunningState>,
+    console: SyncSignal<EditorConsole>,
     release: bool,
 }
 
@@ -90,7 +93,7 @@ pub fn EditorSlider(mut props: EditorSliderProps) -> Element {
                     }
                     props.project_params.set(new_params);
                     match props.project_runner.read().try_lock() {
-                        Ok(mut runner) => runner.trigger_run_project(props.release, props.running_state),
+                        Ok(mut runner) => runner.trigger_run_project(props.release, props.running_state, props.console),
                         Err(e) => {
                             log::error!("Error preparing to run: {:?}", e);
                             props.running_state.set(RunningState::RunFailed { msg: format!("Error preparing to run: {}", e) });

@@ -1,0 +1,11 @@
+.Console {
+  flex: 1;
+  background-color: var(--col-bg-1);
+}
+
+.error {
+  color: red;
+}
+.info {
+  color: var(--col-fg-0);
+}

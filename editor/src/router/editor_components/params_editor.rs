@@ -9,13 +9,14 @@ use crate::router::editor_components::{
     running_state::RunningState,
 };
 
-use super::project_runner::ProjectRunner;
+use super::{editor_console::EditorConsole, project_runner::ProjectRunner};
 
 #[derive(PartialEq, Props, Clone)]
 pub struct ParamsEditorProps {
     project_params: SyncSignal<ProjectParamsListWrapper>,
     project_runner: SyncSignal<Arc<Mutex<ProjectRunner>>>,
     running_state: SyncSignal<RunningState>,
+    console: SyncSignal<EditorConsole>,
     release: bool,
 }
 
@@ -35,6 +36,7 @@ pub fn ParamsEditor(props: ParamsEditorProps) -> Element {
                                     project_params: props.project_params,
                                     project_runner: props.project_runner,
                                     running_state: props.running_state,
+                                    console: props.console,
                                     release: props.release,
                                 }
                             }
@@ -46,6 +48,7 @@ pub fn ParamsEditor(props: ParamsEditorProps) -> Element {
                                     project_params: props.project_params,
                                     project_runner: props.project_runner,
                                     running_state: props.running_state,
+                                    console: props.console,
                                     release: props.release,
                                 }
                             }

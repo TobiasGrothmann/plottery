@@ -1,8 +1,9 @@
 use crate::{
     components::{loading::Loading, navigation::Navigation},
     router::editor_components::{
-        params_editor::ParamsEditor, project_hot_reload::start_hot_reload,
-        project_runner::ProjectRunner, running_state::RunningState,
+        console::Console, editor_console::EditorConsole, params_editor::ParamsEditor,
+        project_hot_reload::start_hot_reload, project_runner::ProjectRunner,
+        running_state::RunningState,
     },
     util::format_svg,
 };
@@ -56,6 +57,7 @@ pub fn Editor(project_path: String) -> Element {
         layer: None,
         change_counter: 0,
     });
+    let console = use_signal_sync(|| EditorConsole::new());
 
     // hooks for changes in project
     // params
@@ -151,7 +153,7 @@ pub fn Editor(project_path: String) -> Element {
                             onclick: move |_event| {
                                 running_state.set(RunningState::Preparing { msg: "preparing".to_string() });
                                 match project_runner.read().try_lock() {
-                                    Ok(mut runner) => runner.trigger_run_project(release, running_state),
+                                    Ok(mut runner) => runner.trigger_run_project(release, running_state, console),
                                     Err(e) => {
                                         log::error!("Error preparing to run: {:?}", e);
                                         running_state.set(RunningState::RunFailed { msg: format!("Error preparing to run: {}", e) });
@@ -174,6 +176,7 @@ pub fn Editor(project_path: String) -> Element {
                                     release,
                                     project_runner.read().clone(),
                                     running_state,
+                                    console,
                                 );
                                 hot_reload_join_handle.set(Some(handle));
                                 hot_reload_watcher.set(Some(watcher));
@@ -190,21 +193,29 @@ pub fn Editor(project_path: String) -> Element {
                         project_params: project_params,
                         project_runner: project_runner,
                         running_state: running_state,
+                        console: console,
                         release: release,
                     }
                 }
-                div { class: "plot",
-                    if get_svg_path(&project.read()).exists() {
-                        if running_state.read().is_busy() {
-                            Loading {}
+                div { class: "plot_and_console",
+                    div { class: "plot",
+                        if get_svg_path(&project.read()).exists() {
+                            if running_state.read().is_busy() {
+                                Loading {}
+                            }
+                            Image {
+                                img_path: get_svg_path(&project.read()).absolutize().unwrap().to_string_lossy().to_string(),
+                                redraw_counter: layer_change_wrapper.read().change_counter,
+                            }
+                        } else {
+                            div { class: "err_box",
+                                p { "SVG could not be found!" }
+                            }
                         }
-                        Image {
-                            img_path: get_svg_path(&project.read()).absolutize().unwrap().to_string_lossy().to_string(),
-                            redraw_counter: layer_change_wrapper.read().change_counter,
-                        }
-                    } else {
-                        div { class: "err_box",
-                            p { "SVG could not be found!" }
+                    }
+                    div { class: "console",
+                        Console {
+                            console: console,
                         }
                     }
                 }
