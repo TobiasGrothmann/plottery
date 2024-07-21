@@ -1,11 +1,9 @@
 #![allow(non_snake_case)]
 use crate::routes::Route;
-use dioxus::{
-    desktop::{launch::launch, Config, LogicalSize, WindowBuilder, WindowCloseBehaviour},
-    prelude::*,
-};
+use dioxus::desktop::{launch::launch, Config, LogicalSize, WindowBuilder, WindowCloseBehaviour};
+use dioxus::prelude::*;
+use dioxus_logger::tracing::Level;
 use dioxus_router::prelude::*;
-use log::LevelFilter;
 
 mod components;
 mod model;
@@ -23,10 +21,7 @@ fn App() -> Element {
 }
 
 fn main() {
-    dioxus_logger::DioxusLogger::new(LevelFilter::Info)
-        .use_format("[{LEVEL}] {PATH} - {ARGS}")
-        .build()
-        .expect("failed to init logger");
+    dioxus_logger::init(Level::INFO).expect("Failed to initialize logger");
 
     let config = Config::default()
         .with_window(
