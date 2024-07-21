@@ -3,6 +3,8 @@
   display: flex;
   flex-direction: column;
   row-gap: var(--gap-1);
+  max-height: 100vh !important;
+  max-width: 100vw !important;
 }
 
 .plot_header {
@@ -37,7 +39,7 @@
   column-gap: var(--gap-1);
 }
 .params {
-  width: 400px;
+  width: 350px;
   display: flex;
 }
 .plot_and_console {

@@ -1,12 +1,11 @@
 use std::sync::{Arc, Mutex};
 
-use dioxus::{hooks::use_signal_sync, signals::SyncSignal};
+use dioxus::signals::{Readable, SyncSignal};
 use plottery_lib::rand_range_i;
-use tokio::{sync::mpsc::channel, task::JoinHandle};
 
 #[derive(Debug, Clone)]
 pub struct ConsoleMessage {
-    id: i32,
+    pub id: i32,
     pub msg: String,
     pub is_error: bool,
 }
@@ -30,32 +29,47 @@ impl PartialEq for ConsoleMessage {
 #[derive(Debug, Clone)]
 pub struct EditorConsole {
     entries: Arc<Mutex<Vec<ConsoleMessage>>>,
-    thread: Arc<Mutex<JoinHandle<()>>>,
+    change_counter: Arc<Mutex<SyncSignal<u32>>>,
 }
 
 impl EditorConsole {
-    pub fn new() -> Self {
-        let (sender, mut receiver) = channel::<()>(512);
-        let thread = tokio::spawn(async move { while let Some(msg) = receiver.recv().await {} });
-
+    pub fn new(change_counter: SyncSignal<u32>) -> Self {
         Self {
             entries: Arc::new(Mutex::new(Vec::new())),
-            thread: Arc::new(Mutex::new(thread)),
+            change_counter: Arc::new(Mutex::new(change_counter)),
         }
     }
+    fn trigger_change(&self) {
+        let mut change_counter = self
+            .change_counter
+            .lock()
+            .expect("Failed to lock change counter");
+        *change_counter += 1;
+    }
 
-    pub fn add(&self, msg: ConsoleMessage) {
+    pub fn get_change_counter(&self) -> u32 {
+        let sig = *self
+            .change_counter
+            .lock()
+            .expect("Failed to lock change counter");
+        return *sig.read();
+    }
+
+    pub fn clear(&self) {
         self.entries
             .lock()
             .expect("Failed to lock console entries")
-            .push(msg);
+            .clear();
+        self.trigger_change();
     }
+
     pub fn info(&self, msg: &str) {
         self.entries
             .lock()
             .expect("Failed to lock console entries")
             .push(ConsoleMessage::new(msg, false));
         log::info!("{}", msg);
+        self.trigger_change();
     }
     pub fn error(&self, msg: &str) {
         self.entries
@@ -63,6 +77,7 @@ impl EditorConsole {
             .expect("Failed to lock console entries")
             .push(ConsoleMessage::new(msg, true));
         log::error!("{}", msg);
+        self.trigger_change();
     }
 
     pub fn get_messages(&self) -> Vec<ConsoleMessage> {

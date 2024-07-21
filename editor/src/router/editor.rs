@@ -57,7 +57,9 @@ pub fn Editor(project_path: String) -> Element {
         layer: None,
         change_counter: 0,
     });
-    let console = use_signal_sync(|| EditorConsole::new());
+    let console_change_counter = use_signal_sync(|| 0);
+    let console: Signal<EditorConsole, SyncStorage> =
+        use_signal_sync(|| EditorConsole::new(console_change_counter));
 
     // hooks for changes in project
     // params

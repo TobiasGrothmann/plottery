@@ -33,6 +33,7 @@ impl ProjectRunner {
         mut running_state: SyncSignal<RunningState>,
         console: SyncSignal<EditorConsole>,
     ) {
+        console.read().clear();
         self.cancel_tx.take(); // cancels the previous run if it exists
 
         let (cancel_tx, mut cancel_rx) = tokio::sync::mpsc::channel::<()>(1);
@@ -42,7 +43,7 @@ impl ProjectRunner {
         let mut layer_copy = self.layer;
         let mut params_copy = self.params;
 
-        console.read().info("Spawning new task to run project");
+        console.read().info("spawning new task to run project");
         tokio::spawn(async move {
             console.read().info("starting build...");
             running_state.set(RunningState::StartingBuild {
@@ -64,7 +65,7 @@ impl ProjectRunner {
                 }
             };
 
-            console.read().info("Building...");
+            console.read().info("building...");
             running_state.set(RunningState::Building {
                 msg: "building".to_string(),
             });
@@ -77,7 +78,7 @@ impl ProjectRunner {
                     )
                     .expect("Failed to kill build process");
                     run_process.kill().expect("Failed to kill build process");
-                    console.read().error("Build killed");
+                    console.read().error("build killed");
                     running_state.set(RunningState::BuildKilled {
                         msg: "build killed".to_string(),
                     });
@@ -87,8 +88,8 @@ impl ProjectRunner {
                     let success: bool = match build_status {
                         Ok(status) => {
                             if !status.success() {
-                                let msg = format!("build failed (exit code: {})", status.code().unwrap_or(-1));
-                                console.read().info(msg.as_str());
+                                let msg = format!("build failed ({})", status.code().unwrap_or(-1));
+                                console.read().error(msg.as_str());
                                 running_state.set(RunningState::BuildFailed {
                                     msg,
                                 });
@@ -98,7 +99,7 @@ impl ProjectRunner {
                             }
                         }
                         Err(e) => {
-                            console.read().error(format!("Error getting build status: {}", e).as_str());
+                            console.read().error(format!("error getting build status: {}", e).as_str());
                             running_state.set(RunningState::BuildFailed {
                                 msg: "build failed (no status)".to_string(),
                             });
@@ -124,7 +125,7 @@ impl ProjectRunner {
                 Err(e) => {
                     console
                         .read()
-                        .error(format!("Error getting params from project: {}", e).as_str());
+                        .error(format!("error getting params from project: {}", e).as_str());
                     running_state.set(RunningState::GetParamsFailed {
                         msg: "get params failed".to_string(),
                     });
@@ -146,7 +147,7 @@ impl ProjectRunner {
                     .expect("Failed to kill get params process");
                     run_process.kill().expect("Failed to kill get params process");
 
-                    log::info!("get params killed");
+                    console.read().info("get params killed");
                     running_state.set(RunningState::GetParamsKilled {
                         msg: "get params killed".to_string(),
                     });
@@ -160,7 +161,7 @@ impl ProjectRunner {
                             running_state.set(RunningState::RunFailed {
                                 msg: "get params failed".to_string(),
                             });
-                            log::error!("Error receiving params from project: {}", e);
+                            console.read().error(format!("error receiving params from project: {}", e).as_str());
                             None
                         }
                     }
@@ -176,7 +177,7 @@ impl ProjectRunner {
             params_copy.set(new_params.clone());
 
             // run while waiting for cancel signal
-            log::info!("starting run...");
+            console.read().info("starting run...");
             running_state.set(RunningState::StartingRun {
                 msg: "starting run".to_string(),
             });
@@ -185,7 +186,9 @@ impl ProjectRunner {
             let mut run_process = match run_process {
                 Ok(process) => process,
                 Err(e) => {
-                    log::error!("Error running project: {}", e);
+                    console
+                        .read()
+                        .error(format!("Error running project: {}", e).as_str());
                     running_state.set(RunningState::RunFailed {
                         msg: "run failed".to_string(),
                     });
@@ -193,7 +196,7 @@ impl ProjectRunner {
                 }
             };
 
-            log::info!("running...");
+            console.read().info("running...");
             running_state.set(RunningState::Running {
                 msg: "running".to_string(),
             });
@@ -207,7 +210,7 @@ impl ProjectRunner {
                     .expect("Failed to kill run process");
                     run_process.kill().expect("Failed to kill run process");
 
-                    log::info!("run killed");
+                    console.read().info("run killed");
                     running_state.set(RunningState::RunKilled {
                         msg: "run killed".to_string(),
                     });
@@ -220,13 +223,13 @@ impl ProjectRunner {
                             running_state.set(RunningState::RunFailed {
                                 msg: "run failed".to_string(),
                             });
-                            log::error!("Error receiving layer from project: {}", e);
+                            console.read().error(format!("Error receiving layer from project: {}", e).as_str());
                             return;
                         }
                     };
 
                     // Publishing Layer
-                    log::info!("updating editor...");
+                    console.read().info("updating editor...");
                     running_state.set(RunningState::Updating {
                         msg: "updating editor".to_string(),
                     });

@@ -1,6 +1,13 @@
 .Console {
-  flex: 1;
   background-color: var(--col-bg-1);
+  overflow: scroll;
+  height: 100% !important;
+  min-width: 400px !important;
+  padding: var(--gap-0) !important;
+  box-sizing: border-box;
+
+  display: flex;
+  flex-direction: column-reverse;
 }
 
 .error {
