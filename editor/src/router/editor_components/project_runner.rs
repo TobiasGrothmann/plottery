@@ -45,7 +45,7 @@ impl ProjectRunner {
 
         console.read().info("spawning new task to run project");
         tokio::spawn(async move {
-            console.read().info("starting build...");
+            console.read().info("...starting build");
             running_state.set(RunningState::StartingBuild {
                 msg: "starting build".to_string(),
             });
@@ -65,7 +65,7 @@ impl ProjectRunner {
                 }
             };
 
-            console.read().info("building...");
+            console.read().info("...building");
             running_state.set(RunningState::Building {
                 msg: "building".to_string(),
             });
@@ -114,9 +114,9 @@ impl ProjectRunner {
             }
 
             // run get params while waiting for cancel signal
-            console.read().info("starting get params...");
+            console.read().info("...starting getting params");
             running_state.set(RunningState::StartingGetParams {
-                msg: "starting get params".to_string(),
+                msg: "starting getting params".to_string(),
             });
 
             let get_params_process = project.run_get_params_async(release).await;
@@ -133,7 +133,7 @@ impl ProjectRunner {
                 }
             };
 
-            console.read().info("getting params...");
+            console.read().info("...getting params");
             running_state.set(RunningState::GetParams {
                 msg: "getting params".to_string(),
             });
@@ -177,7 +177,7 @@ impl ProjectRunner {
             params_copy.set(new_params.clone());
 
             // run while waiting for cancel signal
-            console.read().info("starting run...");
+            console.read().info("...starting run");
             running_state.set(RunningState::StartingRun {
                 msg: "starting run".to_string(),
             });
@@ -196,7 +196,7 @@ impl ProjectRunner {
                 }
             };
 
-            console.read().info("running...");
+            console.read().info("...running");
             running_state.set(RunningState::Running {
                 msg: "running".to_string(),
             });
@@ -229,7 +229,7 @@ impl ProjectRunner {
                     };
 
                     // Publishing Layer
-                    console.read().info("updating editor...");
+                    console.read().info("...updating editor");
                     running_state.set(RunningState::Updating {
                         msg: "updating editor".to_string(),
                     });
@@ -244,6 +244,7 @@ impl ProjectRunner {
                 }
             }
 
+            console.read().info("done");
             running_state.set(RunningState::Idle);
         });
         tokio::spawn(async move {}); // this is somehow needed to get tokio to execute the above task
