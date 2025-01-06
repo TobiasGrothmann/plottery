@@ -2,5 +2,8 @@
   "rust-analyzer.showUnlinkedFileNotification": false,
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "rust-lang.rust-analyzer",
-  "editor.formatOnPaste": false
+  "editor.formatOnPaste": false,
+  "[toml]": {
+    "editor.defaultFormatter": "tamasfe.even-better-toml"
+  }
 }

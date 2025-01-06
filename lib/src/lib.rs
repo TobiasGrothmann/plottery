@@ -1,4 +1,5 @@
 pub mod composition;
+pub mod generate;
 pub mod geometry;
 pub mod maths;
 pub mod shapes;
@@ -8,7 +9,7 @@ pub use geometry::angle::Angle;
 pub use geometry::line::Line;
 pub use geometry::line::LineIntersection;
 pub use geometry::line::PointLineRelation;
-pub use geometry::vec2::V2;
+pub use geometry::v2::V2;
 
 pub use shapes::circle::Circle;
 pub use shapes::path::Path;
@@ -28,5 +29,7 @@ pub use traits::{normalize::Alignment, Normalize};
 
 pub use composition::Frame;
 pub use composition::Layer;
+
+pub use generate::func_2d::marching_squares::MarchingSquares;
 
 pub use maths::*;

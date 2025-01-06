@@ -26,6 +26,13 @@ impl Circle {
     pub fn circumference(&self) -> f32 {
         self.radius * 2.0 * PI
     }
+    pub fn contains_point(&self, point: &V2) -> bool {
+        point.dist(&self.center) <= self.radius
+    }
+
+    pub fn to_shape(&self) -> Shape {
+        Shape::Circle(self.clone())
+    }
 }
 
 impl Plottable for Circle {
@@ -163,8 +170,8 @@ impl Normalize for Circle {}
 
 impl BoundingBox for Circle {
     fn bounding_box(&self) -> Option<Rect> {
-        let min = self.center - V2::new(self.radius, self.radius);
-        let max = self.center + V2::new(self.radius, self.radius);
+        let min = self.center - V2::xy(self.radius);
+        let max = self.center + V2::xy(self.radius);
         Some(Rect::new(min, max))
     }
 }

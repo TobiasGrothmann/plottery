@@ -1,16 +1,44 @@
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
 
-    use anyhow::Ok;
+    use anyhow::{Ok, Result};
 
     use crate::{
         cargo_project_template::generate_cargo_project_to_disk, LibSource, Project, ProjectConfig,
     };
 
+    fn genrate_temp_project(temp_dir: PathBuf, project_name: &str) -> Result<Project> {
+        // project dir should not exist
+        let project_dir = temp_dir.join(project_name);
+        assert!(!project_dir.exists());
+
+        // create project object
+        let project = Project::new(temp_dir, project_name.into());
+        assert_eq!(project.exists(), false);
+
+        // get path to plottery libraries
+        let cargo_workspace_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .to_path_buf();
+        assert!(cargo_workspace_path.exists());
+        println!("workspace path: {:?}", cargo_workspace_path);
+
+        // generate to disk and check
+        project.generate_to_disk(LibSource::Path {
+            path: cargo_workspace_path,
+        })?;
+        assert!(project.exists());
+
+        // check if project dir was generated
+        assert!(project_dir.exists());
+        Ok(project)
+    }
+
     #[test]
-    fn save_project_config() -> anyhow::Result<()> {
-        let project_file = ProjectConfig::new("project_name".to_string());
+    fn save_project_config() -> Result<()> {
+        let project_file = ProjectConfig::new("project_name");
         let project_file_path = Path::new("test_project.plottery");
 
         project_file.save_to_file(&project_file_path)?;
@@ -27,91 +55,65 @@ mod tests {
     }
 
     #[test]
-    fn save_project() -> anyhow::Result<()> {
+    fn generate_project() -> Result<()> {
         let project_name: &str = "test_proj";
-        let project_dir = Path::new(project_name);
-        if project_dir.exists() {
-            std::fs::remove_dir_all(project_dir)?;
-        }
-
-        let project = Project::new(
-            Path::new(&".".to_string()).to_path_buf(),
-            project_name.into(),
-        );
-        assert_eq!(project.exists(), false);
-
-        let cargo_workspace = Path::new(env!("CARGO_MANIFEST_DIR")).to_path_buf();
-        project.generate_to_disk(LibSource::Path {
-            path: cargo_workspace.join("lib"),
-        })?;
-
-        // check if dir test_project exists
-        let project_dir = Path::new(project_name);
-        assert!(project_dir.exists());
+        let temp_dir = tempfile::tempdir()?;
+        let project = genrate_temp_project(temp_dir.path().to_path_buf(), project_name)?;
 
         // check if dir test_project/resources exists
-        let resource_dir = Path::new("test_proj/resources");
+        let resource_dir = project.dir.join("resources");
+        println!("{:?}", resource_dir);
         assert!(resource_dir.exists());
 
         // check if file test_project/test_project.plottery exists
-        let project_config_path = Path::new("test_proj/test_proj.plottery");
+        let project_config_path = project.dir.join(format!("{}.plottery", project_name));
         assert!(project_config_path.exists());
 
         // test loading the project
         let loaded_project = Project::load_from_file(project_config_path.to_path_buf())?;
         assert_eq!(project, loaded_project);
 
-        // clean up
-        std::fs::remove_dir_all(project_dir)?;
-
         Ok(())
     }
 
     #[test]
-    fn build_and_run() -> anyhow::Result<()> {
-        let mut project_path = Path::new(env!("CARGO_MANIFEST_DIR")).to_path_buf();
-        project_path.push("test/test_project/test_project.plottery");
-        assert!(project_path.exists());
-
-        let project = Project::load_from_file(project_path)?;
+    fn build_and_run() -> Result<()> {
+        let project_name: &str = "test_proj";
+        let temp_dir = tempfile::tempdir()?;
+        let project = genrate_temp_project(temp_dir.path().to_path_buf(), project_name)?;
         assert!(project.exists());
 
-        // build debug
-        project.build(false)?;
+        let release = true;
 
-        // run release
-        let generated_layer = project.run(true)?;
+        // build
+        project.build(release)?;
+
+        // run to get params
+        let params = project.run_get_params(release)?;
+        assert!(params.list.len() == 2);
+
+        // run
+        let generated_layer = project.run(release, &params)?;
         assert!(!generated_layer.is_empty());
 
-        Ok(())
-    }
+        // build debug
+        project.build(release)?;
 
-    #[test]
-    fn render() -> anyhow::Result<()> {
-        let mut project_path = Path::new(env!("CARGO_MANIFEST_DIR")).to_path_buf();
-        project_path.push("test/test_project/test_project.plottery");
-        assert!(project_path.exists());
-
-        let project = Project::load_from_file(project_path)?;
-        assert!(project.exists());
-
-        project.build(true)?;
-
-        let temp_dir = tempfile::tempdir()?;
-
+        // test saving svg
         let temp_svg_path = temp_dir.path().join("temp.svg");
-        project.write_svg(temp_svg_path.clone(), true)?;
+        project.write_svg(temp_svg_path.clone(), release, &params)?;
         assert!(temp_svg_path.exists());
 
+        // test saving png
         let temp_png_path = temp_dir.path().join("temp.png");
-        project.write_png(temp_png_path.clone(), true)?;
+        project.write_png(temp_png_path.clone(), release, &params)?;
         assert!(temp_png_path.exists());
 
         Ok(())
     }
 
     #[test]
-    fn test_embed_project_template_generation() -> anyhow::Result<()> {
+    fn test_embed_project_template_generation() -> Result<()> {
         let temp_dir = tempfile::tempdir().unwrap();
         generate_cargo_project_to_disk(
             temp_dir.path().to_path_buf(),

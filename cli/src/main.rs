@@ -36,7 +36,7 @@ pub fn main() {
     let args = Args::parse();
     match args.command {
         Command::New { name, path } => {
-            let project = Project::new(PathBuf::from(path), name.clone());
+            let project = Project::new(PathBuf::from(path), &name);
 
             if project.exists() {
                 println!(
@@ -92,15 +92,20 @@ pub fn main() {
                 return;
             }
 
-            project.build(true).unwrap();
+            let release = true;
+            project.build(release).unwrap();
+
+            let params = project
+                .run_get_params(release)
+                .expect("Failed to get params");
 
             let out_path_buf = PathBuf::from(out_path);
             match format {
                 RenderType::Svg => {
-                    project.write_svg(out_path_buf, true).unwrap();
+                    project.write_svg(out_path_buf, release, &params).unwrap();
                 }
                 RenderType::Png => {
-                    project.write_png(out_path_buf, true).unwrap();
+                    project.write_png(out_path_buf, release, &params).unwrap();
                 }
             }
         }

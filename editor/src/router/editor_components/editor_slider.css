@@ -1,0 +1,32 @@
+.EditorSlider {
+  display: flex;
+  flex-direction: row;
+  column-gap: var(--gap-0);
+}
+
+.slider {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 20px;
+  background-color: var(--col-bg-2);
+  outline: none;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 40px;
+  height: 20px;
+  background: var(--col-active);
+  cursor: pointer;
+  border-radius: var(--border-radius);
+}
+
+.slider_value {
+  width: 90px;
+}

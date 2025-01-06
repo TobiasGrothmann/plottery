@@ -10,6 +10,9 @@ pub struct SampleSettings {
 }
 
 impl SampleSettings {
+    pub fn new(points_per_unit: f32) -> Self {
+        Self { points_per_unit }
+    }
     pub fn get_num_points_for_length(&self, length: f32) -> i32 {
         (length * self.points_per_unit).ceil() as i32
     }

@@ -1,19 +1,18 @@
 #![allow(non_snake_case)]
 use crate::routes::Route;
 use dioxus::{
-    desktop::{launch::launch, Config, LogicalSize, WindowBuilder, WindowCloseBehaviour},
+    desktop::{Config, LogicalSize, WindowBuilder, WindowCloseBehaviour},
     prelude::*,
 };
 use dioxus_router::prelude::*;
-use log::LevelFilter;
 
 mod components;
 mod model;
-mod router_components;
+mod router;
 mod routes;
 mod util;
 
-fn App() -> Element {
+fn app() -> Element {
     rsx! {
         style { { include_str!("./main.css") } }
         body {
@@ -23,12 +22,9 @@ fn App() -> Element {
 }
 
 fn main() {
-    dioxus_logger::DioxusLogger::new(LevelFilter::Info)
-        .use_format("[{LEVEL}] {PATH} - {ARGS}")
-        .build()
-        .expect("failed to init logger");
+    dioxus_logger::init(dioxus_logger::tracing::Level::INFO).expect("failed to init logger");
 
-    let config = Config::default()
+    let desktop_config = Config::default()
         .with_window(
             WindowBuilder::new()
                 .with_title("Plottery Editor")
@@ -40,5 +36,9 @@ fn main() {
         )
         .with_close_behaviour(WindowCloseBehaviour::CloseWindow);
 
-    launch(App, vec![], config);
+    LaunchBuilder::new()
+        .with_cfg(desktop! {
+            desktop_config
+        })
+        .launch(app);
 }

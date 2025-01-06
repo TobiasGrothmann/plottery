@@ -1,0 +1,14 @@
+.ParamsEditor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--gap-1);
+  background-color: var(--col-bg-1);
+  padding: var(--gap-1);
+}
+
+.param {
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--gap-small);
+}

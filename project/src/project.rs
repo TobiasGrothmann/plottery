@@ -1,7 +1,7 @@
 use crate::{
     generate_cargo_project_to_disk,
-    project_util::{build_cargo_project_async, run_executable_async},
-    read_layer_from_stdout, LibSource, ProjectConfig,
+    project_util::{build_cargo_project_async, run_project_executable_async},
+    read_object_from_stdout, LibSource, ProjectConfig, ProjectParamsListWrapper,
 };
 
 use plottery_lib::*;
@@ -38,9 +38,9 @@ impl PartialEq for Project {
 }
 
 impl Project {
-    pub fn new(parent: PathBuf, name: String) -> Self {
+    pub fn new(parent: PathBuf, name: &str) -> Self {
         let mut project_dir = parent.clone();
-        project_dir.push(name.clone());
+        project_dir.push(name);
         Self {
             config: ProjectConfig::new(name),
             dir: project_dir,
@@ -77,14 +77,18 @@ impl Project {
         resource_dir
     }
 
-    pub fn get_resource_dir_asset_path(&self, asset_name: String) -> PathBuf {
+    pub fn get_resource_dir_asset_path(&self, asset_name: &str) -> PathBuf {
         let mut resource_path = self.get_resource_dir();
         resource_path.push(asset_name);
         resource_path
     }
 
     pub fn get_preview_image_path(&self) -> PathBuf {
-        self.get_resource_dir_asset_path("preview.svg".to_string())
+        self.get_resource_dir_asset_path("preview.svg")
+    }
+
+    pub fn get_params_path(&self) -> PathBuf {
+        self.get_resource_dir_asset_path("params")
     }
 
     pub fn get_project_config_path(&self) -> PathBuf {
@@ -156,6 +160,18 @@ impl Project {
         Ok(target_dir)
     }
 
+    pub fn get_plottery_binary_path(&self, release: bool) -> Result<PathBuf> {
+        let cargo_name = self.get_cargo_toml_name()?;
+        let mut bin_path = self.get_plottery_target_dir()?;
+        if release {
+            bin_path.push("release");
+        } else {
+            bin_path.push("debug");
+        }
+        bin_path.push(cargo_name); // TODO: get name from cargo.toml if it has been set?
+        Ok(bin_path)
+    }
+
     pub fn build(&self, release: bool) -> Result<()> {
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
@@ -180,43 +196,71 @@ impl Project {
         Ok(child_process)
     }
 
-    pub fn run(&self, release: bool) -> Result<Layer> {
+    pub fn run(&self, release: bool, params: &ProjectParamsListWrapper) -> Result<Layer> {
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()?;
-        let mut child = rt.block_on(self.run_async(release))?;
-        let layer = rt.block_on(read_layer_from_stdout(&mut child))?;
+        let mut child = rt.block_on(self.run_async(release, params))?;
+        let layer = rt.block_on(read_object_from_stdout::<Layer>(&mut child))?;
         Ok(layer)
     }
 
-    pub async fn run_async(&self, release: bool) -> Result<Child> {
-        let cargo_name = self.get_cargo_toml_name()?;
-
-        let mut exec_path = self.get_plottery_target_dir()?;
-        if release {
-            exec_path.push("release");
-        } else {
-            exec_path.push("debug");
-        }
-        exec_path.push(cargo_name); // TODO: get name from cargo.toml if it has been set?
-
-        if !exec_path.exists() {
+    pub async fn run_async(
+        &self,
+        release: bool,
+        params: &ProjectParamsListWrapper,
+    ) -> Result<Child> {
+        let bin_path = self.get_plottery_binary_path(release)?;
+        if !bin_path.exists() {
             return Err(Error::msg(format!(
-                "Executable does not exist at '{}'",
-                exec_path.to_string_lossy()
+                "Executable does not exist at '{}'.",
+                bin_path.to_string_lossy()
             )));
         }
-
-        Ok(run_executable_async(&exec_path).await?)
+        let arguments = vec!["std-out", "--piped-params", "true"];
+        Ok(run_project_executable_async(&bin_path, &arguments, Some(params)).await?)
     }
 
-    pub fn write_svg(&self, path: PathBuf, release: bool) -> Result<()> {
-        let layer = self.run(release)?;
+    pub fn run_get_params(&self, release: bool) -> Result<ProjectParamsListWrapper> {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()?;
+        let mut child = rt.block_on(self.run_get_params_async(release))?;
+        let params = rt.block_on(read_object_from_stdout::<ProjectParamsListWrapper>(
+            &mut child,
+        ))?;
+        Ok(params)
+    }
+
+    pub async fn run_get_params_async(&self, release: bool) -> Result<Child> {
+        let bin_path = self.get_plottery_binary_path(release)?;
+        if !bin_path.exists() {
+            return Err(Error::msg(format!(
+                "Executable does not exist at '{}'.",
+                bin_path.to_string_lossy()
+            )));
+        }
+        let arguments = vec!["params"];
+        Ok(run_project_executable_async(&bin_path, &arguments, None).await?)
+    }
+
+    pub fn write_svg(
+        &self,
+        path: PathBuf,
+        release: bool,
+        params: &ProjectParamsListWrapper,
+    ) -> Result<()> {
+        let layer = self.run(release, params)?;
         layer.write_svg(path.clone(), 10.0)
     }
 
-    pub fn write_png(&self, path: PathBuf, release: bool) -> Result<()> {
-        let layer = self.run(release)?;
+    pub fn write_png(
+        &self,
+        path: PathBuf,
+        release: bool,
+        params: &ProjectParamsListWrapper,
+    ) -> Result<()> {
+        let layer = self.run(release, params)?;
         let temp_dir = tempfile::tempdir()?;
         let temp_svg_path = temp_dir.path().join("test.svg");
         layer.write_svg(temp_svg_path.clone(), 10.0)?;
@@ -226,14 +270,15 @@ impl Project {
             let mut fontdb = fontdb::Database::new();
             fontdb.load_system_fonts();
 
-            let svg_data = std::fs::read(&temp_svg_path).unwrap();
+            let svg_data = std::fs::read(&temp_svg_path).expect("Failed to read svg file");
             let mut tree = usvg::Tree::from_data(&svg_data, &opt)?;
             tree.convert_text(&fontdb);
             resvg::Tree::from_usvg(&tree)
         };
 
         let pixmap_size = rtree.size.to_int_size();
-        let mut pixmap = tiny_skia::Pixmap::new(pixmap_size.width(), pixmap_size.height()).unwrap();
+        let mut pixmap = tiny_skia::Pixmap::new(pixmap_size.width(), pixmap_size.height())
+            .expect("Failed to create pixmap");
         rtree.render(tiny_skia::Transform::default(), &mut pixmap.as_mut());
         pixmap.save_png(path)?;
 

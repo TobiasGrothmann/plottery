@@ -1,0 +1,42 @@
+.ProjectAdd {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--gap-2);
+  align-items: center;
+  justify-content: center;
+  background-color: var(--col-bg-0);
+}
+
+.project_add_content {
+  display: flex;
+  flex-direction: column;
+  padding: var(--gap-1);
+  row-gap: var(--gap-1);
+  pad: var(--gap-1);
+  background-color: var(--col-bg-2);
+  border-radius: var(--border-radius);
+}
+
+.segmented_button {
+  display: flex;
+  flex-direction: row;
+}
+.segmented_button_item {
+  padding: var(--gap-1) var(--gap-3);
+  border-radius: 0;
+  background-color: var(--col-bg-2);
+  color: var(--col-fg-1);
+}
+.segmented_button_item_selected {
+  background-color: var(--col-selected);
+  color: var(--col-fg-0);
+}
+.segmented_button_item:first-child {
+  border-top-left-radius: var(--border-radius);
+  border-bottom-left-radius: var(--border-radius);
+}
+.segmented_button_item:last-child {
+  border-top-right-radius: var(--border-radius);
+  border-bottom-right-radius: var(--border-radius);
+}

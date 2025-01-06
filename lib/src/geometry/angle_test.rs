@@ -49,7 +49,7 @@ mod test_angle {
         assert_eq!(a.to_rad(), b.to_rad());
         assert_eq!(a.to_rad(), c.to_rad());
 
-        assert!((a.wrap().to_rad() - Angle::from_degrees(90.0).to_rad()).abs() < 0.000001);
+        assert!((a.mod_2_pi().to_rad() - Angle::from_degrees(90.0).to_rad()).abs() < 0.000001);
     }
 
     #[test]

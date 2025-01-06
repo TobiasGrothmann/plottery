@@ -1,9 +1,15 @@
 .Navigation {
-  height: 30px;
+  position: sticky;
+  top: 0;
+  height: var(--header-height);
   display: flex;
   flex-direction: row;
   column-gap: var(--gap-1);
   align-items: center;
   padding: var(--gap-1);
-  background-color: var(--col-bg-1);
+
+  background-color: var(--col-fg-0);
+  color: var(--col-bg-0);
+
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
 }

@@ -1,8 +1,11 @@
-use anyhow::{Ok, Result}; // Import the `anyhow` crate
+use anyhow::{Ok, Result};
 use async_process::{Child, Command, Stdio};
-use futures_lite::AsyncReadExt;
-use plottery_lib::Layer;
+use bincode::{deserialize_from, serialize};
+use futures_lite::{AsyncReadExt, AsyncWriteExt};
+use serde::de::DeserializeOwned;
 use std::path::PathBuf;
+
+use crate::ProjectParamsListWrapper;
 
 pub async fn build_cargo_project_async(
     project_dir: PathBuf,
@@ -23,15 +26,39 @@ pub async fn build_cargo_project_async(
     Ok(child_process)
 }
 
-pub async fn run_executable_async(path: &PathBuf) -> Result<Child> {
-    let child_process = Command::new(path)
-        .args(["std-out"])
+pub async fn run_project_executable_async(
+    path: &PathBuf,                            // path to the executable
+    arguments: &Vec<&str>,                     // arguments for the executable invocation
+    params: Option<&ProjectParamsListWrapper>, // will be piped into stdin of the child process
+) -> Result<Child> {
+    let exec_stdin = if params.is_some() {
+        Stdio::piped()
+    } else {
+        Stdio::null()
+    };
+
+    let mut child_process = Command::new(path)
+        .args(arguments)
+        .stdin(exec_stdin)
         .stdout(Stdio::piped())
         .spawn()?;
+
+    if let Some(params) = params {
+        if let Some(mut stdin) = child_process.stdin.take() {
+            let binary = serialize(&params)?;
+            stdin.write_all(&binary).await?;
+        } else {
+            return Err(anyhow::Error::msg("Failed to open stdin on child process"));
+        }
+    }
+
     Ok(child_process)
 }
 
-pub async fn read_layer_from_stdout(child_process: &mut Child) -> Result<Layer> {
+pub async fn read_object_from_stdout<T>(child_process: &mut Child) -> Result<T>
+where
+    T: DeserializeOwned,
+{
     let mut buf = Vec::new();
     match &mut child_process.stdout {
         Some(stdout) => {
@@ -39,6 +66,5 @@ pub async fn read_layer_from_stdout(child_process: &mut Child) -> Result<Layer> 
         }
         None => {}
     }
-
-    Ok(Layer::new_from_binary(&buf)?)
+    Ok(deserialize_from(buf.as_slice())?)
 }

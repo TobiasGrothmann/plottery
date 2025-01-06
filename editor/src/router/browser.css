@@ -1,0 +1,19 @@
+.Browser {
+  flex: 1;
+  display: flex;
+  min-height: 100% !important;
+  flex-direction: column;
+  row-gap: var(--gap-1);
+  padding: var(--gap-1) 0;
+  justify-items: right;
+}
+
+.add_button {
+  align-self: flex-end;
+  margin-right: var(--gap-1);
+  position: sticky;
+  bottom: var(--gap-1);
+  width: 200px;
+
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 1);
+}

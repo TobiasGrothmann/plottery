@@ -90,6 +90,16 @@ impl Rect {
     pub fn area(&self) -> f32 {
         self.width() * self.height()
     }
+    pub fn contains_point(&self, point: &V2) -> bool {
+        point.x >= self.bot_left.x
+            && point.x <= self.top_right.x
+            && point.y >= self.bot_left.y
+            && point.y <= self.top_right.y
+    }
+
+    pub fn to_shape(&self) -> Shape {
+        Shape::Rect(self.clone())
+    }
 }
 
 impl Plottable for Rect {

@@ -36,8 +36,8 @@ impl Layer {
         let decoded: Layer = deserialize_from(&file)?;
         Ok(decoded)
     }
-    pub fn new_from_binary(binary_datra: &Vec<u8>) -> Result<Layer> {
-        Ok(deserialize_from(binary_datra.as_slice())?)
+    pub fn new_from_binary(binary_data: &Vec<u8>) -> Result<Layer> {
+        Ok(deserialize_from(binary_data.as_slice())?)
     }
 
     pub fn write_file(&self, path: &PathBuf) -> Result<()> {
@@ -64,6 +64,11 @@ impl Layer {
     }
     pub fn push_layer(&mut self, layer: Layer) {
         self.sublayers.push(layer);
+    }
+    pub fn push_layer_flat(&mut self, layer: Layer) {
+        for shape in layer {
+            self.shapes.push(shape);
+        }
     }
 
     pub fn iter(&self) -> Iter<'_, Shape> {
@@ -145,7 +150,7 @@ impl Layer {
                         continue;
                     }
                     let mut data = Data::new();
-                    data = data.move_to(points[0].as_tuple());
+                    data = data.move_to((points[0] * scale).as_tuple());
                     data = points
                         .iter()
                         .skip(1)

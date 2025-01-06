@@ -1,24 +1,44 @@
 use plottery_lib::*;
+use plottery_project::*;
+use serde::{Deserialize, Serialize};
 
-pub fn generate() -> Layer {
+#[derive(Debug, Clone, PlotteryParamsDefinition, Serialize, Deserialize, PartialEq)]
+pub struct Params {
+    #[value(0.1)]
+    #[range(0.02, 0.35)]
+    pub circle_size: f32,
+
+    #[value(2)]
+    #[range(0, 6)]
+    // e.g. A0, A1, A2, ...
+    pub din_size: i32,
+}
+
+pub fn generate(params: Params) -> Layer {
+    // setup
     let mut l = Layer::new();
+    let size = V2::din_a(params.din_size as u8);
+    let frame = Frame::new(size, size.min_axis() * 0.12);
 
-    // generate your art here:
-    // ...
+    // create circles in a spiral
+    let mut circles = vec![];
 
-    for i in 0..20 {
-        l.push(Circle::new_shape(
-            V2::new((i as f32 * 0.5).sin(), i as f32 * 0.2) + V2::new(1.0, 1.0),
-            0.2,
-        ));
+    let mut i = 0;
+    let mut distance = 0.0;
+    let mut angle = Angle::zero();
+    while distance < size.max_axis() * 1.5 {
+        i += 1;
+        distance = (i as f32).sqrt() * 0.5;
+        angle = (angle + Angle::golden_ratio()).mod_2_pi();
+        let pos = V2::polar(angle, distance);
+        circles.push(Circle::new(size * 0.5 + pos, params.circle_size));
     }
 
-    l.push(Path::new_shape_from(vec![
-        V2::new(0.0, 0.0),
-        V2::new(3.0, 5.0),
-    ]));
-
-    l.push(Rect::new_shape(V2::new(1.0, 1.0), V2::new(2.0, 5.0)));
-
+    // generate plot with only the circles that fit in the frame
+    l.push_rect(frame.outer_rect());
+    circles
+        .iter()
+        .filter(|circle| frame.inner_rect().contains_point(&circle.center))
+        .for_each(|circle| l.push_circle(circle.clone()));
     l
 }
