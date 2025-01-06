@@ -2,6 +2,9 @@
 name = "plottery_project_macros"
 version = "0.1.0"
 edition = "2021"
+license = "GPL-3.0"
+description = "macro used by plottery to setup up project parameters"
+repository = "https://github.com/TobiasGrothmann/plottery"
 
 [lib]
 proc-macro = true
