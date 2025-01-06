@@ -1,6 +1,6 @@
 [package]
 name = "plottery_lib"
-version = "0.1.0"
+version.workspace = true
 edition = "2021"
 description = "Core geometry library of Plottery, a creative coding framework for generative vector graphics and pen plotting."
 authors = ["Tobias Grothmann <tobiasgrothmannplotterart@gmail.com>"]

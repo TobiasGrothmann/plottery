@@ -1,6 +1,6 @@
 [package]
 name = "plottery_project"
-version = "0.1.0"
+version.workspace = true
 edition = "2021"
 description = "Project management library of Plottery, a creative coding framework for generative vector graphics and pen plotting."
 authors = ["Tobias Grothmann <tobiasgrothmannplotterart@gmail.com>"]
@@ -12,7 +12,7 @@ repository = "https://github.com/TobiasGrothmann/plottery"
 anyhow = "1.0.75"
 bincode = "1.3.3"
 clap = { version = "4.4.18", features = ["derive"] }
-plottery_lib = { path = "../lib" }
+plottery_lib.workspace = true
 path-absolutize = "3.1.1"
 chrono = { version = "0.4.31", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
@@ -26,4 +26,4 @@ futures-lite = "2.2.0"
 tokio = { version = "1.35.1", features = ["rt"] }
 rust-embed = "8.0.0"
 vfs = { version = "0.12.0", features = ["embedded-fs"] }
-plottery_project_macros = { path = "project_macros" }
+plottery_project_macros.workspace = true

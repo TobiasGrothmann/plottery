@@ -1,6 +1,6 @@
 [package]
 name = "plottery_cli"
-version = "0.1.0"
+version.workspace = true
 edition = "2021"
 description = "Command line interface of Plottery, a creative coding framework for generative vector graphics and pen plotting."
 authors = ["Tobias Grothmann <tobiasgrothmannplotterart@gmail.com>"]
@@ -8,5 +8,5 @@ license = "GPL-3.0"
 repository = "https://github.com/TobiasGrothmann/plottery"
 
 [dependencies]
-plottery_project = { path = "../project" }
+plottery_project.workspace = true
 clap = { version = "4.4.18", features = ["derive"] }
