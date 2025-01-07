@@ -1,10 +1,13 @@
 [package]
 name = "plottery_project_macros"
-version = "0.1.0"
 edition = "2021"
-license = "GPL-3.0"
 description = "macro used by plottery to setup up project parameters"
-repository = "https://github.com/TobiasGrothmann/plottery"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+categories.workspace = true
+repository.workspace = true
+keywords.workspace = true
 
 [lib]
 proc-macro = true

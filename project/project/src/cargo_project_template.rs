@@ -6,7 +6,7 @@ use std::{fs::File, io::Write};
 use vfs::{EmbeddedFS, FileSystem};
 
 #[derive(RustEmbed, Debug)]
-#[folder = "cargo_project_template/"]
+#[folder = "assets/cargo_project_template/"]
 struct CargoProjectTemplate;
 
 fn get_fs() -> EmbeddedFS<CargoProjectTemplate> {

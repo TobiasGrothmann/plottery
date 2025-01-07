@@ -1,12 +1,11 @@
 [workspace]
 resolver = "2"
-members = ["lib", "cli", "editor", "project"]
+members = ["lib", "cli", "editor", "project/project"]
 
 [workspace.package]
 version = "0.1.0"
-
-[workspace.dependencies]
-plottery_lib = "0.1.0"
-plottery_project = { path = "project" }
-plottery_cli = { path = "cli" }
-plottery_project_macros = "0.1.0"
+authors = ["Tobias Grothmann <tobiasgrothmannplotterart@gmail.com>"]
+license = "GPL-3.0"
+repository = "https://github.com/TobiasGrothmann/plottery"
+categories = ["art", "graphics", "generative art"]
+keywords = ["plottery", "plotter", "pen plotter", "generative", "art"]

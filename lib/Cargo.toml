@@ -1,11 +1,13 @@
 [package]
 name = "plottery_lib"
-version.workspace = true
 edition = "2021"
 description = "Core geometry library of Plottery, a creative coding framework for generative vector graphics and pen plotting."
-authors = ["Tobias Grothmann <tobiasgrothmannplotterart@gmail.com>"]
-license = "GPL-3.0"
-repository = "https://github.com/TobiasGrothmann/plottery"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+categories.workspace = true
+repository.workspace = true
+keywords.workspace = true
 
 [dependencies]
 geo = "0.28.0"

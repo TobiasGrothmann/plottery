@@ -1,11 +1,13 @@
 [package]
 name = "plottery_editor"
-version.workspace = true
 edition = "2021"
 description = "Graphical Editor of Plottery, a creative coding framework for generative vector graphics and pen plotting."
-authors = ["Tobias Grothmann <tobiasgrothmannplotterart@gmail.com>"]
-license = "GPL-3.0"
-repository = "https://github.com/TobiasGrothmann/plottery"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+categories.workspace = true
+repository.workspace = true
+keywords = ["plottery", "plotter", "pen plotter", "editor"]
 
 [package.metadata.bundle]
 name = "Plottery Editor"
@@ -17,10 +19,10 @@ short_description = "Graphical Editor of Plottery, a creative coding framework f
 long_description = "Graphical Editor of Plottery, a creative coding framework for generative vector graphics and pen plotting."
 
 [dependencies]
+plottery_lib = { path = "../lib", version = "^0.1.0" }
+plottery_project = { path = "../project/project", version = "^0.1.0" }
 dioxus = { version = "0.6.1", features = ["desktop"] }
 directories = "5.0.1"
-plottery_lib.workspace = true
-plottery_project.workspace = true
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 dioxus-logger = "0.6.1"
