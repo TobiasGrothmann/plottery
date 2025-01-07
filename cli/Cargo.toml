@@ -10,5 +10,5 @@ repository.workspace = true
 keywords.workspace = true
 
 [dependencies]
-plottery_project = { path = "../project/project", version = "^0.1.0" }
+plottery_project = { path = "../project", version = "^0.1.0" }
 clap = { version = "4.4.18", features = ["derive"] }

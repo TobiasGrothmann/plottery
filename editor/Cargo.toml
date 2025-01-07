@@ -7,7 +7,7 @@ authors.workspace = true
 license.workspace = true
 categories.workspace = true
 repository.workspace = true
-keywords = ["plottery", "plotter", "pen plotter", "editor"]
+keywords.workspace = true
 
 [package.metadata.bundle]
 name = "Plottery Editor"
@@ -20,7 +20,7 @@ long_description = "Graphical Editor of Plottery, a creative coding framework fo
 
 [dependencies]
 plottery_lib = { path = "../lib", version = "^0.1.0" }
-plottery_project = { path = "../project/project", version = "^0.1.0" }
+plottery_project = { path = "../project", version = "^0.1.0" }
 dioxus = { version = "0.6.1", features = ["desktop"] }
 directories = "5.0.1"
 serde = { version = "1.0", features = ["derive"] }

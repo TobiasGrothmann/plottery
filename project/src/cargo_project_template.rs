@@ -2,11 +2,12 @@ use anyhow::Result;
 use path_absolutize::Absolutize;
 use rust_embed::RustEmbed;
 use std::path::{Path, PathBuf};
+use std::vec;
 use std::{fs::File, io::Write};
 use vfs::{EmbeddedFS, FileSystem};
 
 #[derive(RustEmbed, Debug)]
-#[folder = "assets/cargo_project_template/"]
+#[folder = "cargo_project_template/"]
 struct CargoProjectTemplate;
 
 fn get_fs() -> EmbeddedFS<CargoProjectTemplate> {
@@ -20,7 +21,7 @@ pub enum LibSource {
     Cargo,
 }
 
-struct StringReplacement {
+struct Replacement {
     from: String,
     to: String,
 }
@@ -85,21 +86,32 @@ pub fn generate_cargo_project_to_disk(
         get_plottery_subcrate("project", &lib_source, "plottery_project")?;
 
     let string_replacements = vec![
-        StringReplacement {
+        Replacement {
             from: "{{plottery-lib-include}}".to_string(),
             to: plottery_lib_include,
         },
-        StringReplacement {
+        Replacement {
             from: "{{plottery-project-include}}".to_string(),
             to: plottery_project_include,
         },
-        StringReplacement {
+        Replacement {
             from: "{{project-name}}".to_string(),
             to: project_name.to_owned(),
         },
     ];
+    let file_name_replacements = vec![Replacement {
+        from: "Cargo_template.toml".to_string(),
+        to: "Cargo.toml".to_string(),
+    }];
 
-    write_dir_to_disk_recurse(&fs, "".to_string(), &out_dir, &string_replacements)?;
+    write_dir_to_disk_recurse(
+        &fs,
+        "".to_string(),
+        &out_dir,
+        &string_replacements,
+        &file_name_replacements,
+    )?;
+
     Ok(())
 }
 
@@ -107,16 +119,29 @@ fn write_dir_to_disk_recurse(
     fs: &EmbeddedFS<CargoProjectTemplate>,
     sub_dir: String,
     out_dir: &PathBuf,
-    string_replacements: &Vec<StringReplacement>,
+    string_replacements: &Vec<Replacement>,
+    file_name_replacements: &Vec<Replacement>,
 ) -> Result<()> {
     for element in fs.read_dir(&sub_dir).unwrap() {
         let sub_element = format!("{}/{}", &sub_dir, &element);
         let out_element = out_dir.join(sub_element.strip_prefix('/').unwrap()); // needs to be relative or else join replaces the whole path with sub_element
         if is_file(fs, &sub_element) {
-            write_file_to_disk(fs, &sub_element, &out_element, string_replacements)?;
+            write_file_to_disk(
+                fs,
+                &sub_element,
+                &out_element,
+                string_replacements,
+                file_name_replacements,
+            )?;
         } else {
             std::fs::create_dir_all(out_element)?;
-            write_dir_to_disk_recurse(fs, sub_element.clone(), out_dir, string_replacements)?;
+            write_dir_to_disk_recurse(
+                fs,
+                sub_element.clone(),
+                out_dir,
+                string_replacements,
+                file_name_replacements,
+            )?;
         }
     }
     Ok(())
@@ -126,7 +151,8 @@ fn write_file_to_disk(
     fs: &EmbeddedFS<CargoProjectTemplate>,
     sub_element: &str,
     out_element: &PathBuf,
-    string_replacements: &Vec<StringReplacement>,
+    string_replacements: &Vec<Replacement>,
+    file_name_replacements: &Vec<Replacement>,
 ) -> Result<()> {
     let mut file = fs.open_file(sub_element)?;
     let ext = match Path::new(&sub_element).extension() {
@@ -145,7 +171,22 @@ fn write_file_to_disk(
         buf = buf_str.into_bytes();
     }
 
-    let mut out_file = File::create(out_element)?;
+    let mut file_name = out_element
+        .file_name()
+        .expect("Failed to get file name")
+        .to_str()
+        .unwrap();
+
+    for replacement in file_name_replacements {
+        if file_name == replacement.from {
+            file_name = &replacement.to;
+            break;
+        }
+    }
+
+    let out_file_path = out_element.with_file_name(file_name);
+
+    let mut out_file = File::create(out_file_path)?;
     out_file.write_all(&buf)?;
 
     Ok(())

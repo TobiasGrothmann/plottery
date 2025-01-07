@@ -1,11 +1,17 @@
 [workspace]
 resolver = "2"
-members = ["lib", "cli", "editor", "project/project"]
+members = ["lib", "cli", "editor", "project"]
 
 [workspace.package]
 version = "0.1.0"
 authors = ["Tobias Grothmann <tobiasgrothmannplotterart@gmail.com>"]
 license = "GPL-3.0"
 repository = "https://github.com/TobiasGrothmann/plottery"
-categories = ["art", "graphics", "generative art"]
-keywords = ["plottery", "plotter", "pen plotter", "generative", "art"]
+categories = [
+    "algorithms",
+    "graphics",
+    "gui",
+    "mathematics",
+    "multimedia::images",
+]
+keywords = ["plottery", "plotter", "generative", "art"]
