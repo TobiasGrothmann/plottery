@@ -150,7 +150,7 @@ fn write_dir_to_disk_recurse(
 fn write_file_to_disk(
     fs: &EmbeddedFS<CargoProjectTemplate>,
     sub_element: &str,
-    out_element: &PathBuf,
+    out_element: &Path,
     string_replacements: &Vec<Replacement>,
     file_name_replacements: &Vec<Replacement>,
 ) -> Result<()> {

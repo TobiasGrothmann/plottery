@@ -1,10 +1,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
-use syn::{
-    self, punctuated::Punctuated,Field, Ident,
-    Lit, Meta, Token, Expr,
-};
+use syn::{self, punctuated::Punctuated,Field, Ident, Meta, Token, Expr};
 
 #[proc_macro_derive(PlotteryParamsDefinition, attributes(value, range))]
 pub fn plottery_params(input: TokenStream) -> TokenStream {

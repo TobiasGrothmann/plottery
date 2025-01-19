@@ -73,6 +73,9 @@ impl Rect {
     pub fn aspect_ratio(&self) -> f32 {
         self.width() / self.height()
     }
+    pub fn is_square(&self) -> bool {
+        (self.width() - self.height()).abs() < f32::EPSILON
+    }
 
     pub fn left_mid(&self) -> V2 {
         V2::new(self.bot_left.x, self.bot_left.y + self.height() * 0.5)

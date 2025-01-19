@@ -60,11 +60,8 @@ where
     T: DeserializeOwned,
 {
     let mut buf = Vec::new();
-    match &mut child_process.stdout {
-        Some(stdout) => {
-            (*stdout).read_to_end(&mut buf).await?;
-        }
-        None => {}
+    if let Some(stdout) = &mut child_process.stdout {
+        (*stdout).read_to_end(&mut buf).await?;
     }
     Ok(deserialize_from(buf.as_slice())?)
 }

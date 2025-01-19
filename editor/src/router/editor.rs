@@ -129,10 +129,12 @@ pub fn Editor(project_path: String) -> Element {
                 div { class: "open_actions",
                     button { class: "icon_button",
                         onclick: move |_event| {
-                            let project_dir = project.read().dir.clone();
+                            let project_dir = project.read().get_cargo_path().unwrap();
                             std::process::Command::new("code")
                                 .arg(project_dir)
                                 .spawn()
+                                .unwrap()
+                                .wait()
                                 .unwrap();
                         },
                         img { src: "{format_svg(include_bytes!(\"../../public/icons/vscode.svg\"))}" }
