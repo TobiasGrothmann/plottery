@@ -33,6 +33,50 @@ impl Circle {
     pub fn to_shape(&self) -> Shape {
         Shape::Circle(self.clone())
     }
+
+    pub fn get_intersections(&self, other: &Circle) -> Vec<V2> {
+        let delta = other.center - self.center;
+        let dist = delta.len();
+        let radius_sum = self.radius + other.radius;
+        let radius_difference = (self.radius - other.radius).abs();
+
+        // circles are far apart
+        if dist > radius_sum {
+            return vec![];
+        }
+        // one circle is contained in the other
+        if dist < radius_difference {
+            return vec![];
+        }
+        // circles are the same
+        if dist <= f32::EPSILON && radius_difference <= f32::EPSILON {
+            return vec![];
+        }
+        // circles are tangent
+        if (dist - radius_sum).abs() <= f32::EPSILON {
+            return vec![self.center + V2::polar(delta.angle(), self.radius)];
+        }
+        // circles are tangent (one inside the other)
+        if (dist - radius_difference).abs() <= f32::EPSILON {
+            if self.radius > other.radius {
+                return vec![self.center + V2::polar(delta.angle(), self.radius)];
+            } else {
+                return vec![
+                    other.center
+                        + V2::polar(delta.angle() + Angle::from_rotations(0.5), other.radius),
+                ];
+            }
+        }
+
+        // regular two intersections
+        let a = (self.radius.powi(2) - other.radius.powi(2) + dist.powi(2)) / (2.0 * dist);
+        let x2 = self.center.x + delta.x * a / dist;
+        let y2 = self.center.y + delta.y * a / dist;
+        let h = (self.radius.powi(2) - a.powi(2)).sqrt();
+        let rx = -delta.y * (h / dist);
+        let ry = delta.x * (h / dist);
+        vec![V2::new(x2 + rx, y2 + ry), V2::new(x2 - rx, y2 - ry)]
+    }
 }
 
 impl Plottable for Circle {

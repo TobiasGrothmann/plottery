@@ -100,4 +100,55 @@ mod test_circle {
             Some(V2::new(1.7071068, 1.7071068))
         );
     }
+
+    #[test]
+    fn intersection_tangent_containing() {
+        let c1 = Circle::new(V2::new(1.0, 0.0), 1.0);
+        let c2 = Circle::new(V2::new(2.0, 0.0), 2.0);
+
+        println!("c1 {:?}", c1.get_intersections(&c2));
+        println!("c2 {:?}", c2.get_intersections(&c1));
+
+        assert_eq!(c1.get_intersections(&c2).len(), 1);
+        assert_eq!(c2.get_intersections(&c1).len(), 1);
+        assert_eq!(c1.get_intersections(&c2), vec![V2::new(0.0, 0.0)]);
+        assert_eq!(c2.get_intersections(&c1), vec![V2::new(0.0, 0.0)]);
+    }
+
+    #[test]
+    fn intersection_tangent() {
+        let c1 = Circle::new(V2::new(0.0, 0.0), 1.0);
+        let c2 = Circle::new(V2::new(2.0, 0.0), 1.0);
+
+        assert_eq!(c1.get_intersections(&c2).len(), 1);
+        assert_eq!(c2.get_intersections(&c1).len(), 1);
+        assert_eq!(c1.get_intersections(&c2)[0], V2::new(1.0, 0.0));
+        assert_eq!(c2.get_intersections(&c1)[0], V2::new(1.0, 0.0));
+    }
+
+    #[test]
+    fn intersection_tangent_diagonal() {
+        let c1 = Circle::new(V2::new(1.0, 1.0), 2.0_f32.sqrt());
+        let c2 = Circle::new(V2::new(3.0, 3.0), 2.0_f32.sqrt());
+
+        assert_eq!(c1.get_intersections(&c2).len(), 1);
+        assert_eq!(c2.get_intersections(&c1).len(), 1);
+        assert_eq!(c1.get_intersections(&c2)[0], V2::new(2.0, 2.0));
+        assert_eq!(c2.get_intersections(&c1)[0], V2::new(2.0, 2.0));
+    }
+
+    #[test]
+    fn intersection() {
+        let c1 = Circle::new(V2::new(1.0, 1.0), 1.0);
+        let c2 = Circle::new(V2::new(2.0, 1.0), 1.0);
+
+        println!("c1 {:?}", c1.get_intersections(&c2));
+
+        assert_eq!(c1.get_intersections(&c2).len(), 2);
+        assert_eq!(c2.get_intersections(&c1).len(), 2);
+        assert_eq!(c1.get_intersections(&c2)[0].x, 1.5);
+        assert_eq!(c1.get_intersections(&c2)[1].x, 1.5);
+        assert_eq!(c2.get_intersections(&c1)[0].x, 1.5);
+        assert_eq!(c2.get_intersections(&c1)[1].x, 1.5);
+    }
 }
