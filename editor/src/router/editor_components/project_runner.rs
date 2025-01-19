@@ -237,7 +237,7 @@ impl ProjectRunner {
                     let change_counter = layer_copy.read().change_counter;
                     layer_copy.set(
                         LayerChangeWrapper {
-                            layer: Some(new_layer),
+                            layer: Some(new_layer.clone()), // clone is necessary to avoid editor randomly not updating
                             change_counter: change_counter + 1,
                         }
                     );
@@ -247,6 +247,5 @@ impl ProjectRunner {
             console.read().info("done");
             running_state.set(RunningState::Idle);
         });
-        tokio::spawn(async move {}); // this is somehow needed to get tokio to execute the above task
     }
 }
