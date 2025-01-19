@@ -3,7 +3,7 @@ use proc_macro2::Span;
 use quote::quote;
 use syn::{
     self, punctuated::Punctuated,Field, Ident,
-    Lit, Meta, Token,
+    Lit, Meta, Token, Expr,
 };
 
 #[proc_macro_derive(PlotteryParamsDefinition, attributes(value, range))]
@@ -62,24 +62,18 @@ fn get_parameters_vector_items(data: &syn::DataStruct) -> Vec<proc_macro2::Token
             for attr in &field.attrs {
                 match &attr.meta {
                     Meta::List(list) => {
-                        // #[default(1.0)]a
+                        // #[value(1.0)]
                         if list.path.is_ident("value") {
                             let attribute_name = list.path.get_ident().expect("Failed to get attribute name").to_string();
                             let args = list
-                                .parse_args_with(Punctuated::<Lit, Token![,]>::parse_terminated)
+                                .parse_args_with(Punctuated::<Expr, Token![,]>::parse_terminated)
                                 .unwrap_or_else(|_| panic!("Failed to parse attribute arguments for attribute '{}'", attribute_name));
                             let num_expected_args = 1;
                             if args.len() != num_expected_args {
                                 panic!("Invalid number of arguments for attribute '{}'. Expected {}, found {}", attribute_name, num_expected_args, args.len());
                             }
 
-                            let argument = {
-                                let parsed_args = list
-                                    .parse_args_with(Punctuated::<Lit, Token![,]>::parse_terminated)
-                                    .unwrap_or_else(|_| panic!("Failed to parse attribute arguments for attribute '{}'", attribute_name));
-                                parsed_args.first().expect("Invalid number of arguments.").clone()
-                            };
-
+                            let argument = args.first().expect("Invalid number of arguments.").clone();
                             default_value = quote!(#argument);
                         }
 
@@ -87,17 +81,15 @@ fn get_parameters_vector_items(data: &syn::DataStruct) -> Vec<proc_macro2::Token
                         if list.path.is_ident("range") {
                             let attribute_name = list.path.get_ident().expect("Failed to get attribute name").to_string();
                             let args = list
-                                .parse_args_with(Punctuated::<Lit, Token![,]>::parse_terminated)
+                                .parse_args_with(Punctuated::<Expr, Token![,]>::parse_terminated)
                                 .unwrap_or_else(|_| panic!("Failed to parse attribute arguments for attribute '{}'", attribute_name));
                             let num_expected_args = 2;
                             if args.len() != num_expected_args {
                                 panic!("Invalid number of arguments for attribute '{}'. Expected {}, found {}", attribute_name, num_expected_args, args.len());
                             }
 
-                            let arguments = list.parse_args_with(Punctuated::<Lit, Token![,]>::parse_terminated)
-                                .expect("Failed to parse attribute argument");
-                            let min = arguments.first().expect("Invalid number of arguments.");
-                            let max = arguments.last().expect("Invalid number of arguments.");
+                            let min = args.first().expect("Invalid number of arguments.");
+                            let max = args.last().expect("Invalid number of arguments.");
                             range = Some((quote!(#min), quote!(#max)));
                         }
                     }
