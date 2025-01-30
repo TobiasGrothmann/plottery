@@ -28,6 +28,7 @@ pub use traits::Translate;
 pub use traits::{normalize::Alignment, Normalize};
 
 pub use composition::Frame;
+pub use composition::Grid;
 pub use composition::Layer;
 
 pub use generate::func_2d::marching_squares::MarchingSquares;
