@@ -1,7 +1,6 @@
-use std::sync::Arc;
-
 use dioxus::prelude::*;
 use plottery_project::{ProjectParam, ProjectParamValue, ProjectParamsListWrapper};
+use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use super::{
@@ -36,11 +35,17 @@ pub fn EditorNumberField(mut props: EditorNumberFieldProps) -> Element {
                     let mut new_params = props.project_params.read().clone();
                     for param_field in new_params.list.iter_mut() {
                         if param_field.name == props.param.name.clone() {
-                            let new_val = event.value().parse().unwrap();
-                            match param_field.value {
-                                ProjectParamValue::Float(_) => param_field.value.set_f32(new_val),
-                                ProjectParamValue::Int(_) => param_field.value.set_i32(new_val.round() as i32),
-                                _ => panic!("Unexpected Error"),
+                            let new_val = event.value().parse::<f32>();
+                            match new_val {
+                                Ok(val) => match param_field.value {
+                                    ProjectParamValue::Float(_) => param_field.value.set_f32(val),
+                                    ProjectParamValue::Int(_) => param_field.value.set_i32(val.round() as i32),
+                                    _ => panic!("Unexpected Error"),
+                                },
+                                Err(e) => {
+                                    log::error!("Error parsing value: {:?}", e);
+                                    return;
+                                }
                             }
                         }
                     }
