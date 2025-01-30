@@ -63,7 +63,7 @@ pub fn Editor(project_path: String) -> Element {
 
     // hooks for changes in project
     // params
-    use_memo(move || {
+    use_effect(move || {
         let params_binary =
             serialize(&(*project_params.read())).expect("Failed to serialize project params");
         let params_file_path = project.read().get_params_path();
@@ -71,8 +71,8 @@ pub fn Editor(project_path: String) -> Element {
             .expect("Failed to write project params to file");
     });
     // layer
-    use_memo(move || {
-        let new_layer = layer_change_wrapper.read().clone().layer;
+    let layer_rerender_counter = use_memo(move || {
+        let new_layer = &layer_change_wrapper.read().layer;
         if let Some(new_layer) = new_layer {
             let svg_path = get_svg_path(&project.read().clone());
             match new_layer.write_svg(svg_path, 1.0) {
@@ -82,6 +82,7 @@ pub fn Editor(project_path: String) -> Element {
                 }
             };
         };
+        layer_change_wrapper.read().change_counter
     });
 
     // running project
@@ -209,7 +210,7 @@ pub fn Editor(project_path: String) -> Element {
                             }
                             Image {
                                 img_path: get_svg_path(&project.read()).absolutize().unwrap().to_string_lossy().to_string(),
-                                redraw_counter: layer_change_wrapper.read().change_counter,
+                                redraw_counter: *layer_rerender_counter.read(),
                             }
                         } else {
                             div { class: "err_box",

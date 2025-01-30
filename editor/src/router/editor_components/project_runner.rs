@@ -215,9 +215,9 @@ impl ProjectRunner {
                         msg: "run killed".to_string(),
                     });
                 }
-                new_layer = read_object_from_stdout::<Layer>(&mut run_process) => {
+                layer_from_run = read_object_from_stdout::<Layer>(&mut run_process) => {
                     // getting layer from stdout of project executable
-                    let new_layer = match new_layer {
+                    let new_layer = match layer_from_run {
                         Ok(layer) => layer,
                         Err(e) => {
                             running_state.set(RunningState::RunFailed {
@@ -237,7 +237,7 @@ impl ProjectRunner {
                     let change_counter = layer_copy.read().change_counter;
                     layer_copy.set(
                         LayerChangeWrapper {
-                            layer: Some(new_layer.clone()), // clone is necessary to avoid editor randomly not updating
+                            layer: Some(new_layer),
                             change_counter: change_counter + 1,
                         }
                     );
