@@ -3,9 +3,11 @@ mod test_layer {
     use std::collections::HashMap;
 
     use itertools::Itertools;
+    use rand::{seq::SliceRandom, SeedableRng};
     use svg::parser::Event;
 
     use crate::{
+        shapes::shape,
         traits::{normalize::Alignment, Translate},
         Angle, BoundingBox, Circle, Layer, Normalize, Path, Plottable, Rect, Rotate,
         SampleSettings, V2,
@@ -233,5 +235,87 @@ mod test_layer {
         let l_normalized_bounds = l_normalized.bounding_box().unwrap();
         assert_eq!(l_normalized_bounds.bl(), V2::new(0.5, 0.5));
         assert_eq!(l_normalized_bounds.tr(), V2::new(1.0, 1.0));
+    }
+
+    #[test]
+    fn combine_shapes_end_to_start() {
+        let mut a = Layer::new();
+        a.push_path(Path::new_from(vec![V2::xy(0.0), V2::xy(1.0)]));
+        a.push_path(Path::new_from(vec![V2::xy(1.0), V2::xy(2.0)]));
+        let b = a.combine_shapes_flat();
+        println!("{:?}", b);
+        assert_eq!(b.len(), 1);
+    }
+
+    #[test]
+    fn combine_shapes_end_to_end() {
+        let mut a = Layer::new();
+        a.push_path(Path::new_from(vec![V2::xy(0.0), V2::xy(1.0)]));
+        a.push_path(Path::new_from(vec![V2::xy(2.0), V2::xy(1.0)]));
+        let b = a.combine_shapes_flat();
+        assert_eq!(b.len(), 1);
+    }
+
+    #[test]
+    fn combine_shapes_start_to_start() {
+        let mut a = Layer::new();
+        a.push_path(Path::new_from(vec![V2::xy(1.0), V2::xy(0.0)]));
+        a.push_path(Path::new_from(vec![V2::xy(1.0), V2::xy(2.0)]));
+        let b = a.combine_shapes_flat();
+        assert_eq!(b.len(), 1);
+    }
+
+    #[test]
+    fn combine_shapes_start_to_end() {
+        let mut a = Layer::new();
+        a.push_path(Path::new_from(vec![V2::xy(1.0), V2::xy(0.0)]));
+        a.push_path(Path::new_from(vec![V2::xy(2.0), V2::xy(1.0)]));
+        let b = a.combine_shapes_flat();
+        assert_eq!(b.len(), 1);
+    }
+
+    #[test]
+    fn combine_shapes_rect() {
+        let mut a = Layer::new();
+        a.push_path(Path::new_from(vec![V2::new(0.0, 0.0), V2::new(1.0, 0.0)]));
+        a.push_path(Path::new_from(vec![V2::new(0.0, 0.0), V2::new(0.0, 1.0)]));
+        a.push_path(Path::new_from(vec![V2::new(1.0, 1.0), V2::new(1.0, 0.0)]));
+        a.push_path(Path::new_from(vec![V2::new(1.0, 1.0), V2::new(0.0, 1.0)]));
+        let b = a.combine_shapes_flat();
+        assert_eq!(b.len(), 1);
+    }
+
+    #[test]
+    fn combine_shapes_star() {
+        let num_lines = 10;
+        let angle_per_line = Angle::from_rotations(1.0 / num_lines as f32);
+
+        let mut a = Layer::new();
+        for i in 0..num_lines {
+            let path = Path::new_from(vec![V2::xy(0.0), V2::polar(angle_per_line * i as f32, 1.0)]);
+            a.push_path(path);
+        }
+
+        let b = a.combine_shapes_flat();
+        assert_eq!(b.len(), num_lines / 2);
+    }
+
+    #[test]
+    fn combine_shapes_long_line() {
+        let mut segments = (0..100)
+            .into_iter()
+            .map(|i| Path::new_from(vec![V2::new(i as f32, 0.0), V2::new((i + 1) as f32, 0.0)]))
+            .enumerate()
+            .map(|(i, path)| if i % 3 == 0 { path.reverse() } else { path })
+            .map(|path| path.to_shape())
+            .collect_vec();
+
+        // create a new rng with a fixed seed
+        let mut rng = rand::rngs::StdRng::seed_from_u64(12345);
+        segments.shuffle(&mut rng);
+
+        let a = Layer::new_from(segments);
+        let b = a.combine_shapes_flat();
+        assert_eq!(b.len(), 1);
     }
 }

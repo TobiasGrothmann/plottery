@@ -1,7 +1,7 @@
 use anyhow::{Ok, Result};
 use bincode::{deserialize_from, serialize};
 use serde::{Deserialize, Serialize};
-use std::{fs::File, io::Write, iter::FromIterator, path::PathBuf, rc::Rc, slice::Iter};
+use std::{fs::File, io::Write, iter::FromIterator, path::PathBuf, rc::Rc, slice::Iter, vec};
 use svg::{node::element::path::Data, Document};
 
 use crate::{
@@ -177,6 +177,117 @@ impl Layer {
         Ok(())
     }
 
+    pub fn combine_shapes_flat(&self) -> Self {
+        let mut combined_shapes = Layer::new();
+
+        // flatten references, create mask of used shapes
+        let mut paths = Vec::new();
+
+        // move non combineable shapes
+        for shape in self.iter_flattened() {
+            match shape {
+                Shape::Path(path) => {
+                    if path.get_points_ref().len() <= 1 {
+                        continue;
+                    }
+                    paths.push(path.clone());
+                }
+                Shape::Circle(_) => {
+                    combined_shapes.push((*shape).clone());
+                }
+                Shape::Rect(_) => {
+                    combined_shapes.push((*shape).clone());
+                }
+            }
+        }
+
+        let mut last_num_paths = paths.len();
+        loop {
+            paths = self.combine_shapes_flat_iterate(&paths);
+            if last_num_paths <= paths.len() || paths.len() == 1 {
+                break;
+            }
+            last_num_paths = paths.len();
+        }
+
+        for path in paths {
+            combined_shapes.push_path(path);
+        }
+
+        combined_shapes
+    }
+
+    fn combine_shapes_flat_iterate(&self, paths: &[Path]) -> Vec<Path> {
+        let mut combined_paths = Vec::new();
+
+        // iterate paths, combine
+        let mut mask = vec![false; paths.len()];
+        let mut current_path = Path::new();
+        let mut current_path_start = V2::new(0.0, 0.0);
+        let mut current_path_end = V2::new(0.0, 0.0);
+        for (i, path) in paths.iter().enumerate() {
+            if mask[i] {
+                continue;
+            }
+
+            // start new path
+            if current_path.is_empty() {
+                current_path.push_many(path.get_points_ref());
+                current_path_start = *current_path.get_start().unwrap();
+                current_path_end = *current_path.get_end().unwrap();
+                mask[i] = true;
+            }
+
+            for (j, path_candidate) in paths.iter().enumerate().skip(i + 1) {
+                if mask[j] {
+                    continue;
+                }
+
+                let start = path_candidate.get_start().unwrap();
+                let end = path_candidate.get_end().unwrap();
+
+                if current_path_end == start {
+                    // regular append
+                    current_path.push_iter_ref(path_candidate.get_points_ref().iter().skip(1));
+
+                    current_path_end = *end;
+                    mask[j] = true;
+                } else if current_path_end == end {
+                    // reverse candidate and append
+                    current_path
+                        .push_iter_ref(path_candidate.get_points_ref().iter().rev().skip(1));
+
+                    current_path_end = *start;
+                    mask[j] = true;
+                } else if current_path_start == end {
+                    // regular prepend
+                    let mut new_current_path = (*path_candidate).clone();
+                    new_current_path.push_iter_ref(current_path.get_points_ref().iter().skip(1));
+                    current_path = new_current_path;
+
+                    current_path_start = *start;
+                    mask[j] = true;
+                } else if current_path_start == start {
+                    // reverse path and prepend
+                    let mut new_current_path = (*path_candidate).clone();
+                    new_current_path.reverse_mut();
+                    new_current_path.push_iter_ref(current_path.get_points_ref().iter().skip(1));
+                    current_path = new_current_path;
+
+                    current_path_start = *end;
+                    mask[j] = true;
+                }
+            }
+
+            if !current_path.is_empty() {
+                combined_paths.push(current_path);
+                current_path = Path::new();
+            }
+        }
+
+        combined_paths
+    }
+
     fn apply_func_to_shapes_recursive_mut<F: Fn(&mut Shape)>(&mut self, f: F) {
         let f = Rc::new(f);
         self.apply_func_to_shapes_recursive_mut_internal(f)
@@ -211,6 +322,7 @@ impl Default for Layer {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct LayerFlattenedIterator<'a> {
     stack: Vec<&'a Layer>,
     current_layer_iterator: Option<std::slice::Iter<'a, Shape>>,
