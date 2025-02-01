@@ -218,6 +218,9 @@ impl V2 {
         }
         Angle::from_rad(rad)
     }
+    pub fn angle_to(&self, other: &Self) -> Angle {
+        (other - self).angle()
+    }
 
     pub fn normalize(&self) -> Self {
         let len = self.len();

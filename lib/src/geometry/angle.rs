@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::f32::consts::PI;
 
-use crate::{GR, LARGE_EPSILON};
+use crate::{SampleSettings, GR, LARGE_EPSILON};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Copy, PartialOrd)]
 pub struct Angle {
@@ -75,6 +75,58 @@ impl Angle {
     pub fn flip_sign(&self) -> Self {
         Angle::from_rad(self.rad * -1.0)
     }
+    pub fn normal_right(&self) -> Self {
+        self + Angle::quarter_rotation()
+    }
+
+    pub fn lerp_to_fixed(&self, end: Angle, steps: usize) -> AngleInterpolator {
+        AngleInterpolator::new(*self, end, steps)
+    }
+    pub fn lerp_to(
+        &self,
+        end: Angle,
+        sample_settings: &SampleSettings,
+        distance: f32,
+    ) -> AngleInterpolator {
+        let distance = (end.rad - self.rad).abs() * distance;
+        AngleInterpolator::new(
+            *self,
+            end,
+            sample_settings.get_num_points_for_length(distance) as usize,
+        )
+    }
+}
+
+pub struct AngleInterpolator {
+    start_rad: f32,
+    end_rad: f32,
+    steps: usize,
+    current_step: usize,
+}
+
+impl AngleInterpolator {
+    pub fn new(start: Angle, end: Angle, steps: usize) -> Self {
+        Self {
+            start_rad: start.rad,
+            end_rad: end.rad,
+            steps,
+            current_step: 0,
+        }
+    }
+}
+
+impl Iterator for AngleInterpolator {
+    type Item = Angle;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current_step > self.steps {
+            return None;
+        }
+        let t = self.current_step as f32 / self.steps as f32;
+        let interpolated_rad = self.start_rad * (1.0 - t) + self.end_rad * t;
+        self.current_step += 1;
+        Some(Angle::from_rad(interpolated_rad))
+    }
 }
 
 impl From<Angle> for f32 {
@@ -90,7 +142,7 @@ impl From<f32> for Angle {
 
 impl PartialEq for Angle {
     fn eq(&self, other: &Angle) -> bool {
-        (self.rad - other.to_rad()).abs() < LARGE_EPSILON
+        (self.rad - other.rad).abs() < LARGE_EPSILON
     }
 }
 

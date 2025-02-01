@@ -71,7 +71,7 @@ mod test_angle {
     }
 
     #[test]
-    fn comparison() {
+    fn equality() {
         let a = Angle::from_degrees(180.0);
 
         let a1 = Angle::from_degrees(180.0);
@@ -87,5 +87,38 @@ mod test_angle {
         let b2 = Angle::from_degrees(180.0 - 360.0);
         assert_ne!(a, b1);
         assert_ne!(a, b2);
+    }
+
+    #[test]
+    fn comparison() {
+        let a = Angle::from_degrees(180.0);
+
+        let b = Angle::from_degrees(181.0);
+        assert!(a < b);
+
+        let c = Angle::from_degrees(180.0 + 360.0);
+        assert!(a < c);
+
+        let d = Angle::from_degrees(179.0);
+        assert!(a > d);
+
+        let e = Angle::from_degrees(-180.0);
+        assert!(a > e);
+    }
+
+    #[test]
+    fn interpolation() {
+        let a = Angle::from_degrees(0.0);
+        let b = Angle::from_degrees(180.0);
+
+        let mut i = 0;
+        let mut last_angle = a;
+        for interpolated_angle in a.lerp_to_fixed(b, 100) {
+            assert!(interpolated_angle >= last_angle);
+            last_angle = interpolated_angle;
+            i += 1;
+        }
+
+        assert_eq!(i, 101);
     }
 }
