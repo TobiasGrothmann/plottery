@@ -86,14 +86,25 @@ impl Angle {
         &self,
         end: Angle,
         sample_settings: &SampleSettings,
-        distance: f32,
+        radius: f32,
     ) -> AngleInterpolator {
-        let distance = (end.rad - self.rad).abs() * distance;
+        let distance = (end.rad - self.rad).abs() * radius;
         AngleInterpolator::new(
             *self,
             end,
             sample_settings.get_num_points_for_length(distance) as usize,
         )
+    }
+
+    pub fn with_smallest_rotation_to(&self, other: Angle) -> Angle {
+        let angle_diff_rotations = (self - other).to_rotations();
+        if angle_diff_rotations > 0.5 {
+            self - Angle::full_rotation()
+        } else if angle_diff_rotations < -0.5 {
+            self + Angle::full_rotation()
+        } else {
+            *self
+        }
     }
 }
 

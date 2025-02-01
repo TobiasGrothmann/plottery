@@ -121,4 +121,18 @@ mod test_angle {
 
         assert_eq!(i, 101);
     }
+
+    #[test]
+    fn with_smallest_rotation() {
+        let a = Angle::from_degrees(10.0);
+
+        let b = Angle::from_degrees(90.0).with_smallest_rotation_to(a);
+        assert_eq!(b, Angle::from_degrees(90.0));
+
+        let c = Angle::from_degrees(270.0).with_smallest_rotation_to(a);
+        assert_eq!(c, Angle::from_degrees(-90.0));
+
+        let c = Angle::from_degrees(-180.0).with_smallest_rotation_to(a);
+        assert_eq!(c, Angle::from_degrees(180.0));
+    }
 }
