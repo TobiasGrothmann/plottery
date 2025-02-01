@@ -1,5 +1,9 @@
 use crate::{
-    components::{loading::Loading, navigation::Navigation},
+    components::{
+        image::{Image, SVGImage},
+        loading::Loading,
+        navigation::Navigation,
+    },
     router::editor_components::{
         console::Console, editor_console::EditorConsole, params_editor::ParamsEditor,
         project_hot_reload::start_hot_reload, project_runner::ProjectRunner,
@@ -10,13 +14,10 @@ use crate::{
 use bincode::{deserialize, serialize};
 use dioxus::prelude::*;
 use notify::FsEventWatcher;
-use path_absolutize::Absolutize;
 use plottery_lib::Layer;
 use plottery_project::{Project, ProjectParamsListWrapper};
 use std::{path::PathBuf, sync::Arc};
 use tokio::{sync::Mutex, task::JoinHandle};
-
-use crate::components::image::Image;
 
 fn get_svg_path(project: &Project) -> PathBuf {
     project.get_preview_image_path()
@@ -71,18 +72,22 @@ pub fn Editor(project_path: String) -> Element {
             .expect("Failed to write project params to file");
     });
     // layer
-    let layer_rerender_counter = use_memo(move || {
-        let new_layer = &layer_change_wrapper.read().layer;
-        if let Some(new_layer) = new_layer {
-            let svg_path = get_svg_path(&project.read().clone());
-            match new_layer.write_svg(svg_path, 1.0) {
-                Ok(_) => log::info!("SVG updated"),
-                Err(e) => {
-                    log::error!("Error writing svg {}", e);
-                }
-            };
-        };
-        layer_change_wrapper.read().change_counter
+    let svg = use_memo(move || {
+        let layer_wrapper = layer_change_wrapper.read();
+        if let Some(layer) = &layer_wrapper.layer {
+            Some(layer.to_svg(1.0).to_string())
+        } else {
+            None
+        }
+    });
+    use_effect(move || {
+        let svg_path = get_svg_path(&project.read().clone());
+        if let Some(svg) = svg.read().clone() {
+            match std::fs::write(svg_path, svg) {
+                Ok(_) => (),
+                Err(e) => log::error!("Failed to write SVG to file: {:?}", e),
+            }
+        }
     });
 
     // running project
@@ -208,9 +213,14 @@ pub fn Editor(project_path: String) -> Element {
                             if running_state.read().is_busy() {
                                 Loading {}
                             }
-                            Image {
-                                img_path: get_svg_path(&project.read()).absolutize().unwrap().to_string_lossy().to_string(),
-                                redraw_counter: *layer_rerender_counter.read(),
+                            if let Some(svg) = svg.read().clone() {
+                                SVGImage { svg: svg }
+                            }
+                            else {
+                                Image {
+                                    img_path: get_svg_path(&project.read()).to_str().unwrap().to_string(),
+                                    redraw_counter: layer_change_wrapper.read().change_counter,
+                                }
                             }
                         } else {
                             div { class: "err_box",

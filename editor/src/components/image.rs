@@ -1,6 +1,24 @@
+use dioxus::prelude::*;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use dioxus::prelude::*;
+use crate::util::format_svg;
+
+#[derive(PartialEq, Props, Clone)]
+pub struct SVGImageProps {
+    pub svg: String,
+}
+
+#[component]
+pub fn SVGImage(props: SVGImageProps) -> Element {
+    let svg_data_url = format_svg(props.svg.as_bytes());
+
+    rsx!(
+        style { { include_str!("./image.css") } }
+        div { class: "Image",
+            img { src: "{svg_data_url}", alt: "SVG Image" }
+        }
+    )
+}
 
 #[derive(PartialEq, Props, Clone)]
 pub struct ImageProps {
