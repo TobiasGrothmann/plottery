@@ -242,8 +242,22 @@ impl ops::DivAssign<f32> for V2 {
 
 // #################### EQUALITY ####################
 
+const V2_EPSILON: f32 = 0.00001;
+
 impl PartialEq<V2> for V2 {
     fn eq(&self, _rhs: &V2) -> bool {
-        self.dist_manhattan(_rhs) < 0.00001
+        self.dist_manhattan(_rhs) < V2_EPSILON
+    }
+}
+
+impl PartialEq<&V2> for V2 {
+    fn eq(&self, _rhs: &&V2) -> bool {
+        self.dist_manhattan(_rhs) < V2_EPSILON
+    }
+}
+
+impl PartialEq<V2> for &V2 {
+    fn eq(&self, _rhs: &V2) -> bool {
+        self.dist_manhattan(_rhs) < V2_EPSILON
     }
 }

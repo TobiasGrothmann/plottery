@@ -41,6 +41,16 @@ impl Path {
     pub fn push(&mut self, point: V2) {
         self.points.push(point);
     }
+    pub fn push_many(&mut self, points: &[V2]) {
+        self.points.extend(points);
+    }
+    pub fn push_iter<I: IntoIterator<Item = V2>>(&mut self, points: I) {
+        self.points.extend(points);
+    }
+    pub fn push_iter_ref<'a, I: IntoIterator<Item = &'a V2>>(&mut self, points: I) {
+        self.points.extend(points);
+    }
+
     pub fn close(&mut self) {
         if !self.points.is_empty() {
             self.points.push(*self.points.first().unwrap());
@@ -64,6 +74,15 @@ impl Path {
 
     pub fn get_points_ref(&self) -> &Vec<V2> {
         &self.points
+    }
+    pub fn is_empty(&self) -> bool {
+        self.points.is_empty()
+    }
+    pub fn get_start(&self) -> Option<&V2> {
+        self.points.first()
+    }
+    pub fn get_end(&self) -> Option<&V2> {
+        self.points.last()
     }
 
     pub fn rounded_chaikins(&self, iterations: i32) -> Self {
