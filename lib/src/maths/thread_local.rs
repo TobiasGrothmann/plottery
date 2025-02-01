@@ -1,10 +1,7 @@
-use std::{
-    cell::RefCell,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::cell::RefCell;
 
 use fastnoise_lite::{FastNoiseLite, NoiseType};
-use rand::{rngs::StdRng, SeedableRng};
+use rand::{rngs::StdRng, Rng, SeedableRng};
 
 thread_local! {
     pub static PERLIN: RefCell<FastNoiseLite> = {
@@ -33,9 +30,5 @@ pub fn seed(seed: i32) {
 }
 
 pub fn seed_random() {
-    let entropy_from_time = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_micros() as i32;
-    seed(entropy_from_time);
+    seed(rand::thread_rng().gen::<i32>());
 }

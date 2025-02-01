@@ -52,7 +52,7 @@ mod test_noise {
         // using seed_random should result in different values each time
         seed_random();
         let noise5 = noise(&V2::new(0.5, 0.5));
-        std::thread::sleep(std::time::Duration::from_millis(1)); // necessary because SystemTime::now is used as seed
+        std::thread::sleep(std::time::Duration::from_millis(5)); // necessary because SystemTime::now is used as seed
         seed_random();
         let noise6 = noise(&V2::new(0.5, 0.5));
         assert_ne!(noise5, noise6)
@@ -68,12 +68,12 @@ mod test_noise {
         test_noise_location_helper(worley_2d, worley_3d);
     }
     fn test_noise_location_helper(noise_2d: fn(&V2) -> f32, noise_3d: fn(f32, f32, f32) -> f32) {
-        seed_random();
+        seed(12312);
         let noise1 = noise_2d(&V2::new(0.5, 0.5));
         let noise2 = noise_2d(&V2::new(0.47, 0.53));
         assert_ne!(noise1, noise2);
 
-        seed_random();
+        seed(41232);
         let noise1 = noise_3d(0.5, 0.5, 0.5);
         let noise2 = noise_3d(0.47, 0.53, 0.5);
         assert_ne!(noise1, noise2);
