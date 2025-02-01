@@ -2,6 +2,8 @@ use geometry_predicates::orient2d;
 
 use crate::V2;
 
+use super::Angle;
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Line {
     pub from: V2,
@@ -33,6 +35,14 @@ impl Line {
     pub fn mid(&self) -> V2 {
         (self.from + self.to) * 0.5
     }
+    pub fn angle(&self) -> Angle {
+        (self.to - self.from).angle()
+    }
+    pub fn offset_right(&self, distance: f32) -> Self {
+        let normal = V2::polar(self.angle().normal_right(), 1.0);
+        Line::new(self.from + normal * distance, self.to + normal * distance)
+    }
+
     /// project a point onto this infinite line
     pub fn project(&self, point: &V2) -> V2 {
         self.from + (point - self.from).project_onto(&self.vector())
@@ -88,6 +98,33 @@ impl Line {
         {
             return LineIntersection::NoIntersection;
         }
+
+        LineIntersection::Intersection(V2::new(x, y))
+    }
+
+    pub fn intersection_as_inf_lines(&self, other: &Line) -> LineIntersection {
+        let x1 = self.from.x;
+        let y1 = self.from.y;
+        let x2 = self.to.x;
+        let y2 = self.to.y;
+
+        let x3 = other.from.x;
+        let y3 = other.from.y;
+        let x4 = other.to.x;
+        let y4 = other.to.y;
+
+        let denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+
+        if denom == 0.0 {
+            // lines are parallel (or colinear)
+            return LineIntersection::NoIntersection;
+        }
+
+        let num_x = (x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4);
+        let num_y = (x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4);
+
+        let x = num_x / denom;
+        let y = num_y / denom;
 
         LineIntersection::Intersection(V2::new(x, y))
     }

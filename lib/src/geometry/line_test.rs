@@ -82,6 +82,39 @@ mod test_line {
         }
 
         #[test]
+        fn intersection_inf_lines() {
+            // non-parallel lines with intersection
+            let line1 = Line::new(V2::xy(0.0), V2::xy(1.0));
+            let line2 = Line::new(V2::new(0.0, 5.0), V2::new(1.0, 4.0));
+            assert_eq!(
+                line1.intersection_as_inf_lines(&line2),
+                LineIntersection::Intersection(V2 { x: 2.5, y: 2.5 })
+            );
+        }
+
+        #[test]
+        fn intersection_inf_lines_parallel() {
+            // parallel lines
+            let line1 = Line::new(V2::xy(0.0), V2::xy(1.0));
+            let line2 = Line::new(V2::new(0.0, -1.0), V2::new(1.0, 0.0));
+            assert_eq!(
+                line1.intersection_as_inf_lines(&line2),
+                LineIntersection::NoIntersection
+            );
+        }
+
+        #[test]
+        fn intersection_inf_lines_colinear() {
+            // colinear lines
+            let line1 = Line::new(V2::xy(0.0), V2::xy(1.0));
+            let line2 = Line::new(V2::xy(5.0), V2::xy(4.0));
+            assert_eq!(
+                line1.intersection_as_inf_lines(&line2),
+                LineIntersection::NoIntersection
+            );
+        }
+
+        #[test]
         fn closest_point() {
             let line = Line::new(V2::new(0.0, 0.0), V2::new(3.0, 3.0));
 
