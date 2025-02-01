@@ -288,31 +288,75 @@ impl Layer {
         combined_paths
     }
 
-    fn apply_func_to_shapes_recursive_mut<F: Fn(&mut Shape)>(&mut self, f: F) {
+    pub fn map_recursive_mut<F: Fn(&mut Shape)>(&mut self, f: F) {
         let f = Rc::new(f);
-        self.apply_func_to_shapes_recursive_mut_internal(f)
+        self.map_recursive_mut_internal(f)
     }
-    fn apply_func_to_shapes_recursive_mut_internal<F: Fn(&mut Shape)>(&mut self, f: Rc<F>) {
+    fn map_recursive_mut_internal<F: Fn(&mut Shape)>(&mut self, f: Rc<F>) {
         for shape in &mut self.shapes {
             f(shape);
         }
         for sublayer in &mut self.sublayers {
-            sublayer.apply_func_to_shapes_recursive_mut_internal(f.clone());
+            sublayer.map_recursive_mut_internal(f.clone());
         }
     }
 
-    fn apply_func_to_shapes_recursive<F: Fn(&Shape) -> Shape>(&self, f: F) -> Self {
+    pub fn map_recursive<F: Fn(&Shape) -> Shape>(&self, f: F) -> Self {
         let f = Rc::new(f);
-        self.apply_func_to_shapes_recursive_internal(f)
+        self.map_shapes_recursive_internal(f)
     }
-    fn apply_func_to_shapes_recursive_internal<F: Fn(&Shape) -> Shape>(&self, f: Rc<F>) -> Self {
+    fn map_shapes_recursive_internal<F: Fn(&Shape) -> Shape>(&self, f: Rc<F>) -> Self {
         Layer::new_from_shapes_and_layers(
             self.shapes.iter().map(|shape| f(shape)).collect(),
             self.sublayers
                 .iter()
-                .map(|sublayer| sublayer.apply_func_to_shapes_recursive_internal(f.clone()))
+                .map(|sublayer| sublayer.map_shapes_recursive_internal(f.clone()))
                 .collect(),
         )
+    }
+
+    pub fn filter_recursive<F>(&self, f: F) -> Self
+    where
+        F: Fn(&Shape) -> bool + Clone,
+    {
+        let f = Rc::new(f);
+        self.filter_recursive_internal(f)
+    }
+
+    fn filter_recursive_internal<F>(&self, f: Rc<F>) -> Self
+    where
+        F: Fn(&Shape) -> bool,
+    {
+        let filtered_shapes: Vec<Shape> = self
+            .shapes
+            .iter()
+            .filter(|shape| f(shape))
+            .cloned()
+            .collect();
+        let filtered_sublayers: Vec<Layer> = self
+            .sublayers
+            .iter()
+            .map(|layer| layer.filter_recursive_internal(f.clone()))
+            .collect();
+        Layer::new_from_shapes_and_layers(filtered_shapes, filtered_sublayers)
+    }
+
+    pub fn filter_recursive_mut<F>(&mut self, predicate: F)
+    where
+        F: Fn(&Shape) -> bool + Clone,
+    {
+        let predicate = Rc::new(predicate);
+        self.filter_recursive_mut_internal(predicate)
+    }
+
+    fn filter_recursive_mut_internal<F>(&mut self, predicate: Rc<F>)
+    where
+        F: Fn(&Shape) -> bool,
+    {
+        self.shapes.retain(|shape| predicate(shape));
+        for sublayer in &mut self.sublayers {
+            sublayer.filter_recursive_mut_internal(predicate.clone());
+        }
     }
 }
 
@@ -380,46 +424,46 @@ impl FromIterator<Shape> for Layer {
 
 impl Translate for Layer {
     fn translate(&self, dist: &V2) -> Self {
-        self.apply_func_to_shapes_recursive(|shape| shape.translate(dist))
+        self.map_recursive(|shape| shape.translate(dist))
     }
     fn translate_mut(&mut self, dist: &V2) {
-        self.apply_func_to_shapes_recursive_mut(|shape| shape.translate_mut(dist));
+        self.map_recursive_mut(|shape| shape.translate_mut(dist));
     }
 }
 
 impl Rotate for Layer {
     fn rotate(&self, angle: &crate::Angle) -> Self {
-        self.apply_func_to_shapes_recursive(|shape| shape.rotate(angle))
+        self.map_recursive(|shape| shape.rotate(angle))
     }
     fn rotate_mut(&mut self, angle: &crate::Angle) {
-        self.apply_func_to_shapes_recursive_mut(|shape| shape.rotate_mut(angle));
+        self.map_recursive_mut(|shape| shape.rotate_mut(angle));
     }
 
     fn rotate_around(&self, pivot: &V2, angle: &crate::Angle) -> Self {
-        self.apply_func_to_shapes_recursive(|shape| shape.rotate_around(pivot, angle))
+        self.map_recursive(|shape| shape.rotate_around(pivot, angle))
     }
     fn rotate_around_mut(&mut self, pivot: &V2, angle: &crate::Angle) {
-        self.apply_func_to_shapes_recursive_mut(|shape| shape.rotate_around_mut(pivot, angle));
+        self.map_recursive_mut(|shape| shape.rotate_around_mut(pivot, angle));
     }
 }
 
 impl Scale for Layer {
     fn scale(&self, factor: f32) -> Self {
-        self.apply_func_to_shapes_recursive(|shape| shape.scale(factor))
+        self.map_recursive(|shape| shape.scale(factor))
     }
 
     fn scale_mut(&mut self, factor: f32) {
-        self.apply_func_to_shapes_recursive_mut(|shape| shape.scale_mut(factor));
+        self.map_recursive_mut(|shape| shape.scale_mut(factor));
     }
 }
 
 impl Scale2D for Layer {
     fn scale_2d(&self, factor: &V2) -> Self {
-        self.apply_func_to_shapes_recursive(|shape| shape.scale_2d(factor))
+        self.map_recursive(|shape| shape.scale_2d(factor))
     }
 
     fn scale_2d_mut(&mut self, factor: &V2) {
-        self.apply_func_to_shapes_recursive_mut(|shape| shape.scale_2d_mut(factor));
+        self.map_recursive_mut(|shape| shape.scale_2d_mut(factor));
     }
 }
 
