@@ -1,17 +1,11 @@
 use serde::{Deserialize, Serialize};
 use std::f32::consts::PI;
 
-use crate::GR;
+use crate::{GR, LARGE_EPSILON};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Copy)]
+#[derive(Debug, Clone, Serialize, Deserialize, Copy, PartialOrd)]
 pub struct Angle {
     rad: f32,
-}
-
-impl PartialEq for Angle {
-    fn eq(&self, other: &Angle) -> bool {
-        (self.rad - other.to_rad()).abs() < 0.00001
-    }
 }
 
 impl Angle {
@@ -43,6 +37,9 @@ impl Angle {
     pub fn half_rotation() -> Self {
         Self::from_rotations(0.5)
     }
+    pub fn full_rotation() -> Self {
+        Self::from_rotations(1.0)
+    }
     pub fn golden_ratio() -> Self {
         Self::from_rotations(GR)
     }
@@ -69,9 +66,14 @@ impl Angle {
     pub fn sin_cos(&self) -> (f32, f32) {
         (self.rad.sin(), self.rad.cos())
     }
-
-    pub fn mod_2_pi(&self) -> Self {
+    pub fn mod_one_rotation(&self) -> Self {
         Angle::from_rad(self.rad % (2.0 * PI))
+    }
+    pub fn abs(&self) -> Self {
+        Angle::from_rad(self.rad.abs())
+    }
+    pub fn flip_sign(&self) -> Self {
+        Angle::from_rad(self.rad * -1.0)
     }
 }
 
@@ -85,3 +87,11 @@ impl From<f32> for Angle {
         Self { rad }
     }
 }
+
+impl PartialEq for Angle {
+    fn eq(&self, other: &Angle) -> bool {
+        (self.rad - other.to_rad()).abs() < LARGE_EPSILON
+    }
+}
+
+impl Eq for Angle {}

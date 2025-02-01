@@ -1,5 +1,7 @@
 use std::ops::{self, AddAssign, SubAssign};
 
+use crate::LARGE_EPSILON;
+
 use super::v2::V2;
 
 // #################### ADDITION ####################
@@ -242,22 +244,20 @@ impl ops::DivAssign<f32> for V2 {
 
 // #################### EQUALITY ####################
 
-const V2_EPSILON: f32 = 0.00001;
-
 impl PartialEq<V2> for V2 {
     fn eq(&self, _rhs: &V2) -> bool {
-        self.dist_manhattan(_rhs) < V2_EPSILON
+        self.dist_manhattan(_rhs) < LARGE_EPSILON
     }
 }
 
 impl PartialEq<&V2> for V2 {
     fn eq(&self, _rhs: &&V2) -> bool {
-        self.dist_manhattan(_rhs) < V2_EPSILON
+        self.dist_manhattan(_rhs) < LARGE_EPSILON
     }
 }
 
 impl PartialEq<V2> for &V2 {
     fn eq(&self, _rhs: &V2) -> bool {
-        self.dist_manhattan(_rhs) < V2_EPSILON
+        self.dist_manhattan(_rhs) < LARGE_EPSILON
     }
 }

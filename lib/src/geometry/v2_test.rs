@@ -2,7 +2,7 @@
 mod test_v2 {
     use itertools::Itertools;
 
-    use crate::{geometry::Angle, Rotate, Rotate90, V2};
+    use crate::{geometry::Angle, Rotate, Rotate90, LARGE_EPSILON, V2};
 
     #[test]
     fn polar() {
@@ -238,7 +238,7 @@ mod test_v2 {
         assert_eq!(v, V2::new(1.0, 0.0));
 
         let v = V2::new(1.0, 1.0).normalize();
-        assert!((v.len() - 1.0).abs() < 0.00001);
+        assert!((v.len() - 1.0).abs() < LARGE_EPSILON);
 
         let v = V2::new(-1.0, 5.0).normalize_to(5.0);
         assert_eq!(v.len(), 5.0);

@@ -4,7 +4,7 @@ mod test_circle {
 
     use crate::{
         traits::{normalize::Alignment, ClosestPoint, Normalize, Scale, Scale2D},
-        BoundingBox, Circle, Path, Plottable, SampleSettings, V2,
+        BoundingBox, Circle, Path, Plottable, SampleSettings, LARGE_EPSILON, V2,
     };
 
     #[test]
@@ -27,7 +27,7 @@ mod test_circle {
         let points = c.get_points(&sample_settings);
         assert!(points.len() > 50); // enough points
         for point in points.iter() {
-            assert!((point.dist(&center) - radius).abs() < 0.00001); // radius distance from center
+            assert!((point.dist(&center) - radius).abs() < LARGE_EPSILON); // radius distance from center
         }
         assert_eq!(points.first().unwrap(), points.last().unwrap()); // is closed
     }

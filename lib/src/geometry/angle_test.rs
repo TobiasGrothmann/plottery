@@ -2,7 +2,7 @@
 mod test_angle {
     use std::f32::consts::PI;
 
-    use crate::Angle;
+    use crate::{Angle, LARGE_EPSILON};
 
     #[test]
     fn angle_creation() {
@@ -49,7 +49,10 @@ mod test_angle {
         assert_eq!(a.to_rad(), b.to_rad());
         assert_eq!(a.to_rad(), c.to_rad());
 
-        assert!((a.mod_2_pi().to_rad() - Angle::from_degrees(90.0).to_rad()).abs() < 0.000001);
+        assert!(
+            (a.mod_one_rotation().to_rad() - Angle::from_degrees(90.0).to_rad()).abs()
+                < LARGE_EPSILON
+        );
     }
 
     #[test]
@@ -65,5 +68,24 @@ mod test_angle {
 
         let a = Angle::from_degrees(360.0) / 2.0;
         assert_eq!(a.to_degree(), 180.0);
+    }
+
+    #[test]
+    fn comparison() {
+        let a = Angle::from_degrees(180.0);
+
+        let a1 = Angle::from_degrees(180.0);
+        let a2 = Angle::from_rad(PI);
+        let a3 = Angle::from_rotations(0.5);
+        let a4 = Angle::from_degrees(180.0 + 360.0).mod_one_rotation();
+        assert_eq!(a, a1);
+        assert_eq!(a, a2);
+        assert_eq!(a, a3);
+        assert_eq!(a, a4);
+
+        let b1 = Angle::from_degrees(180.0 + 360.0);
+        let b2 = Angle::from_degrees(180.0 - 360.0);
+        assert_ne!(a, b1);
+        assert_ne!(a, b2);
     }
 }

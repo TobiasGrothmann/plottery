@@ -7,7 +7,6 @@ mod test_layer {
     use svg::parser::Event;
 
     use crate::{
-        shapes::shape,
         traits::{normalize::Alignment, Translate},
         Angle, BoundingBox, Circle, Layer, Normalize, Path, Plottable, Rect, Rotate,
         SampleSettings, V2,

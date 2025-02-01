@@ -3,7 +3,7 @@ mod test_path {
     use crate::{
         geometry::TransformMatrix,
         traits::{transform::Transform, ClosestPoint, Scale},
-        Path, Plottable, Rect, SampleSettings, Translate, V2,
+        Path, Plottable, Rect, SampleSettings, Translate, LARGE_EPSILON, V2,
     };
 
     #[test]
@@ -37,7 +37,7 @@ mod test_path {
 
         let r = Rect::new_shape(V2::new(-1.2, -5.0), V2::new(2.0, 3.1));
         let p = Path::new_shape_from(r.get_points(&SampleSettings::default()));
-        assert!((r.length() - p.length()).abs() < 0.00001);
+        assert!((r.length() - p.length()).abs() < LARGE_EPSILON);
         assert_eq!(p.is_closed(), true);
     }
 
