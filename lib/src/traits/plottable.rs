@@ -14,7 +14,7 @@ impl SampleSettings {
         Self { points_per_unit }
     }
     pub fn get_num_points_for_length(&self, length: f32) -> i32 {
-        (length * self.points_per_unit).ceil() as i32
+        (length.abs() * self.points_per_unit).ceil() as i32
     }
 }
 
