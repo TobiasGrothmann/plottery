@@ -74,11 +74,10 @@ pub fn Editor(project_path: String) -> Element {
     // layer
     let svg = use_memo(move || {
         let layer_wrapper = layer_change_wrapper.read();
-        if let Some(layer) = &layer_wrapper.layer {
-            Some(layer.to_svg(1.0).to_string())
-        } else {
-            None
-        }
+        layer_wrapper
+            .layer
+            .as_ref()
+            .map(|layer| layer.to_svg(1.0).to_string())
     });
     use_effect(move || {
         let svg_path = get_svg_path(&project.read().clone());
