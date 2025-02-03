@@ -1,6 +1,7 @@
 use std::{f32::consts::PI, iter::Sum};
 
 use geo_types::Coord;
+use mint::Point2;
 use serde::{Deserialize, Serialize};
 
 use crate::{rand_range, Angle, Rect, Rotate, Rotate90};
@@ -350,5 +351,29 @@ impl Rotate90 for V2 {
 impl Sum for V2 {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         iter.fold(V2::zero(), |a, b| a + b)
+    }
+}
+
+impl From<Point2<f32>> for V2 {
+    fn from(point: Point2<f32>) -> Self {
+        Self::new(point.x, point.y)
+    }
+}
+
+impl From<V2> for Point2<f32> {
+    fn from(v2: V2) -> Self {
+        Point2 { x: v2.x, y: v2.y }
+    }
+}
+
+impl From<&V2> for Point2<f32> {
+    fn from(v2: &V2) -> Self {
+        Point2 { x: v2.x, y: v2.y }
+    }
+}
+
+impl From<&Point2<f32>> for V2 {
+    fn from(point: &Point2<f32>) -> Self {
+        Self::new(point.x, point.y)
     }
 }

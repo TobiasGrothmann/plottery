@@ -3,7 +3,7 @@ mod test_path {
     use crate::{
         geometry::TransformMatrix,
         traits::{transform::Transform, ClosestPoint, Scale},
-        Path, Plottable, Rect, SampleSettings, Translate, LARGE_EPSILON, V2,
+        Circle, Path, Plottable, Rect, SampleSettings, Translate, LARGE_EPSILON, V2,
     };
 
     #[test]
@@ -158,5 +158,34 @@ mod test_path {
         assert_eq!(points[6], V2::new(0.0, 0.75));
         assert_eq!(points[7], V2::new(0.0, 0.25));
         assert!(p_rounded.is_closed());
+    }
+
+    #[test]
+    fn simplify() {
+        let center = V2::new(0.5, 2.0);
+        let radius = 5.0;
+
+        let c = Circle::new(center, radius);
+        let points = c.get_points(&SampleSettings::default());
+        let p = Path::new_from(points.clone());
+
+        let p_simplified1 = p.simplify(0.01);
+        let points_simplified = p_simplified1.get_points(&SampleSettings::default());
+
+        let p_simplified2 = p.simplify(0.5);
+        let points_simplified2 = p_simplified2.get_points(&SampleSettings::default());
+
+        assert!(points.len() > points_simplified.len());
+        assert!(points_simplified.len() > points_simplified2.len());
+        assert!(points.len() > points_simplified2.len());
+
+        for point in points_simplified.iter() {
+            assert!(points.contains(point));
+            assert!((point.dist(&center) - radius).abs() < LARGE_EPSILON);
+        }
+        for point in points_simplified2.iter() {
+            assert!(points.contains(point));
+            assert!((point.dist(&center) - radius).abs() < LARGE_EPSILON);
+        }
     }
 }

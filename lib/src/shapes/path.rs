@@ -1,7 +1,11 @@
 use geo_types::{LineString, Polygon};
 use itertools::Itertools;
+use ramer_douglas_peucker::rdp;
 use serde::{Deserialize, Serialize};
-use std::{slice::Iter, slice::IterMut};
+use std::{
+    collections::HashSet,
+    slice::{Iter, IterMut},
+};
 
 use crate::{
     geometry::TransformMatrix,
@@ -20,6 +24,11 @@ impl Path {
     }
     pub fn new_from(points: Vec<V2>) -> Self {
         Self { points }
+    }
+    pub fn new_from_iter<I: IntoIterator<Item = V2>>(iter: I) -> Self {
+        Self {
+            points: iter.into_iter().collect(),
+        }
     }
     pub fn new_shape() -> Shape {
         Shape::Path(Self { points: vec![] })
@@ -124,6 +133,21 @@ impl Path {
         }
 
         new_points
+    }
+
+    pub fn simplify(&self, aggression_factor: f32) -> Self {
+        let epsilon = 0.0001 + aggression_factor.clamp(0.0, 1.0).powf(3.0);
+
+        let points: Vec<_> = self.points.iter().map(|v| v.into()).collect();
+        let rdp_indices = rdp(points.as_slice(), epsilon as f64);
+        let rdp_indices: HashSet<usize> = rdp_indices.into_iter().collect();
+        Path::new_from_iter(self.points.iter().enumerate().filter_map(|(i, _)| {
+            if rdp_indices.contains(&i) {
+                Some(self.points[i])
+            } else {
+                None
+            }
+        }))
     }
 
     pub fn to_shape(&self) -> Shape {
