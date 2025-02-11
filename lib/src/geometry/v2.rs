@@ -4,7 +4,7 @@ use geo_types::Coord;
 use mint::Point2;
 use serde::{Deserialize, Serialize};
 
-use crate::{rand_range, Angle, Rect, Rotate, Rotate90};
+use crate::{rand_range, Angle, Rect, Rotate, Rotate90, SampleSettings};
 
 use super::v2i::V2i;
 
@@ -245,13 +245,6 @@ impl V2 {
         )
     }
 
-    pub fn lerp(&self, other: &Self, t: f32) -> Self {
-        V2::new(
-            self.x + t * (other.x - self.x),
-            self.y + t * (other.y - self.y),
-        )
-    }
-
     pub fn clamp_len(&self, min_len: f32, max_len: f32) -> Self {
         let len = self.len();
         if len < min_len {
@@ -269,6 +262,56 @@ impl V2 {
 
     pub fn sqrt(&self) -> Self {
         V2::new(self.x.sqrt(), self.y.sqrt())
+    }
+
+    pub fn lerp(&self, other: &Self, t: f32) -> Self {
+        V2::new(
+            self.x + t * (other.x - self.x),
+            self.y + t * (other.y - self.y),
+        )
+    }
+    pub fn lerp_iter_fixed(&self, end: V2, steps: usize) -> V2Interpolator {
+        V2Interpolator::new(*self, end, steps)
+    }
+    pub fn lerp_iter(&self, end: V2, sample_settings: &SampleSettings) -> V2Interpolator {
+        let distance = self.dist(&end);
+        V2Interpolator::new(
+            *self,
+            end,
+            sample_settings.get_num_points_for_length(distance) as usize,
+        )
+    }
+}
+
+pub struct V2Interpolator {
+    start: V2,
+    end: V2,
+    steps: usize,
+    current_step: usize,
+}
+
+impl V2Interpolator {
+    pub fn new(start: V2, end: V2, steps: usize) -> Self {
+        Self {
+            start,
+            end,
+            steps,
+            current_step: 0,
+        }
+    }
+}
+
+impl Iterator for V2Interpolator {
+    type Item = V2;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current_step > self.steps {
+            return None;
+        }
+        let t = self.current_step as f32 / self.steps as f32;
+        let interpolated = self.start.lerp(&self.end, t);
+        self.current_step += 1;
+        Some(interpolated)
     }
 }
 

@@ -278,21 +278,6 @@ mod test_v2 {
     }
 
     #[test]
-    fn lerp() {
-        let v1 = V2::new(1.0, 1.0);
-        let v2 = V2::new(3.0, 2.0);
-
-        let v_lerp = v1.lerp(&v2, 0.0);
-        assert_eq!(v_lerp, v1);
-
-        let v_lerp = v1.lerp(&v2, 1.0);
-        assert_eq!(v_lerp, v2);
-
-        let v_lerp = v1.lerp(&v2, 0.5);
-        assert_eq!(v_lerp, V2::new(2.0, 1.5));
-    }
-
-    #[test]
     fn clamp_len() {
         let v = V2::new(1.0, 0.0).clamp_len(0.0, 1.0);
         assert_eq!(v, V2::new(1.0, 0.0));
@@ -308,5 +293,38 @@ mod test_v2 {
     fn map() {
         let v = V2::new(1.0, 2.0).map(|val| val * 2.0);
         assert_eq!(v, V2::new(2.0, 4.0));
+    }
+
+    #[test]
+    fn lerp() {
+        let v1 = V2::new(1.0, 1.0);
+        let v2 = V2::new(3.0, 2.0);
+
+        let v_lerp = v1.lerp(&v2, 0.0);
+        assert_eq!(v_lerp, v1);
+
+        let v_lerp = v1.lerp(&v2, 1.0);
+        assert_eq!(v_lerp, v2);
+
+        let v_lerp = v1.lerp(&v2, 0.5);
+        assert_eq!(v_lerp, V2::new(2.0, 1.5));
+    }
+
+    #[test]
+    fn lerp_iter_fixed() {
+        let v1 = V2::new(0.0, 0.0);
+        let v2 = V2::new(10.0, 5.0);
+
+        let mut i = 0;
+        let mut last_v = v1;
+        for interpolated_v in v1.lerp_iter_fixed(v2, 100) {
+            assert!(interpolated_v.x >= last_v.x);
+            assert!(interpolated_v.y >= last_v.y);
+            assert_eq!(interpolated_v.y * 2.0, interpolated_v.x);
+            last_v = interpolated_v;
+            i += 1;
+        }
+
+        assert_eq!(i, 101);
     }
 }

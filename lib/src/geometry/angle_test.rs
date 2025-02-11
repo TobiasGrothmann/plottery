@@ -107,13 +107,13 @@ mod test_angle {
     }
 
     #[test]
-    fn interpolation() {
+    fn lerp_to_fixed() {
         let a = Angle::from_degrees(0.0);
         let b = Angle::from_degrees(180.0);
 
         let mut i = 0;
         let mut last_angle = a;
-        for interpolated_angle in a.lerp_to_fixed(b, 100) {
+        for interpolated_angle in a.lerp_iter_fixed(b, 100) {
             assert!(interpolated_angle >= last_angle);
             last_angle = interpolated_angle;
             i += 1;

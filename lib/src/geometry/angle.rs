@@ -79,10 +79,13 @@ impl Angle {
         self + Angle::quarter_rotation()
     }
 
-    pub fn lerp_to_fixed(&self, end: Angle, steps: usize) -> AngleInterpolator {
+    pub fn lerp(&self, end: Angle, t: f32) -> Angle {
+        Angle::from_rad(self.rad * (1.0 - t) + end.rad * t)
+    }
+    pub fn lerp_iter_fixed(&self, end: Angle, steps: usize) -> AngleInterpolator {
         AngleInterpolator::new(*self, end, steps)
     }
-    pub fn lerp_to(
+    pub fn lerp_iter(
         &self,
         end: Angle,
         sample_settings: &SampleSettings,
