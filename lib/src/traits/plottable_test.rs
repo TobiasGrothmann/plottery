@@ -48,6 +48,24 @@ mod test_shape {
     }
 
     #[test]
+    fn oversampling_with_distance() {
+        let r = Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+        let sample_settings = SampleSettings {
+            points_per_unit: 50.0,
+        };
+        let points = r.get_points_and_dist_oversampled(&sample_settings);
+
+        assert!(points.len() > 45);
+        assert_eq!(points.last().unwrap().1, 4.0);
+
+        let mut last_dist = -1.0;
+        for (_point, dist) in points {
+            assert!(dist > last_dist);
+            last_dist = dist;
+        }
+    }
+
+    #[test]
     fn sample_settings() {
         let sample_settings = SampleSettings {
             points_per_unit: 2.0,

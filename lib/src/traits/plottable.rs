@@ -66,6 +66,34 @@ pub trait Plottable: Clone {
         points_oversampled
     }
 
+    fn get_points_and_dist_oversampled(&self, sample_settings: &SampleSettings) -> Vec<(V2, f32)> {
+        let points = self.get_points(sample_settings);
+        let mut dist_along_path = 0.0;
+        if points.is_empty() {
+            return vec![];
+        }
+        let mut points_oversampled = vec![(points[0], 0.0)];
+        for (from, to) in points.iter().tuple_windows() {
+            let num_steps = sample_settings.get_num_points_for_length(from.dist(to));
+            let segment_length = from.dist(to);
+
+            if num_steps <= 1 {
+                points_oversampled.push((*to, dist_along_path + segment_length));
+            } else {
+                let direction = to - from;
+                let new_points = (1..num_steps + 1).map(|i| {
+                    let fraction = i as f32 / num_steps as f32;
+                    let point = from + direction * fraction;
+                    let dist = dist_along_path + segment_length * fraction;
+                    (point, dist)
+                });
+                points_oversampled.extend(new_points);
+            }
+            dist_along_path += segment_length;
+        }
+        points_oversampled
+    }
+
     fn as_geo_polygon(&self, sample_settings: &SampleSettings) -> Polygon<f32> {
         Polygon::new(
             self.as_geo_line_string(sample_settings),
