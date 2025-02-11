@@ -83,7 +83,7 @@ mod test_shape {
         let mask = Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
         let p = Path::new_shape_from(vec![V2::new(0.5, 0.5), V2::new(1.5, 0.5)]);
 
-        let masked = p.get_masked(mask, &SampleSettings::default());
+        let masked = p.mask(&mask, &SampleSettings::default());
         assert_eq!(masked.inside.len(), 1);
         assert_eq!(masked.outside.len(), 1);
     }
@@ -93,7 +93,7 @@ mod test_shape {
         let mask = Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
         let p = Path::new_shape_from(vec![V2::new(0.5, 0.5), V2::new(1.5, 1.5)]);
 
-        let masked = p.get_masked(mask, &SampleSettings::default());
+        let masked = p.mask(&mask, &SampleSettings::default());
         assert_eq!(masked.inside.len(), 1);
         assert_eq!(masked.outside.len(), 1);
     }
@@ -103,7 +103,7 @@ mod test_shape {
         let mask = Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
         let p = Path::new_shape_from(vec![V2::new(1.0, 1.0), V2::new(1.0, 1.5)]);
 
-        let masked = p.get_masked(mask, &SampleSettings::default());
+        let masked = p.mask(&mask, &SampleSettings::default());
         assert_eq!(masked.inside.len(), 0);
         assert_eq!(masked.outside.len(), 1);
     }
@@ -113,7 +113,7 @@ mod test_shape {
         let mask = Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
         let p = Path::new_shape_from(vec![V2::new(1.0, 1.0), V2::new(0.5, 0.5)]);
 
-        let masked = p.get_masked(mask, &SampleSettings::default());
+        let masked = p.mask(&mask, &SampleSettings::default());
         assert_eq!(masked.inside.len(), 1);
         assert_eq!(masked.outside.len(), 0);
     }
@@ -123,7 +123,7 @@ mod test_shape {
         let mask = Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
         let p = Path::new_shape_from(vec![V2::new(0.5, 1.2), V2::new(1.2, 0.5)]);
 
-        let masked = p.get_masked(mask, &SampleSettings::default());
+        let masked = p.mask(&mask, &SampleSettings::default());
         assert_eq!(masked.inside.len(), 1);
         assert_eq!(
             masked.inside.shapes[0]
@@ -151,7 +151,7 @@ mod test_shape {
             );
         }
 
-        let masked = p.get_masked(mask.clone(), &SampleSettings::default());
+        let masked = p.mask(&mask.clone(), &SampleSettings::default());
 
         for shape_inside in masked.inside.shapes {
             for point in shape_inside.get_points(&SampleSettings::default()) {

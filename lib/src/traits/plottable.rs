@@ -114,7 +114,7 @@ pub trait Plottable: Clone {
         MultiLineString(vec![self.as_geo_line_string(sample_settings)])
     }
 
-    fn get_masked(&self, mask: Shape, sample_settings: &SampleSettings) -> Masked {
+    fn mask(&self, mask: &Shape, sample_settings: &SampleSettings) -> Masked {
         let shape_geo = self.as_geo_multi_line_string(sample_settings);
         let mask_geo = mask.as_geo_polygon(sample_settings);
 
@@ -136,5 +136,27 @@ pub trait Plottable: Clone {
             inside: layer_inside,
             outside: layer_outside,
         }
+    }
+
+    fn mask_inside(&self, mask: &Shape, sample_settings: &SampleSettings) -> Layer {
+        let shape_geo = self.as_geo_multi_line_string(sample_settings);
+        let mask_geo = mask.as_geo_polygon(sample_settings);
+
+        mask_geo
+            .clip(&shape_geo, false)
+            .iter()
+            .map(Path::new_shape_from_geo_line_string)
+            .collect()
+    }
+
+    fn mask_outside(&self, mask: &Shape, sample_settings: &SampleSettings) -> Layer {
+        let shape_geo = self.as_geo_multi_line_string(sample_settings);
+        let mask_geo = mask.as_geo_polygon(sample_settings);
+
+        mask_geo
+            .clip(&shape_geo, true)
+            .iter()
+            .map(Path::new_shape_from_geo_line_string)
+            .collect()
     }
 }

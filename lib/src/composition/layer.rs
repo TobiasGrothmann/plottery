@@ -6,7 +6,7 @@ use svg::{node::element::path::Data, Document};
 
 use crate::{
     traits::{Normalize, Scale, Scale2D, Translate},
-    BoundingBox, Circle, Path, Rect, Rotate, Shape, V2,
+    BoundingBox, Circle, Masked, Path, Plottable, Rect, Rotate, SampleSettings, Shape, V2,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -358,6 +358,31 @@ impl Layer {
             sublayer.filter_recursive_mut_internal(predicate.clone());
         }
     }
+
+    pub fn mask_flattened(&self, mask: &Shape, sample_settings: &SampleSettings) -> Masked {
+        let mut inside = Layer::new();
+        let mut outside = Layer::new();
+
+        for shape in self.iter_flattened() {
+            let masked = shape.mask(mask, sample_settings);
+            inside.push_layer_flat(masked.inside);
+            outside.push_layer_flat(masked.outside);
+        }
+
+        Masked { inside, outside }
+    }
+
+    pub fn mask_flattened_inside(&self, mask: &Shape, sample_settings: &SampleSettings) -> Layer {
+        self.iter_flattened()
+            .map(|shape| shape.mask_inside(mask, sample_settings))
+            .collect()
+    }
+
+    pub fn mask_flattened_outside(&self, mask: &Shape, sample_settings: &SampleSettings) -> Layer {
+        self.iter_flattened()
+            .map(|shape| shape.mask_outside(mask, sample_settings))
+            .collect()
+    }
 }
 
 impl Default for Layer {
@@ -419,6 +444,12 @@ impl FromIterator<Shape> for Layer {
             shapes: iter.into_iter().collect(),
             sublayers: Vec::new(),
         }
+    }
+}
+
+impl FromIterator<Layer> for Layer {
+    fn from_iter<I: IntoIterator<Item = Layer>>(iter: I) -> Self {
+        Layer::new_from_shapes_and_layers(Vec::new(), iter.into_iter().collect())
     }
 }
 
