@@ -1,5 +1,7 @@
 #[macro_use]
 extern crate rocket;
+mod accelleration_path;
+mod accelleration_path_test;
 mod maths;
 mod maths_test;
 mod server;
