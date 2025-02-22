@@ -420,3 +420,9 @@ impl From<&Point2<f32>> for V2 {
         Self::new(point.x, point.y)
     }
 }
+
+impl From<(f32, f32)> for V2 {
+    fn from(tuple: (f32, f32)) -> Self {
+        V2::new(tuple.0, tuple.1)
+    }
+}
