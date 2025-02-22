@@ -69,6 +69,17 @@ impl Angle {
     pub fn mod_one_rotation(&self) -> Self {
         Angle::from_rad(self.rad % (2.0 * PI))
     }
+    pub fn modulo(&self, other: Angle) -> Self {
+        Angle::from_rad(self.rad % other.rad)
+    }
+    pub fn positive(&self) -> Self {
+        let rad = self.rad % (2.0 * PI);
+        if rad < 0.0 {
+            Angle::from_rad(rad + 2.0 * PI)
+        } else {
+            Angle::from_rad(rad)
+        }
+    }
     pub fn abs(&self) -> Self {
         Angle::from_rad(self.rad.abs())
     }
