@@ -1,5 +1,7 @@
 #[macro_use]
 extern crate rocket;
+mod maths;
+mod maths_test;
 mod server;
 
 use plottery_lib::Layer;
