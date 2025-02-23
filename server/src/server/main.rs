@@ -4,6 +4,7 @@ mod accelleration_path;
 mod accelleration_path_test;
 mod maths;
 mod maths_test;
+mod pins;
 mod server;
 mod system;
 
@@ -11,6 +12,9 @@ use plottery_server_lib::task::Task;
 use rocket::State;
 use server::start_server;
 use tokio::sync::mpsc::Sender;
+
+#[cfg(feature = "raspi")]
+use rppal::gpio::Gpio;
 
 #[post("/task", data = "<task_data>")]
 async fn task(task_sender: &State<Sender<Task>>, task_data: &str) {
