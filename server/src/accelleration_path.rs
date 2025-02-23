@@ -59,6 +59,12 @@ impl AccellerationPath {
         let points_with_inbetweens =
             Self::get_points_with_inbetweens(&points_dedup, &min_speeds, accell_dist);
 
+        // println!("corner_sharpness_speeds: {:?}", corner_sharpness_speeds);
+        // println!("min_speeds: {:?}", min_speeds);
+        // for point in points_with_inbetweens.iter() {
+        //     println!("point: {:?}", point);
+        // }
+
         Self {
             points: points_with_inbetweens,
         }

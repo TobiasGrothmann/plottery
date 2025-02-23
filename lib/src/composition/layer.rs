@@ -1,4 +1,5 @@
 use anyhow::{Ok, Result};
+use base64::prelude::*;
 use bincode::{deserialize_from, serialize};
 use serde::{Deserialize, Serialize};
 use std::{fs::File, io::Write, iter::FromIterator, path::PathBuf, rc::Rc, slice::Iter, vec};
@@ -39,6 +40,11 @@ impl Layer {
     pub fn new_from_binary(binary_data: &Vec<u8>) -> Result<Layer> {
         Ok(deserialize_from(binary_data.as_slice())?)
     }
+    pub fn new_from_base64(encoded: &str) -> anyhow::Result<Self> {
+        let decoded = BASE64_STANDARD.decode(encoded)?;
+        let deserialized: Layer = bincode::deserialize(&decoded)?;
+        Ok(deserialized)
+    }
 
     pub fn write_file(&self, path: &PathBuf) -> Result<()> {
         let encoded: Vec<u8> = serialize(self)?;
@@ -48,6 +54,10 @@ impl Layer {
     }
     pub fn to_binary(&self) -> Result<Vec<u8>> {
         Ok(serialize(self)?)
+    }
+    pub fn to_base64(&self) -> anyhow::Result<String> {
+        let serialized = bincode::serialize(self)?;
+        Ok(BASE64_STANDARD.encode(&serialized))
     }
 
     pub fn push(&mut self, shape: Shape) {
