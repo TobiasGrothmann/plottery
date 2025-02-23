@@ -6,6 +6,7 @@ mod base64;
 mod maths;
 mod maths_test;
 mod server;
+mod system;
 
 use plottery_lib::*;
 use plottery_server_lib::Task;
@@ -41,6 +42,8 @@ async fn abort(task_sender: &State<Sender<Task>>) {
 
 #[launch]
 async fn rocket() -> _ {
+    system::set_realtime_priority();
+
     let (sender, receiver) = tokio::sync::mpsc::channel::<Task>(32);
     start_server(receiver).await;
 
