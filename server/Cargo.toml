@@ -24,7 +24,7 @@ anyhow = "1.0.96"
 
 [lib]
 name = "plottery_server_lib"
-path = "src/lib/lib.rs"
+path = "src/lib/mod.rs"
 
 [[bin]]
 name = "plottery_server"

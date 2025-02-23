@@ -1,11 +1,20 @@
+use crate::plot_settings::PlotSettings;
 use base64::prelude::*;
-use plottery_lib::{Layer, Shape};
+use plottery_lib::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Task {
-    PlotShape(Shape),
-    Plot(Layer),
+    PlotShape {
+        shape: Shape,
+        sample_settings: SampleSettings,
+        plot_settings: PlotSettings,
+    },
+    Plot {
+        layer: Layer,
+        sample_settings: SampleSettings,
+        plot_settings: PlotSettings,
+    },
     Abort,
 }
 

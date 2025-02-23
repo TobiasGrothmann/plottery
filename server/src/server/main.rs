@@ -7,7 +7,7 @@ mod maths_test;
 mod server;
 mod system;
 
-use plottery_server_lib::Task;
+use plottery_server_lib::task::Task;
 use rocket::State;
 use server::start_server;
 use tokio::sync::mpsc::Sender;

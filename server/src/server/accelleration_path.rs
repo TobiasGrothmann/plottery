@@ -22,7 +22,7 @@ pub struct AccellerationPath {
 }
 
 impl AccellerationPath {
-    pub fn new(points: &Vec<V2>, accell_dist: f32, edge_slow_down_power: f32) -> Self {
+    pub fn new(points: &Vec<V2>, accell_dist: f32, corner_slowdown_power: f32) -> Self {
         let points_dedup: Vec<V2> = points.iter().dedup().cloned().collect();
         if points_dedup.len() < 2 {
             Self {
@@ -36,7 +36,7 @@ impl AccellerationPath {
             };
         }
 
-        let corner_sharpness_speeds = Self::edge_pass(&points_dedup, edge_slow_down_power);
+        let corner_sharpness_speeds = Self::edge_pass(&points_dedup, corner_slowdown_power);
 
         let accelleration_speeds = Self::accelleration_pass(
             points_dedup.iter().cloned(),
@@ -58,12 +58,6 @@ impl AccellerationPath {
 
         let points_with_inbetweens =
             Self::get_points_with_inbetweens(&points_dedup, &min_speeds, accell_dist);
-
-        // println!("corner_sharpness_speeds: {:?}", corner_sharpness_speeds);
-        // println!("min_speeds: {:?}", min_speeds);
-        // for point in points_with_inbetweens.iter() {
-        //     println!("point: {:?}", point);
-        // }
 
         Self {
             points: points_with_inbetweens,
