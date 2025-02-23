@@ -4,7 +4,9 @@ use geo::BooleanOps;
 use geo_types::{LineString, MultiLineString, Polygon};
 
 use itertools::Itertools;
+use serde::{Deserialize, Serialize};
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SampleSettings {
     pub points_per_unit: f32,
 }
