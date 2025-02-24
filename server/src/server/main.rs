@@ -2,15 +2,16 @@
 extern crate rocket;
 mod accelleration_path;
 mod accelleration_path_test;
+mod hardware;
 mod maths;
 mod maths_test;
 mod pins;
-mod server;
 mod system;
+mod task_handler;
 
 use plottery_server_lib::task::Task;
 use rocket::State;
-use server::start_server;
+use task_handler::start_server;
 use tokio::sync::mpsc::Sender;
 
 #[cfg(feature = "raspi")]
