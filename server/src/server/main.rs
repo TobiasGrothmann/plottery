@@ -6,6 +6,7 @@ mod hardware;
 mod maths;
 mod maths_test;
 mod pins;
+mod speed_delay_handler;
 mod system;
 mod task_handler;
 

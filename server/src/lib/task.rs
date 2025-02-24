@@ -16,6 +16,7 @@ pub enum Task {
         plot_settings: PlotSettings,
     },
     Abort,
+    SetEnabled(bool),
 }
 
 impl Task {

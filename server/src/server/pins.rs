@@ -1,14 +1,32 @@
-// PINS
-pub static DIR_PINS: [i32; 4] = [18, 4, 11, 16];
-pub static STEP_PINS: [i32; 4] = [15, 3, 7, 20];
-pub static ENABLE_PINS: [i32; 4] = [14, 2, 8, 21];
+// pins order is [Y1, Y2, X, HEAD]
+#[derive(Debug)]
+pub struct PinSettings {
+    // pins
+    pub dir_pins: [i32; 4],
+    pub step_pins: [i32; 4],
+    pub enable_pins: [i32; 4],
+    pub micstep_pins: [[i32; 4]; 3],
 
-pub static MICSTEP_1_PINS: [i32; 4] = [22, 10, 12, 13];
-pub static MICSTEP_2_PINS: [i32; 4] = [27, 9, 6, 19];
-pub static MICSTEP_3_PINS: [i32; 4] = [17, 25, 5, 26];
+    // micro stepping
+    pub micstep_vals: [[char; 3]; 4],
+    pub micstep_axes: i32,
+    pub micstep_head: i32,
 
-// DIRECTIONS
-pub static DIR_VAL: [[char; 2]; 4] = [['1', '0'], ['1', '0'], ['1', '0'], ['0', '1']];
+    // distance and speed to cm
+    pub dist_per_step_axis_cm: f32,
+    pub dist_per_step_head_cm: f32,
+    pub head_travel_to_touch_cm: f32,
+    pub extra_head_travel_for_pressure_cm: f32,
+}
+
+impl PinSettings {
+    pub fn steps_for_cm_axis(&self, cm: f32) -> i32 {
+        (cm / self.dist_per_step_axis_cm).round() as i32
+    }
+    pub fn steps_for_cm_head(&self, cm: f32) -> i32 {
+        (cm / self.dist_per_step_head_cm).round() as i32
+    }
+}
 
 // MICRO STEPPING
 /*
@@ -20,18 +38,26 @@ pub static DIR_VAL: [[char; 2]; 4] = [['1', '0'], ['1', '0'], ['1', '0'], ['0', 
     High	    High	    Low		    (1/8)  Eighth step
     High	    High	    High	    (1/16) Sixteenth step
 */
-pub static MICSTEP_VALS: [[char; 3]; 4] = [
-    ['1', '1', '1'],
-    ['1', '1', '1'],
-    ['1', '1', '1'],
-    ['1', '1', '0'],
-];
-pub static MICSTEP_AXES: i32 = 16;
-pub static MICSTEP_HEAD: i32 = 8;
 
-// STEPS
-pub static DIST_PER_STEP_AXIS_CM: f32 = 0.0139935599999 / MICSTEP_AXES as f32; // cm
-pub static DIST_PER_STEP_HEAD_CM: f32 = 0.8 / (200.0 * MICSTEP_HEAD as f32); // cm (200 steps per revolution, 8mm travel per revolution)
+// TODO: get settings from file
+pub static PIN_SETTINGS: PinSettings = PinSettings {
+    dir_pins: [18, 4, 11, 16],
+    step_pins: [15, 3, 7, 20],
+    enable_pins: [14, 2, 8, 21],
+    micstep_pins: [[22, 10, 12, 13], [27, 9, 6, 19], [17, 25, 5, 26]],
 
-pub static HEAD_TRAVEL_TO_TOUCH_CM: f32 = 0.6; // cm
-pub static MAX_EXTRA_HEAD_TRAVEL_CM: f32 = 0.25; // cm
+    micstep_vals: [
+        ['1', '1', '1'],
+        ['1', '1', '1'],
+        ['1', '1', '1'],
+        ['1', '1', '0'],
+    ],
+    micstep_axes: 16,
+    micstep_head: 8,
+
+    dist_per_step_axis_cm: 0.0139935599999 / 16.0, // cm
+    dist_per_step_head_cm: 0.8 / (200.0 * 8.0), // cm (200 steps per revolution, 8mm travel per revolution)
+
+    head_travel_to_touch_cm: 0.6,            // cm
+    extra_head_travel_for_pressure_cm: 0.25, // cm
+};
