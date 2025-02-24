@@ -1,9 +1,6 @@
-use crossterm::{cursor, terminal, ExecutableCommand, QueueableCommand};
 use plottery_lib::{geometry::v2i::V2i, *};
 use rocket::figment::value::Map;
-use std::io::{stdout, Write};
 use std::time::Duration;
-use std::{thread, time};
 use tokio::time::Instant;
 
 use crate::{
@@ -64,13 +61,7 @@ impl Hardware {
     }
 
     // TODO: add docs for speed_fraction
-    fn step(
-        &mut self,
-        axis: Axis,
-        speed_handler: &SpeedDelayHandler,
-        speed_fraction: f32,
-        stdout: &mut std::io::Stdout,
-    ) {
+    fn step(&mut self, axis: Axis, speed_handler: &SpeedDelayHandler, speed_fraction: f32) {
         // set gpio step pins (if raspi)
         let delay = Duration::new(
             0,
@@ -85,25 +76,6 @@ impl Hardware {
             // wait
         }
         // TODO: step
-
-        stdout.queue(cursor::RestorePosition).unwrap();
-        stdout
-            .queue(terminal::Clear(terminal::ClearType::FromCursorDown))
-            .unwrap();
-        stdout.queue(cursor::RestorePosition).unwrap();
-        stdout
-            .write_all(
-                format!(
-                    "axis {:?} - delay: {} - speed fraction: {}",
-                    axis,
-                    delay.as_millis(),
-                    speed_fraction
-                )
-                .as_bytes(),
-            )
-            .unwrap();
-        stdout.queue(cursor::RestorePosition).unwrap();
-        stdout.flush().unwrap();
 
         self.last_steps_timestamp.insert(axis, Instant::now());
     }
@@ -130,10 +102,6 @@ impl Hardware {
         let movement_abs = movement.abs();
         let total_steps = movement_abs.x + movement_abs.y;
 
-        let mut stdout = stdout();
-        stdout.execute(cursor::Hide).unwrap();
-        stdout.queue(cursor::SavePosition).unwrap();
-
         while stepped_x < movement_abs.x || stepped_y < movement_abs.y {
             let moved_fraction = stepped_x as f32 + stepped_y as f32 / total_steps as f32;
             let speed_fraction =
@@ -145,19 +113,13 @@ impl Hardware {
             {
                 stepped_x += 1;
                 self.x += directions_signs.x;
-                self.step(Axis::X, &speed_handler, speed_fraction, &mut stdout);
+                self.step(Axis::X, &speed_handler, speed_fraction);
             } else {
                 stepped_y += 1;
                 self.y += directions_signs.y;
-                self.step(Axis::Y, &speed_handler, speed_fraction, &mut stdout);
+                self.step(Axis::Y, &speed_handler, speed_fraction);
             }
         }
-
-        stdout.queue(cursor::RestorePosition).unwrap();
-        stdout
-            .queue(terminal::Clear(terminal::ClearType::FromCursorDown))
-            .unwrap();
-        stdout.execute(cursor::Show).unwrap();
     }
 
     pub fn move_to(&mut self, speed_fraction_start: f32, pos: &V2Speed) {
@@ -194,10 +156,6 @@ impl Hardware {
             + PIN_SETTINGS.extra_head_travel_for_pressure_cm * head_pressure;
         let head_travel_steps = PIN_SETTINGS.steps_for_cm_head(head_travel_cm);
 
-        let mut stdout = stdout();
-        stdout.execute(cursor::Hide).unwrap();
-        stdout.queue(cursor::SavePosition).unwrap();
-
         for i in 0..head_travel_steps {
             let fraction = i as f32 / head_travel_steps as f32;
             // TODO: move to settings
@@ -207,14 +165,8 @@ impl Hardware {
             let speed_fraction_decc: f32 = (1.0 - fraction) / acc_dist_fraction_head;
             let speed_fraction = speed_fraction_acc.min(speed_fraction_decc).clamp(0.0, 1.0);
 
-            self.step(Axis::HEAD, &speed_handler, speed_fraction, &mut stdout);
+            self.step(Axis::HEAD, &speed_handler, speed_fraction);
         }
-
-        stdout.queue(cursor::RestorePosition).unwrap();
-        stdout
-            .queue(terminal::Clear(terminal::ClearType::FromCursorDown))
-            .unwrap();
-        stdout.execute(cursor::Show).unwrap();
 
         self.head_down = down;
     }

@@ -2,17 +2,13 @@ use plottery_lib::*;
 use plottery_server_lib::{plot_settings::PlotSettings, task::Task};
 
 use clap::{Parser, Subcommand};
-use crossterm::{cursor, terminal, ExecutableCommand, QueueableCommand};
 use reqwest::Client;
-use std::io::{stdout, Write};
-use std::{thread, time};
 
 #[derive(Debug, Clone, Subcommand)]
 enum Command {
     Rect,
     Circle,
     Layer,
-    Temp,
 }
 
 #[derive(Parser, Debug)]
@@ -64,26 +60,6 @@ async fn main() {
                 plot_settings,
             };
             send_task(&client, task).await;
-        }
-        Command::Temp => {
-            let mut stdout = stdout();
-
-            stdout.execute(cursor::Hide).unwrap();
-            for i in (1..30).rev() {
-                stdout.queue(cursor::SavePosition).unwrap();
-                stdout
-                    .write_all(format!("{}: FOOBAR ", i).as_bytes())
-                    .unwrap();
-                stdout.queue(cursor::RestorePosition).unwrap();
-                stdout.flush().unwrap();
-                thread::sleep(time::Duration::from_millis(100));
-
-                stdout.queue(cursor::RestorePosition).unwrap();
-                stdout
-                    .queue(terminal::Clear(terminal::ClearType::FromCursorDown))
-                    .unwrap();
-            }
-            stdout.execute(cursor::Show).unwrap();
         }
     }
 }
