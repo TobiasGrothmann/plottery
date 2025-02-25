@@ -128,8 +128,11 @@ impl Hardware {
         )
     }
 
+    #[cfg(not(feature = "raspi"))]
+    fn set_dir(&mut self, _axis: Axis, _forward: bool) {}
+
+    #[cfg(feature = "raspi")]
     fn set_dir(&mut self, axis: Axis, forward: bool) {
-        #[cfg(feature = "raspi")]
         {
             match axis {
                 Axis::X => {
