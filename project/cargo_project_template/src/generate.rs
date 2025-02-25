@@ -29,7 +29,7 @@ pub fn generate(params: Params) -> Layer {
     while distance < size.max_axis() * 1.5 {
         i += 1;
         distance = (i as f32).sqrt() * 0.5;
-        angle = (angle + Angle::golden_ratio()).mod_2_pi();
+        angle = (angle + Angle::golden_ratio()).mod_one_rotation();
         let pos = V2::polar(angle, distance);
         circles.push(Circle::new(size * 0.5 + pos, params.circle_size));
     }
