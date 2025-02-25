@@ -11,7 +11,7 @@ use crate::speed_delay_handler::SpeedDelayHandler;
 
 pub async fn start_server(mut receiver: mpsc::Receiver<Task>) {
     task::spawn(async move {
-        let mut hardware = Hardware::new();
+        let mut hardware = Hardware::new(PIN_SETTINGS);
 
         while let Some(task) = receiver.recv().await {
             println!("Received task: {:?}", task);

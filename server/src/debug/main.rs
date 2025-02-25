@@ -1,8 +1,5 @@
 use plottery_lib::*;
-use plottery_server_lib::{
-    plot_settings::{PlotSettings, SpeedRange},
-    task::Task,
-};
+use plottery_server_lib::{plot_settings::PlotSettings, task::Task};
 
 use clap::{Parser, Subcommand};
 use reqwest::Client;

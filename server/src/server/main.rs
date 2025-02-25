@@ -15,9 +15,6 @@ use rocket::State;
 use task_handler::start_server;
 use tokio::sync::mpsc::Sender;
 
-#[cfg(feature = "raspi")]
-use rppal::gpio::Gpio;
-
 #[post("/task", data = "<task_data>")]
 async fn task(task_sender: &State<Sender<Task>>, task_data: &str) {
     let task = Task::from_base64(task_data).expect("Failed to decode base64");

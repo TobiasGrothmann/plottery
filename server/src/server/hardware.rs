@@ -3,8 +3,11 @@ use rocket::figment::value::Map;
 use std::time::Duration;
 use tokio::time::Instant;
 
+#[cfg(feature = "raspi")]
+use rppal::gpio::{Gpio, OutputPin};
+
 use crate::{
-    accelleration_path::V2Speed, pins::PIN_SETTINGS, speed_delay_handler::SpeedDelayHandler,
+    accelleration_path::V2Speed, pins::PinSettings, speed_delay_handler::SpeedDelayHandler,
 };
 
 #[derive(Debug)]
@@ -16,6 +19,17 @@ pub struct Hardware {
     head_down: bool,
 
     last_steps_timestamp: Map<Axis, Instant>,
+
+    #[cfg(feature = "raspi")]
+    pins_dir: [OutputPin; 4],
+    #[cfg(feature = "raspi")]
+    pins_step: [OutputPin; 4],
+    #[cfg(feature = "raspi")]
+    pins_enable: [OutputPin; 4],
+    #[cfg(feature = "raspi")]
+    pins_micstep: [[OutputPin; 4]; 3],
+
+    pin_settings: PinSettings,
 }
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum Axis {
@@ -25,7 +39,44 @@ enum Axis {
 }
 
 impl Hardware {
-    pub fn new() -> Self {
+    pub fn new(pin_settings: PinSettings) -> Self {
+        #[cfg(feature = "raspi")]
+        {
+            let gpio = Gpio::new()?;
+
+            let pins_dir = pin_settings.dir_pins.map(|pin_number| gpio.get(pin_number));
+            let pins_step = pin_settings
+                .step_pins
+                .map(|pin_number| gpio.get(pin_number)?.into_output());
+            let pins_enable = pin_settings
+                .enable_pins
+                .map(|pin_number| gpio.get(pin_number)?.into_output());
+            let pins_micstep = pin_settings
+                .micstep_pins
+                .map(|pins| pins.map(|pin_number| gpio.get(pin_number)?.into_output()));
+
+            // set all low
+            for pin in pins_dir
+                .iter()
+                .chain(pins_step.iter())
+                .chain(pins_enable.iter())
+            {
+                pin.set_low();
+            }
+
+            // set microstepping
+            for motor_i in 0..4 {
+                for value_i in 0..3 {
+                    let pin = gpio.get(pins_micstep[value_i][motor_i])?.into_output();
+                    if pin_settings.micstep_vals[motor_i][value_i] {
+                        pin.set_high();
+                    } else {
+                        pin.set_low();
+                    }
+                }
+            }
+        }
+
         Hardware {
             enabled: false,
             x: 0,
@@ -36,13 +87,22 @@ impl Hardware {
                 (Axis::Y, Instant::now()),
                 (Axis::HEAD, Instant::now()),
             ]),
+            #[cfg(feature = "raspi")]
+            pins_dir,
+            #[cfg(feature = "raspi")]
+            pins_step,
+            #[cfg(feature = "raspi")]
+            pins_enable,
+            #[cfg(feature = "raspi")]
+            pins_micstep,
+            pin_settings,
         }
     }
 
     pub fn get_pos(&self) -> V2 {
         V2::new(
-            self.x as f32 * PIN_SETTINGS.dist_per_step_axis_cm,
-            self.y as f32 * PIN_SETTINGS.dist_per_step_axis_cm,
+            self.x as f32 * self.pin_settings.dist_per_step_axis_cm,
+            self.y as f32 * self.pin_settings.dist_per_step_axis_cm,
         )
     }
 
@@ -116,7 +176,7 @@ impl Hardware {
         speed_handler: &SpeedDelayHandler,
     ) {
         let delta =
-            ((pos.point - self.get_pos()) / PIN_SETTINGS.dist_per_step_axis_cm).round_to_int();
+            ((pos.point - self.get_pos()) / self.pin_settings.dist_per_step_axis_cm).round_to_int();
         if delta == V2i::new(0, 0) {
             return;
         }
@@ -137,9 +197,9 @@ impl Hardware {
 
         // TODO: move head
         self.set_dir(Axis::HEAD, down);
-        let head_travel_cm = PIN_SETTINGS.head_travel_to_touch_cm
-            + PIN_SETTINGS.extra_head_travel_for_pressure_cm * head_pressure;
-        let head_travel_steps = PIN_SETTINGS.steps_for_cm_head(head_travel_cm);
+        let head_travel_cm = self.pin_settings.head_travel_to_touch_cm
+            + self.pin_settings.extra_head_travel_for_pressure_cm * head_pressure;
+        let head_travel_steps = self.pin_settings.steps_for_cm_head(head_travel_cm);
 
         for i in 0..head_travel_steps {
             let fraction = i as f32 / head_travel_steps as f32;
@@ -159,5 +219,11 @@ impl Hardware {
         // TODO: set enable pins
         println!("Setting enabled to {:?}", enabled);
         self.enabled = enabled;
+    }
+}
+
+impl Drop for Hardware {
+    fn drop(&mut self) {
+        self.set_enabled(false);
     }
 }
