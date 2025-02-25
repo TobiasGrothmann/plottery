@@ -21,4 +21,8 @@ impl V2i {
             y: self.y.abs(),
         }
     }
+
+    pub fn is_zero(&self) -> bool {
+        self.x == 0 && self.y == 0
+    }
 }

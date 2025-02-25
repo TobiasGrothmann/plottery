@@ -109,6 +109,13 @@ impl Plottable for Rect {
     fn get_points(&self, _: &SampleSettings) -> Vec<V2> {
         vec![self.bl(), self.tl(), self.tr(), self.br(), self.bl()]
     }
+    fn get_points_from(
+        &self,
+        _current_drawing_head_pos: &V2,
+        sample_settings: &SampleSettings,
+    ) -> Vec<V2> {
+        self.get_points(sample_settings)
+    }
 
     fn length(&self) -> f32 {
         self.width() * 2.0 + self.height() * 2.0

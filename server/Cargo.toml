@@ -1,7 +1,7 @@
 [package]
 name = "plottery_server"
 edition = "2021"
-description = "pen-plotter server executable and API libraray of Plottery, a creative coding framework for generative vector graphics and pen plotting."
+description = "pen-plotter server executable of Plottery, a creative coding framework for generative vector graphics and pen plotting."
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -11,30 +11,14 @@ keywords.workspace = true
 
 [features]
 default = []
-raspi = ["dep:rppal"]
+raspi = ["dep:rppal", "dep:ioprio"]
 
 [dependencies]
 itertools = "0.14.0"
 plottery_lib = { path = "../lib", version = "^0.3.0" }
+plottery_server_lib = { path = "../server_lib", version = "^0.3.0" }
 rocket = "0.5.1"
 tokio = "1.43.0"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-clap = { version = "4.5.30", features = ["derive"] }
-reqwest = "0.12.12"
-base64 = "0.22.1"
-bincode = "1.3.3"
-anyhow = "1.0.96"
 rppal = { version = "0.22.1", features = ["hal"], optional = true }
-
-[lib]
-name = "plottery_server_lib"
-path = "src/lib/mod.rs"
-
-[[bin]]
-name = "plottery_server"
-path = "src/server/main.rs"
-
-[[bin]]
-name = "debug"
-path = "src/debug/main.rs"
+anyhow = "1.0.96"
+ioprio = { version = "0.2.0", optional = true }

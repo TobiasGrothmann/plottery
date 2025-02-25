@@ -35,6 +35,11 @@ pub struct Masked {
 
 pub trait Plottable: Clone {
     fn get_points(&self, _: &SampleSettings) -> Vec<V2>;
+    fn get_points_from(
+        &self,
+        current_drawing_head_pos: &V2,
+        sample_settings: &SampleSettings,
+    ) -> Vec<V2>;
 
     fn get_line_segments(&self, sample_settings: &SampleSettings) -> Vec<Line> {
         self.get_points(sample_settings)

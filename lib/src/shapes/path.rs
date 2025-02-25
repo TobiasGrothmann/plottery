@@ -160,6 +160,23 @@ impl Plottable for Path {
         self.points.clone()
     }
 
+    fn get_points_from(
+        &self,
+        current_drawing_head_pos: &V2,
+        sample_settings: &SampleSettings,
+    ) -> Vec<V2> {
+        let mut points = self.get_points(sample_settings);
+        if points.len() == 0 {
+            return points;
+        }
+        if current_drawing_head_pos.dist(points.last().unwrap())
+            < current_drawing_head_pos.dist(points.first().unwrap())
+        {
+            points.reverse();
+        }
+        points
+    }
+
     fn length(&self) -> f32 {
         self.points
             .iter()

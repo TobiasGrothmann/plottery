@@ -1,4 +1,4 @@
-use plottery_server_lib::plot_settings::SpeedRange;
+use plottery_server_lib::plot_setting::SpeedRange;
 
 #[derive(Debug, Clone, Copy)]
 pub struct SpeedDelayHandler {

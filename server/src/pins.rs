@@ -3,21 +3,17 @@
 pub struct PinSettings {
     // pins
     #[cfg(feature = "raspi")]
-    pub dir_pins: [i32; 4],
+    pub dir_pins: [u8; 4],
     #[cfg(feature = "raspi")]
-    pub step_pins: [i32; 4],
+    pub step_pins: [u8; 4],
     #[cfg(feature = "raspi")]
-    pub enable_pins: [i32; 4],
+    pub enable_pins: [u8; 4],
     #[cfg(feature = "raspi")]
-    pub micstep_pins: [[i32; 4]; 3],
+    pub micstep_pins: [[u8; 4]; 3],
 
     // micro stepping
     #[cfg(feature = "raspi")]
     pub micstep_vals: [[bool; 3]; 4],
-    #[cfg(feature = "raspi")]
-    pub micstep_axes: i32,
-    #[cfg(feature = "raspi")]
-    pub micstep_head: i32,
 
     // distance and speed to cm
     pub dist_per_step_axis_cm: f32,
@@ -62,13 +58,9 @@ pub static PIN_SETTINGS: PinSettings = PinSettings {
         [true, true, true],
         [true, true, false],
     ],
-    #[cfg(feature = "raspi")]
-    micstep_axes: 16,
-    #[cfg(feature = "raspi")]
-    micstep_head: 8,
 
-    dist_per_step_axis_cm: 0.0139935599999 / 16.0, // cm
-    dist_per_step_head_cm: 0.8 / (200.0 * 8.0), // cm (200 steps per revolution, 8mm travel per revolution)
+    dist_per_step_axis_cm: 0.0139935599999 / 16.0, // distance per step / microstepping factor for x and y axes
+    dist_per_step_head_cm: 0.8 / (200.0 * 8.0), // 8mm travel per revolution / (200 steps per revolution * microstepping factor for head)
 
     head_travel_to_touch_cm: 0.6,            // cm
     extra_head_travel_for_pressure_cm: 0.25, // cm

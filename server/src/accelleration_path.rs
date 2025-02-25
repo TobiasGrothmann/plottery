@@ -17,6 +17,7 @@ impl V2Speed {
     }
 }
 
+#[derive(Debug)]
 pub struct AccellerationPath {
     pub points: Vec<V2Speed>,
 }

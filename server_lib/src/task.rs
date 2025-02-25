@@ -1,7 +1,8 @@
-use crate::plot_settings::PlotSettings;
 use base64::prelude::*;
 use plottery_lib::*;
 use serde::{Deserialize, Serialize};
+
+use crate::plot_setting::PlotSettings;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Task {
@@ -17,6 +18,9 @@ pub enum Task {
     },
     Abort,
     SetEnabled(bool),
+    SetHead(bool),
+    MoveTo(V2, PlotSettings),
+    Move(V2, PlotSettings),
 }
 
 impl Task {

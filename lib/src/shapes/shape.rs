@@ -38,6 +38,17 @@ impl Plottable for Shape {
             Shape::Path(p) => p.get_points(sample_settings),
         }
     }
+    fn get_points_from(
+        &self,
+        current_drawing_head_pos: &V2,
+        sample_settings: &SampleSettings,
+    ) -> Vec<V2> {
+        match self {
+            Shape::Circle(c) => c.get_points_from(current_drawing_head_pos, sample_settings),
+            Shape::Rect(r) => r.get_points_from(current_drawing_head_pos, sample_settings),
+            Shape::Path(p) => p.get_points_from(current_drawing_head_pos, sample_settings),
+        }
+    }
 
     fn length(&self) -> f32 {
         match self {
