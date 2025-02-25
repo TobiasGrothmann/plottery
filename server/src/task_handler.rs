@@ -90,7 +90,6 @@ pub async fn plot_layer(
     sample_settings: &SampleSettings,
     plot_settings: &PlotSettings,
 ) {
-    println!("Plotting layer: {:?}", layer);
     for shape in layer.shapes.iter() {
         plot_shape(hardware, shape, sample_settings, plot_settings).await;
     }
@@ -110,9 +109,6 @@ pub async fn travel_to(hardware: &mut Hardware, target_pos: V2, plot_settings: &
         &plot_settings.speed_head_up,
         PIN_SETTINGS.dist_per_step_head_cm,
     );
-
-    println!("Traveling to {:?}", target_pos);
-    println!("Acc path: {:?}", acc_path);
 
     hardware.set_head(
         false,
