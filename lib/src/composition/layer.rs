@@ -76,8 +76,8 @@ impl Layer {
         self.sublayers.push(layer);
     }
     pub fn push_layer_flat(&mut self, layer: Layer) {
-        for shape in layer {
-            self.shapes.push(shape);
+        for shape in layer.iter_flattened() {
+            self.shapes.push(shape.clone());
         }
     }
 
