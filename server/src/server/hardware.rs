@@ -15,11 +15,6 @@ pub struct Hardware {
     y: i32,
     head_down: bool,
 
-    speed_draw: SpeedDelayHandler,
-    speed_travel: SpeedDelayHandler,
-    speed_head_down: SpeedDelayHandler,
-    speed_head_up: SpeedDelayHandler,
-
     last_steps_timestamp: Map<Axis, Instant>,
 }
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -36,10 +31,6 @@ impl Hardware {
             x: 0,
             y: 0,
             head_down: false,
-            speed_draw: SpeedDelayHandler::new(0.75, 5.0, 0.1), // TODO!
-            speed_travel: SpeedDelayHandler::new(4.0, 28.0, 0.1), // TODO!
-            speed_head_down: SpeedDelayHandler::new(1.8, 20.0, 0.1), // TODO!
-            speed_head_up: SpeedDelayHandler::new(35.0, 35.0, 0.1), // TODO!
             last_steps_timestamp: Map::from([
                 (Axis::X, Instant::now()),
                 (Axis::Y, Instant::now()),
@@ -48,7 +39,7 @@ impl Hardware {
         }
     }
 
-    fn get_pos(&self) -> V2 {
+    pub fn get_pos(&self) -> V2 {
         V2::new(
             self.x as f32 * PIN_SETTINGS.dist_per_step_axis_cm,
             self.y as f32 * PIN_SETTINGS.dist_per_step_axis_cm,
@@ -56,26 +47,22 @@ impl Hardware {
     }
 
     fn set_dir(&mut self, axis: Axis, forward: bool) {
-        // set gpio direction pins (if raspi)
+        // TODO: set gpio direction pins (if raspi)
         println!("Setting direction for {:?} to {:?}", axis, forward);
     }
 
-    // TODO: add docs for speed_fraction
+    // speed_fraction: fraction from 0 to 1 that is mapped to speed_min to speed_max
     fn step(&mut self, axis: Axis, speed_handler: &SpeedDelayHandler, speed_fraction: f32) {
-        // set gpio step pins (if raspi)
         let delay = Duration::new(
             0,
-            speed_handler
-                .get_delay_micros(speed_fraction.clamp(0.0, 1.0))
-                .floor() as u32
-                * 1000_u32,
+            speed_handler.get_delay_nanos(speed_fraction.clamp(0.0, 1.0)),
         );
         let delay_until = self.last_steps_timestamp[&axis] + delay;
 
         while delay_until >= Instant::now() {
             // wait
         }
-        // TODO: step
+        // TODO set gpio step pins (if raspi)
 
         self.last_steps_timestamp.insert(axis, Instant::now());
     }
@@ -83,7 +70,7 @@ impl Hardware {
     fn move_steps(
         &mut self,
         movement: &V2i,
-        speed_handler: SpeedDelayHandler,
+        speed_handler: &SpeedDelayHandler,
         speed_fraction_start: f32,
         speed_fraction_end: f32,
     ) {
@@ -122,14 +109,12 @@ impl Hardware {
         }
     }
 
-    pub fn move_to(&mut self, speed_fraction_start: f32, pos: &V2Speed) {
-        // TODO: avoid clone
-        let speed_handler = if self.head_down {
-            self.speed_draw.clone()
-        } else {
-            self.speed_travel.clone()
-        };
-
+    pub fn move_to(
+        &mut self,
+        speed_fraction_start: f32,
+        pos: &V2Speed,
+        speed_handler: &SpeedDelayHandler,
+    ) {
         let delta =
             ((pos.point - self.get_pos()) / PIN_SETTINGS.dist_per_step_axis_cm).round_to_int();
         if delta == V2i::new(0, 0) {
@@ -139,16 +124,16 @@ impl Hardware {
         self.move_steps(&delta, speed_handler, speed_fraction_start, pos.speed);
     }
 
-    pub fn set_head(&mut self, down: bool, head_pressure: f32) {
+    pub fn set_head(
+        &mut self,
+        down: bool,
+        head_pressure: f32,
+        accelleration_dist: f32,
+        speed_handler: SpeedDelayHandler,
+    ) {
         if self.head_down == down {
             return;
         }
-        // TODO: avoid clone
-        let speed_handler = if down {
-            self.speed_head_down.clone()
-        } else {
-            self.speed_head_up.clone()
-        };
 
         // TODO: move head
         self.set_dir(Axis::HEAD, down);
@@ -158,11 +143,10 @@ impl Hardware {
 
         for i in 0..head_travel_steps {
             let fraction = i as f32 / head_travel_steps as f32;
-            // TODO: move to settings
-            let acc_dist_fraction_head = 0.2; // fraction of total distance used to acc and decc head
-
-            let speed_fraction_acc: f32 = fraction / acc_dist_fraction_head;
-            let speed_fraction_decc: f32 = (1.0 - fraction) / acc_dist_fraction_head;
+            let current_head_travel_cm = head_travel_cm * fraction;
+            let speed_fraction_acc: f32 = current_head_travel_cm / accelleration_dist;
+            let speed_fraction_decc: f32 =
+                (head_travel_cm - current_head_travel_cm) / accelleration_dist;
             let speed_fraction = speed_fraction_acc.min(speed_fraction_decc).clamp(0.0, 1.0);
 
             self.step(Axis::HEAD, &speed_handler, speed_fraction);

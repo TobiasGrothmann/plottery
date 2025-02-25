@@ -1,5 +1,8 @@
 use plottery_lib::*;
-use plottery_server_lib::{plot_settings::PlotSettings, task::Task};
+use plottery_server_lib::{
+    plot_settings::{PlotSettings, SpeedRange},
+    task::Task,
+};
 
 use clap::{Parser, Subcommand};
 use reqwest::Client;
@@ -25,10 +28,7 @@ async fn main() {
     let args = Args::parse();
     let client = Client::new();
     let sample_settings = SampleSettings::default();
-    let plot_settings = PlotSettings {
-        accelleration_dist: 0.1,
-        corner_slowdown_power: 0.5,
-    };
+    let plot_settings = PlotSettings::default();
 
     match args.command {
         Command::Rect => {
