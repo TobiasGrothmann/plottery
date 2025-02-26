@@ -14,8 +14,9 @@ use crate::{
 use bincode::{deserialize, serialize};
 use dioxus::prelude::*;
 use notify::FsEventWatcher;
-use plottery_lib::Layer;
+use plottery_lib::{Layer, SampleSettings};
 use plottery_project::{Project, ProjectParamsListWrapper};
+use plottery_server_lib::{plot_setting::PlotSettings, task::send_task};
 use std::{path::PathBuf, sync::Arc};
 use tokio::{sync::Mutex, task::JoinHandle};
 
@@ -192,6 +193,31 @@ pub fn Editor(project_path: String) -> Element {
                             }
                         },
                         p { "hot reload" }
+                    }
+                    button { class: "img_button",
+                        onclick: move |_event| {
+                            let layer_option = layer_change_wrapper.read().layer.clone();
+                            match layer_option {
+                                Some(layer) => {
+                                    tokio::spawn(async move {
+                                        console.read().info("...sending plot");
+                                        let plot_result = send_task(plottery_server_lib::task::Task::Plot {
+                                            layer: layer,
+                                            sample_settings: SampleSettings::default(),
+                                            plot_settings: PlotSettings::default()
+                                        }).await;
+                                        if plot_result.is_err() {
+                                            console.read().error(format!("failed to send plot: {:?}", plot_result.err().unwrap()).as_str());
+                                        }
+                                    });
+                                },
+                                None => {
+                                    console.read().error("cannot send plot: no layer available");
+                                }
+                            }
+
+                        },
+                        p { "send plot" }
                     }
                 }
             }

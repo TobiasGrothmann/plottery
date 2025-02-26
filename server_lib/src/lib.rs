@@ -1,4 +1,6 @@
 pub mod plot_setting;
 pub mod task;
 
-pub static SERVER_PORT: u32 = 29797;
+// TODO: config
+pub static HOST_PORT: u16 = 29797;
+pub static HOST_NAME: &str = "otter.local";

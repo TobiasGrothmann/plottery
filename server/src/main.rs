@@ -12,8 +12,11 @@ mod task_handler;
 #[cfg(feature = "raspi")]
 mod system;
 
-use plottery_server_lib::{task::Task, SERVER_PORT};
-use rocket::State;
+use plottery_server_lib::{task::Task, HOST_PORT};
+use rocket::{
+    data::{Limits, ToByteUnit},
+    Config, State,
+};
 use task_handler::start_server;
 use tokio::sync::mpsc::Sender;
 
@@ -37,14 +40,26 @@ async fn main() {
         }
     }
 
-    rocket::build()
+    let data_limit = 1.gigabytes();
+
+    let config = Config::figment()
+        .merge((
+            "limits",
+            Limits::default()
+                .limit("string", data_limit)
+                .limit("bytes", data_limit)
+                .limit("data-form", data_limit)
+                .limit("file", data_limit)
+                .limit("form", data_limit)
+                .limit("json", data_limit)
+                .limit("msgpack", data_limit),
+        ))
+        .merge(("ip", "0.0.0.0"))
+        .merge(("port", HOST_PORT));
+
+    rocket::custom(config)
         .mount("/", routes![task])
         .manage(sender)
-        .configure(
-            rocket::Config::figment()
-                .merge(("port", SERVER_PORT))
-                .merge(("address", "0.0.0.0")),
-        )
         .launch()
         .await
         .unwrap();

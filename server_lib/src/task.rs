@@ -1,8 +1,10 @@
 use base64::prelude::*;
 use plottery_lib::*;
-use serde::{Deserialize, Serialize};
 
-use crate::plot_setting::PlotSettings;
+use crate::{plot_setting::PlotSettings, HOST_NAME, HOST_PORT};
+
+use reqwest::Client;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Task {
@@ -33,4 +35,15 @@ impl Task {
         let serialized = bincode::serialize(self)?;
         Ok(BASE64_STANDARD.encode(&serialized))
     }
+}
+
+pub async fn send_task(task: Task) -> anyhow::Result<()> {
+    let client = Client::new();
+    let body = task.to_base64().unwrap();
+    client
+        .post(&format!("http://{}:{}/task", HOST_NAME, HOST_PORT))
+        .body(body)
+        .send()
+        .await?;
+    Ok(())
 }
