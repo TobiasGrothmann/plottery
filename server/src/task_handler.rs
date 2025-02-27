@@ -15,7 +15,7 @@ pub async fn start_server(mut receiver: mpsc::Receiver<Task>) -> anyhow::Result<
 
     task::spawn(async move {
         while let Some(task) = receiver.recv().await {
-            println!("Received task: {:?}", task);
+            println!("...received task");
             match task {
                 Task::Plot {
                     layer,
@@ -24,6 +24,7 @@ pub async fn start_server(mut receiver: mpsc::Receiver<Task>) -> anyhow::Result<
                 } => {
                     hardware.set_enabled(true);
                     plot_layer(&mut hardware, &layer, &sample_settings, &plot_settings).await;
+                    travel_to(&mut hardware, V2::zero(), &plot_settings).await;
                     hardware.set_enabled(false);
                 }
                 Task::PlotShape {
@@ -33,6 +34,7 @@ pub async fn start_server(mut receiver: mpsc::Receiver<Task>) -> anyhow::Result<
                 } => {
                     hardware.set_enabled(true);
                     plot_shape(&mut hardware, &shape, &sample_settings, &plot_settings).await;
+                    travel_to(&mut hardware, V2::zero(), &plot_settings).await;
                     hardware.set_enabled(false);
                 }
                 Task::SetEnabled(enabled) => {
@@ -155,6 +157,4 @@ pub async fn plot_shape(
     for (from, to) in accelleration_path.points.iter().tuple_windows() {
         hardware.move_to(from.speed, to, &speed_draw);
     }
-
-    travel_to(hardware, V2::zero(), plot_settings).await;
 }
