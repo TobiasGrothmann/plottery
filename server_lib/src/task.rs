@@ -35,11 +35,17 @@ impl Task {
         let serialized = bincode::serialize(self)?;
         Ok(BASE64_STANDARD.encode(&serialized))
     }
+    pub fn from_binary(data: &[u8]) -> anyhow::Result<Self> {
+        Ok(bincode::deserialize(data)?)
+    }
+    pub fn to_binary(&self) -> anyhow::Result<Vec<u8>> {
+        Ok(bincode::serialize(self)?)
+    }
 }
 
 pub async fn send_task(task: Task) -> anyhow::Result<()> {
     let client = Client::new();
-    let body = task.to_base64().unwrap();
+    let body = task.to_binary().unwrap();
     client
         .post(&format!("http://{}:{}/task", HOST_NAME, HOST_PORT))
         .body(body)

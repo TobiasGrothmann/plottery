@@ -21,9 +21,12 @@ use task_handler::start_server;
 use tokio::sync::mpsc::Sender;
 
 #[post("/task", data = "<task_data>")]
-async fn task(task_sender: &State<Sender<Task>>, task_data: &str) {
-    let task = Task::from_base64(task_data).expect("Failed to decode base64");
-    task_sender.send(task).await.expect("Failed to send task");
+async fn task(task_sender: &State<Sender<Task>>, task_data: &[u8]) {
+    let task = Task::from_binary(task_data).expect("Failed to decode task");
+    task_sender
+        .send(task)
+        .await
+        .expect("Failed to process task");
 }
 
 #[rocket::main]
