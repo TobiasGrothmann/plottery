@@ -43,18 +43,8 @@ async fn main() {
     let data_limit = 1.gigabytes();
 
     let config = Config::figment()
-        .merge((
-            "limits",
-            Limits::default()
-                .limit("string", data_limit)
-                .limit("bytes", data_limit)
-                .limit("data-form", data_limit)
-                .limit("file", data_limit)
-                .limit("form", data_limit)
-                .limit("json", data_limit)
-                .limit("msgpack", data_limit),
-        ))
-        .merge(("ip", "0.0.0.0"))
+        .merge(("limits", Limits::default().limit("bytes", data_limit)))
+        .merge(("address", "0.0.0.0"))
         .merge(("port", HOST_PORT));
 
     rocket::custom(config)
