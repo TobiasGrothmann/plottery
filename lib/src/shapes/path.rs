@@ -404,3 +404,17 @@ impl ClosestPoint for Path {
         closest.map(|closest| closest.0)
     }
 }
+
+impl From<Vec<V2>> for Path {
+    fn from(points: Vec<V2>) -> Self {
+        Self { points }
+    }
+}
+
+impl From<Vec<&V2>> for Path {
+    fn from(points: Vec<&V2>) -> Self {
+        Self {
+            points: points.into_iter().cloned().collect(),
+        }
+    }
+}

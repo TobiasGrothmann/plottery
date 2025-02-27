@@ -401,6 +401,13 @@ impl Default for Layer {
     }
 }
 
+impl From<Vec<Vec<V2>>> for Layer {
+    fn from(vecs: Vec<Vec<V2>>) -> Self {
+        let shapes = vecs.into_iter().map(|points| points.into()).collect();
+        Layer::new_from(shapes)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct LayerFlattenedIterator<'a> {
     stack: Vec<&'a Layer>,
@@ -436,15 +443,6 @@ impl<'a> Iterator for LayerFlattenedIterator<'a> {
                 return None;
             }
         }
-    }
-}
-
-impl IntoIterator for Layer {
-    type Item = Shape;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.shapes.into_iter()
     }
 }
 

@@ -346,3 +346,9 @@ impl ClosestPoint for Shape {
         }
     }
 }
+
+impl From<Vec<V2>> for Shape {
+    fn from(points: Vec<V2>) -> Self {
+        Path::new_shape_from(points)
+    }
+}

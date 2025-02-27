@@ -28,6 +28,7 @@ impl Default for SampleSettings {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct Masked {
     pub inside: Layer,
     pub outside: Layer,
