@@ -6,8 +6,10 @@ use svg::{node::element::path::Data, Document};
 
 use crate::{
     traits::{Normalize, Scale, Scale2D, Translate},
-    BoundingBox, Circle, Masked, Path, Plottable, Rect, Rotate, SampleSettings, Shape, V2,
+    Angle, BoundingBox, Circle, Masked, Path, Plottable, Rect, Rotate, SampleSettings, Shape, V2,
 };
+
+use super::path_end::PathEnd;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Layer {
@@ -170,7 +172,7 @@ impl Layer {
         Ok(())
     }
 
-    pub fn combine_shapes_flat(&self) -> Self {
+    pub fn combine_shapes_flat(&self, max_angle_delta: Option<Angle>) -> Self {
         let mut combined_shapes = Layer::new();
 
         // flatten references, create mask of used shapes
@@ -196,7 +198,7 @@ impl Layer {
 
         let mut last_num_paths = paths.len();
         loop {
-            paths = self.combine_shapes_flat_iterate(&paths);
+            paths = self.combine_shapes_flat_iterate(&paths, &max_angle_delta);
             if last_num_paths <= paths.len() || paths.len() == 1 {
                 break;
             }
@@ -210,14 +212,25 @@ impl Layer {
         combined_shapes
     }
 
-    fn combine_shapes_flat_iterate(&self, paths: &[Path]) -> Vec<Path> {
+    fn combine_shapes_flat_iterate(
+        &self,
+        paths: &[Path],
+        max_angle_delta: &Option<Angle>,
+    ) -> Vec<Path> {
         let mut combined_paths = Vec::new();
 
         // iterate paths, combine
         let mut mask = vec![false; paths.len()];
         let mut current_path = Path::new();
-        let mut current_path_start = V2::new(0.0, 0.0);
-        let mut current_path_end = V2::new(0.0, 0.0);
+        let mut current_path_start = PathEnd {
+            point: V2::new(0.0, 0.0),
+            angle: Angle::zero(),
+        };
+        let mut current_path_end = PathEnd {
+            point: V2::new(0.0, 0.0),
+            angle: Angle::zero(),
+        };
+
         for (i, path) in paths.iter().enumerate() {
             if mask[i] {
                 continue;
@@ -226,8 +239,8 @@ impl Layer {
             // start new path
             if current_path.is_empty() {
                 current_path.push_many(path.get_points_ref());
-                current_path_start = *current_path.get_start().unwrap();
-                current_path_end = *current_path.get_end().unwrap();
+                current_path_start = PathEnd::from_path_start(path);
+                current_path_end = PathEnd::from_path_end(path);
                 mask[i] = true;
             }
 
@@ -236,38 +249,42 @@ impl Layer {
                     continue;
                 }
 
-                let start = path_candidate.get_start().unwrap();
-                let end = path_candidate.get_end().unwrap();
+                let start = PathEnd::from_path_start(path_candidate);
+                let end = PathEnd::from_path_end(path_candidate);
 
-                if current_path_end == start {
+                if current_path_end.is_compatible(&start, max_angle_delta) {
                     // regular append
+                    // current_start -> current_end -> # -> start -> end
                     current_path.push_iter_ref(path_candidate.get_points_ref().iter().skip(1));
 
-                    current_path_end = *end;
+                    current_path_end = end;
                     mask[j] = true;
-                } else if current_path_end == end {
+                } else if current_path_end.is_compatible(&end.flipped(), max_angle_delta) {
                     // reverse candidate and append
+                    // current_start -> current_end -> # -> end -> start
                     current_path
                         .push_iter_ref(path_candidate.get_points_ref().iter().rev().skip(1));
 
-                    current_path_end = *start;
+                    current_path_end = start.flipped();
                     mask[j] = true;
-                } else if current_path_start == end {
+                } else if current_path_start.is_compatible(&end, max_angle_delta) {
                     // regular prepend
+                    // start -> end -> # -> current_start -> current_end
                     let mut new_current_path = (*path_candidate).clone();
                     new_current_path.push_iter_ref(current_path.get_points_ref().iter().skip(1));
                     current_path = new_current_path;
 
-                    current_path_start = *start;
+                    current_path_start = start;
                     mask[j] = true;
-                } else if current_path_start == start {
-                    // reverse path and prepend
+                } else if current_path_start.is_compatible(&start.flipped(), max_angle_delta) {
+                    // reverse candidate and prepend
+                    // end -> start -> # -> current_start -> current_end
                     let mut new_current_path = (*path_candidate).clone();
                     new_current_path.reverse_mut();
                     new_current_path.push_iter_ref(current_path.get_points_ref().iter().skip(1));
                     current_path = new_current_path;
 
-                    current_path_start = *end;
+                    current_path_start = end.flipped();
                     mask[j] = true;
                 }
             }

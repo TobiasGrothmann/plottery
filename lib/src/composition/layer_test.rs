@@ -7,9 +7,10 @@ mod test_layer {
     use svg::parser::Event;
 
     use crate::{
+        geometry::ToAngle,
         traits::{normalize::Alignment, Translate},
-        Angle, BoundingBox, Circle, Layer, Normalize, Path, Plottable, Rect, Rotate,
-        SampleSettings, V2,
+        Angle, BoundingBox, Circle, FloatInterpolation, Layer, Normalize, Path, Plottable, Rect,
+        Rotate, SampleSettings, LARGE_EPSILON, V2,
     };
 
     #[test]
@@ -241,7 +242,7 @@ mod test_layer {
         let mut a = Layer::new();
         a.push_path(Path::new_from(vec![V2::xy(0.0), V2::xy(1.0)]));
         a.push_path(Path::new_from(vec![V2::xy(1.0), V2::xy(2.0)]));
-        let b = a.combine_shapes_flat();
+        let b = a.combine_shapes_flat(Some(Angle::from_degrees(1.0)));
         println!("{:?}", b);
         assert_eq!(b.len(), 1);
     }
@@ -251,7 +252,7 @@ mod test_layer {
         let mut a = Layer::new();
         a.push_path(Path::new_from(vec![V2::xy(0.0), V2::xy(1.0)]));
         a.push_path(Path::new_from(vec![V2::xy(2.0), V2::xy(1.0)]));
-        let b = a.combine_shapes_flat();
+        let b = a.combine_shapes_flat(Some(Angle::from_degrees(1.0)));
         assert_eq!(b.len(), 1);
     }
 
@@ -260,7 +261,7 @@ mod test_layer {
         let mut a = Layer::new();
         a.push_path(Path::new_from(vec![V2::xy(1.0), V2::xy(0.0)]));
         a.push_path(Path::new_from(vec![V2::xy(1.0), V2::xy(2.0)]));
-        let b = a.combine_shapes_flat();
+        let b = a.combine_shapes_flat(Some(Angle::from_degrees(1.0)));
         assert_eq!(b.len(), 1);
     }
 
@@ -269,7 +270,7 @@ mod test_layer {
         let mut a = Layer::new();
         a.push_path(Path::new_from(vec![V2::xy(1.0), V2::xy(0.0)]));
         a.push_path(Path::new_from(vec![V2::xy(2.0), V2::xy(1.0)]));
-        let b = a.combine_shapes_flat();
+        let b = a.combine_shapes_flat(Some(Angle::from_degrees(1.0)));
         assert_eq!(b.len(), 1);
     }
 
@@ -280,8 +281,178 @@ mod test_layer {
         a.push_path(Path::new_from(vec![V2::new(0.0, 0.0), V2::new(0.0, 1.0)]));
         a.push_path(Path::new_from(vec![V2::new(1.0, 1.0), V2::new(1.0, 0.0)]));
         a.push_path(Path::new_from(vec![V2::new(1.0, 1.0), V2::new(0.0, 1.0)]));
-        let b = a.combine_shapes_flat();
+
+        let b = a.combine_shapes_flat(None);
         assert_eq!(b.len(), 1);
+
+        let c = a.combine_shapes_flat(Some(Angle::from_degrees(1.0)));
+        assert_eq!(c.len(), 4);
+    }
+
+    #[test]
+    fn combine_shapes_angle_end_to_start() {
+        let mut a = Layer::new();
+        a.push_path(Path::new_from(vec![V2::new(0.0, 0.0), V2::new(1.0, 0.0)]));
+        a.push_path(Path::new_from(vec![V2::new(1.0, 0.0), V2::new(2.0, 1.0)])); // 45°
+
+        let b = a.combine_shapes_flat(None);
+        assert_eq!(b.len(), 1);
+
+        let c = a.combine_shapes_flat(Some(Angle::from_degrees(40.0)));
+        assert_eq!(c.len(), 2);
+
+        let d = a.combine_shapes_flat(Some(Angle::from_degrees(50.0)));
+        assert_eq!(d.len(), 1);
+    }
+
+    #[test]
+    fn combine_shapes_angle_end_to_end() {
+        let mut a = Layer::new();
+        a.push_path(Path::new_from(vec![V2::new(0.0, 0.0), V2::new(1.0, 0.0)]));
+        a.push_path(Path::new_from(vec![V2::new(2.0, 1.0), V2::new(1.0, 0.0)])); // 45°
+
+        let b = a.combine_shapes_flat(None);
+        assert_eq!(b.len(), 1);
+
+        let c = a.combine_shapes_flat(Some(Angle::from_degrees(40.0)));
+        assert_eq!(c.len(), 2);
+
+        let d = a.combine_shapes_flat(Some(Angle::from_degrees(50.0)));
+        assert_eq!(d.len(), 1);
+    }
+
+    #[test]
+    fn combine_shapes_angle_start_to_end() {
+        let mut a = Layer::new();
+        a.push_path(Path::new_from(vec![V2::new(1.0, 0.0), V2::new(0.0, 0.0)]));
+        a.push_path(Path::new_from(vec![V2::new(2.0, 1.0), V2::new(1.0, 0.0)])); // 45°
+
+        let b = a.combine_shapes_flat(None);
+        assert_eq!(b.len(), 1);
+
+        let c = a.combine_shapes_flat(Some(Angle::from_degrees(40.0)));
+        assert_eq!(c.len(), 2);
+
+        let d = a.combine_shapes_flat(Some(Angle::from_degrees(50.0)));
+        assert_eq!(d.len(), 1);
+    }
+
+    #[test]
+    fn combine_shapes_angle_start_to_start() {
+        let mut a = Layer::new();
+        a.push_path(Path::new_from(vec![V2::new(1.0, 0.0), V2::new(0.0, 0.0)]));
+        a.push_path(Path::new_from(vec![V2::new(1.0, 0.0), V2::new(2.0, 1.0)])); // 45°
+
+        let b = a.combine_shapes_flat(None);
+        assert_eq!(b.len(), 1);
+
+        let c = a.combine_shapes_flat(Some(Angle::from_degrees(40.0)));
+        assert_eq!(c.len(), 2);
+
+        let d = a.combine_shapes_flat(Some(Angle::from_degrees(50.0)));
+        assert_eq!(d.len(), 1);
+    }
+
+    #[test]
+    fn combine_shapes_angles() {
+        let center = V2::new(3.5, 5.0);
+
+        for angle_diff_deg in (-85.0).lerp_iter_fixed(85.0, 20) {
+            let angle_diff = angle_diff_deg.degrees();
+
+            for start_angle_deg in 0.0.lerp_iter_fixed(360.0, 20) {
+                let start_angle = start_angle_deg.degrees();
+                let end_angle = start_angle + angle_diff;
+
+                let point_before = center - V2::polar(start_angle, 1.0);
+                let point_after = center + V2::polar(end_angle, 1.0);
+
+                let a = Layer::new_from(vec![
+                    Path::new_shape_from(vec![point_before, center]),
+                    Path::new_shape_from(vec![center, point_after]),
+                ]);
+                let b = Layer::new_from(vec![
+                    Path::new_shape_from(vec![center, point_before]),
+                    Path::new_shape_from(vec![center, point_after]),
+                ]);
+                let c = Layer::new_from(vec![
+                    Path::new_shape_from(vec![point_before, center]),
+                    Path::new_shape_from(vec![point_after, center]),
+                ]);
+                let d = Layer::new_from(vec![
+                    Path::new_shape_from(vec![center, point_before]),
+                    Path::new_shape_from(vec![point_after, center]),
+                ]);
+
+                let a2 = Layer::new_from(vec![
+                    Path::new_shape_from(vec![center, point_after]),
+                    Path::new_shape_from(vec![point_before, center]),
+                ]);
+                let b2 = Layer::new_from(vec![
+                    Path::new_shape_from(vec![center, point_after]),
+                    Path::new_shape_from(vec![center, point_before]),
+                ]);
+                let c2 = Layer::new_from(vec![
+                    Path::new_shape_from(vec![point_after, center]),
+                    Path::new_shape_from(vec![point_before, center]),
+                ]);
+                let d2 = Layer::new_from(vec![
+                    Path::new_shape_from(vec![point_after, center]),
+                    Path::new_shape_from(vec![center, point_before]),
+                ]);
+
+                for layer in [a, b, c, d, a2, b2, c2, d2].iter() {
+                    let combined = layer.combine_shapes_flat(None);
+                    assert_eq!(combined.len(), 1);
+
+                    let combined =
+                        layer.combine_shapes_flat(Some(angle_diff.abs() + 2.0.degrees()));
+                    assert_eq!(combined.len(), 1);
+
+                    let combined =
+                        layer.combine_shapes_flat(Some(angle_diff.abs() - 2.0.degrees()));
+                    assert_eq!(combined.len(), 2);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn combine_shapes_three() {
+        let center = V2::new(0.0, 0.0);
+        let angle_a = 180.degrees();
+        let angle_b = 90.degrees();
+        let angle_c = 0.degrees();
+
+        let a = Path::new_shape_from(vec![center + V2::polar(angle_a, 1.0), center]);
+        let b = Path::new_shape_from(vec![center + V2::polar(angle_b, 1.0), center]);
+        let c = Path::new_shape_from(vec![center + V2::polar(angle_c, 1.0), center]);
+
+        let layer_a = Layer::new_from(vec![a.clone(), b.clone(), c.clone()]);
+        let layer_b = Layer::new_from(vec![a.clone(), c.clone(), b.clone()]);
+        let layer_c = Layer::new_from(vec![b.clone(), a.clone(), c.clone()]);
+        let layer_d = Layer::new_from(vec![b.clone(), c.clone(), a.clone()]);
+        let layer_e = Layer::new_from(vec![c.clone(), a.clone(), b.clone()]);
+        let layer_f = Layer::new_from(vec![c.clone(), b.clone(), a.clone()]);
+
+        for layer in [layer_a, layer_b, layer_c, layer_d, layer_e, layer_f].iter() {
+            let combined = layer.combine_shapes_flat(Some(10.degrees()));
+            assert_eq!(combined.len(), 2);
+
+            let shapes: Vec<_> = combined
+                .iter_flattened()
+                .sorted_by_key(|a| a.length().round() as i32) // sort by length ascending
+                .collect();
+
+            println!("{:?}", shapes);
+
+            assert!(shapes[0].get_points(&SampleSettings::default())[0] == V2::new(0.0, 1.0));
+            assert!(shapes[0].get_points(&SampleSettings::default())[1] == V2::new(0.0, 0.0));
+
+            assert!(shapes[1].get_points(&SampleSettings::default())[0].y <= LARGE_EPSILON);
+            assert!(shapes[1].get_points(&SampleSettings::default())[1] == V2::new(0.0, 0.0));
+            assert!(shapes[1].get_points(&SampleSettings::default())[2].y <= LARGE_EPSILON);
+        }
     }
 
     #[test]
@@ -295,7 +466,7 @@ mod test_layer {
             a.push_path(path);
         }
 
-        let b = a.combine_shapes_flat();
+        let b = a.combine_shapes_flat(None);
         assert_eq!(b.len(), num_lines / 2);
     }
 
@@ -314,7 +485,7 @@ mod test_layer {
         segments.shuffle(&mut rng);
 
         let a = Layer::new_from(segments);
-        let b = a.combine_shapes_flat();
+        let b = a.combine_shapes_flat(None);
         assert_eq!(b.len(), 1);
     }
 }
