@@ -135,4 +135,77 @@ mod test_angle {
         let c = Angle::from_degrees(-180.0).with_smallest_rotation_to(a);
         assert_eq!(c, Angle::from_degrees(180.0));
     }
+
+    #[test]
+    fn distance() {
+        let a = Angle::from_degrees(10.0);
+
+        // simple
+        assert_eq!(
+            a.dist_mod_one_rotation(Angle::from_degrees(20.0)),
+            Angle::from_degrees(10.0)
+        );
+        assert_eq!(
+            Angle::from_degrees(20.0).dist_mod_one_rotation(a),
+            Angle::from_degrees(10.0)
+        );
+        assert_eq!(
+            a.dist_mod_one_rotation(Angle::from_degrees(0.0)),
+            Angle::from_degrees(10.0)
+        );
+
+        // wrap around
+        assert_eq!(
+            a.dist_mod_one_rotation(Angle::from_degrees(350.0)),
+            Angle::from_degrees(20.0)
+        );
+        assert_eq!(
+            Angle::from_degrees(350.0).dist_mod_one_rotation(a),
+            Angle::from_degrees(20.0)
+        );
+
+        for deg_a in -360..720 {
+            let a = Angle::from_degrees(deg_a as f32);
+            for deg_b in -360..720 {
+                let b = Angle::from_degrees(deg_b as f32);
+                assert_eq!(a.dist_mod_one_rotation(b), b.dist_mod_one_rotation(a));
+                println!(
+                    "from {} to {} -> distance: {}",
+                    deg_a,
+                    deg_b,
+                    a.dist_mod_one_rotation(b).to_degree()
+                );
+                assert!(a.dist_mod_one_rotation(b) >= Angle::zero());
+                assert!(a.dist_mod_one_rotation(b) <= Angle::half_rotation());
+            }
+        }
+
+        // negative
+        assert_eq!(
+            Angle::from_degrees(-5.0).dist_mod_one_rotation(Angle::from_degrees(5.0)),
+            Angle::from_degrees(10.0)
+        );
+        assert_eq!(
+            Angle::from_degrees(360.0).dist_mod_one_rotation(Angle::from_degrees(360.0)),
+            Angle::from_degrees(0.0)
+        );
+        assert_eq!(
+            Angle::from_degrees(-90.0).dist_mod_one_rotation(Angle::from_degrees(270.0)),
+            Angle::from_degrees(0.0)
+        );
+        assert_eq!(
+            Angle::from_degrees(-90.0)
+                .dist_mod_one_rotation(Angle::from_degrees(270.0) + Angle::full_rotation()),
+            Angle::from_degrees(0.0)
+        );
+        assert_eq!(
+            Angle::from_degrees(-90.0).dist_mod_one_rotation(
+                Angle::from_degrees(270.0)
+                    + Angle::full_rotation()
+                    + Angle::full_rotation()
+                    + Angle::full_rotation()
+            ),
+            Angle::from_degrees(0.0)
+        );
+    }
 }
