@@ -150,6 +150,38 @@ pub trait Plottable: Clone {
         }
     }
 
+    fn mask_brute_force(&self, mask: &Shape, sample_settings: &SampleSettings) -> Masked {
+        let points_shape = self.get_points_oversampled(sample_settings);
+
+        let mut inside = Layer::new();
+        let mut outside = Layer::new();
+
+        let mut current_part = Path::new_from(vec![*points_shape.first().unwrap()]);
+        let mut is_inside = mask.contains_point(&current_part.get_start().unwrap());
+
+        for point in points_shape {
+            let new_inside = mask.contains_point(&point);
+            if is_inside != new_inside {
+                if is_inside {
+                    inside.push_path(current_part);
+                } else {
+                    outside.push_path(current_part);
+                }
+                current_part = Path::new_from(vec![point]);
+            }
+            is_inside = new_inside;
+            current_part.push(point);
+        }
+
+        if is_inside {
+            inside.push_path(current_part);
+        } else {
+            outside.push_path(current_part);
+        }
+
+        Masked { inside, outside }
+    }
+
     fn mask_inside(&self, mask: &Shape, sample_settings: &SampleSettings) -> Layer {
         let shape_geo = self.as_geo_multi_line_string(sample_settings);
         let mask_geo = mask.as_geo_polygon(sample_settings);

@@ -4405,7 +4405,6 @@ dependencies = [
  "plottery_lib",
  "reqwest",
  "serde",
- "serde_json",
 ]
 
 [[package]]

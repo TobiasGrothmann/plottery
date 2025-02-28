@@ -1,4 +1,5 @@
 use geometry_predicates::orient2d;
+use itertools::Itertools;
 
 use crate::{LARGE_EPSILON, V2};
 
@@ -151,5 +152,17 @@ impl Line {
             return self.to;
         }
         self.from + l * t
+    }
+
+    pub fn intersect_multiple_sorted(&self, line_segments: &Vec<Line>) -> Vec<V2> {
+        line_segments
+            .into_iter()
+            .map(|segment| self.intersection(&segment))
+            .filter_map(|intersection| match intersection {
+                LineIntersection::Intersection(point) => Some(point),
+                _ => None,
+            })
+            .sorted_by_cached_key(|point| point.dist_squared(&self.from).to_bits())
+            .collect()
     }
 }

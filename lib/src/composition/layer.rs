@@ -397,6 +397,23 @@ impl Layer {
     pub fn simplify(&self, aggression_factor: f32) -> Self {
         self.map_recursive(|shape| shape.simplify(aggression_factor))
     }
+
+    pub fn mask_flattened_brute_force(
+        &self,
+        mask: &Shape,
+        sample_settings: &SampleSettings,
+    ) -> Masked {
+        let mut inside = Layer::new();
+        let mut outside = Layer::new();
+
+        for shape in self.iter_flattened() {
+            let masked = shape.mask_brute_force(mask, sample_settings);
+            inside.push_layer_flat(masked.inside);
+            outside.push_layer_flat(masked.outside);
+        }
+
+        Masked { inside, outside }
+    }
 }
 
 impl Default for Layer {
