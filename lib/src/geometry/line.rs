@@ -1,6 +1,6 @@
 use geometry_predicates::orient2d;
 
-use crate::V2;
+use crate::{LARGE_EPSILON, V2};
 
 use super::Angle;
 
@@ -54,9 +54,9 @@ impl Line {
             [self.to.x as f64, self.to.y as f64],
             [point.x as f64, point.y as f64],
         );
-        if orientation > 0.0 {
+        if orientation >= LARGE_EPSILON as f64 {
             return PointLineRelation::Left;
-        } else if orientation < 0.0 {
+        } else if orientation <= -LARGE_EPSILON as f64 {
             return PointLineRelation::Right;
         }
         PointLineRelation::OnLine
