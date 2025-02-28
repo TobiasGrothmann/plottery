@@ -102,18 +102,11 @@ impl Layer {
             return Document::new();
         }
         let bounding_box = bounding_box.unwrap();
+        let svg_max_coords: V2 = bounding_box.tr() * scale + V2::new(1.0, 1.0);
         let mut document = Document::new()
-            .set(
-                "viewbox",
-                (
-                    bounding_box.bl().x * scale,
-                    bounding_box.bl().y * scale,
-                    bounding_box.tr().x * scale,
-                    bounding_box.tr().y * scale,
-                ),
-            )
-            .set("width", bounding_box.size().x * scale)
-            .set("height", bounding_box.size().y * scale);
+            .set("viewBox", (0, 0, svg_max_coords.x, svg_max_coords.y))
+            .set("width", svg_max_coords.x)
+            .set("height", svg_max_coords.y);
 
         let fill = "none";
         let stroke = "black";
