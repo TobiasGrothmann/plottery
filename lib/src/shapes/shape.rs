@@ -7,7 +7,6 @@ use crate::{
     traits::{ClosestPoint, Normalize, Scale, Scale2D, Transform, Translate},
     BoundingBox, Plottable, Rotate, Rotate90, SampleSettings, V2,
 };
-use base64::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -15,19 +14,6 @@ pub enum Shape {
     Circle(Circle),
     Rect(Rect),
     Path(Path),
-}
-
-impl Shape {
-    pub fn to_base64(&self) -> Result<String, Box<dyn std::error::Error>> {
-        let serialized = bincode::serialize(self)?;
-        Ok(BASE64_STANDARD.encode(&serialized))
-    }
-
-    pub fn new_from_base64(encoded: &str) -> Result<Self, Box<dyn std::error::Error>> {
-        let decoded = BASE64_STANDARD.decode(encoded)?;
-        let deserialized: Shape = bincode::deserialize(&decoded)?;
-        Ok(deserialized)
-    }
 }
 
 impl Plottable for Shape {
