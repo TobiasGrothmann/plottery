@@ -135,21 +135,6 @@ impl Path {
         new_points
     }
 
-    pub fn simplify(&self, aggression_factor: f32) -> Self {
-        let epsilon = 0.0001 + aggression_factor.clamp(0.0, 1.0).powf(3.0);
-
-        let points: Vec<_> = self.points.iter().map(|v| v.into()).collect();
-        let rdp_indices = rdp(points.as_slice(), epsilon as f64);
-        let rdp_indices: HashSet<usize> = rdp_indices.into_iter().collect();
-        Path::new_from_iter(self.points.iter().enumerate().filter_map(|(i, _)| {
-            if rdp_indices.contains(&i) {
-                Some(self.points[i])
-            } else {
-                None
-            }
-        }))
-    }
-
     pub fn to_shape(&self) -> Shape {
         Shape::Path(self.clone())
     }
@@ -186,6 +171,35 @@ impl Plottable for Path {
 
     fn is_closed(&self) -> bool {
         !self.points.is_empty() && self.points.first() == self.points.last()
+    }
+
+    fn contains_point(&self, point: &V2) -> bool {
+        let mut inside = false;
+        for (from, to) in self.points.iter().tuple_windows() {
+            let crosses_horizontal_line_through_point = (from.y > point.y) != (to.y > point.y);
+            let intersec_right_of_point =
+                point.x < (to.x - from.x) * (point.y - from.y) / (to.y - from.y) + from.x;
+
+            if crosses_horizontal_line_through_point && intersec_right_of_point {
+                inside = !inside;
+            }
+        }
+        inside
+    }
+
+    fn simplify(&self, aggression_factor: f32) -> Self {
+        let epsilon = 0.0001 + aggression_factor.clamp(0.0, 1.0).powf(3.0);
+
+        let points: Vec<_> = self.points.iter().map(|v| v.into()).collect();
+        let rdp_indices = rdp(points.as_slice(), epsilon as f64);
+        let rdp_indices: HashSet<usize> = rdp_indices.into_iter().collect();
+        Path::new_from_iter(self.points.iter().enumerate().filter_map(|(i, _)| {
+            if rdp_indices.contains(&i) {
+                Some(self.points[i])
+            } else {
+                None
+            }
+        }))
     }
 }
 

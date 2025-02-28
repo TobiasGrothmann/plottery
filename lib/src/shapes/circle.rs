@@ -26,9 +26,6 @@ impl Circle {
     pub fn circumference(&self) -> f32 {
         self.radius * 2.0 * PI
     }
-    pub fn contains_point(&self, point: &V2) -> bool {
-        point.dist(&self.center) <= self.radius
-    }
 
     pub fn to_shape(&self) -> Shape {
         Shape::Circle(self.clone())
@@ -118,6 +115,14 @@ impl Plottable for Circle {
 
     fn is_closed(&self) -> bool {
         true
+    }
+
+    fn contains_point(&self, point: &V2) -> bool {
+        point.dist(&self.center) <= self.radius
+    }
+
+    fn simplify(&self, _aggression_factor: f32) -> Self {
+        self.clone()
     }
 }
 

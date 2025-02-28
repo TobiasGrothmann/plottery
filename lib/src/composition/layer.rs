@@ -393,6 +393,10 @@ impl Layer {
             .map(|shape| shape.mask_outside(mask, sample_settings))
             .collect()
     }
+
+    pub fn simplify(&self, aggression_factor: f32) -> Self {
+        self.map_recursive(|shape| shape.simplify(aggression_factor))
+    }
 }
 
 impl Default for Layer {

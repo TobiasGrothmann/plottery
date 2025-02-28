@@ -51,6 +51,22 @@ impl Plottable for Shape {
             Shape::Path(p) => p.is_closed(),
         }
     }
+
+    fn contains_point(&self, point: &V2) -> bool {
+        match self {
+            Shape::Circle(c) => c.contains_point(point),
+            Shape::Rect(r) => r.contains_point(point),
+            Shape::Path(p) => p.contains_point(point),
+        }
+    }
+
+    fn simplify(&self, aggression_factor: f32) -> Self {
+        match self {
+            Shape::Circle(c) => Shape::Circle(c.simplify(aggression_factor)),
+            Shape::Rect(r) => Shape::Rect(r.simplify(aggression_factor)),
+            Shape::Path(p) => Shape::Path(p.simplify(aggression_factor)),
+        }
+    }
 }
 
 impl Clone for Shape {
