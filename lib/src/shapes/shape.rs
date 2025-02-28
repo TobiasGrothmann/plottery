@@ -338,3 +338,21 @@ impl From<Vec<V2>> for Shape {
         Path::new_shape_from(points)
     }
 }
+
+impl From<Circle> for Shape {
+    fn from(circle: Circle) -> Self {
+        Shape::Circle(circle)
+    }
+}
+
+impl From<Rect> for Shape {
+    fn from(rect: Rect) -> Self {
+        Shape::Rect(rect)
+    }
+}
+
+impl From<Path> for Shape {
+    fn from(path: Path) -> Self {
+        Shape::Path(path)
+    }
+}

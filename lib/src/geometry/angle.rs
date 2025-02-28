@@ -193,3 +193,37 @@ impl PartialEq for Angle {
 }
 
 impl Eq for Angle {}
+
+pub trait ToAngle {
+    fn degrees(self) -> Angle;
+    fn rotations(self) -> Angle;
+    fn rad(self) -> Angle;
+}
+
+impl ToAngle for f32 {
+    fn degrees(self) -> Angle {
+        Angle::from_degrees(self)
+    }
+
+    fn rotations(self) -> Angle {
+        Angle::from_rotations(self)
+    }
+
+    fn rad(self) -> Angle {
+        Angle::from_rad(self)
+    }
+}
+
+impl ToAngle for i32 {
+    fn degrees(self) -> Angle {
+        Angle::from_degrees(self as f32)
+    }
+
+    fn rotations(self) -> Angle {
+        Angle::from_rotations(self as f32)
+    }
+
+    fn rad(self) -> Angle {
+        Angle::from_rad(self as f32)
+    }
+}
