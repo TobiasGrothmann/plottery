@@ -46,6 +46,14 @@ mod test_line {
             let line1 = Line::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
             let line2 = Line::new(V2::new(3.5, 0.0), V2::new(0.0, 3.5));
             assert_eq!(line1.intersection(&line2), LineIntersection::NoIntersection);
+
+            let line1 = Line::new(V2::new(0.0, 0.0), V2::new(1.0, 0.0));
+            let line2 = Line::new(V2::new(1.0, -1.0), V2::new(3.0, 1.0));
+            assert_eq!(line1.intersection(&line2), LineIntersection::NoIntersection);
+
+            let line1 = Line::new(V2::new(5.0, 5.0), V2::new(5.0, -3.0));
+            let line2 = Line::new(V2::new(4.0, -7.0), V2::new(6.0, -5.0));
+            assert_eq!(line1.intersection(&line2), LineIntersection::NoIntersection);
         }
 
         #[test]

@@ -92,10 +92,16 @@ impl Line {
         let x = num_x / denom;
         let y = num_y / denom;
 
-        if x < f32::min(x1, x2)
-            || x > f32::max(x1, x2)
-            || x < f32::min(x3, x4)
-            || x > f32::max(x3, x4)
+        // Check if the intersection point lies on both line segments
+        // by verifying both x and y coordinates are within bounds
+        if x < f32::min(x1, x2) - LARGE_EPSILON
+            || x > f32::max(x1, x2) + LARGE_EPSILON
+            || x < f32::min(x3, x4) - LARGE_EPSILON
+            || x > f32::max(x3, x4) + LARGE_EPSILON
+            || y < f32::min(y1, y2) - LARGE_EPSILON
+            || y > f32::max(y1, y2) + LARGE_EPSILON
+            || y < f32::min(y3, y4) - LARGE_EPSILON
+            || y > f32::max(y3, y4) + LARGE_EPSILON
         {
             return LineIntersection::NoIntersection;
         }
