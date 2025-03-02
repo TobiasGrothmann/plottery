@@ -160,7 +160,7 @@ impl Line {
         self.from + l * t
     }
 
-    pub fn intersect_multiple_sorted(&self, line_segments: &Vec<Line>) -> Vec<V2> {
+    pub fn intersect_multiple_sorted_by_dist(&self, line_segments: &Vec<Line>) -> Vec<V2> {
         line_segments
             .into_iter()
             .map(|segment| self.intersection(&segment))

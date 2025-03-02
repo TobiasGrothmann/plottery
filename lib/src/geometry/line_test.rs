@@ -184,7 +184,7 @@ mod test_line {
             let order6 = vec![i3.clone(), i2.clone(), i1.clone()];
 
             for order in vec![order1, order2, order3, order4, order5, order6] {
-                let r = a.intersect_multiple_sorted(&order);
+                let r = a.intersect_multiple_sorted_by_dist(&order);
                 assert_eq!(r.len(), 3);
                 assert_eq!(r[0], V2::xy(0.25));
                 assert_eq!(r[1], V2::xy(0.5));
