@@ -1,18 +1,14 @@
 // pins order is [Y1, Y2, X, HEAD]
+#[cfg_attr(not(feature = "raspi"), allow(dead_code))]
 #[derive(Debug, Clone, Copy)]
 pub struct PinSettings {
     // pins
-    #[cfg(feature = "raspi")]
     pub dir_pins: [u8; 4],
-    #[cfg(feature = "raspi")]
     pub step_pins: [u8; 4],
-    #[cfg(feature = "raspi")]
     pub enable_pins: [u8; 4],
-    #[cfg(feature = "raspi")]
     pub micstep_pins: [[u8; 4]; 3],
 
     // micro stepping
-    #[cfg(feature = "raspi")]
     pub micstep_vals: [[bool; 3]; 4],
 
     // distance and speed to cm
@@ -41,17 +37,11 @@ impl PinSettings {
 
 // TODO: get settings from file
 pub static PIN_SETTINGS: PinSettings = PinSettings {
-    #[cfg(feature = "raspi")]
     dir_pins: [18, 4, 11, 16],
-    #[cfg(feature = "raspi")]
     step_pins: [15, 3, 7, 20],
-    #[cfg(feature = "raspi")]
     enable_pins: [14, 2, 8, 21],
-    // micstep_pins: [[22, 27, 17], [10, 9, 25], [12, 6, 5], [13, 19, 26]],
-    #[cfg(feature = "raspi")]
     micstep_pins: [[22, 10, 12, 13], [27, 9, 6, 19], [17, 25, 5, 26]],
 
-    #[cfg(feature = "raspi")]
     micstep_vals: [
         [true, true, true],
         [true, true, true],
