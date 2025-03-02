@@ -1,9 +1,13 @@
-use crate::{Layer, Line, Path, Shape, V2};
+use crate::{
+    Angle, Layer, Line, LineIntersection, Path, PointLineRelation, Shape, LARGE_EPSILON, V2,
+};
 
 use geo::BooleanOps;
 use geo_types::{LineString, MultiLineString, Polygon};
 
+use geometry_predicates::orient2d;
 use itertools::Itertools;
+use rand::seq::index::sample;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -126,7 +130,7 @@ pub trait Plottable: Clone {
         MultiLineString(vec![self.as_geo_line_string(sample_settings)])
     }
 
-    fn mask(&self, mask: &Shape, sample_settings: &SampleSettings) -> Masked {
+    fn mask_geo(&self, mask: &Shape, sample_settings: &SampleSettings) -> Masked {
         let shape_geo = self.as_geo_multi_line_string(sample_settings);
         let mask_geo = mask.as_geo_polygon(sample_settings);
 
@@ -148,6 +152,28 @@ pub trait Plottable: Clone {
             inside: layer_inside,
             outside: layer_outside,
         }
+    }
+
+    fn mask_geo_inside(&self, mask: &Shape, sample_settings: &SampleSettings) -> Layer {
+        let shape_geo = self.as_geo_multi_line_string(sample_settings);
+        let mask_geo = mask.as_geo_polygon(sample_settings);
+
+        mask_geo
+            .clip(&shape_geo, false)
+            .iter()
+            .map(Path::new_shape_from_geo_line_string)
+            .collect()
+    }
+
+    fn mask_geo_outside(&self, mask: &Shape, sample_settings: &SampleSettings) -> Layer {
+        let shape_geo = self.as_geo_multi_line_string(sample_settings);
+        let mask_geo = mask.as_geo_polygon(sample_settings);
+
+        mask_geo
+            .clip(&shape_geo, true)
+            .iter()
+            .map(Path::new_shape_from_geo_line_string)
+            .collect()
     }
 
     fn mask_brute_force(&self, mask: &Shape, sample_settings: &SampleSettings) -> Masked {
@@ -182,25 +208,83 @@ pub trait Plottable: Clone {
         Masked { inside, outside }
     }
 
-    fn mask_inside(&self, mask: &Shape, sample_settings: &SampleSettings) -> Layer {
-        let shape_geo = self.as_geo_multi_line_string(sample_settings);
-        let mask_geo = mask.as_geo_polygon(sample_settings);
+    fn mask_by_intersections(&self, mask: &Shape, sample_settings: &SampleSettings) -> Masked {
+        let segments_mask = mask.get_line_segments(sample_settings);
 
-        mask_geo
-            .clip(&shape_geo, false)
-            .iter()
-            .map(Path::new_shape_from_geo_line_string)
-            .collect()
+        // perturb the path to avoid points on the mask lines
+        let mut perturbed_path = Path::new();
+        for point in self.get_points(&sample_settings) {
+            let mut perturbed_point = point;
+            loop {
+                let (is_on_mask_line, line_angle) =
+                    is_point_on_mask_line(&perturbed_point, &segments_mask, 0.1);
+                if is_on_mask_line {
+                    perturbed_point =
+                        perturbed_point + V2::polar(line_angle + Angle::quarter_rotation(), 0.05);
+                    continue;
+                }
+
+                break;
+            }
+            perturbed_path.push(perturbed_point);
+        }
+
+        let segments_shape: Vec<_> = perturbed_path.get_line_segments(&sample_settings);
+        let mut inside = Layer::new();
+        let mut outside = Layer::new();
+        let mut current_part = Path::new_from(vec![segments_shape.first().unwrap().from]);
+        let mut currently_inside = mask.contains_point(&current_part.get_start().unwrap());
+
+        // switch inside to outside on each intersection
+        for segment in segments_shape {
+            let intersections_sorted = get_intersections_sorted(&segment, &segments_mask);
+
+            for intersection in intersections_sorted {
+                current_part.push(intersection);
+                if currently_inside {
+                    inside.push_path(current_part);
+                } else {
+                    outside.push_path(current_part);
+                }
+                current_part = Path::new_from(vec![intersection]);
+                currently_inside = !currently_inside;
+            }
+
+            current_part.push(segment.to);
+        }
+
+        if currently_inside {
+            inside.push_path(current_part);
+        } else {
+            outside.push_path(current_part);
+        }
+
+        Masked { inside, outside }
     }
+}
 
-    fn mask_outside(&self, mask: &Shape, sample_settings: &SampleSettings) -> Layer {
-        let shape_geo = self.as_geo_multi_line_string(sample_settings);
-        let mask_geo = mask.as_geo_polygon(sample_settings);
+fn get_intersections_sorted(segment: &Line, segments_mask: &Vec<Line>) -> Vec<V2> {
+    segments_mask
+        .into_iter()
+        .map(|segment_mask| segment.intersection(&segment_mask))
+        .filter_map(|intersection| match intersection {
+            LineIntersection::Intersection(point) => Some(point),
+            _ => None,
+        })
+        .sorted_by_cached_key(|point| point.dist_squared(&segment.from).to_bits())
+        .collect()
+}
 
-        mask_geo
-            .clip(&shape_geo, true)
-            .iter()
-            .map(Path::new_shape_from_geo_line_string)
-            .collect()
+fn is_point_on_mask_line(point: &V2, segments_mask: &Vec<Line>, epsilon: f64) -> (bool, Angle) {
+    for segment_mask in segments_mask {
+        let orientation = orient2d(
+            [segment_mask.from.x as f64, segment_mask.from.y as f64],
+            [segment_mask.to.x as f64, segment_mask.to.y as f64],
+            [point.x as f64, point.y as f64],
+        );
+        if orientation < epsilon && orientation > -epsilon {
+            return (true, segment_mask.angle());
+        }
     }
+    (false, Angle::zero())
 }

@@ -374,7 +374,7 @@ impl Layer {
         let mut outside = Layer::new();
 
         for shape in self.iter_flattened() {
-            let masked = shape.mask(mask, sample_settings);
+            let masked = shape.mask_geo(mask, sample_settings);
             inside.push_layer_flat(masked.inside);
             outside.push_layer_flat(masked.outside);
         }
@@ -382,15 +382,23 @@ impl Layer {
         Masked { inside, outside }
     }
 
-    pub fn mask_flattened_inside(&self, mask: &Shape, sample_settings: &SampleSettings) -> Layer {
+    pub fn mask_geo_flattened_inside(
+        &self,
+        mask: &Shape,
+        sample_settings: &SampleSettings,
+    ) -> Layer {
         self.iter_flattened()
-            .map(|shape| shape.mask_inside(mask, sample_settings))
+            .map(|shape| shape.mask_geo_inside(mask, sample_settings))
             .collect()
     }
 
-    pub fn mask_flattened_outside(&self, mask: &Shape, sample_settings: &SampleSettings) -> Layer {
+    pub fn mask_geo_flattened_outside(
+        &self,
+        mask: &Shape,
+        sample_settings: &SampleSettings,
+    ) -> Layer {
         self.iter_flattened()
-            .map(|shape| shape.mask_outside(mask, sample_settings))
+            .map(|shape| shape.mask_geo_outside(mask, sample_settings))
             .collect()
     }
 
