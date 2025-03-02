@@ -473,7 +473,6 @@ mod test_layer {
     #[test]
     fn combine_shapes_long_line() {
         let mut segments = (0..100)
-            .into_iter()
             .map(|i| Path::new_from(vec![V2::new(i as f32, 0.0), V2::new((i + 1) as f32, 0.0)]))
             .enumerate()
             .map(|(i, path)| if i % 3 == 0 { path.reverse() } else { path })

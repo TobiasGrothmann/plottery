@@ -37,7 +37,7 @@ pub async fn send_task(task: Task) -> anyhow::Result<()> {
     let client = Client::new();
     let body = task.to_binary().unwrap();
     client
-        .post(&format!("http://{}:{}/task", HOST_NAME, HOST_PORT))
+        .post(format!("http://{}:{}/task", HOST_NAME, HOST_PORT))
         .body(body)
         .send()
         .await?;

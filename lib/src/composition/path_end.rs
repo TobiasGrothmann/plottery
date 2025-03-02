@@ -25,7 +25,7 @@ impl PathEnd {
             point: *path.get_start().unwrap(),
             angle: path
                 .get_points_ref()
-                .get(0)
+                .first()
                 .unwrap()
                 .angle_to(path.get_points_ref().get(1).unwrap()),
         }

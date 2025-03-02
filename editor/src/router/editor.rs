@@ -202,7 +202,7 @@ pub fn Editor(project_path: String) -> Element {
                                     tokio::spawn(async move {
                                         console.read().info("...sending plot");
                                         let plot_result = send_task(plottery_server_lib::task::Task::Plot {
-                                            layer: layer,
+                                            layer,
                                             sample_settings: SampleSettings::default(),
                                             plot_settings: PlotSettings::default()
                                         }).await;

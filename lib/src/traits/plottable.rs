@@ -1,13 +1,10 @@
-use crate::{
-    Angle, Layer, Line, LineIntersection, Path, PointLineRelation, Shape, LARGE_EPSILON, V2,
-};
+use crate::{Angle, Layer, Line, LineIntersection, Path, Shape, V2};
 
 use geo::BooleanOps;
 use geo_types::{LineString, MultiLineString, Polygon};
 
 use geometry_predicates::orient2d;
 use itertools::Itertools;
-use rand::seq::index::sample;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -183,7 +180,7 @@ pub trait Plottable: Clone {
         let mut outside = Layer::new();
 
         let mut current_part = Path::new_from(vec![*points_shape.first().unwrap()]);
-        let mut is_inside = mask.contains_point(&current_part.get_start().unwrap());
+        let mut is_inside = mask.contains_point(current_part.get_start().unwrap());
 
         for point in points_shape {
             let new_inside = mask.contains_point(&point);
@@ -213,14 +210,13 @@ pub trait Plottable: Clone {
 
         // perturb the path to avoid points on the mask lines
         let mut perturbed_path = Path::new();
-        for point in self.get_points(&sample_settings) {
+        for point in self.get_points(sample_settings) {
             let mut perturbed_point = point;
             loop {
                 let (is_on_mask_line, line_angle) =
                     is_point_on_mask_line(&perturbed_point, &segments_mask, 0.1);
                 if is_on_mask_line {
-                    perturbed_point =
-                        perturbed_point + V2::polar(line_angle + Angle::quarter_rotation(), 0.05);
+                    perturbed_point += V2::polar(line_angle + Angle::quarter_rotation(), 0.05);
                     continue;
                 }
 
@@ -229,11 +225,11 @@ pub trait Plottable: Clone {
             perturbed_path.push(perturbed_point);
         }
 
-        let segments_shape: Vec<_> = perturbed_path.get_line_segments(&sample_settings);
+        let segments_shape: Vec<_> = perturbed_path.get_line_segments(sample_settings);
         let mut inside = Layer::new();
         let mut outside = Layer::new();
         let mut current_part = Path::new_from(vec![segments_shape.first().unwrap().from]);
-        let mut currently_inside = mask.contains_point(&current_part.get_start().unwrap());
+        let mut currently_inside = mask.contains_point(current_part.get_start().unwrap());
 
         // switch inside to outside on each intersection
         for segment in segments_shape {
@@ -263,10 +259,10 @@ pub trait Plottable: Clone {
     }
 }
 
-fn get_intersections_sorted(segment: &Line, segments_mask: &Vec<Line>) -> Vec<V2> {
+fn get_intersections_sorted(segment: &Line, segments_mask: &[Line]) -> Vec<V2> {
     segments_mask
-        .into_iter()
-        .map(|segment_mask| segment.intersection(&segment_mask))
+        .iter()
+        .map(|segment_mask| segment.intersection(segment_mask))
         .filter_map(|intersection| match intersection {
             LineIntersection::Intersection(point) => Some(point),
             _ => None,
@@ -275,7 +271,7 @@ fn get_intersections_sorted(segment: &Line, segments_mask: &Vec<Line>) -> Vec<V2
         .collect()
 }
 
-fn is_point_on_mask_line(point: &V2, segments_mask: &Vec<Line>, epsilon: f64) -> (bool, Angle) {
+fn is_point_on_mask_line(point: &V2, segments_mask: &[Line], epsilon: f64) -> (bool, Angle) {
     for segment_mask in segments_mask {
         let orientation = orient2d(
             [segment_mask.from.x as f64, segment_mask.from.y as f64],

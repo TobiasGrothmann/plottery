@@ -12,6 +12,7 @@ use crate::{
     accelleration_path::V2Speed, pins::PinSettings, speed_delay_handler::SpeedDelayHandler,
 };
 
+#[cfg(feature = "raspi")]
 const PIN_DELAY_NANOS: u32 = 100;
 
 #[derive(Debug)]
@@ -39,7 +40,7 @@ pub struct Hardware {
 enum Axis {
     X,
     Y,
-    HEAD,
+    Head,
 }
 
 impl Hardware {
@@ -93,7 +94,7 @@ impl Hardware {
                 last_steps_timestamp: Map::from([
                     (Axis::X, Instant::now()),
                     (Axis::Y, Instant::now()),
-                    (Axis::HEAD, Instant::now()),
+                    (Axis::Head, Instant::now()),
                 ]),
                 #[cfg(feature = "raspi")]
                 pins_dir,
@@ -116,7 +117,7 @@ impl Hardware {
                 last_steps_timestamp: Map::from([
                     (Axis::X, Instant::now()),
                     (Axis::Y, Instant::now()),
-                    (Axis::HEAD, Instant::now()),
+                    (Axis::Head, Instant::now()),
                 ]),
                 pin_settings,
             })
@@ -152,7 +153,7 @@ impl Hardware {
                     self.pins_dir[1].set_high();
                 };
             }
-            Axis::HEAD => {
+            Axis::Head => {
                 if forward {
                     self.pins_dir[3].set_high();
                 } else {
@@ -190,7 +191,7 @@ impl Hardware {
                     self.pins_step[0].set_high();
                     self.pins_step[1].set_high();
                 }
-                Axis::HEAD => {
+                Axis::Head => {
                     self.pins_step[3].set_low();
                     sleep(Duration::new(0, PIN_DELAY_NANOS));
                     self.pins_step[3].set_high();
@@ -233,11 +234,11 @@ impl Hardware {
             {
                 stepped_x += 1;
                 self.x += directions_signs.x;
-                self.step(Axis::X, &speed_handler, speed_fraction);
+                self.step(Axis::X, speed_handler, speed_fraction);
             } else {
                 stepped_y += 1;
                 self.y += directions_signs.y;
-                self.step(Axis::Y, &speed_handler, speed_fraction);
+                self.step(Axis::Y, speed_handler, speed_fraction);
             }
         }
     }
@@ -268,7 +269,7 @@ impl Hardware {
             return;
         }
 
-        self.set_dir(Axis::HEAD, down);
+        self.set_dir(Axis::Head, down);
         let head_travel_cm = self.pin_settings.head_travel_to_touch_cm
             + self.pin_settings.extra_head_travel_for_pressure_cm * head_pressure;
         let head_travel_steps = self.pin_settings.steps_for_cm_head(head_travel_cm);
@@ -281,7 +282,7 @@ impl Hardware {
                 (head_travel_cm - current_head_travel_cm) / accelleration_dist;
             let speed_fraction = speed_fraction_acc.min(speed_fraction_decc).clamp(0.0, 1.0);
 
-            self.step(Axis::HEAD, &speed_handler, speed_fraction);
+            self.step(Axis::Head, &speed_handler, speed_fraction);
         }
 
         self.head_down = down;

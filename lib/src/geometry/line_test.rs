@@ -63,7 +63,7 @@ mod test_line {
             let line2 = Line::new(V2::new(1.0, 1.0), V2::new(2.0, 2.0));
             assert_eq!(
                 line1.intersection(&line2),
-                LineIntersection::Intersection(line1.to.clone())
+                LineIntersection::Intersection(line1.to)
             );
         }
 
@@ -74,7 +74,7 @@ mod test_line {
             let line2 = Line::new(V2::new(1.0, 1.0), V2::new(1.0, -1.0));
             assert_eq!(
                 line1.intersection(&line2),
-                LineIntersection::Intersection(line1.to.clone())
+                LineIntersection::Intersection(line1.to)
             );
         }
 
@@ -85,7 +85,7 @@ mod test_line {
             let line2 = Line::new(V2::new(0.0, 2.0), V2::new(2.0, 0.0));
             assert_eq!(
                 line1.intersection(&line2),
-                LineIntersection::Intersection(line1.from.clone())
+                LineIntersection::Intersection(line1.from)
             );
         }
 
@@ -176,14 +176,14 @@ mod test_line {
             let i2 = Line::new(V2::new(0.0, 0.5), V2::new(1.0, 0.5));
             let i3 = Line::new(V2::new(0.0, 0.75), V2::new(1.0, 0.75));
 
-            let order1 = vec![i1.clone(), i2.clone(), i3.clone()];
-            let order2 = vec![i1.clone(), i3.clone(), i2.clone()];
-            let order3 = vec![i2.clone(), i1.clone(), i3.clone()];
-            let order4 = vec![i2.clone(), i3.clone(), i1.clone()];
-            let order5 = vec![i3.clone(), i1.clone(), i2.clone()];
-            let order6 = vec![i3.clone(), i2.clone(), i1.clone()];
+            let order1 = vec![i1, i2, i3];
+            let order2 = vec![i1, i3, i2];
+            let order3 = vec![i2, i1, i3];
+            let order4 = vec![i2, i3, i1];
+            let order5 = vec![i3, i1, i2];
+            let order6 = vec![i3, i2, i1];
 
-            for order in vec![order1, order2, order3, order4, order5, order6] {
+            for order in [order1, order2, order3, order4, order5, order6] {
                 let r = a.intersect_multiple_sorted_by_dist(&order);
                 assert_eq!(r.len(), 3);
                 assert_eq!(r[0], V2::xy(0.25));

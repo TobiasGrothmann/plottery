@@ -33,12 +33,12 @@ mod test_path {
             V2::new(2.0, 1.0),
         ]);
         assert_eq!(p.length(), 1.0 + 2.0_f32.sqrt());
-        assert_eq!(p.is_closed(), false);
+        assert!(!p.is_closed());
 
         let r = Rect::new_shape(V2::new(-1.2, -5.0), V2::new(2.0, 3.1));
         let p = Path::new_shape_from(r.get_points(&SampleSettings::default()));
         assert!((r.length() - p.length()).abs() < LARGE_EPSILON);
-        assert_eq!(p.is_closed(), true);
+        assert!(p.is_closed());
     }
 
     #[test]

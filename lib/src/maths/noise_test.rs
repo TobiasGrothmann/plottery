@@ -23,7 +23,7 @@ mod test_noise {
                 random::<f32>() * 1000.0 - 500.0,
             );
             let noise = noise(&location);
-            assert!(noise >= 0.0 && noise <= 1.0);
+            assert!((0.0..=1.0).contains(&noise));
         }
     }
 

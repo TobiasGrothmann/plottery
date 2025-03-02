@@ -23,17 +23,17 @@ pub struct AccellerationPath {
 }
 
 impl AccellerationPath {
-    pub fn new(points: &Vec<V2>, accell_dist: f32, corner_slowdown_power: f32) -> Self {
+    pub fn new(points: &[V2], accell_dist: f32, corner_slowdown_power: f32) -> Self {
         let points_dedup: Vec<V2> = points.iter().dedup().cloned().collect();
         if points_dedup.len() < 2 {
-            Self {
+            return Self {
                 points: points_dedup
                     .iter()
                     .map(|point| V2Speed {
                         point: *point,
                         speed: 0.0,
                     })
-                    .collect(),
+                    .collect::<Vec<_>>(),
             };
         }
 
@@ -97,7 +97,7 @@ impl AccellerationPath {
         once(0.0).chain(speeds).collect()
     }
 
-    fn edge_pass(points: &Vec<V2>, edge_slow_down_power: f32) -> Vec<f32> {
+    fn edge_pass(points: &[V2], edge_slow_down_power: f32) -> Vec<f32> {
         let speeds = points
             .iter()
             .tuple_windows::<(_, _, _)>()
@@ -108,19 +108,12 @@ impl AccellerationPath {
         once(0.0).chain(speeds).chain(once(0.0)).collect()
     }
 
-    fn get_points_with_inbetweens(
-        points: &Vec<V2>,
-        speeds: &Vec<f32>,
-        accell_dist: f32,
-    ) -> Vec<V2Speed> {
+    fn get_points_with_inbetweens(points: &[V2], speeds: &[f32], accell_dist: f32) -> Vec<V2Speed> {
         let mut speed_points = Vec::with_capacity(points.len() * 3);
 
         let mut speed = 0.0;
         for ((a, _speed_a), (b, speed_b)) in points.iter().zip(speeds.iter()).tuple_windows() {
-            speed_points.push(V2Speed {
-                point: *a,
-                speed: speed,
-            });
+            speed_points.push(V2Speed { point: *a, speed });
 
             let segment_length = a.dist(b);
             let max_acc_change = segment_length / accell_dist;
@@ -157,9 +150,8 @@ impl AccellerationPath {
                     b_needed_dist_to_max_speed - dist_needed_exceeding_length / 2.0;
                 let peak_point = a + (b - a) * (a_dist_to_midpoint / segment_length);
                 // speed at midpoint is min of accelleration from a and decelleration to b
-                speed = speed
-                    + (a_dist_to_midpoint / accell_dist)
-                        .min(speed_b + b_dist_to_midpoint / accell_dist);
+                speed += (a_dist_to_midpoint / accell_dist)
+                    .min(speed_b + b_dist_to_midpoint / accell_dist);
                 speed_points.push(V2Speed {
                     point: peak_point,
                     speed,

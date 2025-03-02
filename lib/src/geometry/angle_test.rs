@@ -10,14 +10,14 @@ mod test_angle {
         let b = Angle::from_rad(PI);
         let c = Angle::from_rotations(0.5);
 
-        assert_eq!(Into::<f32>::into(a.clone()), Into::<f32>::into(b));
+        assert_eq!(Into::<f32>::into(a), Into::<f32>::into(b));
         assert_eq!(Into::<f32>::into(a), Into::<f32>::into(c));
 
         let a = Angle::from_degrees(-90.0);
         let b = Angle::from_rad(-PI * 0.5);
         let c = Angle::from_rotations(-0.25);
 
-        assert_eq!(Into::<f32>::into(a.clone()), Into::<f32>::into(b));
+        assert_eq!(Into::<f32>::into(a), Into::<f32>::into(b));
         assert_eq!(Into::<f32>::into(a), Into::<f32>::into(c));
     }
 

@@ -124,7 +124,7 @@ impl Angle {
     pub fn dist_mod_one_rotation(&self, other: Angle) -> Angle {
         let angle_diff_abs =
             (other.mod_one_rotation().positive() - self.mod_one_rotation().positive()).abs();
-        return angle_diff_abs.min(Angle::full_rotation() - angle_diff_abs);
+        angle_diff_abs.min(Angle::full_rotation() - angle_diff_abs)
     }
 
     pub fn min(&self, other: Angle) -> Angle {

@@ -59,7 +59,7 @@ pub static PIN_SETTINGS: PinSettings = PinSettings {
         [true, true, false],
     ],
 
-    dist_per_step_axis_cm: 0.0139935599999 / 16.0, // distance per step / microstepping factor for x and y axes
+    dist_per_step_axis_cm: 0.013_993_56 / 16.0, // distance per step / microstepping factor for x and y axes
     dist_per_step_head_cm: 0.8 / (200.0 * 8.0), // 8mm travel per revolution / (200 steps per revolution * microstepping factor for head)
 
     head_travel_to_touch_cm: 0.6,            // cm

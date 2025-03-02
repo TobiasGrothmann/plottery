@@ -16,13 +16,13 @@ mod test_shape {
             .iter()
             .tuple_windows()
             .map(|(from, to)| from.dist(to));
-        let max_distance = distances.clone().fold(0.0, |acc, dist| f32::max(acc, dist));
+        let max_distance = distances.clone().fold(0.0, f32::max);
 
-        assert_eq!(max_distance, 1.0 / sample_settings.points_per_unit as f32);
+        assert_eq!(max_distance, 1.0 / sample_settings.points_per_unit);
 
         for (i, point) in points.iter().enumerate() {
             if i == 0 {
-                let finds = points.iter().filter(|p| p == &point).collect_vec().len();
+                let finds = points.iter().filter(|p| p == point).collect_vec().len();
                 assert_eq!(finds, 2);
             } else {
                 assert!(!points[(i + 1)..].contains(point))
@@ -42,7 +42,7 @@ mod test_shape {
             .iter()
             .tuple_windows()
             .map(|(from, to)| from.dist(to))
-            .fold(0.0, |acc, dist| f32::max(acc, dist));
+            .fold(0.0, f32::max);
 
         assert_eq!(max_distance, 1.0)
     }
@@ -138,7 +138,7 @@ mod test_shape {
     fn masking_5_circle() {
         let center = V2::new(3.0, 3.0);
         let radius = 0.5;
-        let mask = Circle::new_shape(center.clone(), radius.clone());
+        let mask = Circle::new_shape(center, radius);
         let mut p: Path = Path::new();
 
         for _ in 0..200 {

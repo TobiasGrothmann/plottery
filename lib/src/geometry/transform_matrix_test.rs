@@ -155,7 +155,7 @@ mod test_matrix {
         let scale = TransformMatrix::scale_2d(&V2::xy(2.0));
         let translate = TransformMatrix::translate(&V2::new(1.0, 0.0));
 
-        let combined = TransformMatrix::combine_transforms(&vec![scale, translate]); // first scale, then translate
+        let combined = TransformMatrix::combine_transforms(&[scale, translate]); // first scale, then translate
 
         let v = V2 { x: 0.0, y: 0.5 };
         let r = combined.mul_vector(&v);

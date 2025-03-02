@@ -55,11 +55,7 @@ pub async fn start_server(mut receiver: mpsc::Receiver<Task>) -> anyhow::Result<
                     hardware.set_head(
                         head_down,
                         settings.head_pressure,
-                        if head_down {
-                            speed_range.accelleration_distance
-                        } else {
-                            speed_range.accelleration_distance
-                        },
+                        speed_range.accelleration_distance,
                         SpeedDelayHandler::new_from_speed_range(
                             &speed_range,
                             PIN_SETTINGS.dist_per_step_head_cm,
@@ -99,7 +95,7 @@ pub async fn plot_layer(
 
 pub async fn travel_to(hardware: &mut Hardware, target_pos: V2, plot_settings: &PlotSettings) {
     let acc_path = AccellerationPath::new(
-        &vec![hardware.get_pos(), target_pos],
+        &[hardware.get_pos(), target_pos],
         plot_settings.speed_travel.accelleration_distance,
         plot_settings.corner_slowdown_power,
     );

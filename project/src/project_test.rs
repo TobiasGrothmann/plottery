@@ -14,8 +14,8 @@ mod tests {
         assert!(!project_dir.exists());
 
         // create project object
-        let project = Project::new(temp_dir, project_name.into());
-        assert_eq!(project.exists(), false);
+        let project = Project::new(temp_dir, project_name);
+        assert!(!project.exists());
 
         // get path to plottery libraries
         let cargo_workspace_path = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -41,10 +41,10 @@ mod tests {
         let project_file = ProjectConfig::new("project_name");
         let project_file_path = Path::new("test_project.plottery");
 
-        project_file.save_to_file(&project_file_path)?;
+        project_file.save_to_file(project_file_path)?;
 
         let result = std::panic::catch_unwind(|| {
-            let loaded_project_file = ProjectConfig::new_from_file(&project_file_path).unwrap();
+            let loaded_project_file = ProjectConfig::new_from_file(project_file_path).unwrap();
             assert_eq!(project_file, loaded_project_file);
         });
 

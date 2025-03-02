@@ -81,7 +81,7 @@ impl Path {
         self.points.iter_mut()
     }
 
-    pub fn get_points_ref(&self) -> &Vec<V2> {
+    pub fn get_points_ref(&self) -> &[V2] {
         &self.points
     }
     pub fn is_empty(&self) -> bool {
@@ -151,7 +151,7 @@ impl Plottable for Path {
         sample_settings: &SampleSettings,
     ) -> Vec<V2> {
         let mut points = self.get_points(sample_settings);
-        if points.len() == 0 {
+        if points.is_empty() {
             return points;
         }
         if current_drawing_head_pos.dist(points.last().unwrap())
