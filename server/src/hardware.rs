@@ -12,6 +12,8 @@ use crate::{
     accelleration_path::V2Speed, pins::PinSettings, speed_delay_handler::SpeedDelayHandler,
 };
 
+const PIN_DELAY_NANOS: u32 = 100;
+
 #[derive(Debug)]
 pub struct Hardware {
     enabled: bool,
@@ -133,33 +135,32 @@ impl Hardware {
 
     #[cfg(feature = "raspi")]
     fn set_dir(&mut self, axis: Axis, forward: bool) {
-        {
-            match axis {
-                Axis::X => {
-                    if forward {
-                        self.pins_dir[2].set_low();
-                    } else {
-                        self.pins_dir[2].set_high();
-                    };
-                }
-                Axis::Y => {
-                    if forward {
-                        self.pins_dir[0].set_low();
-                        self.pins_dir[1].set_low();
-                    } else {
-                        self.pins_dir[0].set_high();
-                        self.pins_dir[1].set_high();
-                    };
-                }
-                Axis::HEAD => {
-                    if forward {
-                        self.pins_dir[3].set_high();
-                    } else {
-                        self.pins_dir[3].set_low();
-                    }
+        match axis {
+            Axis::X => {
+                if forward {
+                    self.pins_dir[2].set_low();
+                } else {
+                    self.pins_dir[2].set_high();
+                };
+            }
+            Axis::Y => {
+                if forward {
+                    self.pins_dir[0].set_low();
+                    self.pins_dir[1].set_low();
+                } else {
+                    self.pins_dir[0].set_high();
+                    self.pins_dir[1].set_high();
+                };
+            }
+            Axis::HEAD => {
+                if forward {
+                    self.pins_dir[3].set_high();
+                } else {
+                    self.pins_dir[3].set_low();
                 }
             }
         }
+        sleep(Duration::new(0, PIN_DELAY_NANOS));
     }
 
     // speed_fraction: fraction from 0 to 1 that is mapped to speed_min to speed_max
@@ -179,19 +180,19 @@ impl Hardware {
             match axis {
                 Axis::X => {
                     self.pins_step[2].set_low();
-                    sleep(Duration::new(0, 50));
+                    sleep(Duration::new(0, PIN_DELAY_NANOS));
                     self.pins_step[2].set_high();
                 }
                 Axis::Y => {
                     self.pins_step[0].set_low();
                     self.pins_step[1].set_low();
-                    sleep(Duration::new(0, 50));
+                    sleep(Duration::new(0, PIN_DELAY_NANOS));
                     self.pins_step[0].set_high();
                     self.pins_step[1].set_high();
                 }
                 Axis::HEAD => {
                     self.pins_step[3].set_low();
-                    sleep(Duration::new(0, 50));
+                    sleep(Duration::new(0, PIN_DELAY_NANOS));
                     self.pins_step[3].set_high();
                 }
             }
