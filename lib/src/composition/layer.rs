@@ -483,6 +483,10 @@ impl Layer {
         }
         optimized
     }
+
+    pub fn flatten(&self) -> Self {
+        Layer::new_from_shapes_and_layers(self.iter_flattened().cloned().collect(), Vec::new())
+    }
 }
 
 impl Default for Layer {
