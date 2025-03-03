@@ -40,8 +40,8 @@ impl Line {
         (self.to - self.from).angle()
     }
     pub fn offset_right(&self, distance: f32) -> Self {
-        let normal = V2::polar(self.angle().normal_right(), 1.0);
-        Line::new(self.from + normal * distance, self.to + normal * distance)
+        let normal_scaled = V2::polar(self.angle().normal_right(), distance);
+        Line::new(self.from + normal_scaled, self.to + normal_scaled)
     }
 
     /// project a point onto this infinite line
