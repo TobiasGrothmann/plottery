@@ -5,7 +5,5 @@
   "editor.formatOnPaste": false,
   "[toml]": {
     "editor.defaultFormatter": "tamasfe.even-better-toml"
-  },
-  "rust-analyzer.cargo.target": "armv7-unknown-linux-gnueabihf",
-  "rust-analyzer.cargo.features": ["raspi"]
+  }
 }
