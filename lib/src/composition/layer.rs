@@ -457,8 +457,13 @@ impl Layer {
                 let dist_to_start = starts_and_ends[*unused_i].0.dist_squared(&pos);
                 let dist_to_end = starts_and_ends[*unused_i].1.dist_squared(&pos);
 
-                if dist_to_start < best_distance || dist_to_end < best_distance {
-                    reversed = dist_to_end < dist_to_start;
+                if dist_to_start < best_distance {
+                    reversed = true;
+                    best_distance = dist_to_start;
+                    best_index = *unused_i;
+                }
+                if dist_to_end < best_distance {
+                    reversed = false;
                     best_distance = dist_to_start;
                     best_index = *unused_i;
                 }
