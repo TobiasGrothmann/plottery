@@ -29,9 +29,9 @@ impl Default for PlotSettings {
                 accelleration_distance: 0.15,
             },
             speed_travel: SpeedRange {
-                min: 0.05,
-                max: 40.0,
-                accelleration_distance: 2.0,
+                min: 0.9,
+                max: 8.0,
+                accelleration_distance: 1.2,
             },
             speed_head_down: SpeedRange {
                 min: 0.3,
