@@ -108,7 +108,7 @@ pub async fn plot_layer(
     sample_settings: &SampleSettings,
     plot_settings: &PlotSettings,
 ) {
-    for shape in layer.shapes.iter() {
+    for shape in layer.iter_flattened() {
         plot_shape(hardware, shape, sample_settings, plot_settings).await;
     }
 }
