@@ -49,10 +49,10 @@ impl AccellerationPath {
             corner_sharpness_speeds.iter().rev().cloned(),
             accell_dist,
         );
-        decelleration_speeds.reverse();
 
         let min_speeds: Vec<f32> = accelleration_speeds
             .iter()
+            // decelleration speeds are iterated in reverse
             .zip(decelleration_speeds.iter().rev())
             .map(|(acc, dec)| acc.min(*dec))
             .collect();
