@@ -1,7 +1,10 @@
 use anyhow::{Ok, Result};
 use bincode::{deserialize_from, serialize};
 use serde::{Deserialize, Serialize};
-use std::{fs::File, io::Write, iter::FromIterator, path::PathBuf, rc::Rc, slice::Iter, vec};
+use std::{
+    collections::BTreeSet, fs::File, io::Write, iter::FromIterator, path::PathBuf, rc::Rc,
+    slice::Iter, vec,
+};
 use svg::{node::element::path::Data, Document};
 
 use crate::{
@@ -421,6 +424,64 @@ impl Layer {
         }
 
         Masked { inside, outside }
+    }
+
+    pub fn optimize(&self) -> Self {
+        let sample_settings = SampleSettings::new(1.0);
+        let starts_and_ends: Vec<_> = self
+            .shapes
+            .iter()
+            .map(|shape| {
+                let points = shape.get_points(&sample_settings);
+                if points.len() == 0 {
+                    return (V2::zero(), V2::zero());
+                }
+                (
+                    points.first().unwrap().clone(),
+                    points.last().unwrap().clone(),
+                )
+            })
+            .collect();
+
+        let mut unused_items_indices: BTreeSet<usize> = (0..self.shapes.len()).collect();
+
+        let mut pos = V2::zero();
+        let mut optimized = Layer::new();
+
+        while unused_items_indices.len() > 0 {
+            let mut best_distance = f32::INFINITY;
+            let mut best_index = 0;
+            let mut reversed = false;
+
+            for unused_i in unused_items_indices.iter() {
+                let dist_to_start = starts_and_ends[*unused_i].0.dist_squared(&pos);
+                let dist_to_end = starts_and_ends[*unused_i].1.dist_squared(&pos);
+
+                if dist_to_start < best_distance || dist_to_end < best_distance {
+                    reversed = dist_to_end < dist_to_start;
+                    best_distance = dist_to_start;
+                    best_index = *unused_i;
+                }
+            }
+
+            optimized.push(self.shapes[best_index].clone());
+            if reversed {
+                pos = starts_and_ends[best_index].0;
+            } else {
+                pos = starts_and_ends[best_index].1;
+            }
+            unused_items_indices.remove(&best_index);
+        }
+
+        optimized
+    }
+
+    pub fn optimize_recursive(&self) -> Self {
+        let mut optimized = self.optimize();
+        for sublayer in &self.sublayers {
+            optimized.push_layer(sublayer.optimize_recursive());
+        }
+        optimized
     }
 }
 

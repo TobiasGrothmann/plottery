@@ -487,4 +487,27 @@ mod test_layer {
         let b = a.combine_shapes_flat(None);
         assert_eq!(b.len(), 1);
     }
+
+    #[test]
+    fn optimize() {
+        let l = Layer::new_from(vec![
+            Path::new_shape_from(vec![V2::new(0.0, 0.0), V2::new(1.0, 0.0)]),
+            Path::new_shape_from(vec![V2::new(10.0, 0.0), V2::new(9.0, 0.0)]),
+            Path::new_shape_from(vec![V2::new(4.0, 0.0), V2::new(8.0, 0.0)]),
+        ]);
+        let o = l.optimize();
+        let o2 = l.optimize_recursive();
+
+        assert_eq!(o.len(), l.len());
+        assert_eq!(o.len_recursive(), l.len_recursive());
+        assert_eq!(l.shapes[0], o.shapes[0]);
+        assert_eq!(l.shapes[1], o.shapes[2]);
+        assert_eq!(l.shapes[2], o.shapes[1]);
+
+        assert_eq!(o2.len(), l.len());
+        assert_eq!(o2.len_recursive(), l.len_recursive());
+        assert_eq!(l.shapes[0], o2.shapes[0]);
+        assert_eq!(l.shapes[1], o2.shapes[2]);
+        assert_eq!(l.shapes[2], o2.shapes[1]);
+    }
 }
