@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::f32::consts::PI;
 
-use crate::{SampleSettings, GR, LARGE_EPSILON};
+use crate::{SampleSettings, GR};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Copy, PartialOrd)]
 pub struct Angle {
@@ -185,14 +185,6 @@ impl From<f32> for Angle {
         Self { rad }
     }
 }
-
-impl PartialEq for Angle {
-    fn eq(&self, other: &Angle) -> bool {
-        (self.rad - other.rad).abs() < LARGE_EPSILON
-    }
-}
-
-impl Eq for Angle {}
 
 pub trait ToAngle {
     fn degrees(self) -> Angle;

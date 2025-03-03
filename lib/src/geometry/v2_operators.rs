@@ -46,7 +46,7 @@ impl ops::Add<f32> for &V2 {
     }
 }
 
-// assign operators
+// add assign
 impl AddAssign<V2> for V2 {
     fn add_assign(&mut self, _rhs: V2) {
         *self = *self + _rhs;
@@ -105,7 +105,7 @@ impl ops::Sub<f32> for &V2 {
     }
 }
 
-// assign operators
+// subract assign
 impl SubAssign<V2> for V2 {
     fn sub_assign(&mut self, _rhs: V2) {
         *self = *self - _rhs;
@@ -164,7 +164,7 @@ impl ops::Mul<f32> for &V2 {
     }
 }
 
-// assign operators
+// multiply assign
 impl ops::MulAssign<V2> for V2 {
     fn mul_assign(&mut self, _rhs: V2) {
         *self = *self * _rhs;
@@ -224,7 +224,7 @@ impl ops::Div<f32> for &V2 {
     }
 }
 
-// assign operators
+// divide assign
 impl ops::DivAssign<V2> for V2 {
     fn div_assign(&mut self, _rhs: V2) {
         *self = *self / _rhs;
