@@ -118,6 +118,11 @@ fn get_parameters_vector_items(data: &syn::DataStruct) -> Vec<proc_macro2::Token
                         }
                     }
                 },
+                "bool" => {
+                    quote! {
+                        ProjectParam::new(#field_name, ProjectParamValue::Bool(#default_value)),
+                    }
+                },
                 _ => panic!("Invalid field type: {}", field_type_name),
             }
 

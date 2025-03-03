@@ -5,8 +5,8 @@ use plottery_project::{ProjectParamValue, ProjectParamsListWrapper};
 use tokio::sync::Mutex;
 
 use crate::router::editor_components::{
-    editor_number_field::EditorNumberField, editor_slider::EditorSlider,
-    running_state::RunningState,
+    editor_bool_field::EditorBoolField, editor_number_field::EditorNumberField,
+    editor_slider::EditorSlider, running_state::RunningState,
 };
 
 use super::{editor_console::EditorConsole, project_runner::ProjectRunner};
@@ -26,31 +26,41 @@ pub fn ParamsEditor(props: ParamsEditorProps) -> Element {
         style { { include_str!("params_editor.css") } }
         div { class: "ParamsEditor",
             for param in props.project_params.read().list.iter().cloned() {
-                div { class: "param",
-                    h2 { "{param.formatted_name()}" }
-                    match param.value {
-                        ProjectParamValue::Float(_) | ProjectParamValue::Int(_) => {
-                            rsx! {
-                                EditorNumberField {
-                                    param: param,
-                                    project_params: props.project_params,
-                                    project_runner: props.project_runner,
-                                    running_state: props.running_state,
-                                    console: props.console,
-                                    release: props.release,
-                                }
+                h2 { "{param.formatted_name()}" }
+                match param.value {
+                    ProjectParamValue::Float(_) | ProjectParamValue::Int(_) => {
+                        rsx! {
+                            EditorNumberField {
+                                param: param,
+                                project_params: props.project_params,
+                                project_runner: props.project_runner,
+                                running_state: props.running_state,
+                                console: props.console,
+                                release: props.release,
                             }
                         }
-                        ProjectParamValue::FloatRanged { .. } | ProjectParamValue::IntRanged { .. } => {
-                            rsx! {
-                                EditorSlider {
-                                    param: param,
-                                    project_params: props.project_params,
-                                    project_runner: props.project_runner,
-                                    running_state: props.running_state,
-                                    console: props.console,
-                                    release: props.release,
-                                }
+                    }
+                    ProjectParamValue::FloatRanged { .. } | ProjectParamValue::IntRanged { .. } => {
+                        rsx! {
+                            EditorSlider {
+                                param: param,
+                                project_params: props.project_params,
+                                project_runner: props.project_runner,
+                                running_state: props.running_state,
+                                console: props.console,
+                                release: props.release,
+                            }
+                        }
+                    }
+                    ProjectParamValue::Bool { .. } => {
+                        rsx! {
+                            EditorBoolField {
+                                param: param,
+                                project_params: props.project_params,
+                                project_runner: props.project_runner,
+                                running_state: props.running_state,
+                                console: props.console,
+                                release: props.release,
                             }
                         }
                     }
