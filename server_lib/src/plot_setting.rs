@@ -9,7 +9,7 @@ pub struct SpeedRange {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlotSettings {
-    pub corner_slowdown_power: f32,
+    pub corner_slowdown_power: f32, // the lower the slower
     pub head_pressure: f32,
 
     pub speed_draw: SpeedRange,
@@ -21,27 +21,27 @@ pub struct PlotSettings {
 impl Default for PlotSettings {
     fn default() -> Self {
         PlotSettings {
-            corner_slowdown_power: 0.15,
+            corner_slowdown_power: 0.2,
             head_pressure: 0.5,
             speed_draw: SpeedRange {
-                min: 0.2,
-                max: 3.0,
-                accelleration_distance: 0.15,
+                min: 0.4,
+                max: 4.5,
+                accelleration_distance: 0.14,
             },
             speed_travel: SpeedRange {
-                min: 0.9,
-                max: 8.0,
-                accelleration_distance: 1.2,
+                min: 0.6,
+                max: 7.0,
+                accelleration_distance: 1.0,
             },
             speed_head_down: SpeedRange {
-                min: 0.3,
-                max: 2.0,
+                min: 0.5,
+                max: 4.0,
                 accelleration_distance: 0.22,
             },
             speed_head_up: SpeedRange {
-                min: 1.0,
-                max: 5.0,
-                accelleration_distance: 0.1,
+                min: 1.5,
+                max: 7.0,
+                accelleration_distance: 0.06,
             },
         }
     }
