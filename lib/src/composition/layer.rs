@@ -107,7 +107,7 @@ impl Layer {
             return Document::new();
         }
         let bounding_box = bounding_box.unwrap();
-        let svg_max_coords: V2 = bounding_box.tr() * scale + V2::xy(1.0);
+        let svg_max_coords: V2 = bounding_box.tr() * scale;
         let mut document = Document::new()
             .set("viewBox", (0, 0, svg_max_coords.x, svg_max_coords.y))
             .set("width", svg_max_coords.x)
