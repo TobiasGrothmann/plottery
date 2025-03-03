@@ -115,7 +115,7 @@ impl Layer {
 
         let fill = "none";
         let stroke = "black";
-        let stroke_width = 0.1;
+        let stroke_width = 0.04;
 
         for shape in self.iter_flattened() {
             match shape {
