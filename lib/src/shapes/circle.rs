@@ -26,9 +26,6 @@ impl Circle {
     pub fn circumference(&self) -> f32 {
         self.radius * 2.0 * PI
     }
-    pub fn contains_point(&self, point: &V2) -> bool {
-        point.dist(&self.center) <= self.radius
-    }
 
     pub fn to_shape(&self) -> Shape {
         Shape::Circle(self.clone())
@@ -77,19 +74,39 @@ impl Circle {
         let ry = delta.x * (h / dist);
         vec![V2::new(x2 + rx, y2 + ry), V2::new(x2 - rx, y2 - ry)]
     }
-}
 
-impl Plottable for Circle {
-    fn get_points(&self, sample_settings: &SampleSettings) -> Vec<V2> {
+    fn get_points(&self, start_angle: Angle, sample_settings: &SampleSettings) -> Vec<V2> {
         let num_samples = sample_settings
             .get_num_points_for_length(self.circumference())
             .max(8);
         let angle_per_step = 2.0 * PI / num_samples as f32;
         (0..num_samples + 1)
             .map(|i| {
-                self.center + V2::polar(Angle::from_rad(i as f32 * angle_per_step), self.radius)
+                self.center
+                    + V2::polar(
+                        Angle::from_rad(i as f32 * angle_per_step) + start_angle,
+                        self.radius,
+                    )
             })
             .collect()
+    }
+}
+
+impl Plottable for Circle {
+    fn get_points(&self, sample_settings: &SampleSettings) -> Vec<V2> {
+        self.get_points(Angle::zero(), sample_settings)
+    }
+
+    fn get_points_from(
+        &self,
+        current_drawing_head_pos: &V2,
+        sample_settings: &SampleSettings,
+    ) -> Vec<V2> {
+        if self.center == current_drawing_head_pos {
+            return self.get_points(Angle::zero(), sample_settings);
+        }
+        let start_angle = (current_drawing_head_pos - self.center).angle();
+        self.get_points(start_angle, sample_settings)
     }
 
     fn length(&self) -> f32 {
@@ -98,6 +115,14 @@ impl Plottable for Circle {
 
     fn is_closed(&self) -> bool {
         true
+    }
+
+    fn contains_point(&self, point: &V2) -> bool {
+        point.dist(&self.center) <= self.radius
+    }
+
+    fn simplify(&self, _aggression_factor: f32) -> Self {
+        self.clone()
     }
 }
 

@@ -33,12 +33,12 @@ mod test_path {
             V2::new(2.0, 1.0),
         ]);
         assert_eq!(p.length(), 1.0 + 2.0_f32.sqrt());
-        assert_eq!(p.is_closed(), false);
+        assert!(!p.is_closed());
 
         let r = Rect::new_shape(V2::new(-1.2, -5.0), V2::new(2.0, 3.1));
         let p = Path::new_shape_from(r.get_points(&SampleSettings::default()));
         assert!((r.length() - p.length()).abs() < LARGE_EPSILON);
-        assert_eq!(p.is_closed(), true);
+        assert!(p.is_closed());
     }
 
     #[test]
@@ -187,5 +187,43 @@ mod test_path {
             assert!(points.contains(point));
             assert!((point.dist(&center) - radius).abs() < LARGE_EPSILON);
         }
+    }
+
+    #[test]
+    fn contains_point() {
+        let p = Path::new_from(vec![
+            V2::new(0.0, 0.0),
+            V2::new(1.0, 0.0),
+            V2::new(1.0, 1.0),
+            V2::new(0.0, 1.0),
+            V2::new(0.0, 0.0),
+        ]);
+
+        assert!(p.contains_point(&V2::new(0.5, 0.5)));
+        assert!(p.contains_point(&V2::new(0.9, 0.9)));
+        assert!(p.contains_point(&V2::new(0.1, 0.1)));
+
+        assert!(!p.contains_point(&V2::new(0.5, 1.5)));
+        assert!(!p.contains_point(&V2::new(1.5, 0.5)));
+        assert!(!p.contains_point(&V2::new(-0.5, 0.5)));
+        assert!(!p.contains_point(&V2::new(0.5, -0.5)));
+    }
+
+    #[test]
+    fn contains_point_2() {
+        let p = Path::new_from(vec![
+            V2::new(0.0, 0.0),
+            V2::new(1.0, 0.0),
+            V2::new(0.0, 1.0),
+            V2::new(0.0, 0.0),
+        ]);
+
+        assert!(p.contains_point(&V2::new(0.25, 0.25)));
+        assert!(!p.contains_point(&V2::new(1.0, 1.0)));
+
+        assert!(!p.contains_point(&V2::new(0.5, 1.5)));
+        assert!(!p.contains_point(&V2::new(1.5, 0.5)));
+        assert!(!p.contains_point(&V2::new(-0.5, 0.5)));
+        assert!(!p.contains_point(&V2::new(0.5, -0.5)));
     }
 }

@@ -58,7 +58,7 @@ impl V2 {
     }
     pub fn random_unit_disk() -> Self {
         let angle = Angle::rand();
-        let radius = rand_range(0.0, 1.0).sqrt();
+        let radius = rand_range(0.0, 1.0);
         Self::polar(angle, radius)
     }
     pub fn random_in_rect(rect: &Rect) -> Self {
@@ -418,5 +418,11 @@ impl From<&V2> for Point2<f32> {
 impl From<&Point2<f32>> for V2 {
     fn from(point: &Point2<f32>) -> Self {
         Self::new(point.x, point.y)
+    }
+}
+
+impl From<(f32, f32)> for V2 {
+    fn from(tuple: (f32, f32)) -> Self {
+        V2::new(tuple.0, tuple.1)
     }
 }

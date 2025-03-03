@@ -1,4 +1,5 @@
 pub mod console;
+pub mod editor_bool_field;
 pub mod editor_console;
 pub mod editor_number_field;
 pub mod editor_slider;

@@ -93,12 +93,6 @@ impl Rect {
     pub fn area(&self) -> f32 {
         self.width() * self.height()
     }
-    pub fn contains_point(&self, point: &V2) -> bool {
-        point.x >= self.bot_left.x
-            && point.x <= self.top_right.x
-            && point.y >= self.bot_left.y
-            && point.y <= self.top_right.y
-    }
 
     pub fn to_shape(&self) -> Shape {
         Shape::Rect(self.clone())
@@ -109,6 +103,13 @@ impl Plottable for Rect {
     fn get_points(&self, _: &SampleSettings) -> Vec<V2> {
         vec![self.bl(), self.tl(), self.tr(), self.br(), self.bl()]
     }
+    fn get_points_from(
+        &self,
+        _current_drawing_head_pos: &V2,
+        sample_settings: &SampleSettings,
+    ) -> Vec<V2> {
+        self.get_points(sample_settings)
+    }
 
     fn length(&self) -> f32 {
         self.width() * 2.0 + self.height() * 2.0
@@ -116,6 +117,17 @@ impl Plottable for Rect {
 
     fn is_closed(&self) -> bool {
         true
+    }
+
+    fn contains_point(&self, point: &V2) -> bool {
+        point.x >= self.bot_left.x
+            && point.x <= self.top_right.x
+            && point.y >= self.bot_left.y
+            && point.y <= self.top_right.y
+    }
+
+    fn simplify(&self, _aggression_factor: f32) -> Self {
+        self.clone()
     }
 }
 

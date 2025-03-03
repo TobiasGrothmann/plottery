@@ -113,7 +113,7 @@ mod test_v2 {
         assert_eq!(v_new, V2::new(0.0, -1.0));
 
         let v = V2::new(1.0, 0.0);
-        let v_new = v.rotate(&&Angle::from_rotations(1.0));
+        let v_new = v.rotate(&Angle::from_rotations(1.0));
         assert_eq!(v, v_new);
     }
 
@@ -208,8 +208,7 @@ mod test_v2 {
 
     #[test]
     fn din_a_sizes() {
-        let sizes = vec![
-            V2::a0(),
+        let sizes = [V2::a0(),
             V2::a1(),
             V2::a2(),
             V2::a3(),
@@ -219,8 +218,7 @@ mod test_v2 {
             V2::a7(),
             V2::a8(),
             V2::a9(),
-            V2::a10(),
-        ];
+            V2::a10()];
 
         for (i, (size, size_next)) in sizes.iter().tuple_windows().enumerate() {
             assert!(size.len() > size_next.len());

@@ -12,6 +12,8 @@ mod v2_test;
 pub mod v2i;
 
 pub use angle::Angle;
+pub use angle::AngleInterpolator;
+pub use angle::ToAngle;
 pub use line::Line;
 pub use line::LineIntersection;
 pub use line::PointLineRelation;

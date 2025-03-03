@@ -1,6 +1,7 @@
 use geometry_predicates::orient2d;
+use itertools::Itertools;
 
-use crate::V2;
+use crate::{LARGE_EPSILON, V2};
 
 use super::Angle;
 
@@ -39,8 +40,8 @@ impl Line {
         (self.to - self.from).angle()
     }
     pub fn offset_right(&self, distance: f32) -> Self {
-        let normal = V2::polar(self.angle().normal_right(), 1.0);
-        Line::new(self.from + normal * distance, self.to + normal * distance)
+        let normal_scaled = V2::polar(self.angle().normal_right(), distance);
+        Line::new(self.from + normal_scaled, self.to + normal_scaled)
     }
 
     /// project a point onto this infinite line
@@ -54,9 +55,9 @@ impl Line {
             [self.to.x as f64, self.to.y as f64],
             [point.x as f64, point.y as f64],
         );
-        if orientation > 0.0 {
+        if orientation >= LARGE_EPSILON as f64 {
             return PointLineRelation::Left;
-        } else if orientation < 0.0 {
+        } else if orientation <= -LARGE_EPSILON as f64 {
             return PointLineRelation::Right;
         }
         PointLineRelation::OnLine
@@ -91,10 +92,16 @@ impl Line {
         let x = num_x / denom;
         let y = num_y / denom;
 
-        if x < f32::min(x1, x2)
-            || x > f32::max(x1, x2)
-            || x < f32::min(x3, x4)
-            || x > f32::max(x3, x4)
+        // Check if the intersection point lies on both line segments
+        // by verifying both x and y coordinates are within bounds
+        if x < f32::min(x1, x2) - LARGE_EPSILON
+            || x > f32::max(x1, x2) + LARGE_EPSILON
+            || x < f32::min(x3, x4) - LARGE_EPSILON
+            || x > f32::max(x3, x4) + LARGE_EPSILON
+            || y < f32::min(y1, y2) - LARGE_EPSILON
+            || y > f32::max(y1, y2) + LARGE_EPSILON
+            || y < f32::min(y3, y4) - LARGE_EPSILON
+            || y > f32::max(y3, y4) + LARGE_EPSILON
         {
             return LineIntersection::NoIntersection;
         }
@@ -151,5 +158,17 @@ impl Line {
             return self.to;
         }
         self.from + l * t
+    }
+
+    pub fn intersect_multiple_sorted_by_dist(&self, line_segments: &[Line]) -> Vec<V2> {
+        line_segments
+            .iter()
+            .map(|segment| self.intersection(segment))
+            .filter_map(|intersection| match intersection {
+                LineIntersection::Intersection(point) => Some(point),
+                _ => None,
+            })
+            .sorted_by_cached_key(|point| point.dist_squared(&self.from).to_bits())
+            .collect()
     }
 }

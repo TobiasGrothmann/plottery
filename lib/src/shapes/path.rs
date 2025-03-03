@@ -81,7 +81,7 @@ impl Path {
         self.points.iter_mut()
     }
 
-    pub fn get_points_ref(&self) -> &Vec<V2> {
+    pub fn get_points_ref(&self) -> &[V2] {
         &self.points
     }
     pub fn is_empty(&self) -> bool {
@@ -135,7 +135,59 @@ impl Path {
         new_points
     }
 
-    pub fn simplify(&self, aggression_factor: f32) -> Self {
+    pub fn to_shape(&self) -> Shape {
+        Shape::Path(self.clone())
+    }
+}
+
+impl Plottable for Path {
+    fn get_points(&self, _: &SampleSettings) -> Vec<V2> {
+        self.points.clone()
+    }
+
+    fn get_points_from(
+        &self,
+        current_drawing_head_pos: &V2,
+        sample_settings: &SampleSettings,
+    ) -> Vec<V2> {
+        let mut points = self.get_points(sample_settings);
+        if points.is_empty() {
+            return points;
+        }
+        if current_drawing_head_pos.dist(points.last().unwrap())
+            < current_drawing_head_pos.dist(points.first().unwrap())
+        {
+            points.reverse();
+        }
+        points
+    }
+
+    fn length(&self) -> f32 {
+        self.points
+            .iter()
+            .tuple_windows()
+            .fold(0.0, |acc, (from, to)| acc + from.dist(to))
+    }
+
+    fn is_closed(&self) -> bool {
+        !self.points.is_empty() && self.points.first() == self.points.last()
+    }
+
+    fn contains_point(&self, point: &V2) -> bool {
+        let mut inside = false;
+        for (from, to) in self.points.iter().tuple_windows() {
+            let crosses_horizontal_line_through_point = (from.y > point.y) != (to.y > point.y);
+            let intersec_right_of_point =
+                point.x < (to.x - from.x) * (point.y - from.y) / (to.y - from.y) + from.x;
+
+            if crosses_horizontal_line_through_point && intersec_right_of_point {
+                inside = !inside;
+            }
+        }
+        inside
+    }
+
+    fn simplify(&self, aggression_factor: f32) -> Self {
         let epsilon = 0.0001 + aggression_factor.clamp(0.0, 1.0).powf(3.0);
 
         let points: Vec<_> = self.points.iter().map(|v| v.into()).collect();
@@ -148,27 +200,6 @@ impl Path {
                 None
             }
         }))
-    }
-
-    pub fn to_shape(&self) -> Shape {
-        Shape::Path(self.clone())
-    }
-}
-
-impl Plottable for Path {
-    fn get_points(&self, _: &SampleSettings) -> Vec<V2> {
-        self.points.clone()
-    }
-
-    fn length(&self) -> f32 {
-        self.points
-            .iter()
-            .tuple_windows()
-            .fold(0.0, |acc, (from, to)| acc + from.dist(to))
-    }
-
-    fn is_closed(&self) -> bool {
-        !self.points.is_empty() && self.points.first() == self.points.last()
     }
 }
 
@@ -385,5 +416,19 @@ impl ClosestPoint for Path {
                 });
 
         closest.map(|closest| closest.0)
+    }
+}
+
+impl From<Vec<V2>> for Path {
+    fn from(points: Vec<V2>) -> Self {
+        Self { points }
+    }
+}
+
+impl From<Vec<&V2>> for Path {
+    fn from(points: Vec<&V2>) -> Self {
+        Self {
+            points: points.into_iter().cloned().collect(),
+        }
     }
 }

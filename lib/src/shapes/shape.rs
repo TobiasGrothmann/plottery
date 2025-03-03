@@ -24,6 +24,17 @@ impl Plottable for Shape {
             Shape::Path(p) => p.get_points(sample_settings),
         }
     }
+    fn get_points_from(
+        &self,
+        current_drawing_head_pos: &V2,
+        sample_settings: &SampleSettings,
+    ) -> Vec<V2> {
+        match self {
+            Shape::Circle(c) => c.get_points_from(current_drawing_head_pos, sample_settings),
+            Shape::Rect(r) => r.get_points_from(current_drawing_head_pos, sample_settings),
+            Shape::Path(p) => p.get_points_from(current_drawing_head_pos, sample_settings),
+        }
+    }
 
     fn length(&self) -> f32 {
         match self {
@@ -38,6 +49,22 @@ impl Plottable for Shape {
             Shape::Circle(c) => c.is_closed(),
             Shape::Rect(r) => r.is_closed(),
             Shape::Path(p) => p.is_closed(),
+        }
+    }
+
+    fn contains_point(&self, point: &V2) -> bool {
+        match self {
+            Shape::Circle(c) => c.contains_point(point),
+            Shape::Rect(r) => r.contains_point(point),
+            Shape::Path(p) => p.contains_point(point),
+        }
+    }
+
+    fn simplify(&self, aggression_factor: f32) -> Self {
+        match self {
+            Shape::Circle(c) => Shape::Circle(c.simplify(aggression_factor)),
+            Shape::Rect(r) => Shape::Rect(r.simplify(aggression_factor)),
+            Shape::Path(p) => Shape::Path(p.simplify(aggression_factor)),
         }
     }
 }
@@ -319,5 +346,29 @@ impl ClosestPoint for Shape {
             Shape::Rect(r) => r.closest_point(sample_settings, point),
             Shape::Path(p) => p.closest_point(sample_settings, point),
         }
+    }
+}
+
+impl From<Vec<V2>> for Shape {
+    fn from(points: Vec<V2>) -> Self {
+        Path::new_shape_from(points)
+    }
+}
+
+impl From<Circle> for Shape {
+    fn from(circle: Circle) -> Self {
+        Shape::Circle(circle)
+    }
+}
+
+impl From<Rect> for Shape {
+    fn from(rect: Rect) -> Self {
+        Shape::Rect(rect)
+    }
+}
+
+impl From<Path> for Shape {
+    fn from(path: Path) -> Self {
+        Shape::Path(path)
     }
 }

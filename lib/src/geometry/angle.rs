@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::f32::consts::PI;
 
-use crate::{SampleSettings, GR, LARGE_EPSILON};
+use crate::{SampleSettings, GR};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Copy, PartialOrd)]
 pub struct Angle {
@@ -69,6 +69,17 @@ impl Angle {
     pub fn mod_one_rotation(&self) -> Self {
         Angle::from_rad(self.rad % (2.0 * PI))
     }
+    pub fn modulo(&self, other: Angle) -> Self {
+        Angle::from_rad(self.rad % other.rad)
+    }
+    pub fn positive(&self) -> Self {
+        let rad = self.rad % (2.0 * PI);
+        if rad < 0.0 {
+            Angle::from_rad(rad + 2.0 * PI)
+        } else {
+            Angle::from_rad(rad)
+        }
+    }
     pub fn abs(&self) -> Self {
         Angle::from_rad(self.rad.abs())
     }
@@ -107,6 +118,27 @@ impl Angle {
             self + Angle::full_rotation()
         } else {
             *self
+        }
+    }
+
+    pub fn dist_mod_one_rotation(&self, other: Angle) -> Angle {
+        let angle_diff_abs =
+            (other.mod_one_rotation().positive() - self.mod_one_rotation().positive()).abs();
+        angle_diff_abs.min(Angle::full_rotation() - angle_diff_abs)
+    }
+
+    pub fn min(&self, other: Angle) -> Angle {
+        if self.rad < other.rad {
+            *self
+        } else {
+            other
+        }
+    }
+    pub fn max(&self, other: Angle) -> Angle {
+        if self.rad > other.rad {
+            *self
+        } else {
+            other
         }
     }
 }
@@ -154,10 +186,36 @@ impl From<f32> for Angle {
     }
 }
 
-impl PartialEq for Angle {
-    fn eq(&self, other: &Angle) -> bool {
-        (self.rad - other.rad).abs() < LARGE_EPSILON
+pub trait ToAngle {
+    fn degrees(self) -> Angle;
+    fn rotations(self) -> Angle;
+    fn rad(self) -> Angle;
+}
+
+impl ToAngle for f32 {
+    fn degrees(self) -> Angle {
+        Angle::from_degrees(self)
+    }
+
+    fn rotations(self) -> Angle {
+        Angle::from_rotations(self)
+    }
+
+    fn rad(self) -> Angle {
+        Angle::from_rad(self)
     }
 }
 
-impl Eq for Angle {}
+impl ToAngle for i32 {
+    fn degrees(self) -> Angle {
+        Angle::from_degrees(self as f32)
+    }
+
+    fn rotations(self) -> Angle {
+        Angle::from_rotations(self as f32)
+    }
+
+    fn rad(self) -> Angle {
+        Angle::from_rad(self as f32)
+    }
+}

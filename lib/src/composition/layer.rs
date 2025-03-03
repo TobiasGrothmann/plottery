@@ -1,13 +1,18 @@
 use anyhow::{Ok, Result};
 use bincode::{deserialize_from, serialize};
 use serde::{Deserialize, Serialize};
-use std::{fs::File, io::Write, iter::FromIterator, path::PathBuf, rc::Rc, slice::Iter, vec};
+use std::{
+    collections::BTreeSet, fs::File, io::Write, iter::FromIterator, path::PathBuf, rc::Rc,
+    slice::Iter, vec,
+};
 use svg::{node::element::path::Data, Document};
 
 use crate::{
     traits::{Normalize, Scale, Scale2D, Translate},
-    BoundingBox, Circle, Masked, Path, Plottable, Rect, Rotate, SampleSettings, Shape, V2,
+    Angle, BoundingBox, Circle, Masked, Path, Plottable, Rect, Rotate, SampleSettings, Shape, V2,
 };
+
+use super::path_end::PathEnd;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Layer {
@@ -102,22 +107,15 @@ impl Layer {
             return Document::new();
         }
         let bounding_box = bounding_box.unwrap();
+        let svg_max_coords: V2 = bounding_box.tr() * scale + V2::xy(1.0);
         let mut document = Document::new()
-            .set(
-                "viewbox",
-                (
-                    bounding_box.bl().x * scale,
-                    bounding_box.bl().y * scale,
-                    bounding_box.tr().x * scale,
-                    bounding_box.tr().y * scale,
-                ),
-            )
-            .set("width", bounding_box.size().x * scale)
-            .set("height", bounding_box.size().y * scale);
+            .set("viewBox", (0, 0, svg_max_coords.x, svg_max_coords.y))
+            .set("width", svg_max_coords.x)
+            .set("height", svg_max_coords.y);
 
         let fill = "none";
         let stroke = "black";
-        let stroke_width = 0.1;
+        let stroke_width = 0.04;
 
         for shape in self.iter_flattened() {
             match shape {
@@ -177,7 +175,7 @@ impl Layer {
         Ok(())
     }
 
-    pub fn combine_shapes_flat(&self) -> Self {
+    pub fn combine_shapes_flat(&self, max_angle_delta: Option<Angle>) -> Self {
         let mut combined_shapes = Layer::new();
 
         // flatten references, create mask of used shapes
@@ -203,7 +201,7 @@ impl Layer {
 
         let mut last_num_paths = paths.len();
         loop {
-            paths = self.combine_shapes_flat_iterate(&paths);
+            paths = self.combine_shapes_flat_iterate(&paths, &max_angle_delta);
             if last_num_paths <= paths.len() || paths.len() == 1 {
                 break;
             }
@@ -217,14 +215,25 @@ impl Layer {
         combined_shapes
     }
 
-    fn combine_shapes_flat_iterate(&self, paths: &[Path]) -> Vec<Path> {
+    fn combine_shapes_flat_iterate(
+        &self,
+        paths: &[Path],
+        max_angle_delta: &Option<Angle>,
+    ) -> Vec<Path> {
         let mut combined_paths = Vec::new();
 
         // iterate paths, combine
         let mut mask = vec![false; paths.len()];
         let mut current_path = Path::new();
-        let mut current_path_start = V2::new(0.0, 0.0);
-        let mut current_path_end = V2::new(0.0, 0.0);
+        let mut current_path_start = PathEnd {
+            point: V2::new(0.0, 0.0),
+            angle: Angle::zero(),
+        };
+        let mut current_path_end = PathEnd {
+            point: V2::new(0.0, 0.0),
+            angle: Angle::zero(),
+        };
+
         for (i, path) in paths.iter().enumerate() {
             if mask[i] {
                 continue;
@@ -233,8 +242,8 @@ impl Layer {
             // start new path
             if current_path.is_empty() {
                 current_path.push_many(path.get_points_ref());
-                current_path_start = *current_path.get_start().unwrap();
-                current_path_end = *current_path.get_end().unwrap();
+                current_path_start = PathEnd::from_path_start(path);
+                current_path_end = PathEnd::from_path_end(path);
                 mask[i] = true;
             }
 
@@ -243,38 +252,42 @@ impl Layer {
                     continue;
                 }
 
-                let start = path_candidate.get_start().unwrap();
-                let end = path_candidate.get_end().unwrap();
+                let start = PathEnd::from_path_start(path_candidate);
+                let end = PathEnd::from_path_end(path_candidate);
 
-                if current_path_end == start {
+                if current_path_end.is_compatible(&start, max_angle_delta) {
                     // regular append
+                    // current_start -> current_end -> # -> start -> end
                     current_path.push_iter_ref(path_candidate.get_points_ref().iter().skip(1));
 
-                    current_path_end = *end;
+                    current_path_end = end;
                     mask[j] = true;
-                } else if current_path_end == end {
+                } else if current_path_end.is_compatible(&end.flipped(), max_angle_delta) {
                     // reverse candidate and append
+                    // current_start -> current_end -> # -> end -> start
                     current_path
                         .push_iter_ref(path_candidate.get_points_ref().iter().rev().skip(1));
 
-                    current_path_end = *start;
+                    current_path_end = start.flipped();
                     mask[j] = true;
-                } else if current_path_start == end {
+                } else if current_path_start.is_compatible(&end, max_angle_delta) {
                     // regular prepend
+                    // start -> end -> # -> current_start -> current_end
                     let mut new_current_path = (*path_candidate).clone();
                     new_current_path.push_iter_ref(current_path.get_points_ref().iter().skip(1));
                     current_path = new_current_path;
 
-                    current_path_start = *start;
+                    current_path_start = start;
                     mask[j] = true;
-                } else if current_path_start == start {
-                    // reverse path and prepend
+                } else if current_path_start.is_compatible(&start.flipped(), max_angle_delta) {
+                    // reverse candidate and prepend
+                    // end -> start -> # -> current_start -> current_end
                     let mut new_current_path = (*path_candidate).clone();
                     new_current_path.reverse_mut();
                     new_current_path.push_iter_ref(current_path.get_points_ref().iter().skip(1));
                     current_path = new_current_path;
 
-                    current_path_start = *end;
+                    current_path_start = end.flipped();
                     mask[j] = true;
                 }
             }
@@ -364,7 +377,7 @@ impl Layer {
         let mut outside = Layer::new();
 
         for shape in self.iter_flattened() {
-            let masked = shape.mask(mask, sample_settings);
+            let masked = shape.mask_geo(mask, sample_settings);
             inside.push_layer_flat(masked.inside);
             outside.push_layer_flat(masked.outside);
         }
@@ -372,22 +385,116 @@ impl Layer {
         Masked { inside, outside }
     }
 
-    pub fn mask_flattened_inside(&self, mask: &Shape, sample_settings: &SampleSettings) -> Layer {
+    pub fn mask_geo_flattened_inside(
+        &self,
+        mask: &Shape,
+        sample_settings: &SampleSettings,
+    ) -> Layer {
         self.iter_flattened()
-            .map(|shape| shape.mask_inside(mask, sample_settings))
+            .map(|shape| shape.mask_geo_inside(mask, sample_settings))
             .collect()
     }
 
-    pub fn mask_flattened_outside(&self, mask: &Shape, sample_settings: &SampleSettings) -> Layer {
+    pub fn mask_geo_flattened_outside(
+        &self,
+        mask: &Shape,
+        sample_settings: &SampleSettings,
+    ) -> Layer {
         self.iter_flattened()
-            .map(|shape| shape.mask_outside(mask, sample_settings))
+            .map(|shape| shape.mask_geo_outside(mask, sample_settings))
             .collect()
+    }
+
+    pub fn simplify(&self, aggression_factor: f32) -> Self {
+        self.map_recursive(|shape| shape.simplify(aggression_factor))
+    }
+
+    pub fn mask_flattened_brute_force(
+        &self,
+        mask: &Shape,
+        sample_settings: &SampleSettings,
+    ) -> Masked {
+        let mut inside = Layer::new();
+        let mut outside = Layer::new();
+
+        for shape in self.iter_flattened() {
+            let masked = shape.mask_brute_force(mask, sample_settings);
+            inside.push_layer_flat(masked.inside);
+            outside.push_layer_flat(masked.outside);
+        }
+
+        Masked { inside, outside }
+    }
+
+    pub fn optimize(&self) -> Self {
+        let sample_settings = SampleSettings::low_res();
+        let starts_and_ends: Vec<_> = self
+            .shapes
+            .iter()
+            .map(|shape| {
+                let points = shape.get_points(&sample_settings);
+                if points.len() == 0 {
+                    return (V2::zero(), V2::zero());
+                }
+                (
+                    points.first().unwrap().clone(),
+                    points.last().unwrap().clone(),
+                )
+            })
+            .collect();
+
+        let mut unused_items_indices: BTreeSet<usize> = (0..self.shapes.len()).collect();
+
+        let mut pos = V2::zero();
+        let mut optimized = Layer::new();
+
+        while unused_items_indices.len() > 0 {
+            let mut best_distance = f32::INFINITY;
+            let mut best_index = 0;
+            let mut reversed = false;
+
+            for unused_i in unused_items_indices.iter() {
+                let dist_to_start = starts_and_ends[*unused_i].0.dist_squared(&pos);
+                let dist_to_end = starts_and_ends[*unused_i].1.dist_squared(&pos);
+
+                if dist_to_start < best_distance || dist_to_end < best_distance {
+                    reversed = dist_to_end < dist_to_start;
+                    best_distance = dist_to_start;
+                    best_index = *unused_i;
+                }
+            }
+
+            optimized.push(self.shapes[best_index].clone());
+            if reversed {
+                pos = starts_and_ends[best_index].0;
+            } else {
+                pos = starts_and_ends[best_index].1;
+            }
+            unused_items_indices.remove(&best_index);
+        }
+
+        optimized
+    }
+
+    pub fn optimize_recursive(&self) -> Self {
+        let mut optimized = self.optimize();
+        for sublayer in &self.sublayers {
+            optimized.push_layer(sublayer.optimize_recursive());
+        }
+        optimized
     }
 }
 
 impl Default for Layer {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl From<Vec<Vec<V2>>> for Layer {
+    fn from(vecs: Vec<Vec<V2>>) -> Self {
+        let shapes = vecs.into_iter().map(|points| points.into()).collect();
+        Layer::new_from(shapes)
     }
 }
 
@@ -426,15 +533,6 @@ impl<'a> Iterator for LayerFlattenedIterator<'a> {
                 return None;
             }
         }
-    }
-}
-
-impl IntoIterator for Layer {
-    type Item = Shape;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.shapes.into_iter()
     }
 }
 

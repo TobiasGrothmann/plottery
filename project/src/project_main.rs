@@ -61,7 +61,7 @@ where
                     art.write_svg(path, scale)?;
                 }
                 None => {
-                    let path = std::env::temp_dir().join("test2.svg");
+                    let path = std::env::temp_dir().join("temp_cli.svg");
                     let art = generate_function(P::new_with_defaults());
                     art.write_svg(path.clone(), scale)?;
 

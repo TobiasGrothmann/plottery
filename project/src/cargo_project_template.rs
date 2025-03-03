@@ -119,8 +119,8 @@ fn write_dir_to_disk_recurse(
     fs: &EmbeddedFS<CargoProjectTemplate>,
     sub_dir: String,
     out_dir: &PathBuf,
-    string_replacements: &Vec<Replacement>,
-    file_name_replacements: &Vec<Replacement>,
+    string_replacements: &[Replacement],
+    file_name_replacements: &[Replacement],
 ) -> Result<()> {
     for element in fs.read_dir(&sub_dir).unwrap() {
         let sub_element = format!("{}/{}", &sub_dir, &element);
@@ -151,8 +151,8 @@ fn write_file_to_disk(
     fs: &EmbeddedFS<CargoProjectTemplate>,
     sub_element: &str,
     out_element: &Path,
-    string_replacements: &Vec<Replacement>,
-    file_name_replacements: &Vec<Replacement>,
+    string_replacements: &[Replacement],
+    file_name_replacements: &[Replacement],
 ) -> Result<()> {
     let mut file = fs.open_file(sub_element)?;
     let ext = match Path::new(&sub_element).extension() {

@@ -21,7 +21,7 @@ mod test_circle {
     fn circle_points() {
         let center = V2::new(1.0, 2.0);
         let radius = 1.0;
-        let c = Circle::new_shape(center.clone(), radius);
+        let c = Circle::new_shape(center, radius);
         let sample_settings = SampleSettings::default();
 
         let points = c.get_points(&sample_settings);
@@ -150,5 +150,19 @@ mod test_circle {
         assert_eq!(c1.get_intersections(&c2)[1].x, 1.5);
         assert_eq!(c2.get_intersections(&c1)[0].x, 1.5);
         assert_eq!(c2.get_intersections(&c1)[1].x, 1.5);
+    }
+
+    #[test]
+    fn get_points() {
+        let c = Circle::new(V2::new(1.0, 1.0), 1.0);
+        let start_point = V2::new(1.0, 5.0);
+        let sample_settings = SampleSettings::default();
+
+        let points = c.get_points(&sample_settings);
+        let points_from = c.get_points_from(&start_point, &sample_settings);
+
+        assert_eq!(points.first().unwrap(), V2::new(2.0, 1.0));
+        assert_eq!(points_from.first().unwrap(), V2::new(1.0, 2.0));
+        assert_ne!(points, points_from)
     }
 }

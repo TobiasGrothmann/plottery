@@ -1,0 +1,17 @@
+[package]
+name = "plottery_server_lib"
+edition = "2021"
+description = "library for the communication with the pen-plotter server of Plottery, a creative coding framework for generative vector graphics and pen plotting."
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+categories.workspace = true
+repository.workspace = true
+keywords.workspace = true
+
+[dependencies]
+bincode = "1.3.3"
+anyhow = "1.0.96"
+plottery_lib = { path = "../lib", version = "^0.3.0" }
+serde = { version = "1.0", features = ["derive"] }
+reqwest = "0.12.12"

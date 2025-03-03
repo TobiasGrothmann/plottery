@@ -46,6 +46,14 @@ mod test_line {
             let line1 = Line::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
             let line2 = Line::new(V2::new(3.5, 0.0), V2::new(0.0, 3.5));
             assert_eq!(line1.intersection(&line2), LineIntersection::NoIntersection);
+
+            let line1 = Line::new(V2::new(0.0, 0.0), V2::new(1.0, 0.0));
+            let line2 = Line::new(V2::new(1.0, -1.0), V2::new(3.0, 1.0));
+            assert_eq!(line1.intersection(&line2), LineIntersection::NoIntersection);
+
+            let line1 = Line::new(V2::new(5.0, 5.0), V2::new(5.0, -3.0));
+            let line2 = Line::new(V2::new(4.0, -7.0), V2::new(6.0, -5.0));
+            assert_eq!(line1.intersection(&line2), LineIntersection::NoIntersection);
         }
 
         #[test]
@@ -55,7 +63,7 @@ mod test_line {
             let line2 = Line::new(V2::new(1.0, 1.0), V2::new(2.0, 2.0));
             assert_eq!(
                 line1.intersection(&line2),
-                LineIntersection::Intersection(line1.to.clone())
+                LineIntersection::Intersection(line1.to)
             );
         }
 
@@ -66,7 +74,7 @@ mod test_line {
             let line2 = Line::new(V2::new(1.0, 1.0), V2::new(1.0, -1.0));
             assert_eq!(
                 line1.intersection(&line2),
-                LineIntersection::Intersection(line1.to.clone())
+                LineIntersection::Intersection(line1.to)
             );
         }
 
@@ -77,7 +85,7 @@ mod test_line {
             let line2 = Line::new(V2::new(0.0, 2.0), V2::new(2.0, 0.0));
             assert_eq!(
                 line1.intersection(&line2),
-                LineIntersection::Intersection(line1.from.clone())
+                LineIntersection::Intersection(line1.from)
             );
         }
 
@@ -158,6 +166,30 @@ mod test_line {
 
             let point = V2::new(0.0, 2.0);
             assert_eq!(line.project(&point), V2::new(0.5, 1.5));
+        }
+
+        #[test]
+        fn intersect_multiple_sorted() {
+            let a = Line::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+
+            let i1 = Line::new(V2::new(0.0, 0.25), V2::new(1.0, 0.25));
+            let i2 = Line::new(V2::new(0.0, 0.5), V2::new(1.0, 0.5));
+            let i3 = Line::new(V2::new(0.0, 0.75), V2::new(1.0, 0.75));
+
+            let order1 = vec![i1, i2, i3];
+            let order2 = vec![i1, i3, i2];
+            let order3 = vec![i2, i1, i3];
+            let order4 = vec![i2, i3, i1];
+            let order5 = vec![i3, i1, i2];
+            let order6 = vec![i3, i2, i1];
+
+            for order in [order1, order2, order3, order4, order5, order6] {
+                let r = a.intersect_multiple_sorted_by_dist(&order);
+                assert_eq!(r.len(), 3);
+                assert_eq!(r[0], V2::xy(0.25));
+                assert_eq!(r[1], V2::xy(0.5));
+                assert_eq!(r[2], V2::xy(0.75));
+            }
         }
     }
 }
