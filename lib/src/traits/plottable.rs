@@ -19,6 +19,11 @@ impl SampleSettings {
     pub fn get_num_points_for_length(&self, length: f32) -> i32 {
         (length.abs() * self.points_per_unit).ceil() as i32
     }
+    pub fn low_res() -> Self {
+        Self {
+            points_per_unit: 1.0,
+        }
+    }
 }
 
 impl Default for SampleSettings {

@@ -427,7 +427,7 @@ impl Layer {
     }
 
     pub fn optimize(&self) -> Self {
-        let sample_settings = SampleSettings::new(1.0);
+        let sample_settings = SampleSettings::low_res();
         let starts_and_ends: Vec<_> = self
             .shapes
             .iter()
