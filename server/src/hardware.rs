@@ -1,4 +1,5 @@
 use plottery_lib::{geometry::v2i::V2i, *};
+use plottery_server_lib::Axis;
 use rocket::figment::value::Map;
 #[cfg(feature = "raspi")]
 use std::thread::sleep;
@@ -35,12 +36,6 @@ pub struct Hardware {
     _pins_micstep: Vec<Vec<OutputPin>>,
 
     pin_settings: PinSettings,
-}
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-enum Axis {
-    X,
-    Y,
-    Head,
 }
 
 impl Hardware {
@@ -341,6 +336,37 @@ impl Hardware {
             }
         }
         self.enabled = enabled;
+    }
+
+    pub fn play_freq(&mut self, axis: &Axis, frequency: f32, duration_s: f32) {
+        #[cfg(feature = "raspi")]
+        {
+            const SEC_NANOS: f64 = 1_000_000_000.0;
+
+            let period_nanos = (SEC_NANOS / frequency as f64).round() as u64;
+            let half_period_nanos = period_nanos / 2;
+            let delay = Duration::new(0, half_period_nanos as u32);
+
+            let mut steps =
+                ((SEC_NANOS * duration_s as f64) / half_period_nanos as f64).round() as u64;
+            steps += steps % 2;
+
+            let mut forward = true;
+            for _ in 0..steps {
+                self.set_dir(*axis, forward);
+                forward = !forward;
+
+                let delay_until = self.last_steps_timestamp[axis] + delay;
+                while delay_until >= Instant::now() {
+                    // wait
+                }
+                self.step(*axis);
+                self.last_steps_timestamp.insert(*axis, Instant::now());
+            }
+        }
+
+        #[cfg(not(feature = "raspi"))]
+        println!("Play freq: {:?} {:?} {:?}", axis, frequency, duration_s);
     }
 }
 

@@ -1,5 +1,6 @@
 use itertools::Itertools;
 use plottery_lib::*;
+use plottery_server_lib::midi::midi_to_freq;
 use plottery_server_lib::plot_setting::PlotSettings;
 use plottery_server_lib::task::Task;
 use tokio::sync::mpsc;
@@ -73,6 +74,25 @@ pub async fn start_server(mut receiver: mpsc::Receiver<Task>) -> anyhow::Result<
 
                     hardware.set_enabled(true);
                     travel_to(&mut hardware, target_pos, &plot_settings).await;
+                    hardware.set_enabled(false);
+                }
+                Task::NoteFreq {
+                    axis,
+                    frequency,
+                    duration_s,
+                } => {
+                    hardware.set_enabled(true);
+                    hardware.play_freq(&axis, frequency, duration_s);
+                    hardware.set_enabled(false);
+                }
+                Task::Note {
+                    axis,
+                    midi,
+                    duration_s,
+                } => {
+                    hardware.set_enabled(true);
+                    let freq = midi_to_freq(midi);
+                    hardware.play_freq(&axis, freq, duration_s);
                     hardware.set_enabled(false);
                 }
             }

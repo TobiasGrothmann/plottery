@@ -1,6 +1,6 @@
 use plottery_lib::*;
 
-use crate::{plot_setting::PlotSettings, HOST_NAME, HOST_PORT};
+use crate::{plot_setting::PlotSettings, Axis, HOST_NAME, HOST_PORT};
 
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -22,6 +22,16 @@ pub enum Task {
     SetHead(bool),
     MoveTo(V2, PlotSettings),
     Move(V2, PlotSettings),
+    NoteFreq {
+        axis: Axis,
+        frequency: f32,
+        duration_s: f32,
+    },
+    Note {
+        axis: Axis,
+        midi: f32,
+        duration_s: f32,
+    },
 }
 
 impl Task {
