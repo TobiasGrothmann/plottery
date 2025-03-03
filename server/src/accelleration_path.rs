@@ -2,7 +2,7 @@ use std::iter::once;
 
 use crate::maths::get_corner_sharpness;
 use itertools::Itertools;
-use plottery_lib::V2;
+use plottery_lib::{LARGE_EPSILON, V2};
 
 #[derive(Debug)]
 pub struct V2Speed {
@@ -44,7 +44,7 @@ impl AccellerationPath {
             corner_sharpness_speeds.iter().cloned(),
             accell_dist,
         );
-        let mut decelleration_speeds = Self::accelleration_pass(
+        let decelleration_speeds = Self::accelleration_pass(
             points_dedup.iter().rev().cloned(),
             corner_sharpness_speeds.iter().rev().cloned(),
             accell_dist,
@@ -116,14 +116,14 @@ impl AccellerationPath {
             speed_points.push(V2Speed { point: *a, speed });
 
             let segment_length = a.dist(b);
-            let max_acc_change = segment_length / accell_dist;
 
             let a_needed_dist_to_max_speed = (1.0 - speed) * accell_dist;
             let b_needed_dist_to_max_speed = (1.0 - *speed_b) * accell_dist;
 
-            let a_needed_dist_to_b_speed = (speed_b - speed) * accell_dist;
-
-            if segment_length > a_needed_dist_to_max_speed + b_needed_dist_to_max_speed {
+            if speed + LARGE_EPSILON >= 1.0 && speed_b + LARGE_EPSILON >= 1.0 {
+                // we are already at max speed and stay there
+                speed = 1.0;
+            } else if segment_length >= a_needed_dist_to_max_speed + b_needed_dist_to_max_speed {
                 // we can accellerate and decellerate to 1.0 completely
                 // adding two points with speed 1.0
                 let a_factor_to_peak = a_needed_dist_to_max_speed / segment_length;
@@ -138,7 +138,7 @@ impl AccellerationPath {
                     speed,
                 });
                 speed = *speed_b; // at the end of segment speed is at speed_b
-            } else if segment_length > a_needed_dist_to_b_speed {
+            } else if segment_length >= a_needed_dist_to_max_speed {
                 // we can accellerate to a peak in between
                 // adding one point with appropriate speed
                 let dist_needed_exceeding_length =
@@ -156,9 +156,9 @@ impl AccellerationPath {
                     point: peak_point,
                     speed,
                 });
-                speed = *speed_b // at the end of segment speed is at speed_b
+                speed = *speed_b; // at the end of segment speed is at speed_b
             } else {
-                speed += max_acc_change;
+                speed = *speed_b;
             }
         }
 
