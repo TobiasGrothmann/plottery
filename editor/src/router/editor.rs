@@ -194,6 +194,8 @@ pub fn Editor(project_path: String) -> Element {
                         },
                         p { "hot reload" }
                     }
+                }
+                div { class: "output_actions",
                     button { class: "img_button",
                         onclick: move |_event| {
                             let layer_option = layer_change_wrapper.read().layer.clone();
@@ -218,6 +220,27 @@ pub fn Editor(project_path: String) -> Element {
 
                         },
                         p { "send plot" }
+                    }
+                    button { class: "img_button",
+                        onclick: move |_event| {
+                            let layer_option = layer_change_wrapper.read().layer.clone();
+                            match layer_option {
+                                Some(layer) => {
+                                    let path = std::env::temp_dir().join("temp_editor.svg");
+                                    layer.write_svg(path.clone(), 1.0).unwrap();
+
+                                    open::that_in_background(path)
+                                        .join()
+                                        .expect("Failed to open svg.")
+                                        .expect("Failed to open svg.");
+                                },
+                                None => {
+                                    console.read().error("cannot open svg: no layer available");
+                                }
+                            }
+
+                        },
+                        p { "open svg" }
                     }
                 }
             }

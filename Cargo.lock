@@ -4317,6 +4317,7 @@ dependencies = [
  "log",
  "nix 0.29.0",
  "notify",
+ "open",
  "opener",
  "path-absolutize",
  "plottery_lib",

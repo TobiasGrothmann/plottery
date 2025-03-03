@@ -14,15 +14,14 @@
   column-gap: var(--gap-2);
   background-color: var(--col-bg-2);
   align-items: center;
+  justify-content: space-between;
 }
 .run_actions {
-  margin-left: auto;
   display: flex;
   flex-direction: row;
   column-gap: var(--gap-1);
 }
 .open_actions {
-  margin-top: auto;
   display: flex;
   flex-direction: row;
   column-gap: var(--gap-0);
@@ -30,6 +29,11 @@
 .open_actions button {
   color: var(--col-fg-0);
   background-color: var(--col-bg-2);
+}
+.output_actions {
+  display: flex;
+  flex-direction: row;
+  column-gap: var(--gap-1);
 }
 
 .plot_and_params {
@@ -39,7 +43,7 @@
   column-gap: var(--gap-1);
 }
 .params {
-  width: 350px;
+  width: 550px;
   display: flex;
 }
 .plot_and_console {
