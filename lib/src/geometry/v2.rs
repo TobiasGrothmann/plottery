@@ -58,7 +58,7 @@ impl V2 {
     }
     pub fn random_unit_disk() -> Self {
         let angle = Angle::rand();
-        let radius = rand_range(0.0, 1.0).sqrt();
+        let radius = rand_range(0.0, 1.0);
         Self::polar(angle, radius)
     }
     pub fn random_in_rect(rect: &Rect) -> Self {
