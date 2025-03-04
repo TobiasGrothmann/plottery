@@ -12,13 +12,13 @@ use crate::{
     Angle, BoundingBox, Circle, Masked, Path, Plottable, Rect, Rotate, SampleSettings, Shape, V2,
 };
 
-use super::{path_end::PathEnd, LayerProps, LayerPropsSettings};
+use super::{path_end::PathEnd, Inheritable, LayerProps};
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Layer {
     pub shapes: Vec<Shape>,
     pub sublayers: Vec<Layer>,
-    pub props: LayerProps,
+    pub props: Inheritable<LayerProps>,
 }
 
 impl Layer {
@@ -26,21 +26,21 @@ impl Layer {
         Self {
             shapes: Vec::new(),
             sublayers: Vec::new(),
-            props: LayerProps::Inherit,
+            props: Inheritable::Inherit,
         }
     }
     pub fn new_from(shapes: Vec<Shape>) -> Self {
         Self {
             shapes,
             sublayers: Vec::new(),
-            props: LayerProps::Inherit,
+            props: Inheritable::Inherit,
         }
     }
     pub fn new_from_shapes_and_layers(shapes: Vec<Shape>, sublayers: Vec<Layer>) -> Self {
         Self {
             shapes,
             sublayers,
-            props: LayerProps::Inherit,
+            props: Inheritable::Inherit,
         }
     }
     pub fn new_from_file(path: &PathBuf) -> Result<Layer> {
@@ -52,10 +52,10 @@ impl Layer {
         Ok(deserialize_from(binary_data.as_slice())?)
     }
 
-    pub fn set_props(&mut self, props: LayerProps) {
+    pub fn set_props(&mut self, props: Inheritable<LayerProps>) {
         self.props = props;
     }
-    pub fn with_props(mut self, props: LayerProps) -> Self {
+    pub fn with_props(mut self, props: Inheritable<LayerProps>) -> Self {
         self.set_props(props);
         self
     }
@@ -131,10 +131,7 @@ impl Layer {
             .set("width", svg_max_coords.x)
             .set("height", svg_max_coords.y);
 
-        let props = match &self.props {
-            LayerProps::Inherit => LayerPropsSettings::default(),
-            LayerProps::Custom(props) => props.clone(),
-        };
+        let props = LayerProps::default().join_with_child(&self.props);
 
         let (shapes, sub_groups) = self.get_svg_nodes(scale, &props);
         for shape in shapes {
@@ -150,20 +147,17 @@ impl Layer {
     fn get_svg_nodes(
         &self,
         scale: f32,
-        parent_props: &LayerPropsSettings,
+        parent_props: &LayerProps,
     ) -> (
         Vec<Box<dyn svg::node::Node>>,
         Vec<svg::node::element::Group>,
     ) {
-        let props = match &self.props {
-            LayerProps::Inherit => parent_props,
-            LayerProps::Custom(props) => props,
-        };
-        let shapes = self.get_shapes_as_svg_nodes(scale, props);
+        let props = parent_props.join_with_child(&self.props);
+        let shapes = self.get_shapes_as_svg_nodes(scale, &props);
 
         let mut sub_groups: Vec<svg::node::element::Group> = Vec::new();
         for sublayer in &self.sublayers {
-            let (sublayer_shapes, sublayer_sub_groups) = sublayer.get_svg_nodes(scale, props);
+            let (sublayer_shapes, sublayer_sub_groups) = sublayer.get_svg_nodes(scale, &props);
             let mut sublayer_group = svg::node::element::Group::new();
             for shape in sublayer_shapes {
                 sublayer_group = sublayer_group.add(shape);
@@ -180,11 +174,11 @@ impl Layer {
     fn get_shapes_as_svg_nodes(
         &self,
         scale: f32,
-        props: &LayerPropsSettings,
+        props: &LayerProps,
     ) -> Vec<Box<dyn svg::node::Node>> {
         let fill = "none";
-        let stroke = props.color.hex();
-        let stroke_width = props.pen_width_cm * scale;
+        let stroke = props.color.unwrap().hex();
+        let stroke_width = props.pen_width_cm.unwrap() * scale;
 
         let mut nodes: Vec<Box<dyn svg::node::Node>> = Vec::new();
         for shape in self.iter() {
@@ -624,7 +618,7 @@ impl FromIterator<Shape> for Layer {
         Layer {
             shapes: iter.into_iter().collect(),
             sublayers: Vec::new(),
-            props: LayerProps::Inherit,
+            props: Inheritable::Inherit,
         }
     }
 }

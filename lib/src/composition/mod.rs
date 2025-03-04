@@ -5,6 +5,7 @@ mod frame_test;
 pub mod grid;
 pub mod layer;
 mod layer_props;
+mod layer_props_test;
 mod layer_test;
 mod path_end;
 
