@@ -12,7 +12,7 @@ use crate::{
     Angle, BoundingBox, Circle, Masked, Path, Plottable, Rect, Rotate, SampleSettings, Shape, V2,
 };
 
-use super::{path_end::PathEnd, LayerProps};
+use super::{path_end::PathEnd, LayerProps, LayerPropsSettings};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Layer {
@@ -131,34 +131,87 @@ impl Layer {
             .set("width", svg_max_coords.x)
             .set("height", svg_max_coords.y);
 
-        let fill = "none";
-        let stroke = "black";
-        let stroke_width = 0.04;
+        let props = match &self.props {
+            LayerProps::Inherit => LayerPropsSettings::default(),
+            LayerProps::Custom(props) => props.clone(),
+        };
 
-        for shape in self.iter_flattened() {
+        let (shapes, sub_groups) = self.get_svg_nodes(scale, &props);
+        for shape in shapes {
+            document = document.add(shape);
+        }
+        for group in sub_groups {
+            document = document.add(group);
+        }
+
+        document
+    }
+
+    fn get_svg_nodes(
+        &self,
+        scale: f32,
+        parent_props: &LayerPropsSettings,
+    ) -> (
+        Vec<Box<dyn svg::node::Node>>,
+        Vec<svg::node::element::Group>,
+    ) {
+        let props = match &self.props {
+            LayerProps::Inherit => parent_props,
+            LayerProps::Custom(props) => props,
+        };
+        let shapes = self.get_shapes_as_svg_nodes(scale, props);
+
+        let mut sub_groups: Vec<svg::node::element::Group> = Vec::new();
+        for sublayer in &self.sublayers {
+            let (sublayer_shapes, sublayer_sub_groups) = sublayer.get_svg_nodes(scale, props);
+            let mut sublayer_group =
+                svg::node::element::Group::new().set("inkscape:groupmode", "layer");
+            for shape in sublayer_shapes {
+                sublayer_group = sublayer_group.add(shape);
+            }
+            for group in sublayer_sub_groups {
+                sublayer_group = sublayer_group.add(group);
+            }
+            sub_groups.push(sublayer_group);
+        }
+
+        (shapes, sub_groups)
+    }
+
+    fn get_shapes_as_svg_nodes(
+        &self,
+        scale: f32,
+        props: &LayerPropsSettings,
+    ) -> Vec<Box<dyn svg::node::Node>> {
+        let fill = "none";
+        let stroke = props.color.hex();
+        let stroke_width = props.pen_width_cm * scale;
+
+        let mut nodes: Vec<Box<dyn svg::node::Node>> = Vec::new();
+        for shape in self.iter() {
             match shape {
-                Shape::Circle(c) => {
-                    let circle = svg::node::element::Circle::new()
+                Shape::Circle(c) => nodes.push(Box::new(
+                    svg::node::element::Circle::new()
                         .set("cx", c.center.x * scale)
                         .set("cy", c.center.y * scale)
                         .set("r", c.radius * scale)
                         .set("fill", fill)
-                        .set("stroke", stroke)
-                        .set("stroke-width", stroke_width);
-                    document = document.add(circle);
-                }
+                        .set("stroke", stroke.clone())
+                        .set("stroke-width", stroke_width),
+                )),
                 Shape::Rect(r) => {
                     let bl = r.bl();
                     let size = r.size();
-                    let rect = svg::node::element::Rectangle::new()
-                        .set("x", bl.x * scale)
-                        .set("y", bl.y * scale)
-                        .set("width", size.x * scale)
-                        .set("height", size.y * scale)
-                        .set("fill", fill)
-                        .set("stroke", stroke)
-                        .set("stroke-width", stroke_width);
-                    document = document.add(rect);
+                    nodes.push(Box::new(
+                        svg::node::element::Rectangle::new()
+                            .set("x", bl.x * scale)
+                            .set("y", bl.y * scale)
+                            .set("width", size.x * scale)
+                            .set("height", size.y * scale)
+                            .set("fill", fill)
+                            .set("stroke", stroke.clone())
+                            .set("stroke-width", stroke_width),
+                    ));
                 }
                 Shape::Path(p) => {
                     let points = p.get_points_ref();
@@ -175,16 +228,17 @@ impl Layer {
                     if points.first().unwrap() == points.last().unwrap() {
                         data = data.close();
                     }
-                    let path = svg::node::element::Path::new()
-                        .set("d", data)
-                        .set("fill", fill)
-                        .set("stroke", stroke)
-                        .set("stroke-width", stroke_width);
-                    document = document.add(path);
+                    nodes.push(Box::new(
+                        svg::node::element::Path::new()
+                            .set("d", data)
+                            .set("fill", fill)
+                            .set("stroke", stroke.clone())
+                            .set("stroke-width", stroke_width),
+                    ));
                 }
             }
         }
-        document
+        nodes
     }
 
     pub fn write_svg(&self, path: PathBuf, scale: f32) -> Result<()> {
