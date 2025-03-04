@@ -1,6 +1,3 @@
-pub mod angle;
-pub mod angle_operators;
-mod angle_test;
 pub mod line;
 mod line_test;
 pub mod transform_matrix;
@@ -11,12 +8,7 @@ pub mod v2_operators;
 mod v2_test;
 pub mod v2i;
 
-pub use angle::Angle;
-pub use angle::AngleInterpolator;
-pub use angle::ToAngle;
-pub use line::Line;
-pub use line::LineIntersection;
-pub use line::PointLineRelation;
-pub use transform_matrix::TransformMatrix;
-pub use transform_matrix_builder::TransformMatrixBuilder;
-pub use v2::V2;
+pub use line::*;
+pub use transform_matrix::*;
+pub use transform_matrix_builder::*;
+pub use v2::*;

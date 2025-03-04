@@ -1,9 +1,7 @@
 use geometry_predicates::orient2d;
 use itertools::Itertools;
 
-use crate::{LARGE_EPSILON, V2};
-
-use super::Angle;
+use crate::{Angle, LARGE_EPSILON, V2};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Line {

@@ -1,3 +1,6 @@
+pub mod angle;
+pub mod angle_operators;
+mod angle_test;
 pub mod consts;
 pub mod float;
 mod float_test;
@@ -6,6 +9,7 @@ mod noise_test;
 pub mod random;
 mod thread_local;
 
+pub use angle::*;
 pub use consts::*;
 pub use float::*;
 pub use noise::*;
