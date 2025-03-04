@@ -1,6 +1,6 @@
 use crate::{
     traits::{ClosestPoint, Normalize, Scale, Scale2D, Translate},
-    BoundingBox, Path, Plottable, Rotate90, SampleSettings, Shape, V2,
+    BoundingBox, Path, Plottable, Rotate90, SampleSettings, Shape, LARGE_EPSILON, V2,
 };
 use serde::{Deserialize, Serialize};
 
@@ -64,6 +64,18 @@ impl Rect {
         self.top_right.x - self.bot_left.x
     }
 
+    pub fn max_dist_to_any_corner(&self, point: &V2) -> f32 {
+        *[
+            self.bl().dist(point),
+            self.br().dist(point),
+            self.tr().dist(point),
+            self.tl().dist(point),
+        ]
+        .iter()
+        .max_by(|a, b| a.partial_cmp(b).unwrap())
+        .unwrap()
+    }
+
     pub fn center(&self) -> V2 {
         V2::new(
             (self.bot_left.x + self.top_right.x) * 0.5,
@@ -74,7 +86,7 @@ impl Rect {
         self.width() / self.height()
     }
     pub fn is_square(&self) -> bool {
-        (self.width() - self.height()).abs() < f32::EPSILON
+        (self.width() - self.height()).abs() < LARGE_EPSILON
     }
 
     pub fn left_mid(&self) -> V2 {
