@@ -8,7 +8,7 @@ where
     T: Clone,
 {
     Inherit,
-    Custom(T),
+    Specified(T),
 }
 
 impl<T> Inheritable<T>
@@ -18,14 +18,14 @@ where
     pub fn join_with_child(&self, child: &Self) -> Self {
         match child {
             Inheritable::Inherit => self.clone(),
-            Inheritable::Custom(child_value) => Inheritable::Custom(child_value.clone()),
+            Inheritable::Specified(child_value) => Inheritable::Specified(child_value.clone()),
         }
     }
 
     pub fn unwrap(&self) -> T {
         match self {
             Inheritable::Inherit => panic!("Inheritable::unwrap() called on Inherit variant"),
-            Inheritable::Custom(value) => value.clone(),
+            Inheritable::Specified(value) => value.clone(),
         }
     }
 }
@@ -39,14 +39,14 @@ pub struct LayerProps {
 impl LayerProps {
     pub fn with_color(&self, color: ColorRgb) -> Self {
         Self {
-            color: Inheritable::Custom(color),
+            color: Inheritable::Specified(color),
             pen_width_cm: self.pen_width_cm,
         }
     }
     pub fn with_pen_width_cm(&self, pen_width_cm: f32) -> Self {
         Self {
             color: self.color,
-            pen_width_cm: Inheritable::Custom(pen_width_cm),
+            pen_width_cm: Inheritable::Specified(pen_width_cm),
         }
     }
 }
@@ -55,7 +55,7 @@ impl LayerProps {
     pub fn join_with_child(&self, child: &Inheritable<Self>) -> Self {
         match child {
             Inheritable::Inherit => self.clone(),
-            Inheritable::Custom(child_props) => Self {
+            Inheritable::Specified(child_props) => Self {
                 color: self.color.join_with_child(&child_props.color),
                 pen_width_cm: self.pen_width_cm.join_with_child(&child_props.pen_width_cm),
             },
@@ -66,8 +66,8 @@ impl LayerProps {
 impl Default for LayerProps {
     fn default() -> Self {
         Self {
-            color: Inheritable::Custom(ColorRgb::black()),
-            pen_width_cm: Inheritable::Custom(0.05),
+            color: Inheritable::Specified(ColorRgb::black()),
+            pen_width_cm: Inheritable::Specified(0.05),
         }
     }
 }
