@@ -531,7 +531,7 @@ impl Layer {
                 }
                 if dist_to_end < best_distance {
                     reversed = false;
-                    best_distance = dist_to_start;
+                    best_distance = dist_to_end;
                     best_index = *unused_i;
                 }
             }
