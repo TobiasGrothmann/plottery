@@ -12,12 +12,13 @@ use crate::{
     Angle, BoundingBox, Circle, Masked, Path, Plottable, Rect, Rotate, SampleSettings, Shape, V2,
 };
 
-use super::path_end::PathEnd;
+use super::{path_end::PathEnd, LayerProps};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Layer {
     pub shapes: Vec<Shape>,
     pub sublayers: Vec<Layer>,
+    pub props: LayerProps,
 }
 
 impl Layer {
@@ -25,16 +26,22 @@ impl Layer {
         Self {
             shapes: Vec::new(),
             sublayers: Vec::new(),
+            props: LayerProps::Inherit,
         }
     }
     pub fn new_from(shapes: Vec<Shape>) -> Self {
         Self {
             shapes,
             sublayers: Vec::new(),
+            props: LayerProps::Inherit,
         }
     }
     pub fn new_from_shapes_and_layers(shapes: Vec<Shape>, sublayers: Vec<Layer>) -> Self {
-        Self { shapes, sublayers }
+        Self {
+            shapes,
+            sublayers,
+            props: LayerProps::Inherit,
+        }
     }
     pub fn new_from_file(path: &PathBuf) -> Result<Layer> {
         let file = File::open(path)?;
@@ -43,6 +50,14 @@ impl Layer {
     }
     pub fn new_from_binary(binary_data: &Vec<u8>) -> Result<Layer> {
         Ok(deserialize_from(binary_data.as_slice())?)
+    }
+
+    pub fn set_props(&mut self, props: LayerProps) {
+        self.props = props;
+    }
+    pub fn with_props(mut self, props: LayerProps) -> Self {
+        self.set_props(props);
+        self
     }
 
     pub fn write_file(&self, path: &PathBuf) -> Result<()> {
@@ -74,6 +89,9 @@ impl Layer {
         for shape in layer.iter_flattened() {
             self.shapes.push(shape.clone());
         }
+    }
+    pub fn push_many<I: IntoIterator<Item = Shape>>(&mut self, shapes: I) {
+        self.shapes.extend(shapes);
     }
 
     pub fn iter(&self) -> Iter<'_, Shape> {
@@ -176,7 +194,7 @@ impl Layer {
     }
 
     pub fn combine_shapes_flat(&self, max_angle_delta: Option<Angle>) -> Self {
-        let mut combined_shapes = Layer::new();
+        let mut combined_shapes = Layer::new().with_props(self.props);
 
         // flatten references, create mask of used shapes
         let mut paths = Vec::new();
@@ -326,6 +344,7 @@ impl Layer {
                 .map(|sublayer| sublayer.map_shapes_recursive_internal(f.clone()))
                 .collect(),
         )
+        .with_props(self.props)
     }
 
     pub fn filter_recursive<F>(&self, f: F) -> Self
@@ -352,6 +371,7 @@ impl Layer {
             .map(|layer| layer.filter_recursive_internal(f.clone()))
             .collect();
         Layer::new_from_shapes_and_layers(filtered_shapes, filtered_sublayers)
+            .with_props(self.props)
     }
 
     pub fn filter_recursive_mut<F>(&mut self, predicate: F)
@@ -446,7 +466,7 @@ impl Layer {
         let mut unused_items_indices: BTreeSet<usize> = (0..self.shapes.len()).collect();
 
         let mut pos = V2::zero();
-        let mut optimized = Layer::new();
+        let mut optimized = Layer::new().with_props(self.props);
 
         while unused_items_indices.len() > 0 {
             let mut best_distance = f32::INFINITY;
@@ -491,6 +511,7 @@ impl Layer {
 
     pub fn flatten(&self) -> Self {
         Layer::new_from_shapes_and_layers(self.iter_flattened().cloned().collect(), Vec::new())
+            .with_props(self.props)
     }
 }
 
@@ -550,6 +571,7 @@ impl FromIterator<Shape> for Layer {
         Layer {
             shapes: iter.into_iter().collect(),
             sublayers: Vec::new(),
+            props: LayerProps::Inherit,
         }
     }
 }
