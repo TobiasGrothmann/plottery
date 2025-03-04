@@ -71,6 +71,10 @@ impl Project {
         Ok(loaded_project)
     }
 
+    pub fn get_dir(&self) -> PathBuf {
+        self.dir.clone()
+    }
+
     pub fn get_resource_dir(&self) -> PathBuf {
         let mut resource_dir = self.dir.clone();
         resource_dir.push("resources");
