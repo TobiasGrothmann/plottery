@@ -164,8 +164,7 @@ impl Layer {
         let mut sub_groups: Vec<svg::node::element::Group> = Vec::new();
         for sublayer in &self.sublayers {
             let (sublayer_shapes, sublayer_sub_groups) = sublayer.get_svg_nodes(scale, props);
-            let mut sublayer_group =
-                svg::node::element::Group::new().set("inkscape:groupmode", "layer");
+            let mut sublayer_group = svg::node::element::Group::new();
             for shape in sublayer_shapes {
                 sublayer_group = sublayer_group.add(shape);
             }
