@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod test_noise {
+mod test_float {
     use crate::FloatInterpolation;
 
     #[test]

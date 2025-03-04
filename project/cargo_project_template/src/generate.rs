@@ -36,9 +36,12 @@ pub fn generate(params: Params) -> Layer {
 
     // generate plot with only the circles that fit in the frame
     l.push_rect(frame.outer_rect());
-    circles
-        .iter()
-        .filter(|circle| frame.inner_rect().contains_point(&circle.center))
-        .for_each(|circle| l.push_circle(circle.clone()));
+    l.push_many(
+        circles
+            .iter()
+            .filter(|circle| frame.inner_rect().contains_point(&circle.center))
+            .map(|circle| circle.to_shape()),
+    );
+
     l
 }
