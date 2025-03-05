@@ -1,6 +1,6 @@
-use crate::router::add_project::ProjectAdd;
 use crate::router::browser::browser::Browser;
 use crate::router::editor::editor::Editor;
+use crate::router::project_add::project_add::ProjectAdd;
 use dioxus::prelude::*;
 use dioxus_router::prelude::*;
 

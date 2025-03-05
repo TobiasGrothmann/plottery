@@ -1,6 +1,6 @@
 use crate::{
     components::navigation::Navigation,
-    router::add_project::{ProjectCreate, ProjectImport},
+    router::project_add::{project_create::ProjectCreate, project_import::ProjectImport},
 };
 use dioxus::prelude::*;
 
