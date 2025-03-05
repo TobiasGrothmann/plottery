@@ -1,4 +1,4 @@
-.EditorBoolField {
+.BoolField {
   display: flex;
   flex-direction: row;
   gap: var(--gap-1);

@@ -1,6 +1,6 @@
 use crate::components::navigation::Navigation;
 use crate::model::app_state::AppState;
-use crate::router::browser_components::project_list::ProjectList;
+use crate::router::browser::project_list::ProjectList;
 use crate::routes::Route;
 use crate::util::format_svg;
 use dioxus::prelude::*;
@@ -35,7 +35,7 @@ pub fn Browser() -> Element {
                 onclick: move |_event| {
                     use_navigator().push(Route::ProjectAdd {});
                 },
-                img { src: "{format_svg(include_bytes!(\"../../public/icons/add.svg\"))}" }
+                img { src: "{format_svg(include_bytes!(\"../../../public/icons/add.svg\"))}" }
             }
         }
     }

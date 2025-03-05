@@ -3,12 +3,12 @@ use plottery_project::{ProjectParam, ProjectParamValue, ProjectParamsListWrapper
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use super::{
+use crate::router::editor::{
     editor_console::EditorConsole, project_runner::ProjectRunner, running_state::RunningState,
 };
 
 #[derive(PartialEq, Props, Clone)]
-pub struct EditorBoolFieldProps {
+pub struct BoolFieldProps {
     param: ProjectParam,
     project_params: SyncSignal<ProjectParamsListWrapper>,
     project_runner: SyncSignal<Arc<Mutex<ProjectRunner>>>,
@@ -18,10 +18,10 @@ pub struct EditorBoolFieldProps {
 }
 
 #[component]
-pub fn EditorBoolField(mut props: EditorBoolFieldProps) -> Element {
+pub fn BoolField(mut props: BoolFieldProps) -> Element {
     rsx! {
-        style { { include_str!("editor_bool_field.css") } }
-        div { class: "EditorBoolField",
+        style { { include_str!("bool_field.css") } }
+        div { class: "BoolField",
             input {
                 name: "{props.param.name.clone()}",
                 type: "checkbox",

@@ -4,10 +4,10 @@ use crate::{
         loading::Loading,
         navigation::Navigation,
     },
-    router::editor_components::{
-        console::Console, editor_console::EditorConsole, params_editor::ParamsEditor,
-        project_hot_reload::start_hot_reload, project_runner::ProjectRunner,
-        running_state::RunningState,
+    router::editor::{
+        console::Console, editor_console::EditorConsole,
+        params_editor::params_editor::ParamsEditor, project_hot_reload::start_hot_reload,
+        project_runner::ProjectRunner, running_state::RunningState,
     },
     util::format_svg,
 };
@@ -119,11 +119,11 @@ pub fn Editor(project_path: String) -> Element {
     };
 
     let icon_folder = if cfg!(target_os = "windows") {
-        format_svg(include_bytes!("../../public/icons/explorer.svg"))
+        format_svg(include_bytes!("../../../public/icons/explorer.svg"))
     } else if cfg!(target_os = "macos") {
-        format_svg(include_bytes!("../../public/icons/finder.svg"))
+        format_svg(include_bytes!("../../../public/icons/finder.svg"))
     } else {
-        format_svg(include_bytes!("../../public/icons/linux_folder.svg"))
+        format_svg(include_bytes!("../../../public/icons/linux_folder.svg"))
     };
 
     rsx! {
@@ -143,7 +143,7 @@ pub fn Editor(project_path: String) -> Element {
                                 .wait()
                                 .unwrap();
                         },
-                        img { src: "{format_svg(include_bytes!(\"../../public/icons/vscode.svg\"))}" }
+                        img { src: "{format_svg(include_bytes!(\"../../../public/icons/vscode.svg\"))}" }
                     }
                     button { class: "icon_button",
                         onclick: move |_event| {
@@ -162,7 +162,7 @@ pub fn Editor(project_path: String) -> Element {
                                 .wait()
                                 .unwrap();
                         },
-                        img { src: "{format_svg(include_bytes!(\"../../public/icons/gitkraken.svg\"))}" }
+                        img { src: "{format_svg(include_bytes!(\"../../../public/icons/gitkraken.svg\"))}" }
                     }
                 }
                 div { class: "run_actions",
@@ -183,7 +183,7 @@ pub fn Editor(project_path: String) -> Element {
                                     },
                                 }
                             },
-                            img { src: "{format_svg(include_bytes!(\"../../public/icons/play.svg\"))}" }
+                            img { src: "{format_svg(include_bytes!(\"../../../public/icons/play.svg\"))}" }
                         }
                     }
                     button { class: "img_button {hot_reload_button_class}",

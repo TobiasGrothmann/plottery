@@ -1,4 +1,4 @@
-.EditorSlider {
+.Slider {
   display: flex;
   flex-direction: row;
   column-gap: var(--gap-0);

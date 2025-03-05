@@ -4,7 +4,7 @@ use dioxus::prelude::*;
 use plottery_project::{ProjectParam, ProjectParamValue, ProjectParamsListWrapper};
 use tokio::sync::Mutex;
 
-use super::{
+use crate::router::editor::{
     editor_console::EditorConsole, project_runner::ProjectRunner, running_state::RunningState,
 };
 
@@ -19,7 +19,7 @@ pub struct EditorSliderProps {
 }
 
 #[component]
-pub fn EditorSlider(mut props: EditorSliderProps) -> Element {
+pub fn Slider(mut props: EditorSliderProps) -> Element {
     let slider_step = match props.param.value {
         ProjectParamValue::FloatRanged { val: _, min, max } => {
             ((max - min) / 100_000_f32).to_string()
@@ -53,8 +53,8 @@ pub fn EditorSlider(mut props: EditorSliderProps) -> Element {
     });
 
     rsx! {
-        style { { include_str!("editor_slider.css") } }
-        div { class: "EditorSlider",
+        style { { include_str!("slider.css") } }
+        div { class: "Slider",
             p { class: "slider_value",
                 "{slider_value_string}"
             }

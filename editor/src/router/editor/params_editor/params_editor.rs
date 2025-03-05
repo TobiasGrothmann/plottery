@@ -4,12 +4,12 @@ use dioxus::prelude::*;
 use plottery_project::{ProjectParamValue, ProjectParamsListWrapper};
 use tokio::sync::Mutex;
 
-use crate::router::editor_components::{
-    editor_bool_field::EditorBoolField, editor_number_field::EditorNumberField,
-    editor_slider::EditorSlider, running_state::RunningState,
+use crate::router::editor::{
+    editor_console::EditorConsole,
+    params_editor::{bool_field::BoolField, number_field::NumberField, slider::Slider},
+    project_runner::ProjectRunner,
+    running_state::RunningState,
 };
-
-use super::{editor_console::EditorConsole, project_runner::ProjectRunner};
 
 #[derive(PartialEq, Props, Clone)]
 pub struct ParamsEditorProps {
@@ -30,7 +30,7 @@ pub fn ParamsEditor(props: ParamsEditorProps) -> Element {
                 match param.value {
                     ProjectParamValue::Float(_) | ProjectParamValue::Int(_) => {
                         rsx! {
-                            EditorNumberField {
+                            NumberField {
                                 param: param,
                                 project_params: props.project_params,
                                 project_runner: props.project_runner,
@@ -42,7 +42,7 @@ pub fn ParamsEditor(props: ParamsEditorProps) -> Element {
                     }
                     ProjectParamValue::FloatRanged { .. } | ProjectParamValue::IntRanged { .. } => {
                         rsx! {
-                            EditorSlider {
+                            Slider {
                                 param: param,
                                 project_params: props.project_params,
                                 project_runner: props.project_runner,
@@ -54,7 +54,7 @@ pub fn ParamsEditor(props: ParamsEditorProps) -> Element {
                     }
                     ProjectParamValue::Bool { .. } => {
                         rsx! {
-                            EditorBoolField {
+                            BoolField {
                                 param: param,
                                 project_params: props.project_params,
                                 project_runner: props.project_runner,

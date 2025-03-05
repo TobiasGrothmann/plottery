@@ -3,12 +3,12 @@ use plottery_project::{ProjectParam, ProjectParamValue, ProjectParamsListWrapper
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use super::{
+use crate::router::editor::{
     editor_console::EditorConsole, project_runner::ProjectRunner, running_state::RunningState,
 };
 
 #[derive(PartialEq, Props, Clone)]
-pub struct EditorNumberFieldProps {
+pub struct NumberFieldProps {
     param: ProjectParam,
     project_params: SyncSignal<ProjectParamsListWrapper>,
     project_runner: SyncSignal<Arc<Mutex<ProjectRunner>>>,
@@ -18,10 +18,10 @@ pub struct EditorNumberFieldProps {
 }
 
 #[component]
-pub fn EditorNumberField(mut props: EditorNumberFieldProps) -> Element {
+pub fn NumberField(mut props: NumberFieldProps) -> Element {
     rsx! {
-        style { { include_str!("editor_number_field.css") } }
-        div { class: "EditorNumberField",
+        style { { include_str!("number_field.css") } }
+        div { class: "NumberField",
             input {
                 name: "{props.param.name.clone()}",
                 placeholder: "value",
