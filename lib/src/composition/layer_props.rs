@@ -37,6 +37,13 @@ pub struct LayerProps {
 }
 
 impl LayerProps {
+    pub fn inherit_all() -> Self {
+        Self {
+            color: Inheritable::Inherit,
+            pen_width_cm: Inheritable::Inherit,
+        }
+    }
+
     pub fn with_color(&self, color: ColorRgb) -> Self {
         Self {
             color: Inheritable::Specified(color),

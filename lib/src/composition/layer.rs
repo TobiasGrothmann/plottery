@@ -12,7 +12,7 @@ use crate::{
     Angle, BoundingBox, Circle, Masked, Path, Plottable, Rect, Rotate, SampleSettings, Shape, V2,
 };
 
-use super::{path_end::PathEnd, Inheritable, LayerProps};
+use super::{path_end::PathEnd, ColorRgb, Inheritable, LayerProps};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Layer {
@@ -57,6 +57,18 @@ impl Layer {
     }
     pub fn with_props(mut self, props: Inheritable<LayerProps>) -> Self {
         self.set_props(props);
+        self
+    }
+    pub fn with_color(mut self, color: ColorRgb) -> Self {
+        self.props = self.props.join_with_child(&Inheritable::Specified(
+            LayerProps::inherit_all().with_color(color),
+        ));
+        self
+    }
+    pub fn with_pen_width_cm(mut self, pen_width_cm: f32) -> Self {
+        self.props = self.props.join_with_child(&Inheritable::Specified(
+            LayerProps::inherit_all().with_pen_width_cm(pen_width_cm),
+        ));
         self
     }
 
