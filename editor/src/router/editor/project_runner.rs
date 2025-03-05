@@ -44,7 +44,7 @@ impl ProjectRunner {
         let mut params_copy = self.params;
 
         console.read().info("spawning new task to run project");
-        tokio::spawn(async move {
+        let task = tokio::spawn(async move {
             console.read().info("...starting build");
             running_state.set(RunningState::StartingBuild {
                 msg: "starting build".to_string(),
@@ -246,6 +246,9 @@ impl ProjectRunner {
 
             console.read().info("done");
             running_state.set(RunningState::Idle);
+        });
+        tokio::spawn(async move {
+            task.await.expect("task failed");
         });
     }
 }
