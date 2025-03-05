@@ -13,9 +13,13 @@ pub fn SVGImage(props: SVGImageProps) -> Element {
     let svg_data_url = format_svg(props.svg.as_bytes());
 
     rsx!(
-        style { { include_str!("./image.css") } }
         div { class: "Image",
-            img { src: "{svg_data_url}", alt: "SVG Image" }
+            style: "height: 100%",
+
+            img {
+                src: "{svg_data_url}",
+                style: "height: 100%",
+            }
         }
     )
 }
@@ -34,10 +38,12 @@ pub fn Image(props: ImageProps) -> Element {
         .as_millis();
 
     rsx!(
-        style { { include_str!("./image.css") } }
         div { class: "Image",
+            style: "height: 100%",
+
             img {
                 src: "{props.img_path.as_str()}?{ms}",
+                style: "height: 100%",
             }
         }
     )
