@@ -16,15 +16,6 @@ impl ColorRgb {
     pub fn hsv(&self) -> ColorHsv {
         (*self).into()
     }
-
-    pub fn black() -> Self {
-        Self {
-            r: 0.0,
-            g: 0.0,
-            b: 0.0,
-        }
-    }
-
     pub fn hex(&self) -> String {
         format!(
             "#{:02x}{:02x}{:02x}",
@@ -131,5 +122,85 @@ impl PartialEq<ColorRgb> for ColorHsv {
 impl PartialEq<ColorHsv> for ColorRgb {
     fn eq(&self, other: &ColorHsv) -> bool {
         *self == other.rgb()
+    }
+}
+
+impl ColorRgb {
+    pub fn black() -> Self {
+        Self {
+            r: 0.0,
+            g: 0.0,
+            b: 0.0,
+        }
+    }
+    pub fn white() -> Self {
+        Self {
+            r: 1.0,
+            g: 1.0,
+            b: 1.0,
+        }
+    }
+    pub fn red() -> Self {
+        Self {
+            r: 1.0,
+            g: 0.0,
+            b: 0.0,
+        }
+    }
+    pub fn green() -> Self {
+        Self {
+            r: 0.0,
+            g: 1.0,
+            b: 0.0,
+        }
+    }
+    pub fn blue() -> Self {
+        Self {
+            r: 0.0,
+            g: 0.0,
+            b: 1.0,
+        }
+    }
+    pub fn yellow() -> Self {
+        Self {
+            r: 1.0,
+            g: 1.0,
+            b: 0.0,
+        }
+    }
+    pub fn cyan() -> Self {
+        Self {
+            r: 0.0,
+            g: 1.0,
+            b: 1.0,
+        }
+    }
+    pub fn magenta() -> Self {
+        Self {
+            r: 1.0,
+            g: 0.0,
+            b: 1.0,
+        }
+    }
+    pub fn gray() -> Self {
+        Self {
+            r: 0.5,
+            g: 0.5,
+            b: 0.5,
+        }
+    }
+    pub fn light_gray() -> Self {
+        Self {
+            r: 0.75,
+            g: 0.75,
+            b: 0.75,
+        }
+    }
+    pub fn dark_gray() -> Self {
+        Self {
+            r: 0.25,
+            g: 0.25,
+            b: 0.25,
+        }
     }
 }
