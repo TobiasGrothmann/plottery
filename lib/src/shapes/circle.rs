@@ -3,7 +3,8 @@ use std::f32::consts::PI;
 
 use crate::{
     traits::{ClosestPoint, Normalize, Scale, Translate},
-    Angle, BoundingBox, Plottable, Rect, Rotate, Rotate90, SampleSettings, Shape, V2,
+    Angle, BoundingBox, Plottable, Rect, Rotate, Rotate90, SampleSettings, Shape, LARGE_EPSILON,
+    V2,
 };
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
@@ -46,15 +47,15 @@ impl Circle {
             return vec![];
         }
         // circles are the same
-        if dist <= f32::EPSILON && radius_difference <= f32::EPSILON {
+        if dist <= LARGE_EPSILON && radius_difference <= LARGE_EPSILON {
             return vec![];
         }
         // circles are tangent
-        if (dist - radius_sum).abs() <= f32::EPSILON {
+        if (dist - radius_sum).abs() <= LARGE_EPSILON {
             return vec![self.center + V2::polar(delta.angle(), self.radius)];
         }
         // circles are tangent (one inside the other)
-        if (dist - radius_difference).abs() <= f32::EPSILON {
+        if (dist - radius_difference).abs() <= LARGE_EPSILON {
             if self.radius > other.radius {
                 return vec![self.center + V2::polar(delta.angle(), self.radius)];
             } else {
