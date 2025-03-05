@@ -1,3 +1,3 @@
 pub mod image;
-pub mod loading;
+pub mod loading_spinner;
 pub mod navigation;

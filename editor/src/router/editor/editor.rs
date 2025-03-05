@@ -1,7 +1,7 @@
 use crate::{
     components::{
         image::{Image, SVGImage},
-        loading::Loading,
+        loading_spinner::Loading,
         navigation::Navigation,
     },
     router::editor::{
