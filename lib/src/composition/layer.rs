@@ -512,12 +512,12 @@ impl Layer {
             .iter()
             .map(|shape| {
                 let points = shape.get_points(&sample_settings);
-                if points.len() == 0 {
+                if points.is_empty() {
                     return (V2::zero(), V2::zero());
                 }
                 (
-                    points.first().unwrap().clone(),
-                    points.last().unwrap().clone(),
+                    *points.first().unwrap(),
+                    *points.last().unwrap(),
                 )
             })
             .collect();
@@ -527,7 +527,7 @@ impl Layer {
         let mut pos = V2::zero();
         let mut optimized = Layer::new().with_props(self.props);
 
-        while unused_items_indices.len() > 0 {
+        while !unused_items_indices.is_empty() {
             let mut best_distance = f32::INFINITY;
             let mut best_index = 0;
             let mut reversed = false;

@@ -24,7 +24,7 @@ impl SpeedDelayHandler {
     pub fn get_delay_nanos(&self, speed_fraction: f32) -> f64 {
         let speed = self.speed_min_cm_per_s
             + (self.speed_max_cm_per_s - self.speed_min_cm_per_s) * speed_fraction.clamp(0.0, 1.0);
-        let nanos = (self.dist_per_step / speed) as f64 * 1000.0 * 1000.0 * 1000.0;
-        nanos
+        
+        (self.dist_per_step / speed) as f64 * 1000.0 * 1000.0 * 1000.0
     }
 }

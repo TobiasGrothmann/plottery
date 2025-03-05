@@ -61,7 +61,7 @@ impl LayerProps {
 impl LayerProps {
     pub fn join_with_child(&self, child: &Inheritable<Self>) -> Self {
         match child {
-            Inheritable::Inherit => self.clone(),
+            Inheritable::Inherit => *self,
             Inheritable::Specified(child_props) => Self {
                 color: self.color.join_with_child(&child_props.color),
                 pen_width_cm: self.pen_width_cm.join_with_child(&child_props.pen_width_cm),
