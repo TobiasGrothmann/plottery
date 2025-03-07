@@ -3,6 +3,7 @@ use itertools::Itertools;
 
 use crate::{Angle, LARGE_EPSILON, V2};
 
+/// handles both line segments between `from` and `to`, and infinite lines defined by these points
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Line {
     pub from: V2,
@@ -11,8 +12,11 @@ pub struct Line {
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum PointLineRelation {
+    /// point is on the line
     OnLine,
+    /// point is on the left hand side of the line. Left and Right are given in relation to the direction from `from` to `to`.
     Left,
+    /// point is on the right hand side of the line. Left and Right are given in relation to the direction from `from` to `to`.
     Right,
 }
 
@@ -31,22 +35,27 @@ impl Line {
     pub fn vector(&self) -> V2 {
         self.to - self.from
     }
+    /// midpoint between `from` and `to`
     pub fn mid(&self) -> V2 {
         (self.from + self.to) * 0.5
     }
+    /// angle of the [`V2`] from `from` to `to`
     pub fn angle(&self) -> Angle {
         (self.to - self.from).angle()
     }
+    /// new Line moved to its right by `distance`. Right is given by the orthogonal vector to the right of `self.angle()`, which
+    /// is the vector from `from` to `to` rotated by 90 degrees.
     pub fn offset_right(&self, distance: f32) -> Self {
         let normal_scaled = V2::polar(self.angle().normal_right(), distance);
         Line::new(self.from + normal_scaled, self.to + normal_scaled)
     }
 
-    /// project a point onto this infinite line
+    /// project a point onto this the infinite line defined by `self.from` and `self.to`.
     pub fn project(&self, point: &V2) -> V2 {
         self.from + (point - self.from).project_onto(&self.vector())
     }
 
+    /// get the relation of `point` to this line.
     pub fn point_relation(&self, point: &V2) -> PointLineRelation {
         let orientation = orient2d(
             [self.from.x as f64, self.from.y as f64],
@@ -61,6 +70,8 @@ impl Line {
         PointLineRelation::OnLine
     }
 
+    /// check for an intersection of `self` with `other`. The lines are interpreted as segments between `from` and `to`.
+    /// If you are looking for the intersection of the infinite lines defined by the segments, see [`Self::intersection_as_inf_lines`].
     pub fn intersection(&self, other: &Line) -> LineIntersection {
         if self.from == other.from || self.from == other.to {
             return LineIntersection::Intersection(self.from);
@@ -107,6 +118,8 @@ impl Line {
         LineIntersection::Intersection(V2::new(x, y))
     }
 
+    /// check for an intersection of `self` with `other`. Both lines are interpreted as infinite lines defined by the points `from` and `to`.
+    /// see [`Self::intersection`] for intersection of line segments.
     pub fn intersection_as_inf_lines(&self, other: &Line) -> LineIntersection {
         let x1 = self.from.x;
         let y1 = self.from.y;
@@ -134,6 +147,8 @@ impl Line {
         LineIntersection::Intersection(V2::new(x, y))
     }
 
+    /// get closest location to `point` on the infinite line defined by `self` to `point`
+    /// see [`Self::closest_point`] for closest point on the line segment.
     pub fn closest_point_on_infinite_line(&self, point: &V2) -> V2 {
         if self.from == self.to {
             return self.from;
@@ -143,6 +158,8 @@ impl Line {
         self.from + l * t
     }
 
+    /// get closest location to `point` on the line segment defined by `self` to `point`
+    /// see [`Self::closest_point_on_infinite_line`] for closest point on the infinite line.
     pub fn closest_point(&self, point: &V2) -> V2 {
         if self.from == self.to {
             return self.from;
@@ -158,6 +175,7 @@ impl Line {
         self.from + l * t
     }
 
+    /// get all intersections of `self` with `line_segments` ordered by distance to `self.from`
     pub fn intersect_multiple_sorted_by_dist(&self, line_segments: &[Line]) -> Vec<V2> {
         line_segments
             .iter()
