@@ -32,7 +32,7 @@ use super::TransformMatrixBuilder;
 /// let transformed = transform.mul_vector(&point);
 /// ```
 ///
-/// see [`TransformMatrix::builder`]
+/// see [`TransformMatrixBuilder`]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TransformMatrix {
     pub tl: f32,
