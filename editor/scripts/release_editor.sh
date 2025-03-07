@@ -31,15 +31,23 @@ fi
 echo "Found DMG file: $DMG_FILE"
 
 # Rename the DMG file to include version number
-RENAMED_DMG="$DMG_PATH/PlotteryEditor_v$VERSION.dmg"
+RENAMED_DMG_NAME="PlotteryEditor_v$VERSION.dmg"
+RENAMED_DMG="$DMG_PATH/$RENAMED_DMG_NAME"
 echo "Renaming DMG file to $RENAMED_DMG"
 cp "$DMG_FILE" "$RENAMED_DMG"
 
 # Create GitHub release
 echo "Creating GitHub release v$VERSION"
+NOTES="This dmg is not codesigned.
+
+To remove macOS's *\"This app is damaged\"* hogwash use:
+\`\`\`
+xattr -d com.apple.quarantine $RENAMED_DMG_NAME
+\`\`\`"
+
 gh release create "v$VERSION" \
   --title "Plottery Editor v$VERSION" \
-  --notes "v$VERSION" \
+  --notes "$NOTES" \
   --generate-notes
 
 # Upload to GitHub release

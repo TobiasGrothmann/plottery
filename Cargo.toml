@@ -17,6 +17,7 @@ categories = [
 keywords = ["plottery", "plotter", "generative", "art"]
 
 
+# Dioxus
 [profile]
 
 [profile.wasm-dev]
