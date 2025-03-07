@@ -12,3 +12,4 @@ pub use line::*;
 pub use transform_matrix::*;
 pub use transform_matrix_builder::*;
 pub use v2::*;
+pub use v2i::*;

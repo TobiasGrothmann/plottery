@@ -3,7 +3,9 @@ use std::f32::consts::PI;
 
 use crate::{SampleSettings, GR};
 
-/// Struct to work with angles disregarding the unit. It can be used to represent angles in radians, degrees or rotations.
+/// A struct for working with angles in different units (radians, degrees, or rotations).
+///
+/// Angles are stored internally as radians.
 /// ```
 /// # use plottery_lib::*;
 /// let angle_deg = Angle::from_degrees(90.0);
@@ -18,20 +20,21 @@ pub struct Angle {
 }
 
 impl Angle {
+    /// Creates a zero angle.
     pub fn zero() -> Self {
         Self { rad: 0.0 }
     }
-    /// new Angle from radians
+    /// Creates a new angle from radians.
     pub fn from_rad(rad: f32) -> Self {
         Self { rad }
     }
-    /// new Angle from degrees  
+    /// Creates a new angle from degrees.
     pub fn from_degrees(degree: f32) -> Self {
         Self {
             rad: (degree / 360.0) * 2.0 * PI,
         }
     }
-    /// new Angle from number of rotations:
+    /// Creates a new angle from number of rotations.
     /// ```
     /// # use plottery_lib::*;
     /// let angle = Angle::from_rotations(0.25);
@@ -42,65 +45,72 @@ impl Angle {
             rad: rotations * 2.0 * PI,
         }
     }
-    /// new Angle randomly between 0 and 2*PI (0 and 360°)
+
+    /// Creates a random angle between 0 and 2π (0° and 360°).
     pub fn rand() -> Self {
         Self {
             rad: rand::random::<f32>() * 2.0 * PI,
         }
     }
 
+    /// Returns an angle representing a quarter rotation (90°).
     pub fn quarter_rotation() -> Self {
         Self::from_rotations(0.25)
     }
+    /// Returns an angle representing a half rotation (180°).
     pub fn half_rotation() -> Self {
         Self::from_rotations(0.5)
     }
+    /// Returns an angle representing a full rotation (360°).
     pub fn full_rotation() -> Self {
         Self::from_rotations(1.0)
     }
-    /// new Angle with `golden ratio` number of rotations. see [`GR`]
+
+    /// Creates an angle with the golden ratio number of rotations. See [`GR`].
     pub fn golden_ratio() -> Self {
         Self::from_rotations(GR)
     }
-    /// new Angle with `1.0 / golden ratio` number of rotations. see [`GR`]
+    /// Creates an angle with 1.0 / golden ratio number of rotations. See [`GR`].
     pub fn golden_ratio_inverse() -> Self {
         Self::from_rotations(1.0 / GR)
     }
-    /// new Angle with `sqrt(2)` number of rotations.
+    /// Creates an angle with √2 number of rotations.
     pub fn root_two() -> Self {
         Self::from_rotations(2.0_f32.sqrt())
     }
-    /// new Angle with `1.0 / sqrt(2)` number of rotations.
+    /// Creates an angle with 1.0 / √2 number of rotations.
     pub fn root_two_inverse() -> Self {
         Self::from_rotations(1.0 / 2.0_f32.sqrt())
     }
 
-    /// get angle as radians
+    /// Gets the angle in radians.
     pub fn to_rad(&self) -> f32 {
         self.rad
     }
-    /// get angle as degrees
+    /// Gets the angle in degrees.
     pub fn to_degree(&self) -> f32 {
         360.0 * (self.rad / (2.0 * PI))
     }
-    /// get angle as number of rotations
+    /// Gets the angle as a number of rotations.
     pub fn to_rotations(&self) -> f32 {
         self.rad / (2.0 * PI)
     }
 
-    /// get both `sin` and `cos` of this angle as radians. `(self.to_rad().sin(), self.to_rad().cos())`
-    pub fn sin_cos(&self) -> (f32, f32) {
+    /// Gets both sine and cosine of this angle in radians: `(self.to_rad().sin(), self.to_rad().cos())`.
+    pub fn rad_sin_cos(&self) -> (f32, f32) {
         (self.rad.sin(), self.rad.cos())
     }
-    /// new Angle modulo 2*PI (360°). This results in a positive angle between 0 and 2*PI (360°).
+
+    /// Returns a new angle modulo 2π (360°), resulting in a positive angle between 0 and 2π.
     pub fn mod_one_rotation(&self) -> Self {
         Angle::from_rad(self.rad % (2.0 * PI))
     }
-    /// new Angle modulo `other`. This results in a positive angle between [`Angle::zero`] and `other`.
+    /// Returns a new angle modulo `other`, resulting in a positive angle between [`Angle::zero`] and `other`.
     pub fn modulo(&self, other: Angle) -> Self {
         Angle::from_rad(self.rad % other.rad)
     }
-    /// new Angle with the same direction but positive value
+
+    /// Returns a new angle with the same direction but positive value.
     /// ```
     /// # use plottery_lib::*;
     /// let angle = Angle::from_degrees(-90.0);
@@ -114,21 +124,26 @@ impl Angle {
             Angle::from_rad(rad)
         }
     }
+
+    /// Returns the absolute value of the angle.
     pub fn abs(&self) -> Self {
         Angle::from_rad(self.rad.abs())
     }
-    /// new Angle with flipped sign: `self * -1.0`
+
+    /// Returns a new angle with flipped sign: `self * -1.0`.
     pub fn flip_sign(&self) -> Self {
         Angle::from_rad(self.rad * -1.0)
     }
-    /// new Angle orthogonal to this one, to the right. Equivalent to `self + Angle::quarter_rotation()`
+
+    /// Returns a new angle orthogonal to this one (to the right). Equivalent to `self + Angle::quarter_rotation()`.
     pub fn normal_right(&self) -> Self {
         self + Angle::quarter_rotation()
     }
 
-    /// new Angle interpolated from `self` to `other` with `t` as the interpolation factor.
-    /// a value of `t = 0.0` returns `self`, a value of `t = 1.0` returns `other`
-    /// values between `0.0` and `1.0` return points between `self` and `other`
+    /// Interpolates between `self` and `other` with `t` as the interpolation factor.
+    ///
+    /// A value of `t = 0.0` returns `self`, a value of `t = 1.0` returns `other`.
+    /// Values between `0.0` and `1.0` return points between `self` and `other`.
     ///
     /// ### Example
     /// ```
@@ -140,29 +155,36 @@ impl Angle {
     pub fn lerp(&self, end: Angle, t: f32) -> Angle {
         Angle::from_rad(self.rad * (1.0 - t) + end.rad * t)
     }
-    /// iterator to lerp from `self` to `end` in `steps` number of steps.
-    /// The iterator will return `steps + 1` `Angle`s, because both `self` and `end` are included.
+
+    /// Returns an iterator to interpolate from `self` to `end` in `steps` number of steps.
+    ///
+    /// The iterator will return `steps + 1` angles, including both `self` and `end`.
+    ///
     /// ### Example
     /// ```
     /// # use plottery_lib::*;
     /// let a1 = Angle::zero();
     /// let a2 = Angle::from_degrees(90.0);
-    /// for angle in start.lerp_iter_fixed(end, 9) {
-    ///     println!("{:?}", point);
+    /// for angle in a1.lerp_iter_fixed(a2, 9) {
+    ///     println!("{:?}", angle);
     /// }
     /// ```
     pub fn lerp_iter_fixed(&self, end: Angle, steps: usize) -> AngleInterpolator {
         AngleInterpolator::new(*self, end, steps)
     }
-    /// iterator to lerp from `self` to `end`.
-    /// The number of steps are determined by `sample_settings.points_per_unit` and the given `radius`. As distance between `self` and `end` the arc length of the arc with radius `radius` is used.
+
+    /// Returns an iterator to interpolate from `self` to `end`.
+    ///
+    /// The number of steps is determined by `sample_settings.points_per_unit` and the given `radius`.
+    /// The arc length of the arc with radius `radius` is used as the distance between `self` and `end`.
+    ///
     /// ### Example
     /// ```
     /// # use plottery_lib::*;
     /// let a1 = Angle::zero();
     /// let a2 = Angle::from_degrees(90.0);
-    /// for angle in start.lerp_iter(end, &SampleSettings::new(10.0), 1.0) {
-    ///     println!("{:?}", point);
+    /// for angle in a1.lerp_iter(a2, &SampleSettings::new(10.0), 1.0) {
+    ///     println!("{:?}", angle);
     /// }
     /// ```
     pub fn lerp_iter(
@@ -179,7 +201,7 @@ impl Angle {
         )
     }
 
-    /// new Angle with the smallest rotation to `other`. This means that the returned angle will be the one with the smallest difference to `other`.
+    /// Returns a new angle that represents the smallest rotation to `other`.
     pub fn with_smallest_rotation_to(&self, other: Angle) -> Angle {
         let angle_diff_rotations = (self - other).to_rotations();
         if angle_diff_rotations > 0.5 {
@@ -191,13 +213,14 @@ impl Angle {
         }
     }
 
+    /// Returns the smallest angular difference between two angles, accounting for wrapping around a full rotation.
     pub fn dist_mod_one_rotation(&self, other: Angle) -> Angle {
         let angle_diff_abs =
             (other.mod_one_rotation().positive() - self.mod_one_rotation().positive()).abs();
         angle_diff_abs.min(Angle::full_rotation() - angle_diff_abs)
     }
 
-    /// new Angle as smallest of `self` and `other`
+    /// Returns the smaller of `self` and `other`.
     pub fn min(&self, other: Angle) -> Angle {
         if self.rad < other.rad {
             *self
@@ -205,7 +228,7 @@ impl Angle {
             other
         }
     }
-    /// new Angle as largest of `self` and `other`
+    /// Returns the larger of `self` and `other`.
     pub fn max(&self, other: Angle) -> Angle {
         if self.rad > other.rad {
             *self

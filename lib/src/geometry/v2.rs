@@ -4,11 +4,11 @@ use geo_types::Coord;
 use mint::Point2;
 use serde::{Deserialize, Serialize};
 
-use crate::{rand_range, Angle, Rect, Rotate, Rotate90, SampleSettings};
+use crate::{rand_range, Angle, Rect, Rotate, Rotate90, SampleSettings, V2i};
 
-use super::v2i::V2i;
-
-/// 2D vector: `(x, y)`. see also [`V2i`]
+/// A 2D vector with float coordinates (x, y).
+///
+/// see also [`V2i`]
 #[derive(Debug, Copy, Clone, Default, Serialize, Deserialize)]
 pub struct V2 {
     pub x: f32,
@@ -19,58 +19,62 @@ impl V2 {
     pub fn new(x: f32, y: f32) -> Self {
         Self { x, y }
     }
-    /// new V2 with the same x and y value
+    /// Creates a new V2 with the same value for both x and y.
     pub fn xy(x_and_y: f32) -> Self {
         Self {
             x: x_and_y,
             y: x_and_y,
         }
     }
+
+    /// Creates a new V2 from a geo coordinate.
     pub fn new_from_geo(geo_coord: &Coord<f32>) -> Self {
         Self {
             x: geo_coord.x,
             y: geo_coord.y,
         }
     }
-    /// new V2 from polar coordinates
+
+    /// Creates a new V2 from polar coordinates (angle and distance).
     pub fn polar(angle: Angle, distance: f32) -> Self {
         Self {
             x: angle.to_rad().cos() * distance,
             y: angle.to_rad().sin() * distance,
         }
     }
-    /// origin vector
+
+    /// Returns the zero vector (0, 0).
     pub fn zero() -> Self {
         Self { x: 0.0, y: 0.0 }
     }
-    /// vector of length 1.0 pointing up
+    /// Returns the unit vector (0, 1) pointing up.
     pub fn up() -> Self {
         Self { x: 0.0, y: 1.0 }
     }
-    /// vector of length 1.0 pointing right
+    /// Returns the unit vector (1, 0) pointing right.
     pub fn right() -> Self {
         Self { x: 1.0, y: 0.0 }
     }
-    /// vector of length 1.0 pointing down
+    /// Returns the unit vector (0, -1) pointing down.
     pub fn down() -> Self {
         Self { x: 0.0, y: -1.0 }
     }
-    /// vector of length 1.0 pointing left
+    /// Returns the unit vector (-1, 0) pointing left.
     pub fn left() -> Self {
-        Self { x: 0.0, y: -1.0 }
+        Self { x: -1.0, y: 0.0 }
     }
 
-    /// new V2 randomly exactly on the unit circle
+    /// Returns a random vector exactly on the unit circle.
     pub fn random_unit_circle() -> Self {
         Self::polar(Angle::rand(), 1.0)
     }
-    /// new V2 randomly inside or on the unit circle
+    /// Returns a random vector inside or on the unit circle.
     pub fn random_unit_disk() -> Self {
         let angle = Angle::rand();
         let radius = rand_range(0.0, 1.0);
         Self::polar(angle, radius)
     }
-    /// new V2 randomly inside or on a given rectangle
+    /// Returns a random vector inside or on the given rectangle.
     pub fn random_in_rect(rect: &Rect) -> Self {
         Self::new(
             rand_range(rect.bl().x, rect.tr().x),
@@ -78,7 +82,8 @@ impl V2 {
         )
     }
 
-    /// new V2 given by [DIN 476-2](https://en.wikipedia.org/wiki/Paper_size) A (internationally [ISO 216](https://en.wikipedia.org/wiki/ISO_216))
+    /// Returns a vector with dimensions for a DIN A paper size specified by number.
+    /// Uses [ISO 216](https://en.wikipedia.org/wiki/ISO_216) standard.
     pub fn din_a(number: u8) -> Self {
         match number {
             0 => Self::a0(),
@@ -95,60 +100,61 @@ impl V2 {
             _ => panic!("DIN A number out of range."),
         }
     }
-    /// new V2 given by A0 [DIN 476-2](https://en.wikipedia.org/wiki/Paper_size) / [ISO 216](https://en.wikipedia.org/wiki/ISO_216)
+
+    /// Returns dimensions for A0 paper size (84.1 × 118.9 cm).
     pub fn a0() -> Self {
         Self { x: 84.1, y: 118.9 }
     }
-    /// new V2 given by A1 [DIN 476-2](https://en.wikipedia.org/wiki/Paper_size) / [ISO 216](https://en.wikipedia.org/wiki/ISO_216)
+    /// Returns dimensions for A1 paper size (59.4 × 84.1 cm).
     pub fn a1() -> Self {
         Self { x: 59.4, y: 84.1 }
     }
-    /// new V2 given by A2 [DIN 476-2](https://en.wikipedia.org/wiki/Paper_size) / [ISO 216](https://en.wikipedia.org/wiki/ISO_216)
+    /// Returns dimensions for A2 paper size (42.0 × 59.4 cm).
     pub fn a2() -> Self {
         Self { x: 42.0, y: 59.4 }
     }
-    /// new V2 given by A3 [DIN 476-2](https://en.wikipedia.org/wiki/Paper_size) / [ISO 216](https://en.wikipedia.org/wiki/ISO_216)
+    /// Returns dimensions for A3 paper size (29.7 × 42.0 cm).
     pub fn a3() -> Self {
         Self { x: 29.7, y: 42.0 }
     }
-    /// new V2 given by A4 [DIN 476-2](https://en.wikipedia.org/wiki/Paper_size) / [ISO 216](https://en.wikipedia.org/wiki/ISO_216)
+    /// Returns dimensions for A4 paper size (21.0 × 29.7 cm).
     pub fn a4() -> Self {
         Self { x: 21.0, y: 29.7 }
     }
-    /// new V2 given by A5 [DIN 476-2](https://en.wikipedia.org/wiki/Paper_size) / [ISO 216](https://en.wikipedia.org/wiki/ISO_216)
+    /// Returns dimensions for A5 paper size (14.8 × 21.0 cm).
     pub fn a5() -> Self {
         Self { x: 14.8, y: 21.0 }
     }
-    /// new V2 given by A6 [DIN 476-2](https://en.wikipedia.org/wiki/Paper_size) / [ISO 216](https://en.wikipedia.org/wiki/ISO_216)
+    /// Returns dimensions for A6 paper size (10.5 × 14.8 cm).
     pub fn a6() -> Self {
         Self { x: 10.5, y: 14.8 }
     }
-    /// new V2 given by A7 [DIN 476-2](https://en.wikipedia.org/wiki/Paper_size) / [ISO 216](https://en.wikipedia.org/wiki/ISO_216)
+    /// Returns dimensions for A7 paper size (7.4 × 10.5 cm).
     pub fn a7() -> Self {
         Self { x: 7.4, y: 10.5 }
     }
-    /// new V2 given by A8 [DIN 476-2](https://en.wikipedia.org/wiki/Paper_size) / [ISO 216](https://en.wikipedia.org/wiki/ISO_216)
+    /// Returns dimensions for A8 paper size (5.2 × 7.4 cm).
     pub fn a8() -> Self {
         Self { x: 5.2, y: 7.4 }
     }
-    /// new V2 given by A9 [DIN 476-2](https://en.wikipedia.org/wiki/Paper_size) / [ISO 216](https://en.wikipedia.org/wiki/ISO_216)
+    /// Returns dimensions for A9 paper size (3.7 × 5.2 cm).
     pub fn a9() -> Self {
         Self { x: 3.7, y: 5.2 }
     }
-    /// new V2 given by A10 [DIN 476-2](https://en.wikipedia.org/wiki/Paper_size) / [ISO 216](https://en.wikipedia.org/wiki/ISO_216)
+    /// Returns dimensions for A10 paper size (2.6 × 3.7 cm).
     pub fn a10() -> Self {
         Self { x: 2.6, y: 3.7 }
     }
 
-    /// new V2 with x and y values swapped
-    pub fn swap(&self) -> Self {
+    /// Returns a new V2 with x and y values swapped.
+    pub fn swap_axes(&self) -> Self {
         Self {
             x: self.y,
             y: self.x,
         }
     }
 
-    /// new V2 with y set to 0.0
+    /// Returns a new V2 preserving x but setting y to 0.0.
     ///
     /// ### Example
     /// ```
@@ -159,7 +165,8 @@ impl V2 {
     pub fn only_x(&self) -> Self {
         Self { x: self.x, y: 0.0 }
     }
-    /// new V2 with x set to 0.0
+
+    /// Returns a new V2 preserving y but setting x to 0.0.
     ///
     /// ### Example
     /// ```
@@ -171,76 +178,76 @@ impl V2 {
         Self { x: 0.0, y: self.y }
     }
 
+    /// Converts to a geo coordinate.
     pub fn as_geo_coord(&self) -> Coord<f32> {
         Coord {
             x: self.x,
             y: self.y,
         }
     }
-    /// tuple of `(x, y)`
+
+    /// Returns a tuple of (x, y).
     pub fn as_tuple(&self) -> (f32, f32) {
         (self.x, self.y)
     }
-    /// array of `[x, y]`
+    /// Returns an array [x, y].
     pub fn as_array(&self) -> [f32; 2] {
         [self.x, self.y]
     }
-    /// vector of `vec![x, y]`
+    /// Returns a vector [x, y].
     pub fn as_vec(&self) -> Vec<f32> {
         vec![self.x, self.y]
     }
 
-    /// new V2 with x and y values rounded individually
+    /// Returns a new V2 with rounded x and y values.
     pub fn round(&self) -> Self {
         Self {
             x: self.x.round(),
             y: self.y.round(),
         }
     }
-    /// new V2i with x and y values rounded to integer individually
+    /// Returns a new V2i with x and y values rounded to integers.
     pub fn round_to_int(&self) -> V2i {
         V2i::new(self.x.round() as i32, self.y.round() as i32)
     }
-    /// new V2 with x and y values ceiled individually
+
+    /// Returns a new V2 with ceiling of x and y values.
     pub fn ceil(&self) -> Self {
         Self {
             x: self.x.ceil(),
             y: self.y.ceil(),
         }
     }
-    /// new V2i with x and y values ceiled to integer individually
+    /// Returns a new V2i with ceiling of x and y values converted to integers.
     pub fn ceil_to_int(&self) -> V2i {
         V2i::new(self.x.ceil() as i32, self.y.ceil() as i32)
     }
-    /// new V2 with x and y values floored individually
+
+    /// Returns a new V2 with floor of x and y values.
     pub fn floor(&self) -> Self {
         Self {
             x: self.x.floor(),
             y: self.y.floor(),
         }
     }
-    /// new V2i with x and y values floored to integer individually
+    /// Returns a new V2i with floor of x and y values converted to integers.
     pub fn floor_to_int(&self) -> V2i {
         V2i::new(self.x.floor() as i32, self.y.floor() as i32)
     }
 
-    /// Calculates the dot product of two 2D vectors.
+    /// Calculates the dot product of this vector with another vector.
     ///
-    /// The dot product of vectors **a** and **b** is defined as:
+    /// The dot product of vectors **a** and **b** is: a · b = a.x * b.x + a.y * b.y
     ///
-    /// ```text
-    /// a · b = a.x * b.x + a.y * b.y
-    /// ```
-    ///
-    /// ### Key Properties
-    /// - If `a · b > 0`, the vectors point in a similar direction.
-    /// - If `a · b < 0`, the vectors point in opposite directions.
-    /// - If `a · b == 0`, the vectors are **perpendicular** (orthogonal).
+    /// # Properties
+    /// - If a · b > 0, the vectors point in a similar direction
+    /// - If a · b < 0, the vectors point in opposite directions
+    /// - If a · b = 0, the vectors are perpendicular (orthogonal)
     pub fn dot(&self, other: &Self) -> f32 {
         self.x * other.x + self.y * other.y
     }
 
-    /// new V2 with the new x and y set to the minimum of the old x and y individually (`x.min(x), y.min(y)`)
+    /// Returns a new V2 where each component is the minimum of the corresponding components.
     ///
     /// ### Example
     /// ```
@@ -252,7 +259,7 @@ impl V2 {
     pub fn min(&self, other: &Self) -> Self {
         V2::new(self.x.min(other.x), self.y.min(other.y))
     }
-    /// new V2 with the new x and y set to the maximum of the old x and y individually (`x.max(x), y.max(y)`)
+    /// Returns a new V2 where each component is the maximum of the corresponding components.
     ///
     /// ### Example
     /// ```
@@ -265,31 +272,26 @@ impl V2 {
         V2::new(self.x.max(other.x), self.y.max(other.y))
     }
 
-    /// value of the smaller of either x and y (`x.min(y)`)
+    /// Returns the smaller of x and y components.
     pub fn min_axis(&self) -> f32 {
         self.x.min(self.y)
     }
-    /// value of the larger of either x and y (`x.max(y)`)
+    /// Returns the larger of x and y components.
     pub fn max_axis(&self) -> f32 {
         self.x.max(self.y)
     }
 
-    /// euclidean distance to `other`
+    /// Calculates the Euclidean distance to another vector.
     pub fn dist(&self, other: &Self) -> f32 {
         ((self.x - other.x).powi(2) + (self.y - other.y).powi(2)).sqrt()
     }
-    /// squared euclidean distance to `other`
+    /// Calculates the squared Euclidean distance to another vector.
     pub fn dist_squared(&self, other: &Self) -> f32 {
         (self.x - other.x).powi(2) + (self.y - other.y).powi(2)
     }
-    /// The Manhattan distance (or **taxicab distance**) between points `a` and `b` is given by the summed difference of their coordinates.
-    /// ```text
-    /// d = |a.x - b.x| + |a.y - b.y|
-    /// ```
+    /// Calculates the Manhattan (taxicab) distance to another vector.
     ///
-    /// ### Characteristics:
-    /// - Measures distance when movement is restricted to horizontal and vertical directions.
-    /// - Unlike Euclidean distance, it does not account for diagonal movement.
+    /// The Manhattan distance between points a and b is: |a.x - b.x| + |a.y - b.y|
     ///
     /// ### Example
     /// ```
@@ -302,16 +304,16 @@ impl V2 {
         (self.x - other.x).abs() + (self.y - other.y).abs()
     }
 
-    /// length of the vector
+    /// Returns the length (magnitude) of this vector.
     pub fn len(&self) -> f32 {
         (self.x * self.x + self.y * self.y).sqrt()
     }
-    /// squared length of the vector
+    /// Returns the squared length of this vector.
     pub fn len_squared(&self) -> f32 {
         self.x * self.x + self.y * self.y
     }
 
-    /// angle of the vector
+    /// Returns the angle of this vector.
     pub fn angle(&self) -> Angle {
         let mut rad = self.y.atan2(self.x);
         if rad < 0.0 {
@@ -319,12 +321,12 @@ impl V2 {
         }
         Angle::from_rad(rad)
     }
-    /// angle of the vector going from self to `other`
+    /// Returns the angle from this vector to another vector.
     pub fn angle_to(&self, other: &Self) -> Angle {
         (other - self).angle()
     }
 
-    /// new V2 with same angle but length of 1.0
+    /// Returns this vector normalized to a length of 1.0.
     pub fn normalize(&self) -> Self {
         let len = self.len();
         if len == 0.0 {
@@ -333,12 +335,12 @@ impl V2 {
             *self / len
         }
     }
-    /// new V2 with same angle but length of `len`
+    /// Returns this vector with the same direction but a specified length.
     pub fn normalize_to(&self, len: f32) -> Self {
         *self * len / self.len()
     }
 
-    /// project a point onto the infinite line defined by the vector
+    /// Projects this vector onto another vector.
     pub fn project_onto(&self, other: &Self) -> Self {
         let length_squared = other.len_squared();
         let dot_product = self.dot(other);
@@ -348,7 +350,7 @@ impl V2 {
         )
     }
 
-    /// new V2 with same angle but a length between `min_len` and `max_len` inclusive
+    /// Returns a vector with the same direction but length clamped between min_len and max_len.
     pub fn clamp_len(&self, min_len: f32, max_len: f32) -> Self {
         let len = self.len();
         if len < min_len {
@@ -360,19 +362,19 @@ impl V2 {
         }
     }
 
-    /// new V2 with a function `f` applied to both x and y
+    /// Returns a new V2 with a function applied to both x and y components.
     pub fn map(&self, f: fn(f32) -> f32) -> Self {
         V2::new(f(self.x), f(self.y))
     }
 
-    /// new V2 with both x and y values as square root of the old x and y values individually
+    /// Returns a new V2 with square root applied to both components.
     pub fn sqrt(&self) -> Self {
         V2::new(self.x.sqrt(), self.y.sqrt())
     }
 
-    /// new V2 on the line from `self` to `other` with `t` as the interpolation factor.
-    /// a value of `t = 0.0` returns `self`, a value of `t = 1.0` returns `other`
-    /// values between `0.0` and `1.0` return points between `self` and `other`
+    /// Linearly interpolates between this vector and another.
+    ///
+    /// When t=0.0, returns self. When t=1.0, returns other.
     ///
     /// ### Example
     /// ```
@@ -387,8 +389,11 @@ impl V2 {
             self.y + t * (other.y - self.y),
         )
     }
-    /// iterator to lerp from `self` to `end` in `steps` number of steps.
-    /// The iterator will return `steps + 1` `V2`s, because both `self` and `end` are included.
+
+    /// Returns an iterator to interpolate from this vector to another in a fixed number of steps.
+    ///
+    /// The iterator yields steps+1 points, including both start and end points.
+    ///
     /// ### Example
     /// ```
     /// # use plottery_lib::*;
@@ -401,7 +406,11 @@ impl V2 {
     pub fn lerp_iter_fixed(&self, end: V2, steps: usize) -> V2Interpolator {
         V2Interpolator::new(*self, end, steps)
     }
-    /// iterator to lerp from `self` to `end`. The number of steps are determined by the distance and `sample_settings.points_per_unit`.
+
+    /// Returns an iterator to interpolate from this vector to another with density based on sample settings.
+    ///
+    /// The number of points is determined by the distance between vectors and the sample settings.
+    ///
     /// ### Example
     /// ```
     /// # use plottery_lib::*;
