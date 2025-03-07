@@ -15,3 +15,16 @@ categories = [
     "multimedia::images",
 ]
 keywords = ["plottery", "plotter", "generative", "art"]
+
+
+[profile]
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"
