@@ -8,7 +8,7 @@ use crate::{rand_range, Angle, Rect, Rotate, Rotate90, SampleSettings};
 
 use super::v2i::V2i;
 
-/// 2D vector: `(x, y)`
+/// 2D vector: `(x, y)`. see also [`V2i`]
 #[derive(Debug, Copy, Clone, Default, Serialize, Deserialize)]
 pub struct V2 {
     pub x: f32,
@@ -388,7 +388,7 @@ impl V2 {
         )
     }
     /// iterator to lerp from `self` to `end` in `steps` number of steps.
-    /// The iterator will return `steps + 1` `V2`s, because both `self` `end` are included.
+    /// The iterator will return `steps + 1` `V2`s, because both `self` and `end` are included.
     /// ### Example
     /// ```
     /// # use plottery_lib::*;
