@@ -150,7 +150,7 @@ impl Angle {
     /// # use plottery_lib::*;
     /// let a1 = Angle::zero();
     /// let a2 = Angle::from_degrees(180.0);
-    /// assert_eq!(a1.lerp(&a2, 0.5), Angle::from_degrees(90.0));
+    /// assert_eq!(a1.lerp(a2, 0.5), Angle::from_degrees(90.0));
     /// ```
     pub fn lerp(&self, end: Angle, t: f32) -> Angle {
         Angle::from_rad(self.rad * (1.0 - t) + end.rad * t)

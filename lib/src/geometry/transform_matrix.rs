@@ -50,7 +50,7 @@ impl TransformMatrix {
     /// ```
     /// # use plottery_lib::*;
     /// let transform = TransformMatrix::builder()
-    ///     .scale(&V2::new(2.0, 3.0))
+    ///     .scale_2d(&V2::new(2.0, 3.0))
     ///     .rotate(&Angle::from_degrees(45.0))
     ///     .translate(&V2::new(10.0, 5.0))
     ///     .build();
