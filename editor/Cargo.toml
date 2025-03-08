@@ -23,9 +23,9 @@ long_description = "Graphical Editor of Plottery, a creative coding framework fo
 pre-release-hook = ["./scripts/release_editor.sh", "{{version}}"]
 
 [dependencies]
-plottery_lib = { path = "../lib", version = "^0.4.0" }
-plottery_project = { path = "../project", version = "^0.4.0" }
-plottery_server_lib = { path = "../server_lib", version = "^0.4.0" }
+plottery_lib = { path = "../lib", version = "^0.5.0" }
+plottery_project = { path = "../project", version = "^0.5.0" }
+plottery_server_lib = { path = "../server_lib", version = "^0.5.0" }
 dioxus = { version = "0.6.1", features = ["desktop"] }
 directories = "5.0.1"
 serde = { version = "1.0", features = ["derive"] }
