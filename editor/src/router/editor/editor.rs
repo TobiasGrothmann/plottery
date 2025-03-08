@@ -64,14 +64,17 @@ pub fn Editor(project_path: String) -> Element {
                 Err(_) => None,
             }
         };
-        return LayerChangeWrapper {
+        LayerChangeWrapper {
             layer: layer_from_file,
             change_counter: 0,
-        };
+        }
     });
-    let mut layer_tree_ref = use_signal_sync(|| match layer_change_wrapper.read().layer.clone() {
-        Some(layer) => Some(LayerTreeReference::new(&layer, &LayerProps::default())),
-        None => None,
+    let layer_tree_ref = use_signal_sync(|| {
+        layer_change_wrapper
+            .read()
+            .layer
+            .clone()
+            .map(|layer| LayerTreeReference::new(&layer, &LayerProps::default()))
     });
     let console_change_counter = use_signal_sync(|| 0);
     let console: Signal<EditorConsole, SyncStorage> =
@@ -87,12 +90,14 @@ pub fn Editor(project_path: String) -> Element {
             .expect("Failed to write project params to file");
     });
     // layer
-    let svg = use_memo(move || {
-        layer_change_wrapper
-            .read()
-            .layer
-            .as_ref()
-            .map(|layer| layer.to_svg(1.0).to_string())
+    let svg = use_memo(move || match layer_tree_ref.read().as_ref() {
+        Some(layer_tree_ref) => {
+            let layer_only_visible = layer_tree_ref
+                .filter_layer_by_visibility(layer_change_wrapper.read().layer.as_ref().unwrap());
+            let svg = layer_only_visible.to_svg(1.0);
+            Some(svg.to_string())
+        }
+        None => None,
     });
     use_effect(move || {
         let layer_path = project.read().get_editor_layer_path();
@@ -319,7 +324,7 @@ pub fn Editor(project_path: String) -> Element {
                 }
                 LayerEditor {
                     layer_tree_ref,
-                    running_state: running_state.clone(),
+                    running_state: running_state,
                 }
             }
         }

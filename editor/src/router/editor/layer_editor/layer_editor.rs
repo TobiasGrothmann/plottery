@@ -1,7 +1,6 @@
 use dioxus::prelude::*;
-use plottery_lib::{layer, LayerProps};
 
-use crate::router::editor::{editor::LayerChangeWrapper, running_state::RunningState};
+use crate::router::editor::running_state::RunningState;
 use crate::util::format_svg;
 
 use super::layer_tree_ref::LayerTreeReference;
@@ -14,7 +13,7 @@ pub struct LayerEditorProps {
 
 #[component]
 pub fn LayerEditor(props: LayerEditorProps) -> Element {
-    let mut layer_tree_ref_copy = props.layer_tree_ref.clone();
+    let mut layer_tree_ref_copy = props.layer_tree_ref;
     match &*props.layer_tree_ref.read() {
         Some(layer_tree_ref) => {
             return rsx! {
@@ -84,7 +83,7 @@ fn LayerEditorLayer(props: LayerEditorLayerProps) -> Element {
                     layer_tree_ref: sub_layer,
                     recursion_depth: props.recursion_depth + 1,
                     layer_index: i,
-                    on_change: props.on_change.clone()
+                    on_change: props.on_change
                 }
             }
         }
