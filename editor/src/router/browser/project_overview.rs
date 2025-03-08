@@ -21,7 +21,7 @@ impl PartialEq for ProjectOverviewProps {
 #[component]
 pub fn ProjectOverview(props: ProjectOverviewProps) -> Element {
     let project_exists = props.project.read().exists();
-    let preview_image = props.project.read().get_preview_image_path();
+    let preview_image = props.project.read().get_editor_preview_image_path();
 
     rsx! {
         style { { include_str!("./project_overview.css") } }

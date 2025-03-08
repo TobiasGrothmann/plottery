@@ -20,10 +20,6 @@ use plottery_server_lib::{plot_setting::PlotSettings, task::send_task};
 use std::{path::PathBuf, sync::Arc};
 use tokio::{sync::Mutex, task::JoinHandle};
 
-fn get_svg_path(project: &Project) -> PathBuf {
-    project.get_preview_image_path()
-}
-
 #[derive(Debug, Clone)]
 pub struct LayerChangeWrapper {
     pub layer: Option<Layer>,
@@ -47,7 +43,7 @@ pub fn Editor(project_path: String) -> Element {
     // ui state
     let project_params = use_signal_sync(|| {
         // read params from binary file
-        let params_file_path = project.read().get_params_path();
+        let params_file_path = project.read().get_editor_params_path();
         match std::fs::read(params_file_path) {
             Ok(params_binary) => {
                 deserialize(&params_binary).expect("Failed to deserialize project params")
@@ -68,7 +64,7 @@ pub fn Editor(project_path: String) -> Element {
     use_effect(move || {
         let params_binary =
             serialize(&(*project_params.read())).expect("Failed to serialize project params");
-        let params_file_path = project.read().get_params_path();
+        let params_file_path = project.read().get_editor_params_path();
         std::fs::write(params_file_path, params_binary)
             .expect("Failed to write project params to file");
     });
@@ -81,7 +77,15 @@ pub fn Editor(project_path: String) -> Element {
             .map(|layer| layer.to_svg(1.0).to_string())
     });
     use_effect(move || {
-        let svg_path = get_svg_path(&project.read().clone());
+        let layer_path = project.read().get_editor_layer_path();
+        if let Some(layer) = &layer_change_wrapper.read().layer {
+            let binary = layer.to_binary().expect("Failed to serialize layer");
+            match std::fs::write(layer_path, binary) {
+                Ok(_) => (),
+                Err(e) => log::error!("Failed to write layer to file: {:?}", e),
+            }
+        }
+        let svg_path = project.read().get_editor_preview_image_path();
         if let Some(svg) = svg.read().clone() {
             match std::fs::write(svg_path, svg) {
                 Ok(_) => (),
@@ -270,7 +274,7 @@ pub fn Editor(project_path: String) -> Element {
                 }
                 div { class: "plot_and_console",
                     div { class: "plot",
-                        if get_svg_path(&project.read()).exists() {
+                        if project.read().get_editor_preview_image_path().exists() {
                             if running_state.read().is_busy() {
                                 Loading {}
                             }
@@ -279,7 +283,7 @@ pub fn Editor(project_path: String) -> Element {
                             }
                             else {
                                 Image {
-                                    img_path: get_svg_path(&project.read()).to_str().unwrap().to_string(),
+                                    img_path: project.read().get_editor_preview_image_path().to_str().unwrap().to_string(),
                                     redraw_counter: layer_change_wrapper.read().change_counter,
                                 }
                             }
@@ -292,8 +296,8 @@ pub fn Editor(project_path: String) -> Element {
                     div { class: "console",
                         Console {
                             console: console,
-                        }
                     }
+                }
                 }
             }
         }

@@ -87,12 +87,14 @@ impl Project {
         resource_path
     }
 
-    pub fn get_preview_image_path(&self) -> PathBuf {
-        self.get_resource_dir_asset_path("preview.svg")
+    pub fn get_editor_preview_image_path(&self) -> PathBuf {
+        self.get_resource_dir_asset_path("latest_editor.svg")
     }
-
-    pub fn get_params_path(&self) -> PathBuf {
-        self.get_resource_dir_asset_path("params")
+    pub fn get_editor_layer_path(&self) -> PathBuf {
+        self.get_resource_dir_asset_path("latest_editor.plotl")
+    }
+    pub fn get_editor_params_path(&self) -> PathBuf {
+        self.get_resource_dir_asset_path("latest_editor.plotp")
     }
 
     pub fn get_project_config_path(&self) -> PathBuf {
