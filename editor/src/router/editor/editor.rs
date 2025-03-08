@@ -51,9 +51,19 @@ pub fn Editor(project_path: String) -> Element {
             Err(_) => ProjectParamsListWrapper::new(vec![]),
         }
     });
-    let layer_change_wrapper = use_signal_sync(|| LayerChangeWrapper {
-        layer: None,
-        change_counter: 0,
+    let layer_change_wrapper = use_signal_sync(|| {
+        let layer_from_file = {
+            match std::fs::read(project.read().get_editor_layer_path()) {
+                Ok(layer_binary) => Some(
+                    Layer::new_from_binary(&layer_binary).expect("Failed to deserialize layer"),
+                ),
+                Err(_) => None,
+            }
+        };
+        return LayerChangeWrapper {
+            layer: layer_from_file,
+            change_counter: 0,
+        };
     });
     let console_change_counter = use_signal_sync(|| 0);
     let console: Signal<EditorConsole, SyncStorage> =
@@ -70,8 +80,8 @@ pub fn Editor(project_path: String) -> Element {
     });
     // layer
     let svg = use_memo(move || {
-        let layer_wrapper = layer_change_wrapper.read();
-        layer_wrapper
+        layer_change_wrapper
+            .read()
             .layer
             .as_ref()
             .map(|layer| layer.to_svg(1.0).to_string())
