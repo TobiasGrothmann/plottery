@@ -46,6 +46,11 @@ impl ColorRgb {
             (self.b.clamp(0.0, 1.0) * 255.0) as u8
         )
     }
+
+    /// Returns the average value of the red, green, and blue components.
+    pub fn brightness(&self) -> f32 {
+        (self.r + self.g + self.b) / 3.0
+    }
 }
 
 impl From<ColorRgb> for ColorHsv {

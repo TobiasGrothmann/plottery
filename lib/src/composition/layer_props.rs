@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::ColorRgb;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum Inheritable<T>
 where
     T: Clone,
@@ -30,7 +30,7 @@ where
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub struct LayerProps {
     pub color: Inheritable<ColorRgb>,
     pub pen_width_cm: Inheritable<f32>,

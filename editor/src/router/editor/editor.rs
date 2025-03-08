@@ -5,16 +5,20 @@ use crate::{
         navigation::Navigation,
     },
     router::editor::{
-        console::Console, editor_console::EditorConsole, layer_editor::layer_editor::LayerEditor,
-        params_editor::params_editor::ParamsEditor, project_hot_reload::start_hot_reload,
-        project_runner::ProjectRunner, running_state::RunningState,
+        console::Console,
+        editor_console::EditorConsole,
+        layer_editor::{layer_editor::LayerEditor, layer_tree_ref::LayerTreeReference},
+        params_editor::params_editor::ParamsEditor,
+        project_hot_reload::start_hot_reload,
+        project_runner::ProjectRunner,
+        running_state::RunningState,
     },
     util::format_svg,
 };
 use bincode::{deserialize, serialize};
 use dioxus::prelude::*;
 use notify::FsEventWatcher;
-use plottery_lib::{Layer, SampleSettings};
+use plottery_lib::{Layer, LayerProps, SampleSettings};
 use plottery_project::{project_params_list_wrapper::ProjectParamsListWrapper, Project};
 use plottery_server_lib::{plot_setting::PlotSettings, task::send_task};
 use std::{path::PathBuf, sync::Arc};
@@ -64,6 +68,10 @@ pub fn Editor(project_path: String) -> Element {
             layer: layer_from_file,
             change_counter: 0,
         };
+    });
+    let mut layer_tree_ref = use_signal_sync(|| match layer_change_wrapper.read().layer.clone() {
+        Some(layer) => Some(LayerTreeReference::new(&layer, &LayerProps::default())),
+        None => None,
     });
     let console_change_counter = use_signal_sync(|| 0);
     let console: Signal<EditorConsole, SyncStorage> =
@@ -310,7 +318,7 @@ pub fn Editor(project_path: String) -> Element {
                     }
                 }
                 LayerEditor {
-                    layer: layer_change_wrapper,
+                    layer_tree_ref,
                     running_state: running_state.clone(),
                 }
             }
