@@ -1,5 +1,8 @@
 use dioxus::prelude::*;
-use plottery_project::{ProjectParam, ProjectParamValue, ProjectParamsListWrapper};
+use plottery_project::{
+    project_param::ProjectParam, project_param_value::ProjectParamValue,
+    project_params_list_wrapper::ProjectParamsListWrapper,
+};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 

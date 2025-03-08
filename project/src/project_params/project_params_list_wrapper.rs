@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::ProjectParam;
+use super::project_param::ProjectParam;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ProjectParamsListWrapper {

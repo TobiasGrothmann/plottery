@@ -5,7 +5,9 @@ use std::error::Error;
 use std::io::{self, Read, Write};
 use std::path::PathBuf;
 
-use crate::{PlotteryParamsDefinition, ProjectParam, ProjectParamsListWrapper};
+use crate::project_param::ProjectParam;
+use crate::project_params_definition::PlotteryParamsDefinition;
+use crate::project_params_list_wrapper::ProjectParamsListWrapper;
 
 #[derive(Debug, Clone, Subcommand)]
 enum RunCommand {

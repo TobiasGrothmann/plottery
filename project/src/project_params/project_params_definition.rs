@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::ProjectParam;
+use super::project_param::ProjectParam;
 
 pub trait PlotteryParamsDefinition {
     fn param_defaults_list() -> Vec<ProjectParam>;

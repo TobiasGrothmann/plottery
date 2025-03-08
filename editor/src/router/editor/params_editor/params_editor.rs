@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use dioxus::prelude::*;
-use plottery_project::{ProjectParamValue, ProjectParamsListWrapper};
+use plottery_project::{
+    project_param_value::ProjectParamValue, project_params_list_wrapper::ProjectParamsListWrapper,
+};
 use tokio::sync::Mutex;
 
 use crate::router::editor::{

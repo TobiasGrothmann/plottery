@@ -5,7 +5,7 @@ use futures_lite::{AsyncReadExt, AsyncWriteExt};
 use serde::de::DeserializeOwned;
 use std::path::PathBuf;
 
-use crate::ProjectParamsListWrapper;
+use crate::project_params_list_wrapper::ProjectParamsListWrapper;
 
 pub async fn build_cargo_project_async(
     project_dir: PathBuf,

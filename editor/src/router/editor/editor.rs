@@ -15,7 +15,7 @@ use bincode::{deserialize, serialize};
 use dioxus::prelude::*;
 use notify::FsEventWatcher;
 use plottery_lib::{Layer, SampleSettings};
-use plottery_project::{Project, ProjectParamsListWrapper};
+use plottery_project::{project_params_list_wrapper::ProjectParamsListWrapper, Project};
 use plottery_server_lib::{plot_setting::PlotSettings, task::send_task};
 use std::{path::PathBuf, sync::Arc};
 use tokio::{sync::Mutex, task::JoinHandle};

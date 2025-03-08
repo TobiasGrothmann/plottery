@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use crate::{ProjectParam, ProjectParamValue, ProjectParamsListWrapper};
+    use crate::{
+        project_param::ProjectParam, project_param_value::ProjectParamValue,
+        project_params_list_wrapper::ProjectParamsListWrapper,
+    };
 
     #[test]
     fn test_combine_params() {

@@ -1,7 +1,8 @@
 use crate::{
     generate_cargo_project_to_disk,
+    project_params_list_wrapper::ProjectParamsListWrapper,
     project_util::{build_cargo_project_async, run_project_executable_async},
-    read_object_from_stdout, LibSource, ProjectConfig, ProjectParamsListWrapper,
+    read_object_from_stdout, LibSource, ProjectConfig,
 };
 
 use plottery_lib::*;
