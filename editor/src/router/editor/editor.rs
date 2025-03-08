@@ -5,7 +5,7 @@ use crate::{
         navigation::Navigation,
     },
     router::editor::{
-        console::Console, editor_console::EditorConsole,
+        console::Console, editor_console::EditorConsole, layer_editor::layer_editor::LayerEditor,
         params_editor::params_editor::ParamsEditor, project_hot_reload::start_hot_reload,
         project_runner::ProjectRunner, running_state::RunningState,
     },
@@ -306,8 +306,12 @@ pub fn Editor(project_path: String) -> Element {
                     div { class: "console",
                         Console {
                             console: console,
+                        }
                     }
                 }
+                LayerEditor {
+                    layer: layer_change_wrapper,
+                    running_state: running_state.clone(),
                 }
             }
         }
