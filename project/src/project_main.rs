@@ -53,7 +53,7 @@ where
                     let path = PathBuf::from(&path_string);
                     if path.is_dir() {
                         panic!(
-                            "Failed to write SVG. Path '{}' is a directory.",
+                            "Failed to write .svg - Path '{}' is a directory.",
                             path_string
                         );
                     }

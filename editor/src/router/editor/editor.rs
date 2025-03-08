@@ -89,7 +89,7 @@ pub fn Editor(project_path: String) -> Element {
         if let Some(svg) = svg.read().clone() {
             match std::fs::write(svg_path, svg) {
                 Ok(_) => (),
-                Err(e) => log::error!("Failed to write SVG to file: {:?}", e),
+                Err(e) => log::error!("Failed to write .svg to file: {:?}", e),
             }
         }
     });
@@ -289,7 +289,7 @@ pub fn Editor(project_path: String) -> Element {
                             }
                         } else {
                             div { class: "err_box",
-                                p { "SVG could not be found!" }
+                                p { ".svg could not be found!" }
                             }
                         }
                     }
