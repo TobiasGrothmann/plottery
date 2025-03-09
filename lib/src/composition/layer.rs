@@ -484,7 +484,7 @@ impl Layer {
             .collect()
     }
 
-    pub fn simplify(&self, aggression_factor: f32) -> Self {
+    pub fn simplify_recursive(&self, aggression_factor: f32) -> Self {
         self.map_recursive(|shape| shape.simplify(aggression_factor))
     }
 
@@ -515,10 +515,7 @@ impl Layer {
                 if points.is_empty() {
                     return (V2::zero(), V2::zero());
                 }
-                (
-                    *points.first().unwrap(),
-                    *points.last().unwrap(),
-                )
+                (*points.first().unwrap(), *points.last().unwrap())
             })
             .collect();
 
