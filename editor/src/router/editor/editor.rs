@@ -263,22 +263,17 @@ pub fn Editor(project_path: String) -> Element {
                     }
                     button { class: "img_button",
                         onclick: move |_event| {
-                            let layer_option = layer_change_wrapper.read().layer.clone();
-                            match layer_option {
-                                Some(layer) => {
+                            match &(*svg.read()) {
+                                Some(svg) => {
                                     let path = std::env::temp_dir().join("temp_editor.svg");
-                                    layer.write_svg(path.clone(), 1.0).unwrap();
-
+                                    std::fs::write(path.clone(), svg).unwrap();
                                     open::that_in_background(path)
                                         .join()
                                         .expect("Failed to open svg.")
                                         .expect("Failed to open svg.");
                                 },
-                                None => {
-                                    console.read().error("cannot open svg: no layer available");
-                                }
+                                None => {}
                             }
-
                         },
                         p { "open svg" }
                     }
