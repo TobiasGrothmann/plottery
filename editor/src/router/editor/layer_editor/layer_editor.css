@@ -1,15 +1,23 @@
 .LayerEditor {
   margin-right: var(--gap-1);
+  min-width: 180px;
+  cursor: pointer;
+  user-select: none;
 }
 
-.LayerEditorLayer {
+.row {
   display: flex;
   flex-direction: row;
   gap: var(--gap-0);
   align-items: center;
 }
 
-.layer_hidden {
-  color: gray;
-  opacity: 0.5;
+.shapes_and_sublayers {
+  display: flex;
+  flex-direction: column;
+}
+
+.hidden {
+  color: #999;
+  opacity: 0.55;
 }

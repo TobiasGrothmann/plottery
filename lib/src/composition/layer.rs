@@ -116,19 +116,19 @@ impl Layer {
         LayerFlattenedIterator::new(self)
     }
 
-    pub fn len(&self) -> i32 {
-        self.shapes.len() as i32
+    pub fn len(&self) -> usize {
+        self.shapes.len()
     }
     pub fn is_empty(&self) -> bool {
         self.shapes.is_empty()
     }
-    pub fn len_recursive(&self) -> i32 {
+    pub fn len_recursive(&self) -> usize {
         self.sublayers
             .iter()
             .fold(self.len(), |acc, sublayer| acc + sublayer.len_recursive())
     }
-    pub fn len_sublayers(&self) -> i32 {
-        self.sublayers.len() as i32
+    pub fn len_sublayers(&self) -> usize {
+        self.sublayers.len()
     }
 
     pub fn to_svg(&self, scale: f32) -> Document {
