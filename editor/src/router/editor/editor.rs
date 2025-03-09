@@ -18,7 +18,7 @@ use crate::{
 use bincode::{deserialize, serialize};
 use dioxus::prelude::*;
 use notify::FsEventWatcher;
-use plottery_lib::{rand_range_i, Layer, LayerProps, SampleSettings};
+use plottery_lib::{Layer, LayerProps, SampleSettings};
 use plottery_project::{project_params_list_wrapper::ProjectParamsListWrapper, Project};
 use plottery_server_lib::{plot_setting::PlotSettings, task::send_task};
 use std::{path::PathBuf, sync::Arc};
@@ -114,10 +114,7 @@ pub fn Editor(project_path: String) -> Element {
             .expect("Failed to write project params to file");
     });
     // layer
-    let svg = use_memo(move || match &layer_only_visible().layer {
-        Some(layer) => Some(layer.to_svg(1.0).to_string()),
-        None => None,
-    });
+    let svg = use_memo(move || layer_only_visible().layer.as_ref().map(|layer| layer.to_svg(1.0).to_string()));
     use_effect(move || {
         let layer_path = project().get_editor_layer_path();
         if let Some(layer) = &layer().layer {

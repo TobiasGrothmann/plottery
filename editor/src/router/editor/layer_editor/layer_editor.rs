@@ -100,7 +100,7 @@ fn LayerEditorLayer(props: LayerEditorLayerProps) -> Element {
                     "{num_shapes_text}"
                 }
             }
-            if props.layer_tree_ref.sublayers.len() > 0 {
+            if !props.layer_tree_ref.sublayers.is_empty() {
                 div { class: "row",
                     style: margin_left_style.clone(),
                     onclick: move |event| {
