@@ -18,7 +18,7 @@ use crate::{
 use bincode::{deserialize, serialize};
 use dioxus::prelude::*;
 use notify::FsEventWatcher;
-use plottery_lib::{Layer, LayerProps, SampleSettings};
+use plottery_lib::{rand_range_i, Layer, LayerProps, SampleSettings};
 use plottery_project::{project_params_list_wrapper::ProjectParamsListWrapper, Project};
 use plottery_server_lib::{plot_setting::PlotSettings, task::send_task};
 use std::{path::PathBuf, sync::Arc};
@@ -47,7 +47,7 @@ pub fn Editor(project_path: String) -> Element {
     // ui state
     let project_params = use_signal_sync(|| {
         // read params from binary file
-        let params_file_path = project.read().get_editor_params_path();
+        let params_file_path = project().get_editor_params_path();
         match std::fs::read(params_file_path) {
             Ok(params_binary) => {
                 deserialize(&params_binary).expect("Failed to deserialize project params")
@@ -55,9 +55,9 @@ pub fn Editor(project_path: String) -> Element {
             Err(_) => ProjectParamsListWrapper::new(vec![]),
         }
     });
-    let layer_change_wrapper = use_signal_sync(|| {
+    let layer = use_signal_sync(|| {
         let layer_from_file = {
-            match std::fs::read(project.read().get_editor_layer_path()) {
+            match std::fs::read(project().get_editor_layer_path()) {
                 Ok(layer_binary) => Some(
                     Layer::new_from_binary(&layer_binary).expect("Failed to deserialize layer"),
                 ),
@@ -69,13 +69,37 @@ pub fn Editor(project_path: String) -> Element {
             change_counter: 0,
         }
     });
-    let layer_tree_ref = use_signal_sync(|| {
-        layer_change_wrapper
-            .read()
+    let mut layer_tree_ref = use_signal_sync(move || {
+        layer()
             .layer
-            .clone()
             .map(|layer| LayerTreeReference::new(&layer, &LayerProps::default()))
     });
+    use_effect(move || {
+        layer_tree_ref.set(
+            layer()
+                .layer
+                .map(|layer| LayerTreeReference::new(&layer, &LayerProps::default())),
+        )
+    });
+    let mut layer_only_visible_change_counter = use_signal(|| 0);
+    let layer_only_visible = use_memo(move || {
+        let mut cc = layer_only_visible_change_counter.write();
+        let new_count = *cc + 1;
+        *cc = new_count;
+        let layer = layer().clone();
+        match layer_tree_ref() {
+            Some(layer_tree_ref) => LayerChangeWrapper {
+                layer: Some(layer_tree_ref.filter_layer_by_visibility(&layer.layer.unwrap())),
+                change_counter: new_count,
+            },
+            None => LayerChangeWrapper {
+                layer: None,
+                change_counter: new_count,
+            },
+        }
+    });
+
+    // console
     let console_change_counter = use_signal_sync(|| 0);
     let console: Signal<EditorConsole, SyncStorage> =
         use_signal_sync(|| EditorConsole::new(console_change_counter));
@@ -84,32 +108,27 @@ pub fn Editor(project_path: String) -> Element {
     // params
     use_effect(move || {
         let params_binary =
-            serialize(&(*project_params.read())).expect("Failed to serialize project params");
-        let params_file_path = project.read().get_editor_params_path();
+            serialize(&(project_params())).expect("Failed to serialize project params");
+        let params_file_path = project().get_editor_params_path();
         std::fs::write(params_file_path, params_binary)
             .expect("Failed to write project params to file");
     });
     // layer
-    let svg = use_memo(move || match layer_tree_ref.read().as_ref() {
-        Some(layer_tree_ref) => {
-            let layer_only_visible = layer_tree_ref
-                .filter_layer_by_visibility(layer_change_wrapper.read().layer.as_ref().unwrap());
-            let svg = layer_only_visible.to_svg(1.0);
-            Some(svg.to_string())
-        }
+    let svg = use_memo(move || match &layer_only_visible().layer {
+        Some(layer) => Some(layer.to_svg(1.0).to_string()),
         None => None,
     });
     use_effect(move || {
-        let layer_path = project.read().get_editor_layer_path();
-        if let Some(layer) = &layer_change_wrapper.read().layer {
+        let layer_path = project().get_editor_layer_path();
+        if let Some(layer) = &layer().layer {
             let binary = layer.to_binary().expect("Failed to serialize layer");
             match std::fs::write(layer_path, binary) {
                 Ok(_) => (),
                 Err(e) => log::error!("Failed to write layer to file: {:?}", e),
             }
         }
-        let svg_path = project.read().get_editor_preview_image_path();
-        if let Some(svg) = svg.read().clone() {
+        let svg_path = project().get_editor_preview_image_path();
+        if let Some(svg) = svg() {
             match std::fs::write(svg_path, svg) {
                 Ok(_) => (),
                 Err(e) => log::error!("Failed to write .svg to file: {:?}", e),
@@ -121,8 +140,8 @@ pub fn Editor(project_path: String) -> Element {
     let mut running_state = use_signal_sync(|| RunningState::Idle);
     let project_runner = use_signal_sync(|| {
         Arc::new(Mutex::new(ProjectRunner::new(
-            project.read().clone(),
-            layer_change_wrapper,
+            project().clone(),
+            layer,
             project_params,
         )))
     });
@@ -130,7 +149,7 @@ pub fn Editor(project_path: String) -> Element {
     // hot reload
     let mut hot_reload_watcher = use_signal_sync(|| None as Option<FsEventWatcher>);
     let mut hot_reload_join_handle = use_signal_sync(|| None as Option<JoinHandle<()>>);
-    let hot_reload_path_to_watch = project.read().get_cargo_path().unwrap().join("src");
+    let hot_reload_path_to_watch = project().get_cargo_path().unwrap().join("src");
     let hot_reload_is_enabled = move || hot_reload_watcher.read().is_some();
 
     let hot_reload_button_class = if hot_reload_is_enabled() {
@@ -139,7 +158,7 @@ pub fn Editor(project_path: String) -> Element {
         ""
     };
 
-    let running_state_class = if running_state.read().is_error() {
+    let running_state_class = if running_state().is_error() {
         "running_state err_box"
     } else {
         "running_state"
@@ -155,14 +174,14 @@ pub fn Editor(project_path: String) -> Element {
 
     rsx! {
         style { { include_str!("./editor.css") } }
-        Navigation { page_name: "{project.read().config.name.clone()}" }
+        Navigation { page_name: "{project().config.name.clone()}" }
 
         div { class: "Editor",
             div { class: "plot_header",
                 div { class: "open_actions",
                     button { class: "icon_button",
                         onclick: move |_event| {
-                            let cargo_dir = project.read().get_cargo_path().unwrap();
+                            let cargo_dir = project().get_cargo_path().unwrap();
                             std::process::Command::new("code")
                                 .arg(cargo_dir)
                                 .spawn()
@@ -174,13 +193,13 @@ pub fn Editor(project_path: String) -> Element {
                     }
                     button { class: "icon_button",
                         onclick: move |_event| {
-                            opener::reveal(project.read().dir.clone()).unwrap();
+                            opener::reveal(project().dir.clone()).unwrap();
                         },
                         img { src: "{icon_folder}" }
                     }
                     button { class: "icon_button",
                         onclick: move |_event| {
-                            let project_dir = project.read().get_dir();
+                            let project_dir = project().get_dir();
                             std::process::Command::new("GitKraken")
                                 .arg("-p")
                                 .arg(project_dir)
@@ -193,16 +212,16 @@ pub fn Editor(project_path: String) -> Element {
                     }
                 }
                 div { class: "run_actions",
-                    if !matches!(*running_state.read(), RunningState::Idle {}) {
+                    if !matches!(running_state(), RunningState::Idle {}) {
                         div { class: "{running_state_class}",
-                            p { "{running_state.read().get_msg()}" }
+                            p { "{running_state().get_msg()}" }
                         }
                     }
                     if !hot_reload_is_enabled() {
                         button { class: "img_button",
                             onclick: move |_event| {
                                 running_state.set(RunningState::Preparing { msg: "preparing".to_string() });
-                                match project_runner.read().try_lock() {
+                                match project_runner().try_lock() {
                                     Ok(mut runner) => runner.trigger_run_project(release, running_state, console),
                                     Err(e) => {
                                         log::error!("Error preparing to run: {:?}", e);
@@ -224,7 +243,7 @@ pub fn Editor(project_path: String) -> Element {
                                 let (handle, watcher) = start_hot_reload(
                                     hot_reload_path_to_watch.clone(),
                                     release,
-                                    project_runner.read().clone(),
+                                    project_runner().clone(),
                                     running_state,
                                     console,
                                 );
@@ -238,23 +257,23 @@ pub fn Editor(project_path: String) -> Element {
                 div { class: "output_actions",
                     button { class: "img_button",
                         onclick: move |_event| {
-                            let layer_option = layer_change_wrapper.read().layer.clone();
+                            let layer_option = layer().layer.clone();
                             match layer_option {
                                 Some(layer) => {
                                     tokio::spawn(async move {
-                                        console.read().info("...sending plot");
+                                        console().info("...sending plot");
                                         let plot_result = send_task(plottery_server_lib::task::Task::Plot {
                                             layer,
                                             sample_settings: SampleSettings::default(),
                                             plot_settings: PlotSettings::default()
                                         }).await;
                                         if plot_result.is_err() {
-                                            console.read().error(format!("failed to send plot: {:?}", plot_result.err().unwrap()).as_str());
+                                            console().error(format!("failed to send plot: {:?}", plot_result.err().unwrap()).as_str());
                                         }
                                     });
                                 },
                                 None => {
-                                    console.read().error("cannot send plot: no layer available");
+                                    console().error("cannot send plot: no layer available");
                                 }
                             }
 
@@ -263,16 +282,13 @@ pub fn Editor(project_path: String) -> Element {
                     }
                     button { class: "img_button",
                         onclick: move |_event| {
-                            match &(*svg.read()) {
-                                Some(svg) => {
-                                    let path = std::env::temp_dir().join("temp_editor.svg");
-                                    std::fs::write(path.clone(), svg).unwrap();
-                                    open::that_in_background(path)
+                            if let Some(svg) = svg() {
+                                let path = std::env::temp_dir().join("temp_editor.svg");
+                                std::fs::write(path.clone(), svg).unwrap();
+                                open::that_in_background(path)
                                         .join()
                                         .expect("Failed to open svg.")
                                         .expect("Failed to open svg.");
-                                },
-                                None => {}
                             }
                         },
                         p { "open svg" }
@@ -292,17 +308,17 @@ pub fn Editor(project_path: String) -> Element {
                 }
                 div { class: "plot_and_console",
                     div { class: "plot",
-                        if project.read().get_editor_preview_image_path().exists() {
-                            if running_state.read().is_busy() {
+                        if project().get_editor_preview_image_path().exists() {
+                            if running_state().is_busy() {
                                 Loading {}
                             }
-                            if let Some(svg) = svg.read().clone() {
-                                SVGImage { svg: svg }
+                            if let Some(svg) = svg() {
+                                SVGImage { svg }
                             }
                             else {
                                 Image {
-                                    img_path: project.read().get_editor_preview_image_path().to_str().unwrap().to_string(),
-                                    redraw_counter: layer_change_wrapper.read().change_counter,
+                                    img_path: project().get_editor_preview_image_path().to_str().unwrap().to_string(),
+                                    redraw_counter: layer().change_counter,
                                 }
                             }
                         } else {

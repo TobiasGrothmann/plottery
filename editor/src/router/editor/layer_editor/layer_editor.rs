@@ -23,14 +23,13 @@ pub fn LayerEditor(props: LayerEditorProps) -> Element {
         style { { include_str!("layer_editor.css") } }
         div { class: "LayerEditor",
             LayerEditorLayer {
-                layer_tree_ref: layer_tree_ref,
+                layer_tree_ref,
                 recursion_depth: 0,
                 layer_index: 0,
                 on_change_shapes_visible: move |(depth, index, visible): (usize, usize, bool)|
-                    layer_tree_ref_copy.write().as_mut().unwrap().set_shapes_visible(depth, index, visible)
-                ,
+                    layer_tree_ref_copy.write().as_mut().unwrap().set_shapes_visible(depth, index, visible),
                 on_change_sublayers_visible: move |(depth, index, visible): (usize, usize, bool)|
-                    layer_tree_ref_copy.write().as_mut().unwrap().set_sublayers_visible(depth, index, visible)
+                    layer_tree_ref_copy.write().as_mut().unwrap().set_sublayers_visible(depth, index, visible),
             }
         }
     }
