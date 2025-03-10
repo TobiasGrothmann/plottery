@@ -253,7 +253,7 @@ impl Layer {
     }
 
     pub fn combine_shapes_flat(&self, max_angle_delta: Option<Angle>) -> Self {
-        let mut combined_shapes = Layer::new().with_props(self.props);
+        let mut combined_shapes = Layer::new().with_props(self.props.clone());
 
         // flatten references, create mask of used shapes
         let mut paths = Vec::new();
@@ -403,7 +403,7 @@ impl Layer {
                 .map(|sublayer| sublayer.map_shapes_recursive_internal(f.clone()))
                 .collect(),
         )
-        .with_props(self.props)
+        .with_props(self.props.clone())
     }
 
     pub fn filter_recursive<F>(&self, f: F) -> Self
@@ -430,7 +430,7 @@ impl Layer {
             .map(|layer| layer.filter_recursive_internal(f.clone()))
             .collect();
         Layer::new_from_shapes_and_layers(filtered_shapes, filtered_sublayers)
-            .with_props(self.props)
+            .with_props(self.props.clone())
     }
 
     pub fn filter_recursive_mut<F>(&mut self, predicate: F)
@@ -522,7 +522,7 @@ impl Layer {
         let mut unused_items_indices: BTreeSet<usize> = (0..self.shapes.len()).collect();
 
         let mut pos = V2::zero();
-        let mut optimized = Layer::new().with_props(self.props);
+        let mut optimized = Layer::new().with_props(self.props.clone());
 
         while !unused_items_indices.is_empty() {
             let mut best_distance = f32::INFINITY;
@@ -567,7 +567,7 @@ impl Layer {
 
     pub fn flatten(&self) -> Self {
         Layer::new_from_shapes_and_layers(self.iter_flattened().cloned().collect(), Vec::new())
-            .with_props(self.props)
+            .with_props(self.props.clone())
     }
 }
 

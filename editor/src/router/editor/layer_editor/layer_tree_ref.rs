@@ -46,7 +46,7 @@ impl LayerTreeReference {
     }
 
     pub fn filter_layer_by_visibility(&self, layer: &Layer) -> Layer {
-        let mut new_layer = Layer::new().with_props(layer.props);
+        let mut new_layer = Layer::new().with_props(layer.props.clone());
         if self.shapes_visible {
             for shape in layer.iter() {
                 new_layer.push(shape.clone());

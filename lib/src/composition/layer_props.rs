@@ -30,10 +30,11 @@ where
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct LayerProps {
     pub color: Inheritable<ColorRgb>,
     pub pen_width_cm: Inheritable<f32>,
+    pub name: Option<String>,
 }
 
 impl LayerProps {
@@ -41,6 +42,7 @@ impl LayerProps {
         Self {
             color: Inheritable::Inherit,
             pen_width_cm: Inheritable::Inherit,
+            name: None,
         }
     }
 
@@ -48,12 +50,14 @@ impl LayerProps {
         Self {
             color: Inheritable::Specified(color),
             pen_width_cm: self.pen_width_cm,
+            name: self.name.clone(),
         }
     }
     pub fn with_pen_width_cm(&self, pen_width_cm: f32) -> Self {
         Self {
             color: self.color,
             pen_width_cm: Inheritable::Specified(pen_width_cm),
+            name: self.name.clone(),
         }
     }
 }
@@ -61,10 +65,11 @@ impl LayerProps {
 impl LayerProps {
     pub fn join_with_child(&self, child: &Inheritable<Self>) -> Self {
         match child {
-            Inheritable::Inherit => *self,
+            Inheritable::Inherit => self.clone(),
             Inheritable::Specified(child_props) => Self {
                 color: self.color.join_with_child(&child_props.color),
                 pen_width_cm: self.pen_width_cm.join_with_child(&child_props.pen_width_cm),
+                name: None,
             },
         }
     }
@@ -75,6 +80,7 @@ impl Default for LayerProps {
         Self {
             color: Inheritable::Specified(ColorRgb::black()),
             pen_width_cm: Inheritable::Specified(0.05),
+            name: None,
         }
     }
 }

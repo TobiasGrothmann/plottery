@@ -1,7 +1,7 @@
 use crate::{
     components::{image::*, loading_spinner::Loading, navigation::Navigation},
     router::editor::{
-        console::Console,
+        console::{self, Console},
         console_messages::ConsoleMessages,
         layer_editor::{layer_editor::LayerEditor, layer_tree_ref::LayerTreeReference},
         params_editor::params_editor::ParamsEditor,
@@ -40,24 +40,43 @@ pub fn Editor(project_path: String) -> Element {
 
     let release = true;
 
+    // console
+    let console_change_counter = use_signal_sync(|| 0);
+    let console: Signal<ConsoleMessages, SyncStorage> =
+        use_signal_sync(|| ConsoleMessages::new(console_change_counter));
+
     // ui state
     let project_params = use_signal_sync(|| {
         // read params from binary file
         let params_file_path = project().get_editor_params_path();
         match std::fs::read(params_file_path) {
-            Ok(params_binary) => {
-                deserialize(&params_binary).expect("Failed to deserialize project params")
-            }
+            Ok(params_binary) => match deserialize(&params_binary) {
+                Ok(params) => ProjectParamsListWrapper::new(params),
+                Err(err) => {
+                    console()
+                        .error(format!("failed to deserialize project params: {:?}", err).as_str());
+                    ProjectParamsListWrapper::new(vec![])
+                }
+            },
             Err(_) => ProjectParamsListWrapper::new(vec![]),
         }
     });
     let layer = use_signal_sync(|| {
         let layer_from_file = {
             match std::fs::read(project().get_editor_layer_path()) {
-                Ok(layer_binary) => Some(
-                    Layer::new_from_binary(&layer_binary).expect("Failed to deserialize layer"),
-                ),
-                Err(_) => None,
+                Ok(layer_binary) => match Layer::new_from_binary(&layer_binary) {
+                    Ok(layer) => Some(layer),
+                    Err(err) => {
+                        console().error(
+                            format!("failed to deserialize layer from binary: {:?}", err).as_str(),
+                        );
+                        None
+                    }
+                },
+                Err(err) => {
+                    console().error(format!("failed to read layer from file: {:?}", err).as_str());
+                    None
+                }
             }
         };
         LayerChangeWrapper {
@@ -94,11 +113,6 @@ pub fn Editor(project_path: String) -> Element {
             },
         }
     });
-
-    // console
-    let console_change_counter = use_signal_sync(|| 0);
-    let console: Signal<ConsoleMessages, SyncStorage> =
-        use_signal_sync(|| ConsoleMessages::new(console_change_counter));
 
     // hooks for changes in project
     // params
