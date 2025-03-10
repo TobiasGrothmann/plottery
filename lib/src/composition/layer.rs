@@ -71,6 +71,12 @@ impl Layer {
         ));
         self
     }
+    pub fn with_name(mut self, name: &str) -> Self {
+        self.props = self.props.join_with_child(&Inheritable::Specified(
+            LayerProps::inherit_all().with_name(name),
+        ));
+        self
+    }
 
     pub fn write_file(&self, path: &PathBuf) -> Result<()> {
         let encoded: Vec<u8> = serialize(self)?;

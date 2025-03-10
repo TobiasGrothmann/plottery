@@ -60,6 +60,13 @@ impl LayerProps {
             name: self.name.clone(),
         }
     }
+    pub fn with_name(&self, name: &str) -> Self {
+        Self {
+            color: self.color,
+            pen_width_cm: self.pen_width_cm,
+            name: Some(name.to_string()),
+        }
+    }
 }
 
 impl LayerProps {
@@ -69,7 +76,7 @@ impl LayerProps {
             Inheritable::Specified(child_props) => Self {
                 color: self.color.join_with_child(&child_props.color),
                 pen_width_cm: self.pen_width_cm.join_with_child(&child_props.pen_width_cm),
-                name: None,
+                name: child_props.name.clone(),
             },
         }
     }
