@@ -70,7 +70,7 @@ fn LayerEditorLayer(props: LayerEditorLayerProps) -> Element {
     let num_shapes_text = if props.layer_tree_ref.num_shapes == 0 {
         "".to_owned()
     } else {
-        format!("{}", props.layer_tree_ref.num_shapes)
+        format!("({})", props.layer_tree_ref.num_shapes)
     };
 
     let indentation_size = "21px";
@@ -94,9 +94,13 @@ fn LayerEditorLayer(props: LayerEditorLayerProps) -> Element {
                 },
 
                 div { class: format!("row {}", layer_class),
-                    img { src: "{format_svg(eye_icon_shapes.as_slice())}", height: "16px" }
                     div {
-                        style: "display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: {layer_color.hex()}; border: 1px solid white;"
+                        class: "layer_color_indicator",
+                        style: "background-color: {layer_color.hex()};",
+                        img { class: "eye",
+                            src: "{format_svg(eye_icon_shapes.as_slice())}",
+                            height: "17px",
+                        }
                     }
                     p {"{layer_name}"}
                     p { style: "color: #BBB; margin-left: 6px;",
@@ -121,7 +125,7 @@ fn LayerEditorLayer(props: LayerEditorLayerProps) -> Element {
                 }
 
                 if props.layer_tree_ref.sublayers_visible {
-                    div {
+                    div { class: "sublayers",
                         style: margin_left_style.clone(),
                         {
                             props.layer_tree_ref.sublayers.into_iter().enumerate().map(|(i, sublayer)| {
