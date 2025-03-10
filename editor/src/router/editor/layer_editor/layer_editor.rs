@@ -24,12 +24,17 @@ pub fn LayerEditor(props: LayerEditorProps) -> Element {
         div { class: "LayerEditor",
             LayerEditorLayer {
                 layer_tree_ref,
-                recursion_depth: 0,
-                layer_index: 0,
-                on_change_shapes_visible: move |(depth, index, visible): (usize, usize, bool)|
-                    layer_tree_ref_copy.write().as_mut().unwrap().set_shapes_visible(depth, index, visible),
-                on_change_sublayers_visible: move |(depth, index, visible): (usize, usize, bool)|
-                    layer_tree_ref_copy.write().as_mut().unwrap().set_sublayers_visible(depth, index, visible),
+                indices: vec![],
+                on_change_shapes_visible: move |(indices, visible): (Vec<usize>, bool)| {
+                    let mut layer_guard = layer_tree_ref_copy.write();
+                    let layer = layer_guard.as_mut().unwrap().get_by_indices(indices);
+                    layer.shapes_visible = visible;
+                },
+                on_change_sublayers_visible: move |(indices, visible): (Vec<usize>, bool)| {
+                    let mut layer_guard = layer_tree_ref_copy.write();
+                    let layer = layer_guard.as_mut().unwrap().get_by_indices(indices);
+                    layer.sublayers_visible = visible;
+                }
             }
         }
     }
@@ -38,10 +43,9 @@ pub fn LayerEditor(props: LayerEditorProps) -> Element {
 #[derive(PartialEq, Props, Clone)]
 pub struct LayerEditorLayerProps {
     layer_tree_ref: LayerTreeReference,
-    recursion_depth: usize,
-    layer_index: usize,
-    on_change_shapes_visible: Callback<(usize, usize, bool)>,
-    on_change_sublayers_visible: Callback<(usize, usize, bool)>,
+    indices: Vec<usize>,
+    on_change_shapes_visible: Callback<(Vec<usize>, bool)>,
+    on_change_sublayers_visible: Callback<(Vec<usize>, bool)>,
 }
 
 fn LayerEditorLayer(props: LayerEditorLayerProps) -> Element {
@@ -72,17 +76,18 @@ fn LayerEditorLayer(props: LayerEditorLayerProps) -> Element {
     let indentation_size = "21px";
     let margin_left_style = format!(
         "margin-left: calc({} * {});",
-        props.recursion_depth, indentation_size
+        props.indices.len(),
+        indentation_size
     );
 
+    let indices_clone = props.indices.clone();
     rsx! {
         div { class: "shapes_and_sublayers",
             div {
                 style: margin_left_style.clone(),
                 onclick: move |event| {
                     props.on_change_shapes_visible.call((
-                        props.recursion_depth,
-                        props.layer_index,
+                        indices_clone.clone(),
                         !props.layer_tree_ref.shapes_visible,
                     ));
                     event.stop_propagation();
@@ -104,8 +109,7 @@ fn LayerEditorLayer(props: LayerEditorLayerProps) -> Element {
                     style: margin_left_style.clone(),
                     onclick: move |event| {
                         props.on_change_sublayers_visible.call((
-                            props.recursion_depth,
-                            props.layer_index,
+                            props.indices.clone(),
                             !props.layer_tree_ref.sublayers_visible,
                         ));
                         event.stop_propagation();
@@ -119,14 +123,19 @@ fn LayerEditorLayer(props: LayerEditorLayerProps) -> Element {
                 if props.layer_tree_ref.sublayers_visible {
                     div {
                         style: margin_left_style.clone(),
-                        for (i, sublayer) in props.layer_tree_ref.sublayers.into_iter().enumerate() {
-                            LayerEditorLayer {
-                                layer_tree_ref: sublayer,
-                                recursion_depth: props.recursion_depth + 1,
-                                layer_index: i,
-                                on_change_shapes_visible: props.on_change_shapes_visible,
-                                on_change_sublayers_visible: props.on_change_sublayers_visible,
-                            }
+                        {
+                            props.layer_tree_ref.sublayers.into_iter().enumerate().map(|(i, sublayer)| {
+                                let mut indices_sublayer = props.indices.clone();
+                                indices_sublayer.insert(0, i);
+                                rsx! {
+                                    LayerEditorLayer {
+                                        layer_tree_ref: sublayer,
+                                        indices: indices_sublayer,
+                                        on_change_shapes_visible: props.on_change_shapes_visible,
+                                        on_change_sublayers_visible: props.on_change_sublayers_visible,
+                                    }
+                                }
+                            })
                         }
                     }
                 }

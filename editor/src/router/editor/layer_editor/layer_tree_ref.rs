@@ -31,19 +31,12 @@ impl LayerTreeReference {
         }
     }
 
-    pub fn set_shapes_visible(&mut self, depth: usize, index: usize, visible: bool) {
-        if depth == 0 {
-            self.shapes_visible = visible;
+    pub fn get_by_indices(&mut self, mut indices: Vec<usize>) -> &mut Self {
+        let index_self = indices.pop();
+        if index_self.is_none() {
+            self
         } else {
-            self.sublayers[index].set_shapes_visible(depth - 1, index, visible);
-        }
-    }
-
-    pub fn set_sublayers_visible(&mut self, depth: usize, index: usize, visible: bool) {
-        if depth == 0 {
-            self.sublayers_visible = visible;
-        } else {
-            self.sublayers[index].set_sublayers_visible(depth - 1, index, visible);
+            self.sublayers[index_self.unwrap()].get_by_indices(indices)
         }
     }
 
