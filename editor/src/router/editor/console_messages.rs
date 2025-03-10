@@ -27,12 +27,12 @@ impl PartialEq for ConsoleMessage {
 }
 
 #[derive(Debug, Clone)]
-pub struct EditorConsole {
+pub struct ConsoleMessages {
     entries: Arc<Mutex<Vec<ConsoleMessage>>>,
     change_counter: Arc<Mutex<SyncSignal<u32>>>,
 }
 
-impl EditorConsole {
+impl ConsoleMessages {
     pub fn new(change_counter: SyncSignal<u32>) -> Self {
         Self {
             entries: Arc::new(Mutex::new(Vec::new())),

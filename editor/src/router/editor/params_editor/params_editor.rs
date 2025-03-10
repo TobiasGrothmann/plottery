@@ -7,7 +7,7 @@ use plottery_project::{
 use tokio::sync::Mutex;
 
 use crate::router::editor::{
-    editor_console::EditorConsole,
+    console_messages::ConsoleMessages,
     params_editor::{bool_field::BoolField, number_field::NumberField, slider::Slider},
     project_runner::ProjectRunner,
     running_state::RunningState,
@@ -18,7 +18,7 @@ pub struct ParamsEditorProps {
     project_params: SyncSignal<ProjectParamsListWrapper>,
     project_runner: SyncSignal<Arc<Mutex<ProjectRunner>>>,
     running_state: SyncSignal<RunningState>,
-    console: SyncSignal<EditorConsole>,
+    console: SyncSignal<ConsoleMessages>,
     release: bool,
 }
 

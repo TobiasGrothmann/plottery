@@ -5,7 +5,7 @@ use plottery_project::{
     project_params_list_wrapper::ProjectParamsListWrapper, read_object_from_stdout, Project,
 };
 
-use super::{editor::LayerChangeWrapper, editor_console::EditorConsole};
+use super::{console_messages::ConsoleMessages, editor::LayerChangeWrapper};
 
 #[derive(Clone)]
 pub struct ProjectRunner {
@@ -33,7 +33,7 @@ impl ProjectRunner {
         &mut self,
         release: bool,
         mut running_state: SyncSignal<RunningState>,
-        console: SyncSignal<EditorConsole>,
+        console: SyncSignal<ConsoleMessages>,
     ) {
         console.read().clear();
         self.cancel_tx.take(); // cancels the previous run if it exists

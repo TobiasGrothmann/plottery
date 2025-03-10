@@ -1,10 +1,10 @@
 use dioxus::prelude::*;
 
-use super::editor_console::EditorConsole;
+use super::console_messages::ConsoleMessages;
 
 #[derive(PartialEq, Props, Clone)]
 pub struct ConsoleProps {
-    pub console: SyncSignal<EditorConsole>,
+    pub console: SyncSignal<ConsoleMessages>,
 }
 
 #[component]

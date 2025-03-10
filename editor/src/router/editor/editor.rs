@@ -2,7 +2,7 @@ use crate::{
     components::{image::*, loading_spinner::Loading, navigation::Navigation},
     router::editor::{
         console::Console,
-        editor_console::EditorConsole,
+        console_messages::ConsoleMessages,
         layer_editor::{layer_editor::LayerEditor, layer_tree_ref::LayerTreeReference},
         params_editor::params_editor::ParamsEditor,
         project_hot_reload::start_hot_reload,
@@ -13,7 +13,6 @@ use crate::{
 };
 use bincode::{deserialize, serialize};
 use dioxus::prelude::*;
-use dioxus_logger::tracing::event;
 use notify::FsEventWatcher;
 use plottery_lib::{Layer, LayerProps, SampleSettings};
 use plottery_project::{project_params_list_wrapper::ProjectParamsListWrapper, Project};
@@ -98,8 +97,8 @@ pub fn Editor(project_path: String) -> Element {
 
     // console
     let console_change_counter = use_signal_sync(|| 0);
-    let console: Signal<EditorConsole, SyncStorage> =
-        use_signal_sync(|| EditorConsole::new(console_change_counter));
+    let console: Signal<ConsoleMessages, SyncStorage> =
+        use_signal_sync(|| ConsoleMessages::new(console_change_counter));
 
     // hooks for changes in project
     // params

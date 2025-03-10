@@ -5,7 +5,7 @@ use notify::{Config, FsEventWatcher, RecommendedWatcher, RecursiveMode, Watcher}
 use tokio::{sync::Mutex, task::JoinHandle};
 
 use super::{
-    editor_console::EditorConsole, project_runner::ProjectRunner, running_state::RunningState,
+    console_messages::ConsoleMessages, project_runner::ProjectRunner, running_state::RunningState,
 };
 
 pub fn start_hot_reload(
@@ -13,7 +13,7 @@ pub fn start_hot_reload(
     release: bool,
     project_runner: Arc<Mutex<ProjectRunner>>,
     running_state: SyncSignal<RunningState>,
-    console: SyncSignal<EditorConsole>,
+    console: SyncSignal<ConsoleMessages>,
 ) -> (JoinHandle<()>, FsEventWatcher) {
     let (tx, rx) = std::sync::mpsc::channel();
     let mut watcher = RecommendedWatcher::new(tx, Config::default()).unwrap();

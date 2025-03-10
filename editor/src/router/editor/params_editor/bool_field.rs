@@ -7,7 +7,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use crate::router::editor::{
-    editor_console::EditorConsole, project_runner::ProjectRunner, running_state::RunningState,
+    console_messages::ConsoleMessages, project_runner::ProjectRunner, running_state::RunningState,
 };
 
 #[derive(PartialEq, Props, Clone)]
@@ -16,7 +16,7 @@ pub struct BoolFieldProps {
     project_params: SyncSignal<ProjectParamsListWrapper>,
     project_runner: SyncSignal<Arc<Mutex<ProjectRunner>>>,
     running_state: SyncSignal<RunningState>,
-    console: SyncSignal<EditorConsole>,
+    console: SyncSignal<ConsoleMessages>,
     release: bool,
 }
 
