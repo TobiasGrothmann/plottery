@@ -1,9 +1,5 @@
 use crate::{
-    components::{
-        image::{Image, SVGImage},
-        loading_spinner::Loading,
-        navigation::Navigation,
-    },
+    components::{image::*, loading_spinner::Loading, navigation::Navigation},
     router::editor::{
         console::Console,
         editor_console::EditorConsole,
@@ -17,6 +13,7 @@ use crate::{
 };
 use bincode::{deserialize, serialize};
 use dioxus::prelude::*;
+use dioxus_logger::tracing::event;
 use notify::FsEventWatcher;
 use plottery_lib::{Layer, LayerProps, SampleSettings};
 use plottery_project::{project_params_list_wrapper::ProjectParamsListWrapper, Project};
@@ -114,7 +111,12 @@ pub fn Editor(project_path: String) -> Element {
             .expect("Failed to write project params to file");
     });
     // layer
-    let svg = use_memo(move || layer_only_visible().layer.as_ref().map(|layer| layer.to_svg(1.0).to_string()));
+    let svg = use_memo(move || {
+        layer_only_visible()
+            .layer
+            .as_ref()
+            .map(|layer| layer.to_svg(1.0).to_string())
+    });
     use_effect(move || {
         let layer_path = project().get_editor_layer_path();
         if let Some(layer) = &layer().layer {
@@ -177,7 +179,7 @@ pub fn Editor(project_path: String) -> Element {
             div { class: "plot_header",
                 div { class: "open_actions",
                     button { class: "icon_button",
-                        onclick: move |_event| {
+                        onclick: move |event| {
                             let cargo_dir = project().get_cargo_path().unwrap();
                             std::process::Command::new("code")
                                 .arg(cargo_dir)
@@ -185,25 +187,27 @@ pub fn Editor(project_path: String) -> Element {
                                 .unwrap()
                                 .wait()
                                 .unwrap();
+                            event.stop_propagation();
                         },
                         img { src: "{format_svg(include_bytes!(\"../../../public/icons/vscode.svg\"))}" }
                     }
                     button { class: "icon_button",
-                        onclick: move |_event| {
+                        onclick: move |event| {
                             opener::reveal(project().dir.clone()).unwrap();
+                            event.stop_propagation();
                         },
                         img { src: "{icon_folder}" }
                     }
                     button { class: "icon_button",
-                        onclick: move |_event| {
-                            let project_dir = project().get_dir();
+                        onclick: move |event| {
                             std::process::Command::new("GitKraken")
                                 .arg("-p")
-                                .arg(project_dir)
+                                .arg(project().get_dir())
                                 .spawn()
                                 .unwrap()
                                 .wait()
                                 .unwrap();
+                            event.stop_propagation();
                         },
                         img { src: "{format_svg(include_bytes!(\"../../../public/icons/gitkraken.svg\"))}" }
                     }
@@ -216,7 +220,7 @@ pub fn Editor(project_path: String) -> Element {
                     }
                     if !hot_reload_is_enabled() {
                         button { class: "img_button",
-                            onclick: move |_event| {
+                            onclick: move |event| {
                                 running_state.set(RunningState::Preparing { msg: "preparing".to_string() });
                                 match project_runner().try_lock() {
                                     Ok(mut runner) => runner.trigger_run_project(release, running_state, console),
@@ -225,12 +229,13 @@ pub fn Editor(project_path: String) -> Element {
                                         running_state.set(RunningState::RunFailed { msg: format!("Error preparing to run: {}", e) });
                                     },
                                 }
+                                event.stop_propagation();
                             },
                             img { src: "{format_svg(include_bytes!(\"../../../public/icons/play.svg\"))}" }
                         }
                     }
                     button { class: "img_button {hot_reload_button_class}",
-                        onclick: move |_event| {
+                        onclick: move |event| {
                             if hot_reload_is_enabled() {
                                 // Disable hot reload
                                 hot_reload_watcher.set(None);
@@ -247,20 +252,20 @@ pub fn Editor(project_path: String) -> Element {
                                 hot_reload_join_handle.set(Some(handle));
                                 hot_reload_watcher.set(Some(watcher));
                             }
+                            event.stop_propagation();
                         },
                         p { "hot reload" }
                     }
                 }
                 div { class: "output_actions",
                     button { class: "img_button",
-                        onclick: move |_event| {
-                            let layer_option = layer().layer.clone();
-                            match layer_option {
+                        onclick: move |event| {
+                            match layer_only_visible().layer {
                                 Some(layer) => {
                                     tokio::spawn(async move {
                                         console().info("...sending plot");
                                         let plot_result = send_task(plottery_server_lib::task::Task::Plot {
-                                            layer,
+                                            layer: layer.clone(),
                                             sample_settings: SampleSettings::default(),
                                             plot_settings: PlotSettings::default()
                                         }).await;
@@ -273,20 +278,20 @@ pub fn Editor(project_path: String) -> Element {
                                     console().error("cannot send plot: no layer available");
                                 }
                             }
-
+                            event.stop_propagation();
                         },
                         p { "send plot" }
                     }
                     button { class: "img_button",
-                        onclick: move |_event| {
+                        onclick: move |event| {
                             if let Some(svg) = svg() {
                                 let path = std::env::temp_dir().join("temp_editor.svg");
-                                std::fs::write(path.clone(), svg).unwrap();
-                                open::that_in_background(path)
-                                        .join()
-                                        .expect("Failed to open svg.")
-                                        .expect("Failed to open svg.");
+                                std::fs::write(&path, svg).unwrap();
+                                if let Err(err) = open::that_in_background(path).join() {
+                                    log::error!("Failed to open svg: {:?}", err);
+                                }
                             }
+                            event.stop_propagation();
                         },
                         p { "open svg" }
                     }
@@ -296,11 +301,11 @@ pub fn Editor(project_path: String) -> Element {
             div { class: "plot_and_params",
                 div { class: "params",
                     ParamsEditor {
-                        project_params: project_params,
-                        project_runner: project_runner,
-                        running_state: running_state,
-                        console: console,
-                        release: release,
+                        project_params,
+                        project_runner,
+                        running_state,
+                        console,
+                        release,
                     }
                 }
                 div { class: "plot_and_console",
