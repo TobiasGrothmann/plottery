@@ -95,6 +95,9 @@ pub async fn start_server(mut receiver: mpsc::Receiver<Task>) -> anyhow::Result<
                     hardware.play_freq(&axis, freq, duration_s);
                     hardware.set_enabled(false);
                 }
+                Task::SetOrigin() => {
+                    hardware.set_origin();
+                }
             }
         }
     });

@@ -126,6 +126,11 @@ impl Hardware {
         )
     }
 
+    pub fn set_origin(&mut self) {
+        self.x = 0;
+        self.y = 0;
+    }
+
     #[cfg(not(feature = "raspi"))]
     fn set_dir(&mut self, _axis: Axis, _forward: bool) {}
 

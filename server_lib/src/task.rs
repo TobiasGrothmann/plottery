@@ -22,6 +22,7 @@ pub enum Task {
     SetHead(bool),
     MoveTo(V2, PlotSettings),
     Move(V2, PlotSettings),
+    SetOrigin(),
     NoteFreq {
         axis: Axis,
         frequency: f32,
