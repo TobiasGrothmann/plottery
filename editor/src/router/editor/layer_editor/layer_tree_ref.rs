@@ -51,7 +51,6 @@ impl LayerTreeReference {
             layer
                 .iter_sublayers()
                 .zip(self.sublayers.iter())
-                .filter(|(_sublayer, layer_tree_ref)| layer_tree_ref.sublayers_visible)
                 .map(|(sublayer, layer_ref_tree)| {
                     layer_ref_tree.filter_layer_by_visibility(sublayer)
                 })
