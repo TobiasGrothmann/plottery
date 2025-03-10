@@ -31,18 +31,16 @@ where
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct LayerProps {
+pub struct LayerPropsInheritable {
     pub color: Inheritable<ColorRgb>,
     pub pen_width_cm: Inheritable<f32>,
-    pub name: Option<String>,
 }
 
-impl LayerProps {
+impl LayerPropsInheritable {
     pub fn inherit_all() -> Self {
         Self {
             color: Inheritable::Inherit,
             pen_width_cm: Inheritable::Inherit,
-            name: None,
         }
     }
 
@@ -50,44 +48,46 @@ impl LayerProps {
         Self {
             color: Inheritable::Specified(color),
             pen_width_cm: self.pen_width_cm,
-            name: self.name.clone(),
         }
     }
     pub fn with_pen_width_cm(&self, pen_width_cm: f32) -> Self {
         Self {
             color: self.color,
             pen_width_cm: Inheritable::Specified(pen_width_cm),
-            name: self.name.clone(),
-        }
-    }
-    pub fn with_name(&self, name: &str) -> Self {
-        Self {
-            color: self.color,
-            pen_width_cm: self.pen_width_cm,
-            name: Some(name.to_string()),
         }
     }
 }
 
-impl LayerProps {
+impl LayerPropsInheritable {
     pub fn overwrite_with(&self, child: &Inheritable<Self>) -> Self {
         match child {
             Inheritable::Inherit => self.clone(),
             Inheritable::Specified(child_props) => Self {
                 color: self.color.overwrite_with(&child_props.color),
                 pen_width_cm: self.pen_width_cm.overwrite_with(&child_props.pen_width_cm),
-                name: child_props.name.clone(),
             },
         }
     }
 }
 
-impl Default for LayerProps {
+impl Default for LayerPropsInheritable {
     fn default() -> Self {
         Self {
             color: Inheritable::Specified(ColorRgb::black()),
             pen_width_cm: Inheritable::Specified(0.05),
-            name: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct LayerProps {
+    pub name: Option<String>,
+}
+
+impl LayerProps {
+    pub fn with_name(&self, name: &str) -> Self {
+        Self {
+            name: Some(name.to_string()),
         }
     }
 }

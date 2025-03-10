@@ -1,7 +1,7 @@
 use crate::{
     components::{image::*, loading_spinner::Loading, navigation::Navigation},
     router::editor::{
-        console::{self, Console},
+        console::Console,
         console_messages::ConsoleMessages,
         layer_editor::{layer_editor::LayerEditor, layer_tree_ref::LayerTreeReference},
         params_editor::params_editor::ParamsEditor,
@@ -14,7 +14,7 @@ use crate::{
 use bincode::{deserialize, serialize};
 use dioxus::prelude::*;
 use notify::FsEventWatcher;
-use plottery_lib::{Layer, LayerProps, SampleSettings};
+use plottery_lib::{Layer, LayerPropsInheritable, SampleSettings};
 use plottery_project::{project_params_list_wrapper::ProjectParamsListWrapper, Project};
 use plottery_server_lib::{plot_setting::PlotSettings, task::send_task};
 use std::{path::PathBuf, sync::Arc};
@@ -84,16 +84,12 @@ pub fn Editor(project_path: String) -> Element {
             change_counter: 0,
         }
     });
-    let mut layer_tree_ref = use_signal_sync(move || {
-        layer()
-            .layer
-            .map(|layer| LayerTreeReference::new(&layer, &LayerProps::default()))
-    });
+    let mut layer_tree_ref = use_signal_sync(move || None);
     use_effect(move || {
         layer_tree_ref.set(
             layer()
                 .layer
-                .map(|layer| LayerTreeReference::new(&layer, &LayerProps::default())),
+                .map(|layer| LayerTreeReference::new(&layer, &LayerPropsInheritable::default())),
         )
     });
     let mut layer_only_visible_change_counter = use_signal(|| 0);

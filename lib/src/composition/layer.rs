@@ -5,20 +5,24 @@ use std::{
     collections::BTreeSet, fs::File, io::Write, iter::FromIterator, path::PathBuf, rc::Rc,
     slice::Iter, vec,
 };
-use svg::{node::element::path::Data, Document};
+use svg::{
+    node::element::{path::Data, Group},
+    Document, Node,
+};
 
 use crate::{
     traits::{Normalize, Scale, Scale2D, Translate},
     Angle, BoundingBox, Circle, Masked, Path, Plottable, Rect, Rotate, SampleSettings, Shape, V2,
 };
 
-use super::{path_end::PathEnd, ColorRgb, Inheritable, LayerProps};
+use super::{path_end::PathEnd, ColorRgb, Inheritable, LayerProps, LayerPropsInheritable};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Layer {
     pub shapes: Vec<Shape>,
     pub sublayers: Vec<Layer>,
-    pub props: Inheritable<LayerProps>,
+    pub props: LayerProps,
+    pub props_inheritable: Inheritable<LayerPropsInheritable>,
 }
 
 impl Layer {
@@ -26,21 +30,24 @@ impl Layer {
         Self {
             shapes: Vec::new(),
             sublayers: Vec::new(),
-            props: Inheritable::Inherit,
+            props_inheritable: Inheritable::Inherit,
+            props: LayerProps::default(),
         }
     }
     pub fn new_from(shapes: Vec<Shape>) -> Self {
         Self {
             shapes,
             sublayers: Vec::new(),
-            props: Inheritable::Inherit,
+            props_inheritable: Inheritable::Inherit,
+            props: LayerProps::default(),
         }
     }
     pub fn new_from_shapes_and_layers(shapes: Vec<Shape>, sublayers: Vec<Layer>) -> Self {
         Self {
             shapes,
             sublayers,
-            props: Inheritable::Inherit,
+            props_inheritable: Inheritable::Inherit,
+            props: LayerProps::default(),
         }
     }
     pub fn new_from_file(path: &PathBuf) -> Result<Layer> {
@@ -52,44 +59,38 @@ impl Layer {
         Ok(deserialize_from(binary_data.as_slice())?)
     }
 
-    pub fn set_props(&mut self, props: Inheritable<LayerProps>) {
+    pub fn set_props_inheritable(&mut self, props: Inheritable<LayerPropsInheritable>) {
+        self.props_inheritable = props;
+    }
+    pub fn with_props_inheritable(mut self, props: Inheritable<LayerPropsInheritable>) -> Self {
+        self.set_props_inheritable(props);
+        self
+    }
+    pub fn set_props(&mut self, props: LayerProps) {
         self.props = props;
     }
-    pub fn with_props(mut self, props: Inheritable<LayerProps>) -> Self {
+    pub fn with_props(mut self, props: LayerProps) -> Self {
         self.set_props(props);
         self
     }
     pub fn with_color(mut self, color: ColorRgb) -> Self {
-        self.props = match self.props {
-            Inheritable::Inherit => {
-                Inheritable::Specified(LayerProps::inherit_all().with_color(color))
-            }
-            Inheritable::Specified(props) => Inheritable::Specified(props.overwrite_with(
-                &Inheritable::Specified(LayerProps::inherit_all().with_color(color)),
-            )),
-        };
+        self.props_inheritable = self
+            .props_inheritable
+            .overwrite_with(&Inheritable::Specified(
+                LayerPropsInheritable::inherit_all().with_color(color),
+            ));
         self
     }
     pub fn with_pen_width_cm(mut self, pen_width_cm: f32) -> Self {
-        self.props = match self.props {
-            Inheritable::Inherit => {
-                Inheritable::Specified(LayerProps::inherit_all().with_pen_width_cm(pen_width_cm))
-            }
-            Inheritable::Specified(props) => Inheritable::Specified(props.overwrite_with(
-                &Inheritable::Specified(LayerProps::inherit_all().with_pen_width_cm(pen_width_cm)),
-            )),
-        };
+        self.props_inheritable = self
+            .props_inheritable
+            .overwrite_with(&Inheritable::Specified(
+                LayerPropsInheritable::inherit_all().with_pen_width_cm(pen_width_cm),
+            ));
         self
     }
     pub fn with_name(mut self, name: &str) -> Self {
-        self.props = match self.props {
-            Inheritable::Inherit => {
-                Inheritable::Specified(LayerProps::inherit_all().with_name(name))
-            }
-            Inheritable::Specified(props) => Inheritable::Specified(props.overwrite_with(
-                &Inheritable::Specified(LayerProps::inherit_all().with_name(name)),
-            )),
-        };
+        self.props = self.props.with_name(name);
         self
     }
 
@@ -159,61 +160,46 @@ impl Layer {
         }
         let bounding_box = bounding_box.unwrap();
         let svg_max_coords: V2 = bounding_box.tr() * scale;
-        let mut document = Document::new()
+
+        Document::new()
             .set("viewBox", (0, 0, svg_max_coords.x, svg_max_coords.y))
             .set("width", svg_max_coords.x)
-            .set("height", svg_max_coords.y);
-
-        let props = LayerProps::default().overwrite_with(&self.props);
-
-        let (shapes, sub_groups) = self.get_svg_nodes(scale, &props);
-        for shape in shapes {
-            document = document.add(shape);
-        }
-        for group in sub_groups {
-            document = document.add(group);
-        }
-
-        document
+            .set("height", svg_max_coords.y)
+            .add(self.get_svg_group(scale, &LayerPropsInheritable::default()))
     }
 
-    fn get_svg_nodes(
-        &self,
-        scale: f32,
-        parent_props: &LayerProps,
-    ) -> (
-        Vec<Box<dyn svg::node::Node>>,
-        Vec<svg::node::element::Group>,
-    ) {
-        let props = parent_props.overwrite_with(&self.props);
-        let shapes = self.get_shapes_as_svg_nodes(scale, &props);
+    fn get_svg_group(&self, scale: f32, parent_props: &LayerPropsInheritable) -> Group {
+        let props_inheritable = parent_props.overwrite_with(&self.props_inheritable);
 
-        let mut sub_groups: Vec<svg::node::element::Group> = Vec::new();
-        for sublayer in &self.sublayers {
-            let (sublayer_shapes, sublayer_sub_groups) = sublayer.get_svg_nodes(scale, &props);
-            let mut sublayer_group = svg::node::element::Group::new();
-            for shape in sublayer_shapes {
-                sublayer_group = sublayer_group.add(shape);
-            }
-            for group in sublayer_sub_groups {
-                sublayer_group = sublayer_group.add(group);
-            }
-            sub_groups.push(sublayer_group);
+        let mut group = Group::new();
+        if self.props.name.is_some() {
+            let name = self.props.name.as_ref().unwrap().as_str();
+            group = group.set("id", name);
         }
 
-        (shapes, sub_groups)
+        for shape_svg in self.get_shapes_as_svg_nodes(scale, &props_inheritable) {
+            group = group.add(shape_svg);
+        }
+        for sublayer_svg in self
+            .sublayers
+            .iter()
+            .map(|sublayer| sublayer.get_svg_group(scale, &props_inheritable))
+        {
+            group = group.add(sublayer_svg);
+        }
+        group
     }
 
     fn get_shapes_as_svg_nodes(
         &self,
         scale: f32,
-        props: &LayerProps,
-    ) -> Vec<Box<dyn svg::node::Node>> {
+        props: &LayerPropsInheritable,
+    ) -> Vec<Box<dyn Node>> {
         let fill = "none";
         let stroke = props.color.unwrap().hex();
         let stroke_width = props.pen_width_cm.unwrap() * scale;
 
-        let mut nodes: Vec<Box<dyn svg::node::Node>> = Vec::new();
+        let mut nodes: Vec<Box<dyn Node>> = Vec::new();
         for shape in self.iter() {
             match shape {
                 Shape::Circle(c) => nodes.push(Box::new(
@@ -274,7 +260,9 @@ impl Layer {
     }
 
     pub fn combine_shapes_flat(&self, max_angle_delta: Option<Angle>) -> Self {
-        let mut combined_shapes = Layer::new().with_props(self.props.clone());
+        let mut combined_shapes = Layer::new()
+            .with_props_inheritable(self.props_inheritable.clone())
+            .with_props(self.props.clone());
 
         // flatten references, create mask of used shapes
         let mut paths = Vec::new();
@@ -424,6 +412,7 @@ impl Layer {
                 .map(|sublayer| sublayer.map_shapes_recursive_internal(f.clone()))
                 .collect(),
         )
+        .with_props_inheritable(self.props_inheritable.clone())
         .with_props(self.props.clone())
     }
 
@@ -451,6 +440,7 @@ impl Layer {
             .map(|layer| layer.filter_recursive_internal(f.clone()))
             .collect();
         Layer::new_from_shapes_and_layers(filtered_shapes, filtered_sublayers)
+            .with_props_inheritable(self.props_inheritable.clone())
             .with_props(self.props.clone())
     }
 
@@ -543,7 +533,9 @@ impl Layer {
         let mut unused_items_indices: BTreeSet<usize> = (0..self.shapes.len()).collect();
 
         let mut pos = V2::zero();
-        let mut optimized = Layer::new().with_props(self.props.clone());
+        let mut optimized = Layer::new()
+            .with_props_inheritable(self.props_inheritable.clone())
+            .with_props(self.props.clone());
 
         while !unused_items_indices.is_empty() {
             let mut best_distance = f32::INFINITY;
@@ -588,6 +580,7 @@ impl Layer {
 
     pub fn flatten(&self) -> Self {
         Layer::new_from_shapes_and_layers(self.iter_flattened().cloned().collect(), Vec::new())
+            .with_props_inheritable(self.props_inheritable.clone())
             .with_props(self.props.clone())
     }
 }
@@ -648,7 +641,8 @@ impl FromIterator<Shape> for Layer {
         Layer {
             shapes: iter.into_iter().collect(),
             sublayers: Vec::new(),
-            props: Inheritable::Inherit,
+            props_inheritable: Inheritable::Inherit,
+            props: LayerProps::default(),
         }
     }
 }

@@ -3,6 +3,7 @@ use plottery_lib::*;
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct LayerTreeReference {
     pub num_shapes: usize,
+    pub props_inheritable: LayerPropsInheritable,
     pub props: LayerProps,
     pub sublayers: Vec<LayerTreeReference>,
 
@@ -11,19 +12,20 @@ pub struct LayerTreeReference {
 }
 
 impl LayerTreeReference {
-    pub fn new(layer: &Layer, parent_props: &LayerProps) -> Self {
-        let props = parent_props.overwrite_with(&layer.props);
+    pub fn new(layer: &Layer, parent_props_inheritable: &LayerPropsInheritable) -> Self {
+        let props_inheritable = parent_props_inheritable.overwrite_with(&layer.props_inheritable);
 
-        let sub_layers = layer
+        let sublayers = layer
             .sublayers
             .iter()
-            .map(|sub_layer| LayerTreeReference::new(sub_layer, &props))
+            .map(|sublayer| LayerTreeReference::new(sublayer, &props_inheritable))
             .collect();
 
         Self {
             num_shapes: layer.len(),
-            props,
-            sublayers: sub_layers,
+            props_inheritable,
+            props: layer.props.clone(),
+            sublayers,
             shapes_visible: true,
             sublayers_visible: true,
         }
@@ -46,19 +48,27 @@ impl LayerTreeReference {
     }
 
     pub fn filter_layer_by_visibility(&self, layer: &Layer) -> Layer {
-        let mut new_layer = Layer::new().with_props(layer.props.clone());
-        if self.shapes_visible {
-            for shape in layer.iter() {
-                new_layer.push(shape.clone());
-            }
-        }
-        if self.sublayers_visible {
-            for (sub_layer, layer_ref_tree) in layer.iter_sublayers().zip(self.sublayers.iter()) {
-                if layer_ref_tree.sublayers_visible {
-                    new_layer.push_layer(layer_ref_tree.filter_layer_by_visibility(sub_layer));
-                }
-            }
-        }
-        new_layer
+        let shapes = if self.shapes_visible {
+            layer.shapes.clone()
+        } else {
+            Vec::new()
+        };
+
+        let sublayers = if self.sublayers_visible {
+            layer
+                .iter_sublayers()
+                .zip(self.sublayers.iter())
+                .filter(|(_sublayer, layer_tree_ref)| layer_tree_ref.sublayers_visible)
+                .map(|(sublayer, layer_ref_tree)| {
+                    layer_ref_tree.filter_layer_by_visibility(sublayer)
+                })
+                .collect()
+        } else {
+            Vec::new()
+        };
+
+        Layer::new_from_shapes_and_layers(shapes, sublayers)
+            .with_props_inheritable(layer.props_inheritable.clone())
+            .with_props(layer.props.clone())
     }
 }

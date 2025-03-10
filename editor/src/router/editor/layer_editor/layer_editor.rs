@@ -45,7 +45,7 @@ pub struct LayerEditorLayerProps {
 }
 
 fn LayerEditorLayer(props: LayerEditorLayerProps) -> Element {
-    let layer_color = props.layer_tree_ref.props.color.unwrap();
+    let layer_color = props.layer_tree_ref.props_inheritable.color.unwrap();
     let layer_class = if props.layer_tree_ref.shapes_visible {
         ""
     } else {
@@ -119,9 +119,9 @@ fn LayerEditorLayer(props: LayerEditorLayerProps) -> Element {
                 if props.layer_tree_ref.sublayers_visible {
                     div {
                         style: margin_left_style.clone(),
-                        for (i, sub_layer) in props.layer_tree_ref.sublayers.into_iter().enumerate() {
+                        for (i, sublayer) in props.layer_tree_ref.sublayers.into_iter().enumerate() {
                             LayerEditorLayer {
-                                layer_tree_ref: sub_layer,
+                                layer_tree_ref: sublayer,
                                 recursion_depth: props.recursion_depth + 1,
                                 layer_index: i,
                                 on_change_shapes_visible: props.on_change_shapes_visible,
