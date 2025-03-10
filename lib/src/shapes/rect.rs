@@ -138,7 +138,7 @@ impl Plottable for Rect {
             && point.y <= self.top_right.y
     }
 
-    fn simplify(&self, _aggression_factor: f32) -> Self {
+    fn reduce_points(&self, _aggression_factor: f32) -> Self {
         self.clone()
     }
 }

@@ -62,7 +62,7 @@ pub trait Plottable: Clone {
 
     fn contains_point(&self, point: &V2) -> bool; // assuming shape is closed
 
-    fn simplify(&self, aggression_factor: f32) -> Self;
+    fn reduce_points(&self, aggression_factor: f32) -> Self;
 
     fn get_points_oversampled(&self, sample_settings: &SampleSettings) -> Vec<V2> {
         let points = self.get_points(sample_settings);

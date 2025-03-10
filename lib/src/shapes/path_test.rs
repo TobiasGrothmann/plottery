@@ -169,10 +169,10 @@ mod test_path {
         let points = c.get_points(&SampleSettings::default());
         let p = Path::new_from(points.clone());
 
-        let p_simplified1 = p.simplify(0.01);
+        let p_simplified1 = p.reduce_points(0.01);
         let points_simplified = p_simplified1.get_points(&SampleSettings::default());
 
-        let p_simplified2 = p.simplify(0.5);
+        let p_simplified2 = p.reduce_points(0.5);
         let points_simplified2 = p_simplified2.get_points(&SampleSettings::default());
 
         assert!(points.len() > points_simplified.len());

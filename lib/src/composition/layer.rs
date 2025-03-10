@@ -495,8 +495,8 @@ impl Layer {
             .collect()
     }
 
-    pub fn simplify_recursive(&self, aggression_factor: f32) -> Self {
-        self.map_recursive(|shape| shape.simplify(aggression_factor))
+    pub fn reduce_points_recursive(&self, aggression_factor: f32) -> Self {
+        self.map_recursive(|shape| shape.reduce_points(aggression_factor))
     }
 
     pub fn mask_flattened_brute_force(

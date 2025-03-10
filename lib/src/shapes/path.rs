@@ -187,7 +187,7 @@ impl Plottable for Path {
         inside
     }
 
-    fn simplify(&self, aggression_factor: f32) -> Self {
+    fn reduce_points(&self, aggression_factor: f32) -> Self {
         let epsilon = 0.0001 + aggression_factor.clamp(0.0, 1.0).powf(3.0);
 
         let points: Vec<_> = self.points.iter().map(|v| v.into()).collect();

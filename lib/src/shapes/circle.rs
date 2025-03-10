@@ -122,7 +122,7 @@ impl Plottable for Circle {
         point.dist(&self.center) <= self.radius
     }
 
-    fn simplify(&self, _aggression_factor: f32) -> Self {
+    fn reduce_points(&self, _aggression_factor: f32) -> Self {
         self.clone()
     }
 }

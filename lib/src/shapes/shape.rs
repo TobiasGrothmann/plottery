@@ -60,11 +60,11 @@ impl Plottable for Shape {
         }
     }
 
-    fn simplify(&self, aggression_factor: f32) -> Self {
+    fn reduce_points(&self, aggression_factor: f32) -> Self {
         match self {
-            Shape::Circle(c) => Shape::Circle(c.simplify(aggression_factor)),
-            Shape::Rect(r) => Shape::Rect(r.simplify(aggression_factor)),
-            Shape::Path(p) => Shape::Path(p.simplify(aggression_factor)),
+            Shape::Circle(c) => Shape::Circle(c.reduce_points(aggression_factor)),
+            Shape::Rect(r) => Shape::Rect(r.reduce_points(aggression_factor)),
+            Shape::Path(p) => Shape::Path(p.reduce_points(aggression_factor)),
         }
     }
 }
