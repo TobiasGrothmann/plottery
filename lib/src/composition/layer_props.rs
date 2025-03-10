@@ -15,7 +15,7 @@ impl<T> Inheritable<T>
 where
     T: Clone,
 {
-    pub fn join_with_child(&self, child: &Self) -> Self {
+    pub fn overwrite_with(&self, child: &Self) -> Self {
         match child {
             Inheritable::Inherit => self.clone(),
             Inheritable::Specified(child_value) => Inheritable::Specified(child_value.clone()),
@@ -70,12 +70,12 @@ impl LayerProps {
 }
 
 impl LayerProps {
-    pub fn join_with_child(&self, child: &Inheritable<Self>) -> Self {
+    pub fn overwrite_with(&self, child: &Inheritable<Self>) -> Self {
         match child {
             Inheritable::Inherit => self.clone(),
             Inheritable::Specified(child_props) => Self {
-                color: self.color.join_with_child(&child_props.color),
-                pen_width_cm: self.pen_width_cm.join_with_child(&child_props.pen_width_cm),
+                color: self.color.overwrite_with(&child_props.color),
+                pen_width_cm: self.pen_width_cm.overwrite_with(&child_props.pen_width_cm),
                 name: child_props.name.clone(),
             },
         }

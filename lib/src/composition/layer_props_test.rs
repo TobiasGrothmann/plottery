@@ -1,12 +1,12 @@
 #[cfg(test)]
-mod teest_layer_props {
+mod test_layer_props {
     use crate::Inheritable;
 
     #[test]
-    fn join_with_child() {
+    fn overwrite_with() {
         let i = Inheritable::Specified(5);
         let i2 = Inheritable::Inherit;
 
-        assert_eq!(i.join_with_child(&i2).unwrap(), 5);
+        assert_eq!(i.overwrite_with(&i2).unwrap(), 5);
     }
 }

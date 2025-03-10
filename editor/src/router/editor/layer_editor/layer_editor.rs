@@ -59,18 +59,14 @@ fn LayerEditorLayer(props: LayerEditorLayerProps) -> Element {
         eye_closed.to_vec()
     };
 
+    let layer_name = match props.layer_tree_ref.props.name.clone() {
+        Some(name) => name,
+        None => "".to_owned(),
+    };
     let num_shapes_text = if props.layer_tree_ref.num_shapes == 0 {
         "".to_owned()
     } else {
-        format!(
-            "{} shape{}",
-            props.layer_tree_ref.num_shapes,
-            if props.layer_tree_ref.num_shapes != 1 {
-                "s"
-            } else {
-                ""
-            }
-        )
+        format!("{}", props.layer_tree_ref.num_shapes)
     };
 
     let indentation_size = "21px";
@@ -97,7 +93,10 @@ fn LayerEditorLayer(props: LayerEditorLayerProps) -> Element {
                     div {
                         style: "display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: {layer_color.hex()}; border: 1px solid white;"
                     }
-                    "{num_shapes_text}"
+                    p {"{layer_name}"}
+                    p { style: "color: #BBB; margin-left: 6px;",
+                        "{num_shapes_text}"
+                    }
                 }
             }
             if !props.layer_tree_ref.sublayers.is_empty() {

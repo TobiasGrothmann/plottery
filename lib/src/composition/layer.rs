@@ -60,21 +60,36 @@ impl Layer {
         self
     }
     pub fn with_color(mut self, color: ColorRgb) -> Self {
-        self.props = self.props.join_with_child(&Inheritable::Specified(
-            LayerProps::inherit_all().with_color(color),
-        ));
+        self.props = match self.props {
+            Inheritable::Inherit => {
+                Inheritable::Specified(LayerProps::inherit_all().with_color(color))
+            }
+            Inheritable::Specified(props) => Inheritable::Specified(props.overwrite_with(
+                &Inheritable::Specified(LayerProps::inherit_all().with_color(color)),
+            )),
+        };
         self
     }
     pub fn with_pen_width_cm(mut self, pen_width_cm: f32) -> Self {
-        self.props = self.props.join_with_child(&Inheritable::Specified(
-            LayerProps::inherit_all().with_pen_width_cm(pen_width_cm),
-        ));
+        self.props = match self.props {
+            Inheritable::Inherit => {
+                Inheritable::Specified(LayerProps::inherit_all().with_pen_width_cm(pen_width_cm))
+            }
+            Inheritable::Specified(props) => Inheritable::Specified(props.overwrite_with(
+                &Inheritable::Specified(LayerProps::inherit_all().with_pen_width_cm(pen_width_cm)),
+            )),
+        };
         self
     }
     pub fn with_name(mut self, name: &str) -> Self {
-        self.props = self.props.join_with_child(&Inheritable::Specified(
-            LayerProps::inherit_all().with_name(name),
-        ));
+        self.props = match self.props {
+            Inheritable::Inherit => {
+                Inheritable::Specified(LayerProps::inherit_all().with_name(name))
+            }
+            Inheritable::Specified(props) => Inheritable::Specified(props.overwrite_with(
+                &Inheritable::Specified(LayerProps::inherit_all().with_name(name)),
+            )),
+        };
         self
     }
 
@@ -149,7 +164,7 @@ impl Layer {
             .set("width", svg_max_coords.x)
             .set("height", svg_max_coords.y);
 
-        let props = LayerProps::default().join_with_child(&self.props);
+        let props = LayerProps::default().overwrite_with(&self.props);
 
         let (shapes, sub_groups) = self.get_svg_nodes(scale, &props);
         for shape in shapes {
@@ -170,7 +185,7 @@ impl Layer {
         Vec<Box<dyn svg::node::Node>>,
         Vec<svg::node::element::Group>,
     ) {
-        let props = parent_props.join_with_child(&self.props);
+        let props = parent_props.overwrite_with(&self.props);
         let shapes = self.get_shapes_as_svg_nodes(scale, &props);
 
         let mut sub_groups: Vec<svg::node::element::Group> = Vec::new();

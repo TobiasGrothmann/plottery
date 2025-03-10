@@ -12,7 +12,7 @@ pub struct LayerTreeReference {
 
 impl LayerTreeReference {
     pub fn new(layer: &Layer, parent_props: &LayerProps) -> Self {
-        let props = parent_props.join_with_child(&layer.props);
+        let props = parent_props.overwrite_with(&layer.props);
 
         let sub_layers = layer
             .sublayers
