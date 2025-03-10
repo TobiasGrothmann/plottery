@@ -20,6 +20,8 @@
   display: flex;
   flex-direction: row;
   column-gap: var(--gap-1);
+  min-width: 400px;
+  justify-content: flex-end;
 }
 .open_actions {
   display: flex;
