@@ -5,7 +5,7 @@ pub use crate::shapes::rect::Rect;
 use crate::{
     geometry::TransformMatrix,
     traits::{ClosestPoint, Normalize, Scale, Scale2D, Transform, Translate},
-    BoundingBox, Plottable, Rotate, Rotate90, SampleSettings, V2,
+    BoundingBox, Mirror, Plottable, Rotate, Rotate90, SampleSettings, V2,
 };
 use serde::{Deserialize, Serialize};
 
@@ -280,6 +280,40 @@ impl Scale2D for Shape {
 }
 
 impl Normalize for Shape {}
+
+impl Mirror for Shape {
+    fn mirror_x(&self) -> Self {
+        match self {
+            Shape::Circle(c) => Shape::Circle(c.mirror_x()),
+            Shape::Rect(r) => Shape::Rect(r.mirror_x()),
+            Shape::Path(p) => Shape::Path(p.mirror_x()),
+        }
+    }
+
+    fn mirror_x_mut(&mut self) {
+        match self {
+            Shape::Circle(c) => c.mirror_x_mut(),
+            Shape::Rect(r) => r.mirror_x_mut(),
+            Shape::Path(p) => p.mirror_x_mut(),
+        }
+    }
+
+    fn mirror_y(&self) -> Self {
+        match self {
+            Shape::Circle(c) => Shape::Circle(c.mirror_y()),
+            Shape::Rect(r) => Shape::Rect(r.mirror_y()),
+            Shape::Path(p) => Shape::Path(p.mirror_y()),
+        }
+    }
+
+    fn mirror_y_mut(&mut self) {
+        match self {
+            Shape::Circle(c) => c.mirror_y_mut(),
+            Shape::Rect(r) => r.mirror_y_mut(),
+            Shape::Path(p) => p.mirror_y_mut(),
+        }
+    }
+}
 
 impl BoundingBox for Shape {
     fn bounding_box(&self) -> Option<Rect> {
