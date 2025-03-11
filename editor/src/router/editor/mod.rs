@@ -1,7 +1,6 @@
 pub mod console;
 pub mod console_messages;
 pub mod editor;
-pub mod hardware;
 pub mod layer_editor;
 pub mod params_editor;
 pub mod project_hot_reload;

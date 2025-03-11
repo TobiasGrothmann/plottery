@@ -1,6 +1,7 @@
 use crate::router::browser::browser::Browser;
 use crate::router::editor::editor::Editor;
 use crate::router::project_add::project_add::ProjectAdd;
+use crate::router::remote::remote::Remote;
 use dioxus::prelude::*;
 use dioxus_router::prelude::*;
 
@@ -12,4 +13,6 @@ pub enum Route {
     Editor { project_path: String },
     #[route("/project_add")]
     ProjectAdd {},
+    #[route("/remote")]
+    Remote {},
 }

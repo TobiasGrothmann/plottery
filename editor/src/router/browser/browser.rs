@@ -20,7 +20,17 @@ pub fn Browser() -> Element {
 
     rsx! {
         style { { include_str!("./browser.css") } }
-        Navigation { page_name: "Projects" }
+        Navigation {
+            page_name: "Projects",
+            body: rsx! {
+                    button { class: "img_button open_hardware_button",
+                    onclick: move |_event| {
+                        use_navigator().push(Route::Remote {});
+                    },
+                    img { src: "{format_svg(include_bytes!(\"../../../public/icons/remote.svg\"))}" }
+                }
+            }
+        }
         div { class: "Browser",
             ProjectList {
                 app_state: app_state,

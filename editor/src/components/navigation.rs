@@ -4,7 +4,8 @@ use dioxus_router::hooks::use_navigator;
 
 #[derive(PartialEq, Props, Clone)]
 pub struct NavProps {
-    pub page_name: String,
+    page_name: String,
+    body: Element,
 }
 
 #[component]
@@ -25,6 +26,9 @@ pub fn Navigation(props: NavProps) -> Element {
             }
 
             h1 { "{props.page_name.clone()}" }
+            div { class: "nav_children",
+                { props.body }
+            }
         }
     }
 }

@@ -4,8 +4,12 @@ use dioxus::prelude::*;
 use dioxus_timer::use_timer;
 use plottery_server_lib::server_state::{request_server_state, ServerState};
 
+use crate::{
+    components::navigation::Navigation, router::remote::plotter_position::PlotterPosition,
+};
+
 #[component]
-pub fn PlotterPosition() -> Element {
+pub fn Remote() -> Element {
     let polling_interval = Duration::from_millis(1000);
     let timer = use_timer(polling_interval);
 
@@ -18,7 +22,7 @@ pub fn PlotterPosition() -> Element {
     if let Some(state) = &*state_resource.value().read() {
         if let Ok(state) = state {
             rsx! {
-                PlotterPositionInternal {
+                RemoteInternal {
                     state: state.clone()
                 }
             }
@@ -31,16 +35,17 @@ pub fn PlotterPosition() -> Element {
 }
 
 #[derive(PartialEq, Props, Clone)]
-struct PlotterPositionInternalProps {
+struct RemoteInternalProps {
     state: ServerState,
 }
 
-fn PlotterPositionInternal(props: PlotterPositionInternalProps) -> Element {
-    let location_text = format!(
-        "X: {:.2}, Y: {:.2}",
-        props.state.location.x, props.state.location.y
-    );
+fn RemoteInternal(props: RemoteInternalProps) -> Element {
     rsx! {
-        p {"{location_text}"}
+        Navigation { page_name: "Plotter Remote", body: rsx! {} }
+        div {
+            PlotterPosition {
+                location: props.state.location
+            }
+        }
     }
 }

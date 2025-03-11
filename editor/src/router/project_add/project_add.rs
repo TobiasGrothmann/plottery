@@ -24,7 +24,7 @@ pub fn ProjectAdd() -> Element {
 
     rsx! {
         style { { include_str!("./project_add.css") } }
-        Navigation { page_name: "Add project" }
+        Navigation { page_name: "Add project", body: rsx! {} }
 
         div { class: "ProjectAdd",
             div { class: "segmented_button",

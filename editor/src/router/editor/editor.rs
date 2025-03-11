@@ -3,7 +3,6 @@ use crate::{
     router::editor::{
         console::Console,
         console_messages::ConsoleMessages,
-        hardware::plotter_position::PlotterPosition,
         layer_editor::{layer_editor::LayerEditor, layer_tree_ref::LayerTreeReference},
         params_editor::params_editor::ParamsEditor,
         project_hot_reload::start_hot_reload,
@@ -183,7 +182,7 @@ pub fn Editor(project_path: String) -> Element {
 
     rsx! {
         style { { include_str!("./editor.css") } }
-        Navigation { page_name: "{project().config.name.clone()}" }
+        Navigation { page_name: "{project().config.name.clone()}", body: rsx! {} }
 
         div { class: "Editor",
             div { class: "plot_header",
@@ -268,7 +267,6 @@ pub fn Editor(project_path: String) -> Element {
                     }
                 }
                 div { class: "output_actions",
-                    PlotterPosition {}
                     button { class: "img_button",
                         onclick: move |event| {
                             match layer_only_visible().layer {
