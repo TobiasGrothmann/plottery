@@ -217,60 +217,38 @@ impl Hardware {
             return;
         }
 
-        // how much of the movement is x and y
-        let speed_part_x = movement_abs.x as f64 / total_steps as f64;
-        let speed_part_y = movement_abs.y as f64 / total_steps as f64;
-
-        #[cfg(not(feature = "raspi"))]
-        println!("Speed parts: {} : {}", speed_part_x, speed_part_y);
-
         while stepped_x < movement_abs.x || stepped_y < movement_abs.y {
             let moved_fraction = (stepped_x as f32 + stepped_y as f32) / total_steps as f32;
             let speed_fraction =
                 speed_fraction_start + (speed_fraction_end - speed_fraction_start) * moved_fraction;
+            let delay = Duration::new(
+                0,
+                speed_handler
+                    .get_delay_nanos(speed_fraction.clamp(0.0, 1.0))
+                    .round() as u32,
+            );
 
-            // sqrt(2) is the factor for the diagonal movement
-            let delay_nanos: f64 = speed_handler.get_delay_nanos(speed_fraction.clamp(0.0, 1.0));
-            let delay_nanos_x = delay_nanos / speed_part_x;
-            let delay_nanos_y = delay_nanos / speed_part_y;
-
-            let delay_x = Duration::new(0, delay_nanos_x.round() as u32);
-            let delay_y = Duration::new(0, delay_nanos_y.round() as u32);
-
-            #[cfg(not(feature = "raspi"))]
-            if delay_x > Duration::new(0, 10_000_000) {
-                println!("Delay x: {:?}", delay_x);
-            }
-            #[cfg(not(feature = "raspi"))]
-            if delay_y > Duration::new(0, 10_000_000) {
-                println!("Delay y: {:?}", delay_y);
-            }
-
-            let next_step_x = self.last_steps_timestamp[&Axis::X] + delay_x;
-            let next_step_y = self.last_steps_timestamp[&Axis::Y] + delay_y;
-
-            loop {
-                let now = Instant::now();
-                let mut did_step = false;
-
-                if stepped_x < movement_abs.x && next_step_x <= now {
-                    stepped_x += 1;
-                    self.x += directions_signs.x;
-                    self.step(Axis::X);
-                    self.last_steps_timestamp.insert(Axis::X, now);
-                    did_step = true;
+            if Line::new(V2::new(0.0, 0.0), movement_abs.abs().to_float())
+                .point_relation(&V2::new(stepped_x as f32, stepped_y as f32))
+                == PointLineRelation::Left
+            {
+                let delay_until = self.last_steps_timestamp[&Axis::X] + delay;
+                while delay_until >= Instant::now() {
+                    // wait
                 }
-                if stepped_y < movement_abs.y && next_step_y <= now {
-                    stepped_y += 1;
-                    self.y += directions_signs.y;
-                    self.step(Axis::Y);
-                    self.last_steps_timestamp.insert(Axis::Y, now);
-                    did_step = true;
+                stepped_x += 1;
+                self.x += directions_signs.x;
+                self.step(Axis::X);
+                self.last_steps_timestamp.insert(Axis::X, Instant::now());
+            } else {
+                let delay_until = self.last_steps_timestamp[&Axis::Y] + delay;
+                while delay_until >= Instant::now() {
+                    // wait
                 }
-
-                if did_step {
-                    break;
-                }
+                stepped_y += 1;
+                self.y += directions_signs.y;
+                self.step(Axis::Y);
+                self.last_steps_timestamp.insert(Axis::Y, Instant::now());
             }
         }
     }
