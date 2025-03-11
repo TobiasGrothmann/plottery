@@ -4,16 +4,16 @@ use serde::{Deserialize, Serialize};
 
 use crate::{HOST_NAME, HOST_PORT};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
 pub struct ServerState {
-    pub current_position: V2,
+    pub location: V2,
     pub plotting: bool,
 }
 
 impl ServerState {
     pub fn new() -> Self {
         Self {
-            current_position: V2::new(0.0, 0.0),
+            location: V2::new(0.0, 0.0),
             plotting: false,
         }
     }

@@ -35,6 +35,7 @@
 .output_actions {
   display: flex;
   flex-direction: row;
+  align-items: center;
   column-gap: var(--gap-1);
 }
 

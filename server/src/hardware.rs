@@ -140,7 +140,7 @@ impl Hardware {
     pub fn set_origin(&mut self) {
         self.x = 0;
         self.y = 0;
-        self.server_state.lock().unwrap().current_position = self.get_pos();
+        self.server_state.lock().unwrap().location = self.get_pos();
     }
 
     #[cfg(not(feature = "raspi"))]
@@ -277,7 +277,7 @@ impl Hardware {
             return;
         }
         self.move_steps(&delta, speed_handler, speed_fraction_start, pos.speed);
-        self.server_state.lock().unwrap().current_position = self.get_pos();
+        self.server_state.lock().unwrap().location = self.get_pos();
     }
 
     // TODO: avoid mistakes with changing pen pressures
