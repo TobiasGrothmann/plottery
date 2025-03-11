@@ -6,10 +6,10 @@ use plottery_server_lib::task::Task;
 use tokio::sync::mpsc;
 use tokio::task;
 
-use crate::accelleration_path::AccellerationPath;
+use crate::accelleration::accelleration_path::AccellerationPath;
+use crate::accelleration::speed_delay_handler::SpeedDelayHandler;
 use crate::hardware::Hardware;
 use crate::pins::PIN_SETTINGS;
-use crate::speed_delay_handler::SpeedDelayHandler;
 
 pub async fn start_server(mut receiver: mpsc::Receiver<Task>) -> anyhow::Result<()> {
     let mut hardware = Hardware::new(PIN_SETTINGS)?;

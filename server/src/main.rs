@@ -1,16 +1,11 @@
 #[macro_use]
 extern crate rocket;
-mod accelleration_path;
-mod accelleration_path_test;
-mod hardware;
-mod maths;
-mod maths_test;
-mod pins;
-mod speed_delay_handler;
-mod task_handler;
 
-#[cfg(feature = "raspi")]
-mod system;
+mod accelleration;
+mod hardware;
+mod pins;
+mod task_handler;
+mod util;
 
 use plottery_server_lib::{task::Task, HOST_PORT};
 use rocket::{
@@ -32,7 +27,7 @@ async fn task(task_sender: &State<Sender<Task>>, task_data: &[u8]) {
 #[rocket::main]
 async fn main() {
     #[cfg(feature = "raspi")]
-    system::set_realtime_priority();
+    util::system::set_realtime_priority();
 
     let (sender, receiver) = tokio::sync::mpsc::channel::<Task>(32);
     match start_server(receiver).await {

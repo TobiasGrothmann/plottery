@@ -2,7 +2,7 @@
 mod tests {
     use plottery_lib::{FloatInterpolation, Path, Plottable, Rect, SampleSettings, V2};
 
-    use crate::accelleration_path::AccellerationPath;
+    use crate::accelleration::accelleration_path::AccellerationPath;
 
     #[test]
     fn full_speed_all_segments() {

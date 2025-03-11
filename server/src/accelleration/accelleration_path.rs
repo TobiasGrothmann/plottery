@@ -1,8 +1,9 @@
 use std::iter::once;
 
-use crate::maths::get_corner_sharpness;
 use itertools::Itertools;
 use plottery_lib::{LARGE_EPSILON, V2};
+
+use super::maths::get_corner_sharpness;
 
 #[derive(Debug)]
 pub struct V2Speed {

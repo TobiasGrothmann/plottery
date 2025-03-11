@@ -10,7 +10,8 @@ use tokio::time::Instant;
 use rppal::gpio::{Gpio, OutputPin};
 
 use crate::{
-    accelleration_path::V2Speed, pins::PinSettings, speed_delay_handler::SpeedDelayHandler,
+    accelleration::{accelleration_path::V2Speed, speed_delay_handler::SpeedDelayHandler},
+    pins::PinSettings,
 };
 
 #[cfg(feature = "raspi")]
