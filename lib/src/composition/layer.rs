@@ -12,7 +12,8 @@ use svg::{
 
 use crate::{
     traits::{Normalize, Scale, Scale2D, Translate},
-    Angle, BoundingBox, Circle, Masked, Path, Plottable, Rect, Rotate, SampleSettings, Shape, V2,
+    Angle, BoundingBox, Circle, Masked, Mirror, Path, Plottable, Rect, Rotate, SampleSettings,
+    Shape, Transform, TransformMatrix, V2,
 };
 
 use super::{path_end::PathEnd, ColorRgb, Inheritable, LayerProps, LayerPropsInheritable};
@@ -732,6 +733,24 @@ impl Scale2D for Layer {
 }
 
 impl Normalize for Layer {}
+
+impl Mirror for Layer {
+    fn mirror_x(&self) -> Self {
+        self.map_recursive(|shape| shape.mirror_x())
+    }
+
+    fn mirror_x_mut(&mut self) {
+        self.map_recursive_mut(|shape| shape.mirror_x_mut());
+    }
+
+    fn mirror_y(&self) -> Self {
+        self.map_recursive(|shape| shape.mirror_y())
+    }
+
+    fn mirror_y_mut(&mut self) {
+        self.map_recursive_mut(|shape| shape.mirror_y_mut());
+    }
+}
 
 impl BoundingBox for Layer {
     fn bounding_box(&self) -> Option<Rect> {

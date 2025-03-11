@@ -10,7 +10,7 @@ use std::{
 use crate::{
     geometry::TransformMatrix,
     traits::{ClosestPoint, Normalize, Scale, Scale2D, Transform, Translate},
-    Angle, BoundingBox, Plottable, Rect, Rotate, Rotate90, SampleSettings, Shape, V2,
+    Angle, BoundingBox, Mirror, Plottable, Rect, Rotate, Rotate90, SampleSettings, Shape, V2,
 };
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
@@ -392,6 +392,32 @@ impl Transform for Path {
     fn transform_mut(&mut self, matrix: &TransformMatrix) {
         for point in self.iter_mut() {
             *point = matrix.mul_vector(point);
+        }
+    }
+}
+
+impl Mirror for Path {
+    fn mirror_x(&self) -> Self {
+        Path {
+            points: self.iter().map(|point| point.mirror_x()).collect(),
+        }
+    }
+
+    fn mirror_x_mut(&mut self) {
+        for point in self.iter_mut() {
+            point.mirror_x_mut();
+        }
+    }
+
+    fn mirror_y(&self) -> Self {
+        Path {
+            points: self.iter().map(|point| point.mirror_y()).collect(),
+        }
+    }
+
+    fn mirror_y_mut(&mut self) {
+        for point in self.iter_mut() {
+            point.mirror_y_mut();
         }
     }
 }

@@ -1,6 +1,6 @@
 use crate::{
     traits::{ClosestPoint, Normalize, Scale, Scale2D, Translate},
-    BoundingBox, Path, Plottable, Rotate90, SampleSettings, Shape, LARGE_EPSILON, V2,
+    BoundingBox, Mirror, Path, Plottable, Rotate90, SampleSettings, Shape, LARGE_EPSILON, V2,
 };
 use serde::{Deserialize, Serialize};
 
@@ -238,6 +238,28 @@ impl Scale2D for Rect {
 }
 
 impl Normalize for Rect {}
+
+impl Mirror for Rect {
+    fn mirror_x(&self) -> Self {
+        Rect::new(self.bot_left.mirror_x(), self.top_right.mirror_x())
+    }
+
+    fn mirror_x_mut(&mut self) {
+        self.bot_left.mirror_x_mut();
+        self.top_right.mirror_x_mut();
+        self.fix_corners_min_max();
+    }
+
+    fn mirror_y(&self) -> Self {
+        Rect::new(self.bot_left.mirror_y(), self.top_right.mirror_y())
+    }
+
+    fn mirror_y_mut(&mut self) {
+        self.bot_left.mirror_y_mut();
+        self.top_right.mirror_y_mut();
+        self.fix_corners_min_max();
+    }
+}
 
 impl BoundingBox for Rect {
     fn bounding_box(&self) -> Option<Rect> {
