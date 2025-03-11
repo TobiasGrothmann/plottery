@@ -13,7 +13,7 @@ use svg::{
 use crate::{
     traits::{Normalize, Scale, Scale2D, Translate},
     Angle, BoundingBox, Circle, Masked, Mirror, Path, Plottable, Rect, Rotate, SampleSettings,
-    Shape, V2,
+    Shape, Transform, TransformMatrix, V2,
 };
 
 use super::{path_end::PathEnd, ColorRgb, Inheritable, LayerProps, LayerPropsInheritable};
@@ -155,7 +155,9 @@ impl Layer {
     }
 
     pub fn to_svg(&self, scale: f32) -> Document {
-        let bounding_box = self.bounding_box();
+        let prepared = self.get_prepared_for_svg();
+
+        let bounding_box = prepared.bounding_box();
         if bounding_box.is_none() {
             return Document::new();
         }
@@ -166,9 +168,26 @@ impl Layer {
             .set("viewBox", (0, 0, svg_max_coords.x, svg_max_coords.y))
             .set("width", svg_max_coords.x)
             .set("height", svg_max_coords.y)
-            .add(self.get_svg_group(scale, &LayerPropsInheritable::default()))
+            .add(prepared.get_svg_group(scale, &LayerPropsInheritable::default()))
     }
+    fn get_prepared_for_svg(&self) -> Layer {
+        let bounding_box = self.bounding_box();
+        if bounding_box.is_none() {
+            return Layer::new();
+        }
+        let bounding_box = bounding_box.unwrap();
 
+        let mut transform = TransformMatrix::builder()
+            .translate(&(bounding_box.bl() * -1.0))
+            .mirror_y()
+            .translate(&bounding_box.size().only_y());
+        if bounding_box.bl().x > 0.0 && bounding_box.bl().y > 0.0 {
+            transform = transform.translate(&bounding_box.bl());
+        }
+        let transform_matrix = transform.build();
+
+        self.map_recursive(|shape| shape.transform(&transform_matrix))
+    }
     fn get_svg_group(&self, scale: f32, parent_props: &LayerPropsInheritable) -> Group {
         let props_inheritable = parent_props.overwrite_with(&self.props_inheritable);
 
@@ -190,7 +209,6 @@ impl Layer {
         }
         group
     }
-
     fn get_shapes_as_svg_nodes(
         &self,
         scale: f32,
@@ -253,7 +271,6 @@ impl Layer {
         }
         nodes
     }
-
     pub fn write_svg(&self, path: PathBuf, scale: f32) -> Result<()> {
         let document = self.to_svg(scale);
         svg::save(path.to_str().unwrap(), &document)?;

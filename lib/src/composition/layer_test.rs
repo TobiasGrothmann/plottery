@@ -119,7 +119,7 @@ mod test_layer {
         let svg_path = temp_dir.path().join("test.svg");
         l.write_svg(svg_path.clone(), 100.0).unwrap();
 
-        // load svg and check that it is valid
+        // load svg and check
         let mut svg_content = String::new();
         let mut paths_count: HashMap<&str, usize> = std::collections::HashMap::new();
         for event in svg::open(svg_path, &mut svg_content).unwrap() {
