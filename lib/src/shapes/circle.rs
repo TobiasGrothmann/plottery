@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::f32::consts::PI;
 
 use crate::{
-    traits::{ClosestPoint, Normalize, Scale, Translate},
+    traits::{ClosestPoint, Mirror, Normalize, Scale, Translate},
     Angle, BoundingBox, Plottable, Rect, Rotate, Rotate90, SampleSettings, Shape, LARGE_EPSILON,
     V2,
 };
@@ -233,6 +233,28 @@ impl Scale for Circle {
     fn scale_mut(&mut self, scale: f32) {
         self.center *= scale;
         self.radius *= scale;
+    }
+}
+
+impl Mirror for Circle {
+    fn mirror_x(&self) -> Self {
+        Circle {
+            center: self.center.mirror_x(),
+            radius: self.radius,
+        }
+    }
+    fn mirror_x_mut(&mut self) {
+        self.center.mirror_x_mut();
+    }
+
+    fn mirror_y(&self) -> Self {
+        Circle {
+            center: self.center.mirror_y(),
+            radius: self.radius,
+        }
+    }
+    fn mirror_y_mut(&mut self) {
+        self.center.mirror_y_mut();
     }
 }
 

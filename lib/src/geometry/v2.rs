@@ -4,7 +4,10 @@ use geo_types::Coord;
 use mint::Point2;
 use serde::{Deserialize, Serialize};
 
-use crate::{rand_range, Angle, Rect, Rotate, Rotate90, SampleSettings, V2i};
+use crate::{
+    rand_range, Angle, Mirror, Rect, Rotate, Rotate90, SampleSettings, Scale, Transform, Translate,
+    V2i,
+};
 
 /// A 2D vector with float coordinates (x, y).
 ///
@@ -535,6 +538,51 @@ impl Rotate90 for V2 {
     }
     fn rotate_270_around_mut(&mut self, pivot: &V2) {
         *self = self.rotate_270_around(pivot);
+    }
+}
+
+impl Mirror for V2 {
+    fn mirror_x(&self) -> Self {
+        Self::new(-self.x, self.y)
+    }
+    fn mirror_x_mut(&mut self) {
+        *self = self.mirror_x();
+    }
+
+    fn mirror_y(&self) -> Self {
+        Self::new(self.x, -self.y)
+    }
+    fn mirror_y_mut(&mut self) {
+        *self = self.mirror_y();
+    }
+}
+
+impl Translate for V2 {
+    fn translate(&self, dist: &V2) -> Self {
+        *self + *dist
+    }
+    fn translate_mut(&mut self, dist: &V2) {
+        *self += *dist;
+    }
+}
+
+impl Transform for V2 {
+    fn transform(&self, matrix: &super::TransformMatrix) -> Self {
+        matrix.mul_vector(self)
+    }
+
+    fn transform_mut(&mut self, matrix: &super::TransformMatrix) {
+        *self = matrix.mul_vector(self);
+    }
+}
+
+impl Scale for V2 {
+    fn scale(&self, factor: f32) -> Self {
+        self * factor
+    }
+
+    fn scale_mut(&mut self, factor: f32) {
+        *self *= factor;
     }
 }
 

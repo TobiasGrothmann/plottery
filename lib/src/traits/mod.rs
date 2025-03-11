@@ -1,5 +1,6 @@
 pub mod bounding_box;
 pub mod closest_point;
+pub mod mirror;
 pub mod normalize;
 mod normalize_test;
 pub mod plottable;
@@ -13,6 +14,7 @@ pub mod translate;
 
 pub use bounding_box::*;
 pub use closest_point::*;
+pub use mirror::*;
 pub use normalize::*;
 pub use plottable::*;
 pub use rotate::*;
