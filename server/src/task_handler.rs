@@ -2,7 +2,9 @@ use itertools::Itertools;
 use plottery_lib::*;
 use plottery_server_lib::midi::midi_to_freq;
 use plottery_server_lib::plot_setting::PlotSettings;
+use plottery_server_lib::server_state::ServerState;
 use plottery_server_lib::task::Task;
+use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 use tokio::task;
 
@@ -11,8 +13,11 @@ use crate::accelleration::speed_delay_handler::SpeedDelayHandler;
 use crate::hardware::Hardware;
 use crate::pins::PIN_SETTINGS;
 
-pub async fn start_server(mut receiver: mpsc::Receiver<Task>) -> anyhow::Result<()> {
-    let mut hardware = Hardware::new(PIN_SETTINGS)?;
+pub async fn start_server(
+    mut receiver: mpsc::Receiver<Task>,
+    server_state: Arc<Mutex<ServerState>>,
+) -> anyhow::Result<()> {
+    let mut hardware = Hardware::new(PIN_SETTINGS, server_state.clone())?;
 
     task::spawn(async move {
         while let Some(task) = receiver.recv().await {
@@ -23,20 +28,24 @@ pub async fn start_server(mut receiver: mpsc::Receiver<Task>) -> anyhow::Result<
                     sample_settings,
                     plot_settings,
                 } => {
+                    server_state.lock().unwrap().plotting = true;
                     hardware.set_enabled(true);
                     plot_layer(&mut hardware, &layer, &sample_settings, &plot_settings).await;
                     travel_to(&mut hardware, V2::zero(), &plot_settings).await;
                     hardware.set_enabled(false);
+                    server_state.lock().unwrap().plotting = false;
                 }
                 Task::PlotShape {
                     shape,
                     sample_settings,
                     plot_settings,
                 } => {
+                    server_state.lock().unwrap().plotting = true;
                     hardware.set_enabled(true);
                     plot_shape(&mut hardware, &shape, &sample_settings, &plot_settings).await;
                     travel_to(&mut hardware, V2::zero(), &plot_settings).await;
                     hardware.set_enabled(false);
+                    server_state.lock().unwrap().plotting = false;
                 }
                 Task::SetEnabled(enabled) => {
                     hardware.set_enabled(enabled);

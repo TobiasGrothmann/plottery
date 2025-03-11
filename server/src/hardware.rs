@@ -1,9 +1,12 @@
 use plottery_lib::{geometry::v2i::V2i, *};
-use plottery_server_lib::Axis;
+use plottery_server_lib::{server_state::ServerState, Axis};
 use rocket::figment::value::Map;
 #[cfg(feature = "raspi")]
 use std::thread::sleep;
-use std::time::Duration;
+use std::{
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 use tokio::time::Instant;
 
 #[cfg(feature = "raspi")]
@@ -19,6 +22,8 @@ const PIN_DELAY_NANOS: u32 = 200;
 
 #[derive(Debug)]
 pub struct Hardware {
+    server_state: Arc<Mutex<ServerState>>,
+
     enabled: bool,
 
     x: i32,
@@ -40,7 +45,10 @@ pub struct Hardware {
 }
 
 impl Hardware {
-    pub fn new(pin_settings: PinSettings) -> anyhow::Result<Self> {
+    pub fn new(
+        pin_settings: PinSettings,
+        server_state: Arc<Mutex<ServerState>>,
+    ) -> anyhow::Result<Self> {
         #[cfg(feature = "raspi")]
         {
             let gpio = Gpio::new()?;
@@ -83,6 +91,7 @@ impl Hardware {
             }
 
             return Ok(Hardware {
+                server_state,
                 enabled: false,
                 x: 0,
                 y: 0,
@@ -106,6 +115,7 @@ impl Hardware {
         #[cfg(not(feature = "raspi"))]
         {
             Ok(Hardware {
+                server_state,
                 enabled: false,
                 x: 0,
                 y: 0,
@@ -130,6 +140,7 @@ impl Hardware {
     pub fn set_origin(&mut self) {
         self.x = 0;
         self.y = 0;
+        self.server_state.lock().unwrap().current_position = self.get_pos();
     }
 
     #[cfg(not(feature = "raspi"))]
@@ -266,6 +277,7 @@ impl Hardware {
             return;
         }
         self.move_steps(&delta, speed_handler, speed_fraction_start, pos.speed);
+        self.server_state.lock().unwrap().current_position = self.get_pos();
     }
 
     // TODO: avoid mistakes with changing pen pressures
