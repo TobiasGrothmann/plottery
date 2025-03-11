@@ -13,7 +13,7 @@ use svg::{
 use crate::{
     traits::{Normalize, Scale, Scale2D, Translate},
     Angle, BoundingBox, Circle, Masked, Mirror, Path, Plottable, Rect, Rotate, SampleSettings,
-    Shape, Transform, TransformMatrix, V2,
+    Shape, V2,
 };
 
 use super::{path_end::PathEnd, ColorRgb, Inheritable, LayerProps, LayerPropsInheritable};
@@ -268,13 +268,13 @@ impl Layer {
             .combine_shapes_flat_iterate_until_no_effect(combineable, &max_angle_delta)
             .iter()
             .map(|path| path.to_shape())
-            .chain(noncombineable.into_iter())
+            .chain(noncombineable)
             .collect();
 
         let sublayers = self
             .sublayers
             .iter()
-            .map(|sublayer| sublayer.combine_shapes_recursive(max_angle_delta.clone()))
+            .map(|sublayer| sublayer.combine_shapes_recursive(max_angle_delta))
             .collect();
 
         Layer::new_from_shapes_and_layers(shapes, sublayers)
@@ -291,7 +291,7 @@ impl Layer {
             .combine_shapes_flat_iterate_until_no_effect(combineable, &max_angle_delta)
             .iter()
             .map(|path| path.to_shape())
-            .chain(noncombineable.into_iter())
+            .chain(noncombineable)
             .collect();
 
         Layer::new_from(shapes)
@@ -328,7 +328,7 @@ impl Layer {
     ) -> Vec<Path> {
         let mut last_num_paths = paths.len();
         loop {
-            paths = self.combine_shapes_flat_iterate(&paths, &max_angle_delta);
+            paths = self.combine_shapes_flat_iterate(&paths, max_angle_delta);
             if last_num_paths <= paths.len() || paths.len() == 1 {
                 return paths;
             }

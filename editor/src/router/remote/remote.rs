@@ -23,7 +23,7 @@ pub fn Remote() -> Element {
         if let Ok(state) = state {
             rsx! {
                 RemoteInternal {
-                    state: state.clone()
+                    state: *state
                 }
             }
         } else {

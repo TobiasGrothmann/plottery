@@ -44,7 +44,7 @@ async fn main() {
     util::system::set_realtime_priority();
 
     let (task_sender, task_receiver) = channel::<Task>(32);
-    let server_state = Arc::new(Mutex::new(ServerState::new()));
+    let server_state = Arc::new(Mutex::new(ServerState::default()));
     let managed_state = ManagedState {
         task_sender,
         server_state: server_state.clone(),

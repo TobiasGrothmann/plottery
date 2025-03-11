@@ -4,20 +4,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::{HOST_NAME, HOST_PORT};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy, Default)]
 pub struct ServerState {
     pub location: V2,
     pub plotting: bool,
 }
 
 impl ServerState {
-    pub fn new() -> Self {
-        Self {
-            location: V2::new(0.0, 0.0),
-            plotting: false,
-        }
-    }
-
     pub fn from_binary(data: &[u8]) -> anyhow::Result<Self> {
         Ok(bincode::deserialize(data)?)
     }
@@ -35,5 +28,5 @@ pub async fn request_server_state() -> anyhow::Result<ServerState> {
         .bytes()
         .await?
         .to_vec();
-    Ok(ServerState::from_binary(&bytes)?)
+    ServerState::from_binary(&bytes)
 }
