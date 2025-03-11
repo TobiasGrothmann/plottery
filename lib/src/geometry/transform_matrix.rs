@@ -162,14 +162,14 @@ impl TransformMatrix {
     /// let mirror = TransformMatrix::mirror_x();
     /// let point = V2::new(2.0, 3.0);
     /// let mirrored = mirror.mul_vector(&point);
-    /// assert_eq!(mirrored, V2::new(2.0, -3.0));
+    /// assert_eq!(mirrored, V2::new(-2.0, 3.0));
     /// ```
     pub fn mirror_x() -> Self {
         Self {
-            tl: 1.0,
+            tl: -1.0,
             bl: 0.0,
             tr: 0.0,
-            br: -1.0,
+            br: 1.0,
             u: 0.0,
             v: 0.0,
         }
@@ -183,14 +183,14 @@ impl TransformMatrix {
     /// let mirror = TransformMatrix::mirror_y();
     /// let point = V2::new(2.0, 3.0);
     /// let mirrored = mirror.mul_vector(&point);
-    /// assert_eq!(mirrored, V2::new(-2.0, 3.0));
+    /// assert_eq!(mirrored, V2::new(2.0, -3.0));
     /// ```
     pub fn mirror_y() -> Self {
         Self {
-            tl: -1.0,
+            tl: 1.0,
             bl: 0.0,
             tr: 0.0,
-            br: 1.0,
+            br: -1.0,
             u: 0.0,
             v: 0.0,
         }

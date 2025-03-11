@@ -93,7 +93,7 @@ mod test_matrix {
 
     #[test]
     fn mirror_x() {
-        let t = TransformMatrix::mirror_x();
+        let t = TransformMatrix::mirror_y();
         let v = V2 { x: 1.0, y: 1.0 };
         let r = t.mul_vector(&v);
 
@@ -102,7 +102,7 @@ mod test_matrix {
 
     #[test]
     fn mirror_y() {
-        let t = TransformMatrix::mirror_y();
+        let t = TransformMatrix::mirror_x();
         let v = V2 { x: 1.0, y: 1.0 };
         let r = t.mul_vector(&v);
 
