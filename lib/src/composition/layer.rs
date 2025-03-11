@@ -13,7 +13,7 @@ use svg::{
 use crate::{
     traits::{Normalize, Scale, Scale2D, Translate},
     Angle, BoundingBox, Circle, Masked, Mirror, Path, Plottable, Rect, Rotate, SampleSettings,
-    Shape, Transform, TransformMatrix, V2,
+    Shape, V2,
 };
 
 use super::{path_end::PathEnd, ColorRgb, Inheritable, LayerProps, LayerPropsInheritable};
@@ -177,16 +177,7 @@ impl Layer {
         }
         let bounding_box = bounding_box.unwrap();
 
-        let mut transform = TransformMatrix::builder()
-            .translate(&(bounding_box.bl() * -1.0))
-            .mirror_y()
-            .translate(&bounding_box.size().only_y());
-        if bounding_box.bl().x > 0.0 && bounding_box.bl().y > 0.0 {
-            transform = transform.translate(&bounding_box.bl());
-        }
-        let transform_matrix = transform.build();
-
-        self.map_recursive(|shape| shape.transform(&transform_matrix))
+        self.map_recursive(|shape| shape.mirror_y().translate(&bounding_box.size().only_y()))
     }
     fn get_svg_group(&self, scale: f32, parent_props: &LayerPropsInheritable) -> Group {
         let props_inheritable = parent_props.overwrite_with(&self.props_inheritable);
