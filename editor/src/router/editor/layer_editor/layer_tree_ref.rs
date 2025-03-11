@@ -33,10 +33,9 @@ impl LayerTreeReference {
 
     pub fn get_by_indices(&mut self, mut indices: Vec<usize>) -> &mut Self {
         let index_self = indices.pop();
-        if index_self.is_none() {
-            self
-        } else {
-            self.sublayers[index_self.unwrap()].get_by_indices(indices)
+        match index_self {
+            Some(i) => self.sublayers[i].get_by_indices(indices),
+            None => self,
         }
     }
 
