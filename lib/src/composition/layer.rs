@@ -259,48 +259,81 @@ impl Layer {
         Ok(())
     }
 
-    pub fn combine_shapes_flat(&self, max_angle_delta: Option<Angle>) -> Self {
-        let mut combined_shapes = Layer::new()
+    pub fn combine_shapes_recursive(&self, max_angle_delta: Option<Angle>) -> Self {
+        let (combineable, noncombineable) =
+            Layer::group_shapes_combineable_noncombineable(&self.iter().collect::<Vec<_>>());
+
+        let shapes: Vec<Shape> = self
+            .combine_shapes_flat_iterate_until_no_effect(combineable, &max_angle_delta)
+            .iter()
+            .map(|path| path.to_shape())
+            .chain(noncombineable.into_iter())
+            .collect();
+
+        let sublayers = self
+            .sublayers
+            .iter()
+            .map(|sublayer| sublayer.combine_shapes_recursive(max_angle_delta.clone()))
+            .collect();
+
+        Layer::new_from_shapes_and_layers(shapes, sublayers)
             .with_props_inheritable(self.props_inheritable.clone())
-            .with_props(self.props.clone());
+            .with_props(self.props.clone())
+    }
 
-        // flatten references, create mask of used shapes
-        let mut paths = Vec::new();
+    pub fn combine_shapes_flat(&self, max_angle_delta: Option<Angle>) -> Self {
+        let (combineable, noncombineable) = Layer::group_shapes_combineable_noncombineable(
+            &self.iter_flattened().collect::<Vec<_>>(),
+        );
 
-        // move non combineable shapes
-        for shape in self.iter_flattened() {
+        let shapes: Vec<Shape> = self
+            .combine_shapes_flat_iterate_until_no_effect(combineable, &max_angle_delta)
+            .iter()
+            .map(|path| path.to_shape())
+            .chain(noncombineable.into_iter())
+            .collect();
+
+        Layer::new_from(shapes)
+            .with_props_inheritable(self.props_inheritable.clone())
+            .with_props(self.props.clone())
+    }
+
+    fn group_shapes_combineable_noncombineable(shapes: &[&Shape]) -> (Vec<Path>, Vec<Shape>) {
+        let mut combineable = Vec::new();
+        let mut noncombineable = Vec::new();
+
+        for shape in shapes {
             match shape {
                 Shape::Path(path) => {
                     if path.get_points_ref().len() <= 1 {
                         continue;
                     }
-                    paths.push(path.clone());
+                    combineable.push(path.clone());
                 }
                 Shape::Circle(_) => {
-                    combined_shapes.push((*shape).clone());
+                    noncombineable.push((*shape).clone());
                 }
                 Shape::Rect(_) => {
-                    combined_shapes.push((*shape).clone());
+                    noncombineable.push((*shape).clone());
                 }
             }
         }
-
+        (combineable, noncombineable)
+    }
+    fn combine_shapes_flat_iterate_until_no_effect(
+        &self,
+        mut paths: Vec<Path>,
+        max_angle_delta: &Option<Angle>,
+    ) -> Vec<Path> {
         let mut last_num_paths = paths.len();
         loop {
             paths = self.combine_shapes_flat_iterate(&paths, &max_angle_delta);
             if last_num_paths <= paths.len() || paths.len() == 1 {
-                break;
+                return paths;
             }
             last_num_paths = paths.len();
         }
-
-        for path in paths {
-            combined_shapes.push_path(path);
-        }
-
-        combined_shapes
     }
-
     fn combine_shapes_flat_iterate(
         &self,
         paths: &[Path],

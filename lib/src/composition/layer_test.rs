@@ -488,6 +488,26 @@ mod test_layer {
     }
 
     #[test]
+    fn combine_shapes_recursive() {
+        let mut a = Layer::new();
+        a.push_path(Path::new_from(vec![V2::xy(0.0), V2::xy(1.0)]));
+        a.push_path(Path::new_from(vec![V2::xy(1.0), V2::xy(2.0)]));
+        a.push_path(Path::new_from(vec![V2::xy(2.0), V2::xy(3.0)]));
+        a.push_path(Path::new_from(vec![V2::xy(3.0), V2::xy(4.0)]));
+
+        let mut b = Layer::new();
+        b.push_path(Path::new_from(vec![V2::xy(0.0), V2::xy(1.0)]));
+        b.push_path(Path::new_from(vec![V2::xy(1.0), V2::xy(2.0)]));
+
+        a.push_layer(b);
+
+        let comb = a.combine_shapes_recursive(None);
+        assert_eq!(comb.len(), 1);
+        assert_eq!(comb.len_sublayers(), 1);
+        assert_eq!(comb.len_recursive(), 2);
+    }
+
+    #[test]
     fn optimize() {
         let l = Layer::new_from(vec![
             Path::new_shape_from(vec![V2::new(0.0, 0.0), V2::new(1.0, 0.0)]),
