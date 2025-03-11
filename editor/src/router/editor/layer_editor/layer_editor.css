@@ -1,8 +1,9 @@
 .LayerEditor {
-  margin-right: var(--gap-1);
-  min-width: 180px;
+  min-width: 240px;
   cursor: pointer;
   user-select: none;
+  padding: var(--gap-1);
+  background-color: var(--col-bg-1);
 }
 
 .row {
@@ -12,14 +13,28 @@
   align-items: center;
 }
 
-.shapes_and_sublayers {
+.sublayers {
+  width: auto;
+  display: flex;
+  flex-direction: row;
+  gap: var(--gap-0);
+  align-items: flex-start;
+}
+
+.LayerEditorLayer {
   display: flex;
   flex-direction: column;
 }
-.sublayers {
+.sublayers-list {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+.arrow {
+  width: 20px;
+  text-align: center;
 }
 
 .hidden {
@@ -35,6 +50,13 @@
   height: 20px;
   border-radius: 20%;
   border: 1px solid white;
+}
+.layer_color_indicator_empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
 }
 .eye {
   text-align: center;

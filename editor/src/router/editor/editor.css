@@ -45,7 +45,7 @@
   column-gap: var(--gap-1);
 }
 .params {
-  width: 550px;
+  width: 500px;
   display: flex;
 }
 .plot_and_console {

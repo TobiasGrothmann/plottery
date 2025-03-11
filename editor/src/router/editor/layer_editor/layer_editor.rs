@@ -67,39 +67,49 @@ fn LayerEditorLayer(props: LayerEditorLayerProps) -> Element {
         Some(name) => name,
         None => "".to_owned(),
     };
+    let num_sublayers = props.layer_tree_ref.sublayers.len();
+    let num_shapes = props.layer_tree_ref.num_shapes;
     let num_shapes_text = if props.layer_tree_ref.num_shapes == 0 {
         "".to_owned()
     } else {
         format!("({})", props.layer_tree_ref.num_shapes)
     };
 
-    let indentation_size = "21px";
-    let margin_left_style = format!(
-        "margin-left: calc({} * {});",
-        props.indices.len(),
-        indentation_size
-    );
+    let color_hex = if props.layer_tree_ref.num_shapes == 0 {
+        "transparent".to_owned()
+    } else {
+        layer_color.hex()
+    };
+    let layer_color_indicator_class = if props.layer_tree_ref.num_shapes == 0 {
+        "layer_color_indicator_empty"
+    } else {
+        "layer_color_indicator"
+    };
 
     let indices_clone = props.indices.clone();
     rsx! {
-        div { class: "shapes_and_sublayers",
+        div { class: "LayerEditorLayer",
             div {
-                style: margin_left_style.clone(),
                 onclick: move |event| {
+                    event.stop_propagation();
+                    if num_shapes == 0 {
+                        return;
+                    }
                     props.on_change_shapes_visible.call((
                         indices_clone.clone(),
                         !props.layer_tree_ref.shapes_visible,
                     ));
-                    event.stop_propagation();
                 },
 
                 div { class: format!("row {}", layer_class),
-                    div {
-                        class: "layer_color_indicator",
-                        style: "background-color: {layer_color.hex()};",
-                        img { class: "eye",
-                            src: "{format_svg(eye_icon_shapes.as_slice())}",
-                            height: "17px",
+                    if num_shapes != 0 {
+                        div {
+                            class: "{layer_color_indicator_class}",
+                            style: "background-color: {color_hex};",
+                            img { class: "eye",
+                                src: "{format_svg(eye_icon_shapes.as_slice())}",
+                                height: "17px",
+                            }
                         }
                     }
                     p {"{layer_name}"}
@@ -109,8 +119,7 @@ fn LayerEditorLayer(props: LayerEditorLayerProps) -> Element {
                 }
             }
             if !props.layer_tree_ref.sublayers.is_empty() {
-                div { class: "row",
-                    style: margin_left_style.clone(),
+                div { class: "sublayers",
                     onclick: move |event| {
                         props.on_change_sublayers_visible.call((
                             props.indices.clone(),
@@ -118,28 +127,31 @@ fn LayerEditorLayer(props: LayerEditorLayerProps) -> Element {
                         ));
                         event.stop_propagation();
                     },
-                    p { class: if props.layer_tree_ref.sublayers_visible { "" } else { "hidden" },
-                        style: format!("height: 17px; margin-left: {}; margin-top: 2px;", indentation_size),
-                        {if props.layer_tree_ref.sublayers_visible { "➴".to_owned() } else { format!("➵ {} hidden", props.layer_tree_ref.sublayers.len()) }}
+                    p { class: if props.layer_tree_ref.sublayers_visible { "arrow" } else { "arrow hidden" },
+                        style: format!("height: 17px; margin-top: 2px;"),
+                        {if props.layer_tree_ref.sublayers_visible { "➴" } else { "➵" }}
                     }
-                }
-
-                if props.layer_tree_ref.sublayers_visible {
-                    div { class: "sublayers",
-                        style: margin_left_style.clone(),
-                        {
-                            props.layer_tree_ref.sublayers.into_iter().enumerate().map(|(i, sublayer)| {
-                                let mut indices_sublayer = props.indices.clone();
-                                indices_sublayer.insert(0, i);
-                                rsx! {
-                                    LayerEditorLayer {
-                                        layer_tree_ref: sublayer,
-                                        indices: indices_sublayer,
-                                        on_change_shapes_visible: props.on_change_shapes_visible,
-                                        on_change_sublayers_visible: props.on_change_sublayers_visible,
+                    if props.layer_tree_ref.sublayers_visible {
+                        div { class: "sublayers-list",
+                            {
+                                props.layer_tree_ref.sublayers.into_iter().enumerate().map(|(i, sublayer)| {
+                                    let mut indices_sublayer = props.indices.clone();
+                                    indices_sublayer.insert(0, i);
+                                    rsx! {
+                                        LayerEditorLayer {
+                                            layer_tree_ref: sublayer,
+                                            indices: indices_sublayer,
+                                            on_change_shapes_visible: props.on_change_shapes_visible,
+                                            on_change_sublayers_visible: props.on_change_sublayers_visible,
+                                        }
                                     }
-                                }
-                            })
+                                })
+                            }
+                        }
+                    }
+                    if !props.layer_tree_ref.sublayers_visible {
+                        p { class: "hidden",
+                            "{num_sublayers} hidden"
                         }
                     }
                 }
