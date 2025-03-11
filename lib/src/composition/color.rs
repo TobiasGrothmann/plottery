@@ -2,9 +2,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::LARGE_EPSILON;
 
+use super::color_names::{ColorName, COLOR_NAMES};
+
 /// A color represented in RGB (Red, Green, Blue) format.
 ///
-/// Each component (r, g, b) is a float between 0.0 and 1.0.
+/// Each component (r, g, b) is a float in range \[0-1\].
 ///
 /// ### Example
 /// ```
@@ -36,7 +38,9 @@ impl ColorRgb {
     /// # use plottery_lib::*;
     /// assert_eq!(ColorRgb::red().hex(), "#ff0000");
     /// assert_eq!(ColorRgb::black().hex(), "#000000");
+    /// assert_eq!(ColorRgb::white().hex(), "#ffffff");
     /// assert_eq!(ColorRgb::yellow().hex(), "#ffff00");
+    /// assert_eq!(ColorRgb::blue().hex(), "#0000ff");
     /// ```
     pub fn hex(&self) -> String {
         format!(
@@ -49,7 +53,24 @@ impl ColorRgb {
 
     /// Returns the average value of the red, green, and blue components.
     pub fn brightness(&self) -> f32 {
-        (self.r + self.g + self.b) / 3.0
+        (self.r.clamp(0.0, 1.0) + self.g.clamp(0.0, 1.0) + self.b.clamp(0.0, 1.0)) / 3.0
+    }
+
+    /// Returns the Euclidean distance between this color and another color.
+    /// This measure is not a perfect representation of human perception of color difference.
+    pub fn dist_euclidean(&self, other: &ColorRgb) -> f32 {
+        let dr = self.r - other.r;
+        let dg = self.g - other.g;
+        let db = self.b - other.b;
+        (dr * dr + dg * dg + db * db).sqrt()
+    }
+
+    /// Returns the closest [ColorName] from the list of predefined named colors [COLOR_NAMES].
+    pub fn get_name(&self) -> ColorName {
+        *COLOR_NAMES
+            .iter()
+            .min_by_key(|color| self.dist_euclidean(&color.color).to_bits())
+            .unwrap()
     }
 }
 
@@ -69,7 +90,7 @@ impl From<ColorRgb> for ColorHsv {
             60.0 * ((b - r) / delta + 2.0)
         } else {
             60.0 * ((r - g) / delta + 4.0)
-        };
+        } / 360.0; // Convert degrees to 0.0-1.0 range
         let s = if max == 0.0 { 0.0 } else { delta / max };
         let v = max;
         Self { h, s, v }
@@ -84,9 +105,9 @@ impl From<&ColorRgb> for ColorHsv {
 
 /// A color represented in HSV (Hue, Saturation, Value) format.
 ///
-/// - Hue (h): Angle in degrees [0-360] representing the color
-/// - Saturation (s): Amount of color [0-1]
-/// - Value (v): Brightness [0-1]
+/// - Hue (h): Color \[0-1\] (`0.0` is red, `0.333` is green, `0.667` is blue)
+/// - Saturation (s): Amount of color \[0-1\]
+/// - Value (v): Brightness \[0-1\]
 ///
 /// ### Example
 /// ```
@@ -110,9 +131,9 @@ impl ColorHsv {
 
 impl From<ColorHsv> for ColorRgb {
     fn from(hsv: ColorHsv) -> Self {
-        let h = hsv.h;
-        let s = hsv.s;
-        let v = hsv.v;
+        let h = hsv.h.clamp(0.0, 1.0) * 360.0;
+        let s = hsv.s.clamp(0.0, 1.0);
+        let v = hsv.v.clamp(0.0, 1.0);
         let c = v * s;
         let x = c * (1.0 - ((h / 60.0) % 2.0 - 1.0).abs());
         let m = v - c;

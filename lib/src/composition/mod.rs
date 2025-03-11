@@ -1,4 +1,5 @@
 mod color;
+pub mod color_names;
 mod color_test;
 pub mod frame;
 mod frame_test;

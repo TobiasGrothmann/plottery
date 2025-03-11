@@ -15,4 +15,42 @@ mod test_color {
         assert_eq!(rgb, hsv);
         assert_eq!(rgb2, hsv);
     }
+
+    #[test]
+    fn name() {
+        assert_eq!(
+            ColorRgb {
+                r: 0.6,
+                g: 0.4,
+                b: 0.8
+            }
+            .get_name()
+            .name,
+            "Amethyst"
+        );
+        assert_eq!(
+            ColorRgb {
+                r: 0.63,
+                g: 0.405,
+                b: 0.79
+            }
+            .get_name()
+            .name,
+            "Amethyst"
+        );
+        assert_eq!(
+            ColorRgb {
+                r: 0.343,
+                g: 0.1,
+                b: 0.8
+            }
+            .get_name(),
+            ColorRgb {
+                r: 0.32,
+                g: 0.09,
+                b: 0.81
+            }
+            .get_name()
+        );
+    }
 }
