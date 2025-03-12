@@ -91,6 +91,45 @@ impl Circle {
             })
             .collect()
     }
+
+    pub fn with_thickness_towards_center(
+        &self,
+        mut thickness: f32,
+        pen_width: f32,
+        sample_settings: &SampleSettings,
+    ) -> super::Path {
+        thickness = thickness.min(self.radius - pen_width * 0.5);
+        let num_rotations = thickness / pen_width;
+        let circumference = 2.0 * PI * self.radius;
+        let resolution = sample_settings.get_num_points_for_length(circumference);
+
+        let outside = (0..resolution + 1).map(|i| {
+            let rot = i as f32 / resolution as f32;
+            let angle = Angle::from_rotations(rot);
+            self.center + V2::polar(angle, self.radius)
+        });
+
+        let mut last_angle = Angle::zero();
+        let outside_and_spiral: Vec<V2> = outside
+            .chain(
+                (1..(resolution as f32 * num_rotations - 1.0).round() as i32).map(|i| {
+                    let angle = Angle::from_rotations(i as f32 / resolution as f32);
+                    let factor = i as f32 / (num_rotations * resolution as f32);
+                    let radius = self.radius - thickness * factor;
+                    last_angle = angle;
+                    self.center + V2::polar(angle, radius)
+                }),
+            )
+            .collect();
+
+        let inside = (0..resolution + 1).map(|i| {
+            let rot = i as f32 / resolution as f32;
+            let angle = Angle::from_rotations(rot);
+            self.center + V2::polar(last_angle + angle, self.radius - thickness)
+        });
+
+        outside_and_spiral.into_iter().chain(inside).collect()
+    }
 }
 
 impl Plottable for Circle {
