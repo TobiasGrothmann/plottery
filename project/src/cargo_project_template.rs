@@ -68,7 +68,7 @@ fn get_plottery_subcrate(
                 .to_string();
             format!("{} = {{ path = \"{}\" }}", crate_name, sub_crate_path)
         }
-        LibSource::Cargo => format!("{} = \">=0.1\"", crate_name),
+        LibSource::Cargo => format!("{} = \"^{}\"", crate_name, env!("CARGO_PKG_VERSION")),
     };
     Ok(lib_source_for_toml)
 }
