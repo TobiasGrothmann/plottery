@@ -208,4 +208,12 @@ mod test_angle {
             Angle::from_degrees(0.0)
         );
     }
+
+    #[test]
+    fn angle_direction_cw_cc() {
+        assert_eq!(Angle::right_cw().positive(), Angle::right_cc());
+        assert_eq!(Angle::up_cw().positive(), Angle::up_cc());
+        assert_eq!(Angle::left_cw().positive(), Angle::left_cc());
+        assert_eq!(Angle::down_cw().positive(), Angle::down_cc());
+    }
 }

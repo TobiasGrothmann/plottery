@@ -50,19 +50,19 @@ impl V2 {
     pub fn zero() -> Self {
         Self { x: 0.0, y: 0.0 }
     }
-    /// Returns the unit vector (0, 1) pointing up.
+    /// Returns the unit vector (0, 1) pointing up. see also [`Angle::up_cc()`]
     pub fn up() -> Self {
         Self { x: 0.0, y: 1.0 }
     }
-    /// Returns the unit vector (1, 0) pointing right.
+    /// Returns the unit vector (1, 0) pointing right. see also [`Angle::right_cc()`]
     pub fn right() -> Self {
         Self { x: 1.0, y: 0.0 }
     }
-    /// Returns the unit vector (0, -1) pointing down.
+    /// Returns the unit vector (0, -1) pointing down. see also [`Angle::down_cc()`]
     pub fn down() -> Self {
         Self { x: 0.0, y: -1.0 }
     }
-    /// Returns the unit vector (-1, 0) pointing left.
+    /// Returns the unit vector (-1, 0) pointing left. see also [`Angle::left_cc()`]
     pub fn left() -> Self {
         Self { x: -1.0, y: 0.0 }
     }

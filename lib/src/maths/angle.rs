@@ -66,6 +66,42 @@ impl Angle {
         Self::from_rotations(1.0)
     }
 
+    /// Returns an angle representing a direction to the right. Equivalent to [`Angle::zero()`]. see also [`V2::right()`]
+    pub fn right_cc() -> Self {
+        Self::from_degrees(0.0)
+    }
+    /// Returns an angle representing a direction to the right. Equivalent to [`Angle::zero()`]. see also [`V2::right()`]
+    pub fn right_cw() -> Self {
+        Self::from_degrees(0.0)
+    }
+
+    /// Returns an angle representing a direction upwards, counter clockwise (left / positive) from [`Angle::zero()`]. see also [`V2::up()`]
+    pub fn up_cc() -> Self {
+        Self::from_degrees(90.0)
+    }
+    /// Returns an angle representing a direction upwards, clockwise (right / negative) from [`Angle::zero()`]. see also [`V2::up()`]
+    pub fn up_cw() -> Self {
+        Self::from_degrees(-270.0)
+    }
+
+    /// Returns an angle representing a direction to the left, counter clockwise (left / positive) from  [`Angle::zero()`]. see also [`V2::left()`]
+    pub fn left_cc() -> Self {
+        Self::from_degrees(180.0)
+    }
+    /// Returns an angle representing a direction to the left, clockwise (right / negative) from  [`Angle::zero()`]. see also [`V2::left()`]
+    pub fn left_cw() -> Self {
+        Self::from_degrees(-180.0)
+    }
+
+    /// Returns an angle representing a direction downwards, counter clockwise (left / positive) from  [`Angle::zero()`]. see also [`V2::down()`]
+    pub fn down_cc() -> Self {
+        Self::from_degrees(270.0)
+    }
+    /// Returns an angle representing a direction downwards, clockwise (right / negative) from  [`Angle::zero()`]. see also [`V2::down()`]
+    pub fn down_cw() -> Self {
+        Self::from_degrees(-90.0)
+    }
+
     /// Creates an angle with the golden ratio number of rotations. See [`GR`].
     pub fn golden_ratio() -> Self {
         Self::from_rotations(GR)

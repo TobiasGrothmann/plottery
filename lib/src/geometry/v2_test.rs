@@ -327,4 +327,12 @@ mod test_v2 {
 
         assert_eq!(i, 101);
     }
+
+    #[test]
+    fn angle_direction() {
+        assert_eq!(V2::up().angle(), Angle::up_cc());
+        assert_eq!(V2::down().angle(), Angle::down_cc());
+        assert_eq!(V2::left().angle(), Angle::left_cc());
+        assert_eq!(V2::right().angle(), Angle::right_cc());
+    }
 }
