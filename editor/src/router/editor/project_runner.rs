@@ -2,8 +2,8 @@ use crate::router::editor::running_state::RunningState;
 use dioxus::signals::{Readable, SyncSignal, Writable};
 use plottery_lib::Layer;
 use plottery_project::{
-    project_params_list_wrapper::ProjectParamsListWrapper, read_object_from_stdout,
-    read_stdout_as_string_to_end, Project,
+    process_stdout_lines, project_params_list_wrapper::ProjectParamsListWrapper,
+    read_object_from_stdout, Project,
 };
 
 use super::{console_messages::ConsoleMessages, editor::LayerChangeWrapper};
@@ -219,16 +219,16 @@ impl ProjectRunner {
                     });
                     false
                 }
-                result = read_stdout_as_string_to_end(&mut run_process) => {
-                    let success: bool = match result {
-                        Ok((status, stdout_data)) => {
-                            for line in stdout_data.lines() {
-                                console.read().project_message(line);
-                            }
+                exit_status = process_stdout_lines(
+                    &mut run_process,
+                    |line| console.read().project_message(line.as_str()),
+                ) => {
+                    match exit_status {
+                        Ok(status) => {
                             if !status.success() {
                                 let msg = format!("run failed ({})", status.code().unwrap_or(-1));
                                 console.read().error(msg.as_str());
-                                running_state.set(RunningState::BuildFailed {
+                                running_state.set(RunningState::RunFailed {
                                     msg,
                                 });
                                 false
@@ -238,13 +238,12 @@ impl ProjectRunner {
                         }
                         Err(e) => {
                             console.read().error(format!("error getting running status: {}", e).as_str());
-                            running_state.set(RunningState::RunFailed  {
+                            running_state.set(RunningState::RunFailed {
                                 msg: "run failed (no status)".to_string(),
                             });
                             false
                         }
-                    };
-                    success
+                    }
                 }
             };
             if !success {

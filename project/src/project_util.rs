@@ -1,6 +1,8 @@
-use anyhow::{Ok, Result};
+use anyhow::Result;
 use async_process::{Child, Command, Stdio};
 use bincode::{deserialize_from, serialize};
+use futures_lite::io::BufReader;
+use futures_lite::prelude::*;
 use futures_lite::{AsyncReadExt, AsyncWriteExt};
 use serde::de::DeserializeOwned;
 use std::{path::PathBuf, process::ExitStatus};
@@ -23,7 +25,7 @@ pub async fn build_cargo_project_async(
         .args(args)
         .current_dir(project_dir)
         .spawn()?;
-    Ok(child_process)
+    anyhow::Ok(child_process)
 }
 
 pub async fn run_project_executable_async(
@@ -52,7 +54,7 @@ pub async fn run_project_executable_async(
         }
     }
 
-    Ok(child_process)
+    anyhow::Ok(child_process)
 }
 
 pub async fn read_object_from_stdout<T>(child_process: &mut Child) -> Result<T>
@@ -63,7 +65,7 @@ where
     if let Some(stdout) = &mut child_process.stdout {
         (*stdout).read_to_end(&mut buf).await?;
     }
-    Ok(deserialize_from(buf.as_slice())?)
+    anyhow::Ok(deserialize_from(buf.as_slice())?)
 }
 
 pub async fn read_stdout_as_string_to_end(
@@ -74,4 +76,41 @@ pub async fn read_stdout_as_string_to_end(
         (*stdout).read_to_string(&mut data).await?;
     }
     Ok((child_process.status().await?, data))
+}
+
+pub async fn process_stdout_lines<F>(
+    child_process: &mut Child,
+    mut line_handler: F,
+) -> Result<ExitStatus>
+where
+    F: FnMut(String),
+{
+    let stdout = child_process
+        .stdout
+        .take()
+        .ok_or_else(|| anyhow::Error::msg("Failed to get stdout handle"))?;
+
+    let mut reader = BufReader::new(stdout).lines();
+
+    loop {
+        if let Ok(Some(status)) = child_process.try_status() {
+            // process already exited
+            while let Some(line) = reader.next().await {
+                line_handler(line?);
+            }
+            return Ok(status);
+        }
+
+        // wait for a new line
+        match reader.next().await {
+            Some(Ok(line)) => {
+                line_handler(line);
+            }
+            Some(Err(e)) => return Err(e.into()),
+            None => {
+                // process exited
+                return Ok(child_process.status().await?);
+            }
+        }
+    }
 }
