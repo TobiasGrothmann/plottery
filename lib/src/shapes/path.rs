@@ -4,6 +4,7 @@ use ramer_douglas_peucker::rdp;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashSet,
+    f32::consts::PI,
     slice::{Iter, IterMut},
 };
 
@@ -137,6 +138,24 @@ impl Path {
 
     pub fn to_shape(&self) -> Shape {
         Shape::Path(self.clone())
+    }
+
+    pub fn arc(
+        from: &Angle,
+        to: &Angle,
+        center: &V2,
+        radius: f32,
+        sample_settings: &SampleSettings,
+    ) -> Self {
+        let arc_length = (to.to_rad() - from.to_rad()).abs() * radius * 2.0 * PI;
+        let num_points = sample_settings.get_num_points_for_length(arc_length);
+
+        (0..=num_points)
+            .map(|i| {
+                let rot = from + (to - from) * (i as f32 / num_points as f32);
+                center + V2::polar(rot, radius)
+            })
+            .collect()
     }
 }
 
