@@ -3,7 +3,7 @@ use async_process::{Child, Command, Stdio};
 use bincode::{deserialize_from, serialize};
 use futures_lite::{AsyncReadExt, AsyncWriteExt};
 use serde::de::DeserializeOwned;
-use std::path::PathBuf;
+use std::{path::PathBuf, process::ExitStatus};
 
 use crate::project_params_list_wrapper::ProjectParamsListWrapper;
 
@@ -64,4 +64,14 @@ where
         (*stdout).read_to_end(&mut buf).await?;
     }
     Ok(deserialize_from(buf.as_slice())?)
+}
+
+pub async fn read_stdout_as_string_to_end(
+    child_process: &mut Child,
+) -> Result<(ExitStatus, String)> {
+    let mut data = String::new();
+    if let Some(stdout) = &mut child_process.stdout {
+        (*stdout).read_to_string(&mut data).await?;
+    }
+    Ok((child_process.status().await?, data))
 }

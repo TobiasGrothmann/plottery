@@ -4,18 +4,25 @@ use dioxus::signals::{Readable, SyncSignal};
 use plottery_lib::rand_range_i;
 
 #[derive(Debug, Clone)]
+pub enum ConsoleMessageType {
+    Info,
+    Error,
+    ProjectLog,
+}
+
+#[derive(Debug, Clone)]
 pub struct ConsoleMessage {
     pub id: i32,
     pub msg: String,
-    pub is_error: bool,
+    pub msg_type: ConsoleMessageType,
 }
 
 impl ConsoleMessage {
-    pub fn new(msg: &str, is_error: bool) -> Self {
+    pub fn new(msg: &str, msg_type: ConsoleMessageType) -> Self {
         Self {
             id: rand_range_i(i32::MIN, i32::MAX),
             msg: msg.to_string(),
-            is_error,
+            msg_type,
         }
     }
 }
@@ -63,11 +70,23 @@ impl ConsoleMessages {
         self.trigger_change();
     }
 
+    pub fn project_message(&self, msg: &str) {
+        let formatted = format!("> {}", msg);
+        self.entries
+            .lock()
+            .expect("Failed to lock console entries")
+            .push(ConsoleMessage::new(
+                &formatted,
+                ConsoleMessageType::ProjectLog,
+            ));
+        log::info!("{}", formatted);
+        self.trigger_change();
+    }
     pub fn info(&self, msg: &str) {
         self.entries
             .lock()
             .expect("Failed to lock console entries")
-            .push(ConsoleMessage::new(msg, false));
+            .push(ConsoleMessage::new(msg, ConsoleMessageType::Info));
         log::info!("{}", msg);
         self.trigger_change();
     }
@@ -75,7 +94,7 @@ impl ConsoleMessages {
         self.entries
             .lock()
             .expect("Failed to lock console entries")
-            .push(ConsoleMessage::new(msg, true));
+            .push(ConsoleMessage::new(msg, ConsoleMessageType::Error));
         log::error!("{}", msg);
         self.trigger_change();
     }

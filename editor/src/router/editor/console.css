@@ -16,3 +16,6 @@
 .info {
   color: var(--col-fg-0);
 }
+.project_log {
+  color: yellowgreen;
+}

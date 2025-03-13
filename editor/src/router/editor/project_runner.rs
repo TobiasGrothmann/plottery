@@ -2,7 +2,8 @@ use crate::router::editor::running_state::RunningState;
 use dioxus::signals::{Readable, SyncSignal, Writable};
 use plottery_lib::Layer;
 use plottery_project::{
-    project_params_list_wrapper::ProjectParamsListWrapper, read_object_from_stdout, Project,
+    project_params_list_wrapper::ProjectParamsListWrapper, read_object_from_stdout,
+    read_stdout_as_string_to_end, Project,
 };
 
 use super::{console_messages::ConsoleMessages, editor::LayerChangeWrapper};
@@ -218,11 +219,14 @@ impl ProjectRunner {
                     });
                     false
                 }
-                run_status = run_process.status() => {
-                    let success: bool = match run_status {
-                        Ok(status) => {
+                result = read_stdout_as_string_to_end(&mut run_process) => {
+                    let success: bool = match result {
+                        Ok((status, stdout_data)) => {
+                            for line in stdout_data.lines() {
+                                console.read().project_message(line);
+                            }
                             if !status.success() {
-                                let msg = format!("build failed ({})", status.code().unwrap_or(-1));
+                                let msg = format!("run failed ({})", status.code().unwrap_or(-1));
                                 console.read().error(msg.as_str());
                                 running_state.set(RunningState::BuildFailed {
                                     msg,
