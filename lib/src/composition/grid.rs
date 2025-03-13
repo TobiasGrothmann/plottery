@@ -1,4 +1,6 @@
-use crate::{Rect, LARGE_EPSILON, V2};
+use crate::{Rect, V2i, LARGE_EPSILON, V2};
+
+use super::grid_comineable::GridCombineable;
 
 pub struct Grid {
     pub rows: usize,
@@ -98,6 +100,14 @@ impl Grid {
             current_row: 0,
             current_col: 0,
         }
+    }
+
+    pub fn to_combineable(self) -> GridCombineable {
+        GridCombineable::new_from_grid(self)
+    }
+
+    pub fn get_num_cells(&self) -> V2i {
+        V2i::new(self.cols as i32, self.rows as i32)
     }
 }
 
