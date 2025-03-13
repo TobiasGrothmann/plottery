@@ -1,4 +1,4 @@
-use crate::{Rect, V2};
+use crate::{Rect, LARGE_EPSILON, V2};
 
 pub struct Grid {
     pub rows: usize,
@@ -33,11 +33,63 @@ impl Grid {
         }
     }
 
+    pub fn new_square_cells(mut bounding_box: Rect, rows: usize, cols: usize, margin: f32) -> Self {
+        // TODO: fix margin
+        let mut cell_size = V2::new(
+            (bounding_box.width() - (cols - 1) as f32 * margin) / cols as f32,
+            (bounding_box.height() - (rows - 1) as f32 * margin) / rows as f32,
+        );
+        if (cell_size.x - cell_size.y).abs() < LARGE_EPSILON {
+            return Self {
+                rows,
+                cols,
+                margin,
+                bounding_box,
+                cell_size,
+            };
+        }
+
+        let cell_size_diff = (cell_size.x - cell_size.y).abs();
+        if cell_size.x > cell_size.y {
+            cell_size -= V2::new(cell_size_diff, 0.0);
+            let x_subtracted = cell_size_diff * cols as f32;
+            bounding_box = Rect::new(
+                bounding_box.bl() + V2::new(x_subtracted / 2.0, 0.0),
+                bounding_box.tr() - V2::new(x_subtracted / 2.0, 0.0),
+            );
+            Self {
+                rows,
+                cols,
+                margin,
+                bounding_box,
+                cell_size,
+            }
+        } else {
+            cell_size -= V2::new(0.0, cell_size_diff);
+            let y_subtracted = cell_size_diff * rows as f32;
+            bounding_box = Rect::new(
+                bounding_box.bl() + V2::new(0.0, y_subtracted / 2.0),
+                bounding_box.tr() - V2::new(0.0, y_subtracted / 2.0),
+            );
+            Self {
+                rows,
+                cols,
+                margin,
+                bounding_box,
+                cell_size,
+            }
+        }
+    }
+
     pub fn get_rect(&self, row: usize, col: usize) -> Rect {
         let bl = V2::new(self.margin * col as f32, self.margin * row as f32)
             + self.cell_size * V2::new(col as f32, row as f32)
             + self.bounding_box.bl();
         Rect::new(bl, bl + self.cell_size)
+    }
+
+    pub fn get_cell_size(&self) -> V2 {
+        self.cell_size
     }
 
     pub fn iter(&self) -> GridIterator {
