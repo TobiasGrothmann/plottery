@@ -13,6 +13,7 @@ use path_absolutize::Absolutize;
 use resvg::{tiny_skia, usvg};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use tempfile::NamedTempFile;
 use usvg::{fontdb, TreeParsing, TreeTextToPath};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -211,8 +212,14 @@ impl Project {
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()?;
-        let mut child = rt.block_on(self.run_async(release, params))?;
-        let layer = rt.block_on(read_object_from_stdout::<Layer>(&mut child))?;
+        let (mut child, named_pipe) = rt.block_on(self.run_async(release, params))?;
+        let status = rt.block_on(child.status())?;
+
+        if !status.success() {
+            return Err(Error::msg(format!("Failed to run project: {}", status)));
+        }
+
+        let layer = Layer::new_from_file(&named_pipe.path().to_path_buf())?;
         Ok(layer)
     }
 
@@ -220,7 +227,7 @@ impl Project {
         &self,
         release: bool,
         params: &ProjectParamsListWrapper,
-    ) -> Result<Child> {
+    ) -> Result<(Child, NamedTempFile)> {
         let bin_path = self.get_plottery_binary_path(release)?;
         if !bin_path.exists() {
             return Err(Error::msg(format!(
@@ -228,8 +235,20 @@ impl Project {
                 bin_path.to_string_lossy()
             )));
         }
-        let arguments = vec!["std-out", "--piped-params", "true"];
-        Ok(run_project_executable_async(&bin_path, &arguments, Some(params)).await?)
+
+        let temp_file = tempfile::NamedTempFile::new()?;
+        let temp_named_pipe_path = temp_file.path().to_path_buf().to_string_lossy().to_string();
+
+        let arguments = vec![
+            "named-pipe",
+            &temp_named_pipe_path,
+            "--piped-params",
+            "true",
+        ];
+        Ok((
+            run_project_executable_async(&bin_path, &arguments, Some(params)).await?,
+            temp_file,
+        ))
     }
 
     pub fn run_get_params(&self, release: bool) -> Result<ProjectParamsListWrapper> {

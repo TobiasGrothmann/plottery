@@ -185,7 +185,7 @@ impl ProjectRunner {
             });
 
             let run_process = project.run_async(release, &new_params).await;
-            let mut run_process = match run_process {
+            let (mut run_process, named_pipe) = match run_process {
                 Ok(process) => process,
                 Err(e) => {
                     console
@@ -203,7 +203,7 @@ impl ProjectRunner {
                 msg: "running".to_string(),
             });
 
-            tokio::select! {
+            let success = tokio::select! {
                 _ = cancel_rx.recv() => {
                     nix::sys::signal::kill(
                         nix::unistd::Pid::from_raw(run_process.id() as i32),
@@ -216,33 +216,60 @@ impl ProjectRunner {
                     running_state.set(RunningState::RunKilled {
                         msg: "run killed".to_string(),
                     });
+                    false
                 }
-                layer_from_run = read_object_from_stdout::<Layer>(&mut run_process) => {
-                    // getting layer from stdout of project executable
-                    let new_layer = match layer_from_run {
-                        Ok(layer) => layer,
+                run_status = run_process.status() => {
+                    let success: bool = match run_status {
+                        Ok(status) => {
+                            if !status.success() {
+                                let msg = format!("build failed ({})", status.code().unwrap_or(-1));
+                                console.read().error(msg.as_str());
+                                running_state.set(RunningState::BuildFailed {
+                                    msg,
+                                });
+                                false
+                            } else {
+                                true
+                            }
+                        }
                         Err(e) => {
-                            running_state.set(RunningState::RunFailed {
-                                msg: "run failed".to_string(),
+                            console.read().error(format!("error getting running status: {}", e).as_str());
+                            running_state.set(RunningState::RunFailed  {
+                                msg: "run failed (no status)".to_string(),
                             });
-                            console.read().error(format!("Error receiving layer from project: {}", e).as_str());
-                            return;
+                            false
                         }
                     };
+                    success
+                }
+            };
+            if !success {
+                return;
+            }
 
-                    // Publishing Layer
+            let layer_from_run = Layer::new_from_file(&named_pipe.path().to_path_buf());
+            match layer_from_run {
+                Ok(layer) => {
+                    // Publish Layer
                     console.read().info("...updating editor");
                     running_state.set(RunningState::Updating {
                         msg: "updating editor".to_string(),
                     });
 
                     let change_counter = layer_copy.read().change_counter;
-                    layer_copy.set(
-                        LayerChangeWrapper {
-                            layer: Some(new_layer),
-                            change_counter: change_counter + 1,
-                        }
-                    );
+                    layer_copy.set(LayerChangeWrapper {
+                        layer: Some(layer),
+                        change_counter: change_counter + 1,
+                    });
+                }
+                Err(e) => {
+                    console
+                        .read()
+                        .error(format!("error reading layer from run: {}", e).as_str());
+                    running_state.set(RunningState::RunFailed {
+                        msg: "layer read from run failed".to_string(),
+                    });
+                    return;
                 }
             }
 

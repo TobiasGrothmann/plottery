@@ -19,6 +19,11 @@ enum RunCommand {
         #[arg(long, short)]
         piped_params: Option<bool>,
     },
+    NamedPipe {
+        #[arg(long, short)]
+        piped_params: Option<bool>,
+        pipe_path: String,
+    },
     Dry {},
     Params {},
 }
@@ -88,6 +93,30 @@ where
             let art = generate_function(params);
             let binary = art.to_binary().expect("Failed to convert layer to binary.");
             stdout.write_all(&binary)?;
+        }
+        RunCommand::NamedPipe {
+            piped_params,
+            pipe_path,
+        } => {
+            let wait_for_stdin = piped_params.unwrap_or(false);
+
+            let params = if wait_for_stdin {
+                let list = read_params_from_stdin()?;
+                P::new_from_list(list)
+            } else {
+                P::new_with_defaults()
+            };
+
+            let art = generate_function(params);
+            let binary = art.to_binary().expect("Failed to convert layer to binary.");
+
+            let mut file = std::fs::OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .open(&pipe_path)
+                .expect("Failed to open pipe.");
+            file.write_all(&binary)?;
         }
         RunCommand::Dry {} => {
             generate_function(P::new_with_defaults());

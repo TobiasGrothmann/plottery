@@ -27,8 +27,8 @@ pub async fn build_cargo_project_async(
 }
 
 pub async fn run_project_executable_async(
-    path: &PathBuf,                            // path to the executable
-    arguments: &[&str],                        // arguments for the executable invocation
+    path: &PathBuf,
+    arguments: &[&str],
     params: Option<&ProjectParamsListWrapper>, // will be piped into stdin of the child process
 ) -> Result<Child> {
     let exec_stdin = if params.is_some() {
