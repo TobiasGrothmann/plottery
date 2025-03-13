@@ -46,7 +46,7 @@ pub fn main() {
                 return;
             }
 
-            let result = project.generate_to_disk(LibSource::Cargo);
+            let result = project.generate_to_disk(LibSource::Cargo, true);
             if result.is_err() {
                 println!("Failed to create project: {}", result.unwrap_err());
                 return;

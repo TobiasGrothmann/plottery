@@ -26,9 +26,12 @@ mod tests {
         println!("workspace path: {:?}", cargo_workspace_path);
 
         // generate to disk and check
-        project.generate_to_disk(LibSource::Path {
-            path: cargo_workspace_path,
-        })?;
+        project.generate_to_disk(
+            LibSource::Path {
+                path: cargo_workspace_path,
+            },
+            true,
+        )?;
         assert!(project.exists());
 
         // check if project dir was generated

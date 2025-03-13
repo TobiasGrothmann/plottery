@@ -10,6 +10,8 @@ use vfs::{EmbeddedFS, FileSystem};
 #[folder = "cargo_project_template/"]
 struct CargoProjectTemplate;
 
+static PLOTTERY_PROJECT_GITIGNORE: &str = include_str!("../resources/gitignore");
+
 fn get_fs() -> EmbeddedFS<CargoProjectTemplate> {
     EmbeddedFS::<CargoProjectTemplate>::new()
 }
@@ -194,4 +196,30 @@ fn write_file_to_disk(
 
 fn is_file(fs: &EmbeddedFS<CargoProjectTemplate>, sub_dir: &str) -> bool {
     fs.open_file(sub_dir).is_ok()
+}
+
+pub fn init_git_repo(dir: &PathBuf) -> Result<()> {
+    let git_dir = dir.join(".git");
+    if git_dir.exists() {
+        return Ok(());
+    }
+
+    let output = std::process::Command::new("git")
+        .arg("init")
+        .arg(dir)
+        .output()?;
+    if !output.status.success() {
+        return Err(anyhow::anyhow!(
+            "Failed to initialize git repository at: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+
+    let gitignore_path = dir.join(".gitignore");
+    if !gitignore_path.exists() {
+        let mut gitignore_file = File::create(gitignore_path)?;
+        gitignore_file.write_all(PLOTTERY_PROJECT_GITIGNORE.as_bytes())?;
+    }
+
+    Ok(())
 }
