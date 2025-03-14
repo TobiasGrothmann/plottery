@@ -1,3 +1,4 @@
+/// Iterator for interpolating between two float values.
 pub struct FloatInterpolator {
     start: f32,
     end: f32,
@@ -6,6 +7,7 @@ pub struct FloatInterpolator {
 }
 
 impl FloatInterpolator {
+    /// Creates a new interpolator between two float values.
     pub fn new(start: f32, end: f32, steps: usize) -> Self {
         Self {
             start,
@@ -30,9 +32,15 @@ impl Iterator for FloatInterpolator {
     }
 }
 
+/// Trait for interpolating between float values.
 pub trait FloatInterpolation {
+    /// Linearly interpolates between self and end with the given parameter t.
     fn lerp(&self, end: f32, t: f32) -> f32;
+
+    /// Creates an iterator that interpolates between self and end with the given step size.
     fn lerp_iter(&self, end: f32, t: f32) -> FloatInterpolator;
+
+    /// Creates an iterator that interpolates between self and end with a fixed number of steps.
     fn lerp_iter_fixed(&self, end: f32, steps: usize) -> FloatInterpolator;
 }
 
