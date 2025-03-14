@@ -18,6 +18,21 @@ use crate::{
 
 use super::{path_end::PathEnd, ColorRgb, Inheritable, LayerProps, LayerPropsInheritable};
 
+/// `Layer` represents a tree of [`Shape`]s by holding a list of [`Shape`]s and other `Layer`s.
+///
+/// ### Example
+/// ```rs
+/// # use plottery_lib::{Layer, Shape, V2};
+///
+/// let mut layer = Layer::new();
+/// layer.push(Circle::new_shape(V2::new(0.0, 0.0), 1.0));
+/// layer.push(Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+///
+/// let mut sublayer = Layer::new();
+/// sublayer.push(Circle::new_shape(V2::new(3.0, 3.0), 5.0));
+///
+/// layer.push_layer(sublayer);
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Layer {
     pub shapes: Vec<Shape>,
@@ -35,6 +50,7 @@ impl Layer {
             props: LayerProps::default(),
         }
     }
+    /// Creates a new `Layer` from a list of shapes.
     pub fn new_from(shapes: Vec<Shape>) -> Self {
         Self {
             shapes,
@@ -43,6 +59,7 @@ impl Layer {
             props: LayerProps::default(),
         }
     }
+    /// Creates a new `Layer` from both a list of shapes and a list of sublayers.
     pub fn new_from_shapes_and_layers(shapes: Vec<Shape>, sublayers: Vec<Layer>) -> Self {
         Self {
             shapes,
@@ -51,29 +68,48 @@ impl Layer {
             props: LayerProps::default(),
         }
     }
+    /// Creates a new `Layer` by deserializing binary from a file. see [`Layer::write_file`].
     pub fn new_from_file(path: &PathBuf) -> Result<Layer> {
         let file = File::open(path)?;
         let decoded: Layer = deserialize_from(&file)?;
         Ok(decoded)
     }
+    /// Writes the binary representation of the `Layer` to a file. see [`Layer::new_from_file`].
+    pub fn write_file(&self, path: &PathBuf) -> Result<()> {
+        let encoded: Vec<u8> = serialize(self)?;
+        let mut file = File::create(path)?;
+        file.write_all(&encoded)?;
+        Ok(())
+    }
+    /// Creates a new `Layer` by deserializing binary from a vector of bytes. see [`Layer::to_binary`].
     pub fn new_from_binary(binary_data: &Vec<u8>) -> Result<Layer> {
         Ok(deserialize_from(binary_data.as_slice())?)
     }
+    /// Serializes the `Layer` to a vector of bytes. see [`Layer::new_from_binary`].
+    pub fn to_binary(&self) -> Result<Vec<u8>> {
+        Ok(serialize(self)?)
+    }
 
+    /// set the inheritable properties of the layer
     pub fn set_props_inheritable(&mut self, props: Inheritable<LayerPropsInheritable>) {
         self.props_inheritable = props;
     }
+    /// set the inheritable properties of the layer
     pub fn with_props_inheritable(mut self, props: Inheritable<LayerPropsInheritable>) -> Self {
         self.set_props_inheritable(props);
         self
     }
+    /// set the non-inheritable properties of the layer
     pub fn set_props(&mut self, props: LayerProps) {
         self.props = props;
     }
+    /// set the non-inheritable properties of the layer
     pub fn with_props(mut self, props: LayerProps) -> Self {
         self.set_props(props);
         self
     }
+
+    /// Helper to set the color of the layer. see [`Layer::with_props_inheritable`].
     pub fn with_color(mut self, color: ColorRgb) -> Self {
         self.props_inheritable = self
             .props_inheritable
@@ -82,6 +118,7 @@ impl Layer {
             ));
         self
     }
+    /// Helper to set the pen width of the layer. see [`Layer::with_props_inheritable`].
     pub fn with_pen_width_cm(mut self, pen_width_cm: f32) -> Self {
         self.props_inheritable = self
             .props_inheritable
@@ -90,19 +127,10 @@ impl Layer {
             ));
         self
     }
+    /// Helper to set the name of the layer. see [`Layer::with_props`].
     pub fn with_name(mut self, name: &str) -> Self {
         self.props = self.props.with_name(name);
         self
-    }
-
-    pub fn write_file(&self, path: &PathBuf) -> Result<()> {
-        let encoded: Vec<u8> = serialize(self)?;
-        let mut file = File::create(path)?;
-        file.write_all(&encoded)?;
-        Ok(())
-    }
-    pub fn to_binary(&self) -> Result<Vec<u8>> {
-        Ok(serialize(self)?)
     }
 
     pub fn push(&mut self, shape: Shape) {
@@ -117,11 +145,13 @@ impl Layer {
     pub fn push_rect(&mut self, rect: Rect) {
         self.shapes.push(Shape::Rect(rect));
     }
-    pub fn push_layer(&mut self, layer: Layer) {
-        self.sublayers.push(layer);
+    /// Add a layer as sublayer.
+    pub fn push_layer(&mut self, sublayer: Layer) {
+        self.sublayers.push(sublayer);
     }
-    pub fn push_layer_flat(&mut self, layer: Layer) {
-        for shape in layer.iter_flattened() {
+    /// Add all the [`Shape`]s of the `sublayer` recursively to `self`.
+    pub fn push_layer_flat(&mut self, sublayer: Layer) {
+        for shape in sublayer.iter_flattened() {
             self.shapes.push(shape.clone());
         }
     }
@@ -129,31 +159,41 @@ impl Layer {
         self.shapes.extend(shapes);
     }
 
+    /// Returns an iterator over the shapes of the layer, excluding sublayers.
     pub fn iter(&self) -> Iter<'_, Shape> {
         self.shapes.iter()
     }
+    /// Returns an iterator over the Sublayers of the layer, non recursively.
     pub fn iter_sublayers(&self) -> Iter<Layer> {
         self.sublayers.iter()
     }
+    /// Returns an iterator over all the shapes of the layer, recursively also iterating all sublayers.
     pub fn iter_flattened(&self) -> LayerFlattenedIterator {
         LayerFlattenedIterator::new(self)
     }
 
+    /// Returns the number of shapes in the layer, excluding sublayers.
     pub fn len(&self) -> usize {
         self.shapes.len()
     }
+    /// Returns true if the layer has no [`Shape]s and no sublayers.
     pub fn is_empty(&self) -> bool {
-        self.shapes.is_empty()
+        self.shapes.is_empty() && self.sublayers.is_empty()
     }
+    /// Returns the number of shapes in the layer, recursively also counting all sublayers.
     pub fn len_recursive(&self) -> usize {
         self.sublayers
             .iter()
             .fold(self.len(), |acc, sublayer| acc + sublayer.len_recursive())
     }
+    /// Returns the number of sublayers in the layer, non recursively.
     pub fn len_sublayers(&self) -> usize {
         self.sublayers.len()
     }
 
+    /// Return the layer converted into a [`svg::Document`].
+    /// Some adjustments are made, like flipping the y-axis and optinally scaling the shapes.
+    /// Sublayers are grouped with an svg `<g>` tag.
     pub fn to_svg(&self, scale: f32) -> Document {
         let prepared = self.get_prepared_for_svg();
 
@@ -262,12 +302,17 @@ impl Layer {
         }
         nodes
     }
+    /// Save a converted version of this layer to an .svg file. see [`Layer::to_svg`].
     pub fn write_svg(&self, path: PathBuf, scale: f32) -> Result<()> {
         let document = self.to_svg(scale);
         svg::save(path.to_str().unwrap(), &document)?;
         Ok(())
     }
 
+    /// Returns a new `Layer` with [`Shape`]s that start/end at another [`Shape`]'s start/end combined into a single [`Path`].
+    /// This is done until no more shapes can be combined, recursively for all sublayers individually.
+    ///
+    /// `max_angle_delta` is the maximum angle difference between the start/end points of the two shapes that will still be combined. Set to `None` to ignore angles.
     pub fn combine_shapes_recursive(&self, max_angle_delta: Option<Angle>) -> Self {
         let (combineable, noncombineable) =
             Layer::group_shapes_combineable_noncombineable(&self.iter().collect::<Vec<_>>());
@@ -290,6 +335,7 @@ impl Layer {
             .with_props(self.props.clone())
     }
 
+    /// Returns a new flattened `Layer` with [`Shape`]s that start/end at another [`Shape`]'s start/end combined into a single [`Path`]. see [`Layer::combine_shapes_recursive`].
     pub fn combine_shapes_flat(&self, max_angle_delta: Option<Angle>) -> Self {
         let (combineable, noncombineable) = Layer::group_shapes_combineable_noncombineable(
             &self.iter_flattened().collect::<Vec<_>>(),
@@ -306,7 +352,6 @@ impl Layer {
             .with_props_inheritable(self.props_inheritable.clone())
             .with_props(self.props.clone())
     }
-
     fn group_shapes_combineable_noncombineable(shapes: &[&Shape]) -> (Vec<Path>, Vec<Shape>) {
         let mut combineable = Vec::new();
         let mut noncombineable = Vec::new();
@@ -429,6 +474,7 @@ impl Layer {
         combined_paths
     }
 
+    /// Map a function recursively to all [`Shape`]s in the `Layer` and its sublayers.
     pub fn map_recursive_mut<F: Fn(&mut Shape)>(&mut self, f: F) {
         let f = Rc::new(f);
         self.map_recursive_mut_internal(f)
@@ -442,6 +488,7 @@ impl Layer {
         }
     }
 
+    /// Create a new [`Layer`] with a function mapped recursively to all [`Shape`]s in the `Layer` and its sublayers.
     pub fn map_recursive<F: Fn(&Shape) -> Shape>(&self, f: F) -> Self {
         let f = Rc::new(f);
         self.map_shapes_recursive_internal(f)
@@ -458,6 +505,25 @@ impl Layer {
         .with_props(self.props.clone())
     }
 
+    /// Filter the [`Shape`]s in the `Layer` and its sublayers with a predicate function.
+    pub fn filter_recursive_mut<F>(&mut self, predicate: F)
+    where
+        F: Fn(&Shape) -> bool + Clone,
+    {
+        let predicate = Rc::new(predicate);
+        self.filter_recursive_mut_internal(predicate)
+    }
+    fn filter_recursive_mut_internal<F>(&mut self, predicate: Rc<F>)
+    where
+        F: Fn(&Shape) -> bool,
+    {
+        self.shapes.retain(|shape| predicate(shape));
+        for sublayer in &mut self.sublayers {
+            sublayer.filter_recursive_mut_internal(predicate.clone());
+        }
+    }
+
+    /// Create a new [`Layer`] with the [`Shape`]s in the `Layer` and its sublayers filtered with a predicate function.
     pub fn filter_recursive<F>(&self, f: F) -> Self
     where
         F: Fn(&Shape) -> bool + Clone,
@@ -465,7 +531,6 @@ impl Layer {
         let f = Rc::new(f);
         self.filter_recursive_internal(f)
     }
-
     fn filter_recursive_internal<F>(&self, f: Rc<F>) -> Self
     where
         F: Fn(&Shape) -> bool,
@@ -486,25 +551,14 @@ impl Layer {
             .with_props(self.props.clone())
     }
 
-    pub fn filter_recursive_mut<F>(&mut self, predicate: F)
-    where
-        F: Fn(&Shape) -> bool + Clone,
-    {
-        let predicate = Rc::new(predicate);
-        self.filter_recursive_mut_internal(predicate)
-    }
-
-    fn filter_recursive_mut_internal<F>(&mut self, predicate: Rc<F>)
-    where
-        F: Fn(&Shape) -> bool,
-    {
-        self.shapes.retain(|shape| predicate(shape));
-        for sublayer in &mut self.sublayers {
-            sublayer.filter_recursive_mut_internal(predicate.clone());
-        }
-    }
-
-    pub fn mask_flattened(&self, mask: &Shape, sample_settings: &SampleSettings) -> Masked {
+    /// Returns a [`Masked`] object all [`Shape`]s of the `Layer` and its sublayers, grouping parts of all [`Shape`]s into `inside` and `outside`.
+    ///
+    /// This is done using crate [`geo`]'s [`geo::algorithm::bool_ops::BooleanOps::clip`].
+    /// see [`Shape::mask_geo`].
+    ///
+    /// There can be unexpected outputs for example with shapes that self-intersect.
+    /// See also [`Layer::mask_flattened_brute_force`] for a different and more stable masking.
+    pub fn mask_geo_flattened(&self, mask: &Shape, sample_settings: &SampleSettings) -> Masked {
         let mut inside = Layer::new();
         let mut outside = Layer::new();
 
@@ -517,6 +571,7 @@ impl Layer {
         Masked { inside, outside }
     }
 
+    /// see [`Layer::mask_geo_flattened`].
     pub fn mask_geo_flattened_inside(
         &self,
         mask: &Shape,
@@ -527,6 +582,7 @@ impl Layer {
             .collect()
     }
 
+    /// see [`Layer::mask_geo_flattened`].
     pub fn mask_geo_flattened_outside(
         &self,
         mask: &Shape,
@@ -537,10 +593,18 @@ impl Layer {
             .collect()
     }
 
+    /// Reduces the number of points for all [`Shape`]s in this `Layer` and its sublayers. see [`Shape::reduce_points`].
     pub fn reduce_points_recursive(&self, aggression_factor: f32) -> Self {
         self.map_recursive(|shape| shape.reduce_points(aggression_factor))
     }
 
+    /// Returns a [`Masked`] object all [`Shape`]s of the `Layer` and its sublayers, grouping parts of all [`Shape`]s into `inside` and `outside`.
+    ///
+    /// This is done by oversampling the [`Shape`] and checking for each point if it is inside or outside the mask using [`Shape::contains_point`].
+    ///
+    /// see [`Shape::mask_brute_force`].
+    ///
+    /// see also [`Layer::mask_geo_flattened`].
     pub fn mask_flattened_brute_force(
         &self,
         mask: &Shape,
@@ -558,6 +622,10 @@ impl Layer {
         Masked { inside, outside }
     }
 
+    /// Returns a new `Layer` with all of this layers [`Shape`]s (non-recursive) ordered in a way that they can be plotted with a minimum of pen travel between shapes.
+    /// This is done with a greedy algorithm that always chooses the closest shape to the current position.
+    ///
+    /// see also [`Layer::optimize_recursive`].
     pub fn optimize(&self) -> Self {
         let sample_settings = SampleSettings::low_res();
         let starts_and_ends: Vec<_> = self
@@ -612,6 +680,7 @@ impl Layer {
         optimized
     }
 
+    /// Applies the same optimization like [`Layer::optimize`], recursively for all sublayers.
     pub fn optimize_recursive(&self) -> Self {
         let mut optimized = self.optimize();
         for sublayer in &self.sublayers {
@@ -620,6 +689,9 @@ impl Layer {
         optimized
     }
 
+    /// Returns a new `Layer` without any sublayers direclty containing all [`Shape`]s of this `Layer` and its sublayers.
+    ///
+    /// see also [`Layer::iter_flattened`].
     pub fn flatten(&self) -> Self {
         Layer::new_from_shapes_and_layers(self.iter_flattened().cloned().collect(), Vec::new())
             .with_props_inheritable(self.props_inheritable.clone())
