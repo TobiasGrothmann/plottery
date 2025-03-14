@@ -74,7 +74,12 @@ impl GridCombineable {
                         height: h,
                     } => {
                         // If this is a main cell with size > 1, check if it overlaps our target area
-                        if (w > 1 || h > 1) && col + w > x && col < x + width && row + h > y && row < y + height {
+                        if (w > 1 || h > 1)
+                            && col + w > x
+                            && col < x + width
+                            && row + h > y
+                            && row < y + height
+                        {
                             return false;
                         }
                     }
@@ -128,10 +133,10 @@ impl GridCombineable {
         };
 
         // Get the bottom-left cell rect
-        let bl_rect = self.grid.get_rect(bl_y, bl_x);
+        let bl_rect = self.grid.get_cell(bl_y, bl_x);
 
         // Calculate the top-right cell rect
-        let tr_rect = self.grid.get_rect(bl_y + height - 1, bl_x + width - 1);
+        let tr_rect = self.grid.get_cell(bl_y + height - 1, bl_x + width - 1);
 
         // Create a rect that spans from bl to tr
         Rect::new(bl_rect.bl(), tr_rect.tr())

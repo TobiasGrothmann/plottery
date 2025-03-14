@@ -2,6 +2,27 @@ use crate::{Rect, V2i, LARGE_EPSILON, V2};
 
 use super::grid_comineable::GridCombineable;
 
+/// A 2D grid layout that divides a rectangular area into rows and columns with equal-sized cells.
+///
+/// `Grid` provides a simple way to create grid-based layouts with consistent cell sizes and
+/// margins between cells. It allows you to generate rectangular areas for each cell in the grid,
+/// which can be used for positioning elements in a layout.
+///
+/// ### Example
+/// ```rust
+/// # use plottery_lib::{Rect, V2, composition::grid::Grid};
+/// # let bounding_box = Rect::new(V2::new(0.0, 0.0), V2::new(100.0, 100.0));
+/// // Create a 3x4 grid with 2.0 margin between cells
+/// let grid = Grid::new(bounding_box, 3, 4, 2.0);
+///
+/// // Get the rectangle for a specific cell
+/// let cell = grid.get_cell(1, 2);
+///
+/// // Iterate over all cells in the grid
+/// for cell in grid.iter() {
+///     // ...
+/// }
+/// ```
 pub struct Grid {
     pub rows: usize,
     pub cols: usize,
@@ -11,6 +32,7 @@ pub struct Grid {
 }
 
 impl Grid {
+    /// Creates a new grid with the specified dimensions and margin.
     pub fn new(bounding_box: Rect, rows: usize, cols: usize, margin: f32) -> Self {
         assert!(rows > 0, "Number of rows must be greater than 0");
         assert!(cols > 0, "Number of columns must be greater than 0");
@@ -35,6 +57,9 @@ impl Grid {
         }
     }
 
+    /// Creates a new grid with square cells, adjusting the bounding box if necessary.
+    ///
+    /// The bounding box is adjusted symmetrically to maintain its center position.
     pub fn new_square_cells(mut bounding_box: Rect, rows: usize, cols: usize, margin: f32) -> Self {
         // TODO: fix margin
         let mut cell_size = V2::new(
@@ -83,17 +108,20 @@ impl Grid {
         }
     }
 
-    pub fn get_rect(&self, row: usize, col: usize) -> Rect {
+    /// Gets the rectangle for a specific cell in the grid.
+    pub fn get_cell(&self, row: usize, col: usize) -> Rect {
         let bl = V2::new(self.margin * col as f32, self.margin * row as f32)
             + self.cell_size * V2::new(col as f32, row as f32)
             + self.bounding_box.bl();
         Rect::new(bl, bl + self.cell_size)
     }
 
+    /// Returns the size of each cell in the grid.
     pub fn get_cell_size(&self) -> V2 {
         self.cell_size
     }
 
+    /// Returns an iterator that yields each cell in the grid in row-major order.
     pub fn iter(&self) -> GridIterator {
         GridIterator {
             grid: self,
@@ -102,16 +130,18 @@ impl Grid {
         }
     }
 
+    /// Converts this grid to a `GridCombineable` which allows combining cells.
     pub fn to_combineable(self) -> GridCombineable {
         GridCombineable::new_from_grid(self)
     }
 
+    /// Gets the number of cells in the grid as a 2D vector (columns, rows).
     pub fn get_num_cells(&self) -> V2i {
         V2i::new(self.cols as i32, self.rows as i32)
     }
 }
 
-// Iterator struct for Grid
+/// Iterator for traversing cells in a [`Grid`].
 pub struct GridIterator<'a> {
     grid: &'a Grid,
     current_row: usize,
@@ -125,7 +155,7 @@ impl Iterator for GridIterator<'_> {
         if self.current_row >= self.grid.rows {
             return None;
         }
-        let rect = self.grid.get_rect(self.current_row, self.current_col);
+        let rect = self.grid.get_cell(self.current_row, self.current_col);
         self.current_col += 1;
         if self.current_col >= self.grid.cols {
             self.current_col = 0;
