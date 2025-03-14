@@ -123,6 +123,13 @@ pub struct ColorHsv {
 }
 
 impl ColorHsv {
+    /// Creates a new HSV color with the specified hue, saturation and value values.
+    ///
+    /// Each value should be between 0.0 and 1.0.
+    pub fn new(h: f32, s: f32, v: f32) -> Self {
+        Self { h, s, v }
+    }
+
     /// Converts this HSV color to RGB format.
     pub fn rgb(&self) -> ColorRgb {
         (*self).into()
