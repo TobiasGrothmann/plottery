@@ -43,5 +43,5 @@ pub fn generate(params: Params) -> Layer {
             .map(|circle| circle.to_shape()),
     );
 
-    l
+    l.with_name("root").optimize_recursive()
 }
