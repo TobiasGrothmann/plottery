@@ -74,10 +74,8 @@ impl GridCombineable {
                         height: h,
                     } => {
                         // If this is a main cell with size > 1, check if it overlaps our target area
-                        if w > 1 || h > 1 {
-                            if col + w > x && col < x + width && row + h > y && row < y + height {
-                                return false;
-                            }
+                        if (w > 1 || h > 1) && col + w > x && col < x + width && row + h > y && row < y + height {
+                            return false;
                         }
                     }
                 }
@@ -227,7 +225,7 @@ pub struct GridCombineableIterator<'a> {
     visited: Vec<Vec<bool>>, // Tracks visited cells
 }
 
-impl<'a> Iterator for GridCombineableIterator<'a> {
+impl Iterator for GridCombineableIterator<'_> {
     type Item = CellInfo;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -284,7 +282,7 @@ impl<'a> Iterator for GridCombineableIterator<'a> {
     }
 }
 
-impl<'a> GridCombineableIterator<'a> {
+impl GridCombineableIterator<'_> {
     // Helper method to advance position
     fn advance_position(&mut self) {
         self.current_col += 1;
