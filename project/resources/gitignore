@@ -1,2 +1,3 @@
 # PLOTTERY
 **/target/
+*.DS_Store
