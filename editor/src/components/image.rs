@@ -14,11 +14,11 @@ pub fn SVGImage(props: SVGImageProps) -> Element {
 
     rsx!(
         div { class: "Image",
-            style: "height: 100%",
+            style: "height: 100%; width: 100%; flex: 1; display: flex; align-items: flex-start; justify-content: flex-start;",
 
             img {
                 src: "{svg_data_url}",
-                style: "height: 100%",
+                style: "flex: 1; max-width: 100%; max-height: 100%;",
             }
         }
     )

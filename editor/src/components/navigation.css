@@ -6,7 +6,7 @@
   flex-direction: row;
   column-gap: var(--gap-1);
   align-items: center;
-  padding: var(--gap-1);
+  padding: 0 var(--gap-1);
 
   background-color: var(--col-fg-0);
   color: var(--col-bg-0);
