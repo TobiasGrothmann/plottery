@@ -38,9 +38,9 @@ pub fn generate(params: Params) -> Layer {
     l.push_rect(frame.outer_rect());
     l.push_many(
         circles
-            .iter()
+            .into_iter()
             .filter(|circle| frame.inner_rect().contains_point(&circle.center))
-            .map(|circle| circle.to_shape()),
+            .map(|circle| circle.into()),
     );
 
     l.with_name("root").optimize_recursive()

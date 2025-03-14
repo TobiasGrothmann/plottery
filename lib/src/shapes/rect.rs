@@ -105,10 +105,6 @@ impl Rect {
     pub fn area(&self) -> f32 {
         self.width() * self.height()
     }
-
-    pub fn to_shape(&self) -> Shape {
-        Shape::Rect(self.clone())
-    }
 }
 
 impl Plottable for Rect {
@@ -140,10 +136,6 @@ impl Plottable for Rect {
 
     fn reduce_points(&self, _aggression_factor: f32) -> Self {
         self.clone()
-    }
-
-    fn to_shape(&self) -> Shape {
-        self.to_shape()
     }
 }
 

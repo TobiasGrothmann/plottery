@@ -319,8 +319,8 @@ impl Layer {
 
         let shapes: Vec<Shape> = self
             .combine_shapes_flat_iterate_until_no_effect(combineable, &max_angle_delta)
-            .iter()
-            .map(|path| path.to_shape())
+            .into_iter()
+            .map(|path| path.into())
             .chain(noncombineable)
             .collect();
 
@@ -343,8 +343,8 @@ impl Layer {
 
         let shapes: Vec<Shape> = self
             .combine_shapes_flat_iterate_until_no_effect(combineable, &max_angle_delta)
-            .iter()
-            .map(|path| path.to_shape())
+            .into_iter()
+            .map(|path| path.into())
             .chain(noncombineable)
             .collect();
 

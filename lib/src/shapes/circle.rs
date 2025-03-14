@@ -28,10 +28,6 @@ impl Circle {
         self.radius * 2.0 * PI
     }
 
-    pub fn to_shape(&self) -> Shape {
-        Shape::Circle(self.clone())
-    }
-
     pub fn get_intersections(&self, other: &Circle) -> Vec<V2> {
         let delta = other.center - self.center;
         let dist = delta.len();
@@ -163,10 +159,6 @@ impl Plottable for Circle {
 
     fn reduce_points(&self, _aggression_factor: f32) -> Self {
         self.clone()
-    }
-
-    fn to_shape(&self) -> Shape {
-        self.to_shape()
     }
 }
 

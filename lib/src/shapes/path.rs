@@ -136,10 +136,6 @@ impl Path {
         new_points
     }
 
-    pub fn to_shape(&self) -> Shape {
-        Shape::Path(self.clone())
-    }
-
     pub fn arc(
         from: &Angle,
         to: &Angle,
@@ -219,10 +215,6 @@ impl Plottable for Path {
                 None
             }
         }))
-    }
-
-    fn to_shape(&self) -> Shape {
-        self.to_shape()
     }
 }
 

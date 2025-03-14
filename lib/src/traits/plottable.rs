@@ -40,7 +40,7 @@ pub struct Masked {
     pub outside: Layer,
 }
 
-pub trait Plottable: Clone {
+pub trait Plottable: Clone + Into<Shape> {
     fn get_points(&self, _: &SampleSettings) -> Vec<V2>;
     fn get_points_from(
         &self,
@@ -278,10 +278,8 @@ pub trait Plottable: Clone {
     }
 
     fn to_layer(&self) -> Layer {
-        Layer::new_from(vec![self.to_shape()])
+        Layer::new_from(vec![self.clone().into()])
     }
-
-    fn to_shape(&self) -> Shape;
 }
 
 fn get_intersections_sorted(segment: &Line, segments_mask: &[Line]) -> Vec<V2> {
