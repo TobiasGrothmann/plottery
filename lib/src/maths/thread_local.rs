@@ -22,6 +22,7 @@ thread_local! {
     pub static RNG: RefCell<StdRng> = RefCell::new(StdRng::from_entropy());
 }
 
+/// Seeds all thread-local random number generators with the given seed. This affects all functions in [`crate::random`]
 pub fn seed(seed: i32) {
     PERLIN.with_borrow_mut(|noise| noise.set_seed(Some(seed)));
     SIMPLEX.with_borrow_mut(|noise| noise.set_seed(Some(seed)));
@@ -29,6 +30,7 @@ pub fn seed(seed: i32) {
     RNG.with_borrow_mut(|rng| *rng = StdRng::seed_from_u64(seed as u64));
 }
 
+/// Seeds all thread-local random number generators with a random seed. This affects all functions in [`crate::random`]
 pub fn seed_random() {
     seed(rand::thread_rng().gen::<i32>());
 }

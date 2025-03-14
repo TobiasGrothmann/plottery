@@ -1,3 +1,6 @@
+//! Contains functions for generating random numbers.
+//! see also [`crate::maths::seed`]
+
 use rand::Rng;
 use rand_distr::{Distribution, Normal, SkewNormal};
 
