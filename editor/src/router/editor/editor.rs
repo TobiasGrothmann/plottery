@@ -202,7 +202,7 @@ pub fn Editor(project_path: String) -> Element {
                     }
                     button { class: "icon_button",
                         onclick: move |event| {
-                            opener::reveal(project().dir.clone()).unwrap();
+                            open::that_in_background(project().dir).join().unwrap().unwrap();
                             event.stop_propagation();
                         },
                         img { src: "{icon_folder}" }
