@@ -9,7 +9,7 @@ pub struct ColorName {
 
 #[rustfmt::skip]
 #[allow(clippy::excessive_precision)]
-/// List of color names [https://en.wikipedia.org/wiki/Lists_of_colors]
+/// List of color names <https://en.wikipedia.org/wiki/Lists_of_colors>
 pub static COLOR_NAMES: [ColorName; 865] = [
     ColorName{name: "Air Force Blue (Raf)", color: ColorRgb{r: 0.36470588235294116, g: 0.5411764705882353, b: 0.6588235294117647}},
     ColorName{name: "Air Force Blue (Usaf)", color: ColorRgb{r: 0.0, g: 0.18823529411764706, b: 0.5607843137254902}},
