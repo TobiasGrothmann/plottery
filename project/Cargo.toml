@@ -8,7 +8,7 @@ license.workspace = true
 categories.workspace = true
 repository.workspace = true
 keywords.workspace = true
-include = ["src/**", "Cargo.toml", "cargo_project_template/**"]
+include = ["src/**", "Cargo.toml", "cargo_project_template/**", "resources/**"]
 
 [dependencies]
 plottery_project_macros = { path = "project_macros", version = "^0.6.0" }
