@@ -141,6 +141,10 @@ impl Plottable for Rect {
     fn reduce_points(&self, _aggression_factor: f32) -> Self {
         self.clone()
     }
+
+    fn to_shape(&self) -> Shape {
+        self.to_shape()
+    }
 }
 
 impl Rotate90 for Rect {

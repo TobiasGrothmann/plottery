@@ -67,6 +67,10 @@ impl Plottable for Shape {
             Shape::Path(p) => Shape::Path(p.reduce_points(aggression_factor)),
         }
     }
+
+    fn to_shape(&self) -> Shape {
+        self.clone()
+    }
 }
 
 impl Clone for Shape {

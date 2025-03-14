@@ -220,6 +220,10 @@ impl Plottable for Path {
             }
         }))
     }
+
+    fn to_shape(&self) -> Shape {
+        self.to_shape()
+    }
 }
 
 impl FromIterator<V2> for Path {

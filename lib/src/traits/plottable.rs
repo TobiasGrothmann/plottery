@@ -207,6 +207,20 @@ pub trait Plottable: Clone {
             outside.push_path(current_part);
         }
 
+        if inside.is_empty() && !outside.is_empty() {
+            // shape is completely outside of mask
+            return Masked {
+                inside: Layer::new(),
+                outside: self.to_layer(),
+            };
+        } else if outside.is_empty() && !inside.is_empty() {
+            // shape is completely inside of mask
+            return Masked {
+                inside: self.to_layer(),
+                outside: Layer::new(),
+            };
+        }
+
         Masked { inside, outside }
     }
 
@@ -262,6 +276,12 @@ pub trait Plottable: Clone {
 
         Masked { inside, outside }
     }
+
+    fn to_layer(&self) -> Layer {
+        Layer::new_from(vec![self.to_shape()])
+    }
+
+    fn to_shape(&self) -> Shape;
 }
 
 fn get_intersections_sorted(segment: &Line, segments_mask: &[Line]) -> Vec<V2> {
