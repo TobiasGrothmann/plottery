@@ -1,6 +1,7 @@
 use crate::{
     traits::{ClosestPoint, Normalize, Scale, Scale2D, Translate},
-    BoundingBox, Mirror, Path, Plottable, Rotate90, SampleSettings, Shape, LARGE_EPSILON, V2,
+    Angle, BoundingBox, Mirror, Path, Plottable, Rotate90, SampleSettings, Shape, LARGE_EPSILON,
+    V2,
 };
 use serde::{Deserialize, Serialize};
 
@@ -104,6 +105,66 @@ impl Rect {
 
     pub fn area(&self) -> f32 {
         self.width() * self.height()
+    }
+
+    pub fn rounded_corners(
+        &self,
+        radius: f32,
+        sample_settings: &SampleSettings,
+    ) -> anyhow::Result<Path> {
+        if self.width() < 2.0 * radius || self.height() < 2.0 * radius {
+            return Err(anyhow::anyhow!("Radius too large for rectangle"));
+        }
+        let half_radius = radius * 0.5;
+
+        let bl_inner = self.bl() + V2::xy(half_radius);
+        let tr_inner = self.tr() - V2::xy(half_radius);
+        let br_inner = self.br() + V2::new(-half_radius, half_radius);
+        let tl_inner = self.tl() + V2::new(half_radius, -half_radius);
+
+        let path = std::iter::once(bl_inner + V2::polar(Angle::left_cc(), half_radius))
+            .chain(
+                Path::arc(
+                    &Angle::left_cc(),
+                    &Angle::up_cc(),
+                    &tl_inner,
+                    half_radius,
+                    sample_settings,
+                )
+                .into_iter(),
+            )
+            .chain(
+                Path::arc(
+                    &Angle::up_cc(),
+                    &Angle::right_cc(),
+                    &tr_inner,
+                    half_radius,
+                    sample_settings,
+                )
+                .into_iter(),
+            )
+            .chain(
+                Path::arc(
+                    &Angle::full_rotation(),
+                    &Angle::down_cc(),
+                    &br_inner,
+                    half_radius,
+                    sample_settings,
+                )
+                .into_iter(),
+            )
+            .chain(
+                Path::arc(
+                    &Angle::down_cc(),
+                    &Angle::left_cc(),
+                    &bl_inner,
+                    half_radius,
+                    sample_settings,
+                )
+                .into_iter(),
+            )
+            .collect();
+        Ok(path)
     }
 }
 
