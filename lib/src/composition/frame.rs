@@ -54,4 +54,8 @@ impl Frame {
     pub fn outer_rect(&self) -> Rect {
         Rect::new(self.bottom_left, self.bottom_left + self.size)
     }
+
+    pub fn center(&self) -> V2 {
+        self.outer_rect().center()
+    }
 }
