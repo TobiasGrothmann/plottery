@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod test_v2 {
     use itertools::Itertools;
+    use rand_distr::num_traits::Pow;
 
     use crate::{Angle, Rotate, Rotate90, LARGE_EPSILON, V2};
 
@@ -334,5 +335,21 @@ mod test_v2 {
         assert_eq!(V2::down().angle(), Angle::down_cc());
         assert_eq!(V2::left().angle(), Angle::left_cc());
         assert_eq!(V2::right().angle(), Angle::right_cc());
+    }
+
+    #[test]
+    fn distort() {
+        let v = V2::new(2.0, 1.0);
+        let around = V2::new(5.0, 6.0);
+
+        assert_eq!(v.distort_pow(&around, 1.0), v); // power of 1.0 -> no change
+        assert_eq!(
+            v.distort_pow(&around, 2.0).dist(&around),
+            v.dist(&around).pow(2.0)
+        );
+        assert_eq!(
+            v.distort_pow(&around, 0.1).dist(&around),
+            v.dist(&around).pow(0.1)
+        );
     }
 }

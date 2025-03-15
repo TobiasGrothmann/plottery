@@ -431,6 +431,24 @@ impl V2 {
             sample_settings.get_num_points_for_length(distance) as usize,
         )
     }
+
+    /// Returns a new `V2` with a distance towads `around` raised to the power of `distance_power`.
+    /// The angle to `around` remains the same.
+    ///
+    /// ### Example
+    /// ```
+    /// # use plottery_lib::*;
+    /// let v = V2::new(2.0, 0.0); // point to distort
+    /// let around = V2::zero(); // center point for distortion
+    /// let power = 3.0;
+    /// assert_eq!(v.distort_pow(&around, power), V2::new(2.0_f32.powf(power), 0.0));
+    /// ```
+    pub fn distort_pow(&self, around: &V2, distance_power: f32) -> Self {
+        let distance = self.dist(around);
+        let angle = around.angle_to(self);
+        let new_distance = distance.powf(distance_power);
+        around + V2::polar(angle, new_distance)
+    }
 }
 
 pub struct V2Interpolator {
