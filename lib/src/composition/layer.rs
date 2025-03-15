@@ -610,8 +610,12 @@ impl Layer {
         mask: &Shape,
         sample_settings: &SampleSettings,
     ) -> Masked {
-        let mut inside = Layer::new();
-        let mut outside = Layer::new();
+        let mut inside = Layer::new()
+            .with_props(self.props.clone())
+            .with_props_inheritable(self.props_inheritable.clone());
+        let mut outside = Layer::new()
+            .with_props(self.props.clone())
+            .with_props_inheritable(self.props_inheritable.clone());
 
         for shape in self.iter_flattened() {
             let masked = shape.mask_brute_force(mask, sample_settings);
