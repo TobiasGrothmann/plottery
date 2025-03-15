@@ -149,6 +149,70 @@ impl V2 {
         Self { x: 2.6, y: 3.7 }
     }
 
+    /// Returns a vector with dimensions for a B paper size specified by number.
+    /// Uses [ISO 216](https://en.wikipedia.org/wiki/ISO_216) standard.
+    pub fn din_b(number: u8) -> Self {
+        match number {
+            0 => Self::b0(),
+            1 => Self::b1(),
+            2 => Self::b2(),
+            3 => Self::b3(),
+            4 => Self::b4(),
+            5 => Self::b5(),
+            6 => Self::b6(),
+            7 => Self::b7(),
+            8 => Self::b8(),
+            9 => Self::b9(),
+            10 => Self::b10(),
+            _ => panic!("DIN B number out of range."),
+        }
+    }
+
+    /// Returns dimensions for B0 paper size (100.0 × 141.4 cm).
+    pub fn b0() -> Self {
+        Self { x: 84.1, y: 118.9 }
+    }
+    /// Returns dimensions for B1 paper size (70.7 × 100.0 cm).
+    pub fn b1() -> Self {
+        Self { x: 70.7, y: 100.0 }
+    }
+    /// Returns dimensions for B2 paper size (50.0 × 70.7 cm).
+    pub fn b2() -> Self {
+        Self { x: 50.0, y: 70.7 }
+    }
+    /// Returns dimensions for B3 paper size (35.3 × 50.0 cm).
+    pub fn b3() -> Self {
+        Self { x: 35.3, y: 50.0 }
+    }
+    /// Returns dimensions for B4 paper size (25.0 × 35.3 cm).
+    pub fn b4() -> Self {
+        Self { x: 25.0, y: 35.3 }
+    }
+    /// Returns dimensions for B5 paper size (17.6 × 25.0 cm).
+    pub fn b5() -> Self {
+        Self { x: 17.6, y: 25.0 }
+    }
+    /// Returns dimensions for B6 paper size (12.5 × 17.6 cm).
+    pub fn b6() -> Self {
+        Self { x: 12.5, y: 17.6 }
+    }
+    /// Returns dimensions for B7 paper size (8.8 × 12.5 cm).
+    pub fn b7() -> Self {
+        Self { x: 8.8, y: 12.5 }
+    }
+    /// Returns dimensions for B8 paper size (6.2 × 8.8 cm).
+    pub fn b8() -> Self {
+        Self { x: 6.2, y: 8.8 }
+    }
+    /// Returns dimensions for B9 paper size (4.4 × 6.2 cm).
+    pub fn b9() -> Self {
+        Self { x: 4.4, y: 6.2 }
+    }
+    /// Returns dimensions for B10 paper size (3.1 × 4.4 cm).
+    pub fn b10() -> Self {
+        Self { x: 3.1, y: 4.4 }
+    }
+
     /// Returns a new V2 with x and y values swapped.
     pub fn swap_axes(&self) -> Self {
         Self {
