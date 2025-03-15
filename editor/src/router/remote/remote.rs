@@ -19,18 +19,19 @@ pub fn Remote() -> Element {
         state_resource.restart();
     });
 
-    if let Some(state) = &*state_resource.value().read() {
-        if let Ok(state) = state {
-            rsx! {
+    rsx! {
+        Navigation { page_name: "Plotter Remote", body: rsx! {} }
+        if let Some(state) = &*state_resource.value().read() {
+            if let Ok(state) = state {
                 RemoteInternal {
                     state: *state
                 }
+            } else {
+                p {"Plotter offline"}
             }
         } else {
-            rsx! { p {"Plotter offline"} }
+            p {"Loading..."}
         }
-    } else {
-        rsx! { p {"Loading..."} }
     }
 }
 
@@ -41,7 +42,6 @@ struct RemoteInternalProps {
 
 fn RemoteInternal(props: RemoteInternalProps) -> Element {
     rsx! {
-        Navigation { page_name: "Plotter Remote", body: rsx! {} }
         div {
             PlotterPosition {
                 location: props.state.location
