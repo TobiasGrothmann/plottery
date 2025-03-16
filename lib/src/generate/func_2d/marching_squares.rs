@@ -7,7 +7,7 @@ pub struct MarchingSquares {
 }
 
 impl MarchingSquares {
-    pub fn new(bounds: Rect, sample_settings: &SampleSettings, function: fn(&V2) -> f32) -> Self {
+    pub fn new(bounds: Rect, sample_settings: SampleSettings, function: fn(V2) -> f32) -> Self {
         let num = (bounds.size() * sample_settings.points_per_unit).ceil_to_int();
         let mut rects: Vec<SampleRect> =
             Vec::with_capacity((num.x as usize + 1) * (num.y as usize + 1));
@@ -21,14 +21,14 @@ impl MarchingSquares {
                     + bounds.bl();
                 let br = SamplePoint {
                     pos: pos_br,
-                    value: function(&pos_br),
+                    value: function(pos_br),
                 };
 
                 if y > 0 && x > 0 {
                     let pos_center = pos_br - V2::new(0.5, 0.5) / sample_settings.points_per_unit;
                     let center = SamplePoint {
                         pos: pos_center,
-                        value: function(&pos_center),
+                        value: function(pos_center),
                     };
 
                     rects.push(SampleRect::new(

@@ -29,7 +29,7 @@ mod test_rect {
     #[test]
     fn rect_points() {
         let r = Rect::new_shape(V2::new(1.0, 2.0), V2::new(4.0, 4.0));
-        let points: Vec<_> = r.get_points(&SampleSettings::default());
+        let points: Vec<_> = r.get_points(SampleSettings::default());
         assert_eq!(points.first().unwrap(), points.last().unwrap()); // is closed
         assert_eq!(points.len(), 5);
     }
@@ -49,7 +49,7 @@ mod test_rect {
         assert!(r.bl().x < r.tr().x);
         assert!(r.bl().y < r.tr().y);
 
-        r.rotate_270_around_mut(&V2::new(0.5, 0.1));
+        r.rotate_270_around_mut(V2::new(0.5, 0.1));
         assert!(r.bl().x < r.tr().x);
         assert!(r.bl().y < r.tr().y);
 
@@ -64,31 +64,31 @@ mod test_rect {
 
         let point = V2::new(1.0, 2.0);
         assert_eq!(
-            r.closest_point(&SampleSettings::default(), &point),
+            r.closest_point(SampleSettings::default(), point),
             Some(point)
         );
 
         let point = V2::new(1.5, 2.0);
         assert_eq!(
-            r.closest_point(&SampleSettings::default(), &point),
+            r.closest_point(SampleSettings::default(), point),
             Some(point)
         );
 
         let point = V2::new(0.0, 0.0);
         assert_eq!(
-            r.closest_point(&SampleSettings::default(), &point),
+            r.closest_point(SampleSettings::default(), point),
             Some(r.bl())
         );
 
         let point = V2::new(1.2, 3.0);
         assert_eq!(
-            r.closest_point(&SampleSettings::default(), &point),
+            r.closest_point(SampleSettings::default(), point),
             Some(V2::new(1.0, 3.0))
         );
 
         let point = V2::new(0.8, 3.0);
         assert_eq!(
-            r.closest_point(&SampleSettings::default(), &point),
+            r.closest_point(SampleSettings::default(), point),
             Some(V2::new(1.0, 3.0))
         );
     }

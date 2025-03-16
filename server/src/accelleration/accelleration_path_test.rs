@@ -11,7 +11,7 @@ mod tests {
         let accell_dist = 0.2;
         let edge_slow_down_power = 0.5;
 
-        let points = path.get_points(&SampleSettings::default());
+        let points = path.get_points(SampleSettings::default());
         let acc_path = AccellerationPath::new(&points, accell_dist, edge_slow_down_power);
 
         assert_eq!(acc_path.points.len(), 13);
@@ -48,7 +48,7 @@ mod tests {
         let accell_dist = 0.3;
         let edge_slow_down_power = 0.5;
 
-        let points = path.get_points(&SampleSettings::default());
+        let points = path.get_points(SampleSettings::default());
         let acc_path = AccellerationPath::new(&points, accell_dist, edge_slow_down_power);
 
         assert_eq!(acc_path.points.len(), 5);
@@ -86,7 +86,7 @@ mod tests {
         let accell_dist = 0.3;
         let edge_slow_down_power = 0.5;
 
-        let points = path.get_points(&SampleSettings::default());
+        let points = path.get_points(SampleSettings::default());
         let acc_path = AccellerationPath::new(&points, accell_dist, edge_slow_down_power);
 
         assert_eq!(acc_path.points.len(), 5);

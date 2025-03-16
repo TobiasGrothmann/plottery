@@ -217,7 +217,7 @@ impl Layer {
         }
         let bounding_box = bounding_box.unwrap();
 
-        self.map_recursive(|shape| shape.mirror_y().translate(&bounding_box.size().only_y()))
+        self.map_recursive(|shape| shape.mirror_y().translate(bounding_box.size().only_y()))
     }
     fn get_svg_group(&self, scale: f32, parent_props: &LayerPropsInheritable) -> Group {
         let props_inheritable = parent_props.overwrite_with(&self.props_inheritable);
@@ -558,7 +558,7 @@ impl Layer {
     ///
     /// There can be unexpected outputs for example with shapes that self-intersect.
     /// See also [`Layer::mask_flattened_brute_force`] for a different and more stable masking.
-    pub fn mask_geo_flattened(&self, mask: &Shape, sample_settings: &SampleSettings) -> Masked {
+    pub fn mask_geo_flattened(&self, mask: &Shape, sample_settings: SampleSettings) -> Masked {
         let mut inside = Layer::new();
         let mut outside = Layer::new();
 
@@ -575,7 +575,7 @@ impl Layer {
     pub fn mask_geo_flattened_inside(
         &self,
         mask: &Shape,
-        sample_settings: &SampleSettings,
+        sample_settings: SampleSettings,
     ) -> Layer {
         self.iter_flattened()
             .map(|shape| shape.mask_geo_inside(mask, sample_settings))
@@ -586,7 +586,7 @@ impl Layer {
     pub fn mask_geo_flattened_outside(
         &self,
         mask: &Shape,
-        sample_settings: &SampleSettings,
+        sample_settings: SampleSettings,
     ) -> Layer {
         self.iter_flattened()
             .map(|shape| shape.mask_geo_outside(mask, sample_settings))
@@ -608,7 +608,7 @@ impl Layer {
     pub fn mask_flattened_brute_force(
         &self,
         mask: &Shape,
-        sample_settings: &SampleSettings,
+        sample_settings: SampleSettings,
     ) -> Masked {
         let mut inside = Layer::new()
             .with_props(self.props.clone())
@@ -636,7 +636,7 @@ impl Layer {
             .shapes
             .iter()
             .map(|shape| {
-                let points = shape.get_points(&sample_settings);
+                let points = shape.get_points(sample_settings);
                 if points.is_empty() {
                     return (V2::zero(), V2::zero());
                 }
@@ -657,8 +657,8 @@ impl Layer {
             let mut reversed = false;
 
             for unused_i in unused_items_indices.iter() {
-                let dist_to_start = starts_and_ends[*unused_i].0.dist_squared(&pos);
-                let dist_to_end = starts_and_ends[*unused_i].1.dist_squared(&pos);
+                let dist_to_start = starts_and_ends[*unused_i].0.dist_squared(pos);
+                let dist_to_end = starts_and_ends[*unused_i].1.dist_squared(pos);
 
                 if dist_to_start < best_distance {
                     reversed = true;
@@ -772,26 +772,26 @@ impl FromIterator<Layer> for Layer {
 }
 
 impl Translate for Layer {
-    fn translate(&self, dist: &V2) -> Self {
+    fn translate(&self, dist: V2) -> Self {
         self.map_recursive(|shape| shape.translate(dist))
     }
-    fn translate_mut(&mut self, dist: &V2) {
+    fn translate_mut(&mut self, dist: V2) {
         self.map_recursive_mut(|shape| shape.translate_mut(dist));
     }
 }
 
 impl Rotate for Layer {
-    fn rotate(&self, angle: &crate::Angle) -> Self {
+    fn rotate(&self, angle: Angle) -> Self {
         self.map_recursive(|shape| shape.rotate(angle))
     }
-    fn rotate_mut(&mut self, angle: &crate::Angle) {
+    fn rotate_mut(&mut self, angle: Angle) {
         self.map_recursive_mut(|shape| shape.rotate_mut(angle));
     }
 
-    fn rotate_around(&self, pivot: &V2, angle: &crate::Angle) -> Self {
+    fn rotate_around(&self, pivot: V2, angle: Angle) -> Self {
         self.map_recursive(|shape| shape.rotate_around(pivot, angle))
     }
-    fn rotate_around_mut(&mut self, pivot: &V2, angle: &crate::Angle) {
+    fn rotate_around_mut(&mut self, pivot: V2, angle: Angle) {
         self.map_recursive_mut(|shape| shape.rotate_around_mut(pivot, angle));
     }
 }
@@ -807,11 +807,11 @@ impl Scale for Layer {
 }
 
 impl Scale2D for Layer {
-    fn scale_2d(&self, factor: &V2) -> Self {
+    fn scale_2d(&self, factor: V2) -> Self {
         self.map_recursive(|shape| shape.scale_2d(factor))
     }
 
-    fn scale_2d_mut(&mut self, factor: &V2) {
+    fn scale_2d_mut(&mut self, factor: V2) {
         self.map_recursive_mut(|shape| shape.scale_2d_mut(factor));
     }
 }
@@ -849,12 +849,12 @@ impl BoundingBox for Layer {
             if min.is_none() {
                 min = Some(shape_box.bl());
             } else {
-                min = Some(min.unwrap().min(&shape_box.bl()));
+                min = Some(min.unwrap().min(shape_box.bl()));
             }
             if max.is_none() {
                 max = Some(shape_box.tr());
             } else {
-                max = Some(max.unwrap().max(&shape_box.tr()));
+                max = Some(max.unwrap().max(shape_box.tr()));
             }
         }
         if min.is_none() || max.is_none() {

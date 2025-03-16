@@ -7,7 +7,7 @@ use geometry_predicates::orient2d;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct SampleSettings {
     pub points_per_unit: f32,
 }
@@ -41,14 +41,14 @@ pub struct Masked {
 }
 
 pub trait Plottable: Clone + Into<Shape> {
-    fn get_points(&self, _: &SampleSettings) -> Vec<V2>;
+    fn get_points(&self, _: SampleSettings) -> Vec<V2>;
     fn get_points_from(
         &self,
-        current_drawing_head_pos: &V2,
-        sample_settings: &SampleSettings,
+        current_drawing_head_pos: V2,
+        sample_settings: SampleSettings,
     ) -> Vec<V2>;
 
-    fn get_line_segments(&self, sample_settings: &SampleSettings) -> Vec<Line> {
+    fn get_line_segments(&self, sample_settings: SampleSettings) -> Vec<Line> {
         self.get_points(sample_settings)
             .iter()
             .tuple_windows()
@@ -60,18 +60,18 @@ pub trait Plottable: Clone + Into<Shape> {
 
     fn is_closed(&self) -> bool;
 
-    fn contains_point(&self, point: &V2) -> bool; // assuming shape is closed
+    fn contains_point(&self, point: V2) -> bool; // assuming shape is closed
 
     fn reduce_points(&self, aggression_factor: f32) -> Self;
 
-    fn get_points_oversampled(&self, sample_settings: &SampleSettings) -> Vec<V2> {
+    fn get_points_oversampled(&self, sample_settings: SampleSettings) -> Vec<V2> {
         let points = self.get_points(sample_settings);
         if points.is_empty() {
             return points;
         }
         let mut points_oversampled = vec![points[0]];
         for (from, to) in self.get_points(sample_settings).iter().tuple_windows() {
-            let num_steps = sample_settings.get_num_points_for_length(from.dist(to));
+            let num_steps = sample_settings.get_num_points_for_length(from.dist(*to));
             if num_steps <= 1 {
                 points_oversampled.push(*to);
             } else {
@@ -84,7 +84,7 @@ pub trait Plottable: Clone + Into<Shape> {
         points_oversampled
     }
 
-    fn get_points_and_dist_oversampled(&self, sample_settings: &SampleSettings) -> Vec<(V2, f32)> {
+    fn get_points_and_dist_oversampled(&self, sample_settings: SampleSettings) -> Vec<(V2, f32)> {
         let points = self.get_points(sample_settings);
         let mut dist_along_path = 0.0;
         if points.is_empty() {
@@ -92,8 +92,8 @@ pub trait Plottable: Clone + Into<Shape> {
         }
         let mut points_oversampled = vec![(points[0], 0.0)];
         for (from, to) in points.iter().tuple_windows() {
-            let num_steps = sample_settings.get_num_points_for_length(from.dist(to));
-            let segment_length = from.dist(to);
+            let num_steps = sample_settings.get_num_points_for_length(from.dist(*to));
+            let segment_length = from.dist(*to);
 
             if num_steps <= 1 {
                 points_oversampled.push((*to, dist_along_path + segment_length));
@@ -112,14 +112,14 @@ pub trait Plottable: Clone + Into<Shape> {
         points_oversampled
     }
 
-    fn as_geo_polygon(&self, sample_settings: &SampleSettings) -> Polygon<f32> {
+    fn as_geo_polygon(&self, sample_settings: SampleSettings) -> Polygon<f32> {
         Polygon::new(
             self.as_geo_line_string(sample_settings),
             vec![LineString(Vec::new())],
         )
     }
 
-    fn as_geo_line_string(&self, sample_settings: &SampleSettings) -> LineString<f32> {
+    fn as_geo_line_string(&self, sample_settings: SampleSettings) -> LineString<f32> {
         let coords = self
             .get_points(sample_settings)
             .iter()
@@ -128,11 +128,11 @@ pub trait Plottable: Clone + Into<Shape> {
         LineString(coords)
     }
 
-    fn as_geo_multi_line_string(&self, sample_settings: &SampleSettings) -> MultiLineString<f32> {
+    fn as_geo_multi_line_string(&self, sample_settings: SampleSettings) -> MultiLineString<f32> {
         MultiLineString(vec![self.as_geo_line_string(sample_settings)])
     }
 
-    fn mask_geo(&self, mask: &Shape, sample_settings: &SampleSettings) -> Masked {
+    fn mask_geo(&self, mask: &Shape, sample_settings: SampleSettings) -> Masked {
         let shape_geo = self.as_geo_multi_line_string(sample_settings);
         let mask_geo = mask.as_geo_polygon(sample_settings);
 
@@ -156,7 +156,7 @@ pub trait Plottable: Clone + Into<Shape> {
         }
     }
 
-    fn mask_geo_inside(&self, mask: &Shape, sample_settings: &SampleSettings) -> Layer {
+    fn mask_geo_inside(&self, mask: &Shape, sample_settings: SampleSettings) -> Layer {
         let shape_geo = self.as_geo_multi_line_string(sample_settings);
         let mask_geo = mask.as_geo_polygon(sample_settings);
 
@@ -167,7 +167,7 @@ pub trait Plottable: Clone + Into<Shape> {
             .collect()
     }
 
-    fn mask_geo_outside(&self, mask: &Shape, sample_settings: &SampleSettings) -> Layer {
+    fn mask_geo_outside(&self, mask: &Shape, sample_settings: SampleSettings) -> Layer {
         let shape_geo = self.as_geo_multi_line_string(sample_settings);
         let mask_geo = mask.as_geo_polygon(sample_settings);
 
@@ -178,17 +178,17 @@ pub trait Plottable: Clone + Into<Shape> {
             .collect()
     }
 
-    fn mask_brute_force(&self, mask: &Shape, sample_settings: &SampleSettings) -> Masked {
+    fn mask_brute_force(&self, mask: &Shape, sample_settings: SampleSettings) -> Masked {
         let points_shape = self.get_points_oversampled(sample_settings);
 
         let mut inside = Layer::new();
         let mut outside = Layer::new();
 
         let mut current_part = Path::new_from(vec![*points_shape.first().unwrap()]);
-        let mut is_inside = mask.contains_point(current_part.get_start().unwrap());
+        let mut is_inside = mask.contains_point(*current_part.get_start().unwrap());
 
         for point in points_shape {
-            let new_inside = mask.contains_point(&point);
+            let new_inside = mask.contains_point(point);
             if is_inside != new_inside {
                 if is_inside {
                     inside.push_path(current_part);
@@ -224,7 +224,7 @@ pub trait Plottable: Clone + Into<Shape> {
         Masked { inside, outside }
     }
 
-    fn mask_by_intersections(&self, mask: &Shape, sample_settings: &SampleSettings) -> Masked {
+    fn mask_by_intersections(&self, mask: &Shape, sample_settings: SampleSettings) -> Masked {
         let segments_mask = mask.get_line_segments(sample_settings);
 
         // perturb the path to avoid points on the mask lines
@@ -233,7 +233,7 @@ pub trait Plottable: Clone + Into<Shape> {
             let mut perturbed_point = point;
             loop {
                 let (is_on_mask_line, line_angle) =
-                    is_point_on_mask_line(&perturbed_point, &segments_mask, 0.1);
+                    is_point_on_mask_line(perturbed_point, &segments_mask, 0.1);
                 if is_on_mask_line {
                     perturbed_point += V2::polar(line_angle + Angle::quarter_rotation(), 0.05);
                     continue;
@@ -248,7 +248,7 @@ pub trait Plottable: Clone + Into<Shape> {
         let mut inside = Layer::new();
         let mut outside = Layer::new();
         let mut current_part = Path::new_from(vec![segments_shape.first().unwrap().from]);
-        let mut currently_inside = mask.contains_point(current_part.get_start().unwrap());
+        let mut currently_inside = mask.contains_point(*current_part.get_start().unwrap());
 
         // switch inside to outside on each intersection
         for segment in segments_shape {
@@ -285,16 +285,16 @@ pub trait Plottable: Clone + Into<Shape> {
 fn get_intersections_sorted(segment: &Line, segments_mask: &[Line]) -> Vec<V2> {
     segments_mask
         .iter()
-        .map(|segment_mask| segment.intersection(segment_mask))
+        .map(|segment_mask| segment.intersection(*segment_mask))
         .filter_map(|intersection| match intersection {
             LineIntersection::Intersection(point) => Some(point),
             _ => None,
         })
-        .sorted_by_cached_key(|point| point.dist_squared(&segment.from).to_bits())
+        .sorted_by_cached_key(|point| point.dist_squared(segment.from).to_bits())
         .collect()
 }
 
-fn is_point_on_mask_line(point: &V2, segments_mask: &[Line], epsilon: f64) -> (bool, Angle) {
+fn is_point_on_mask_line(point: V2, segments_mask: &[Line], epsilon: f64) -> (bool, Angle) {
     for segment_mask in segments_mask {
         let orientation = orient2d(
             [segment_mask.from.x as f64, segment_mask.from.y as f64],

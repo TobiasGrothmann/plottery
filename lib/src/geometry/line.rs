@@ -59,12 +59,12 @@ impl Line {
     }
 
     /// Projects a point onto the infinite line defined by this line segment.
-    pub fn project(&self, point: &V2) -> V2 {
-        self.from + (point - self.from).project_onto(&self.vector())
+    pub fn project(&self, point: V2) -> V2 {
+        self.from + (point - self.from).project_onto(self.vector())
     }
 
     /// Determines the position of a point relative to this line.
-    pub fn point_relation(&self, point: &V2) -> PointLineRelation {
+    pub fn point_relation(&self, point: V2) -> PointLineRelation {
         let orientation = orient2d(
             [self.from.x as f64, self.from.y as f64],
             [self.to.x as f64, self.to.y as f64],
@@ -81,7 +81,7 @@ impl Line {
     /// Checks for an intersection between this line segment and another.
     ///
     /// For infinite lines, see [`Self::intersection_as_inf_lines`].
-    pub fn intersection(&self, other: &Line) -> LineIntersection {
+    pub fn intersection(&self, other: Line) -> LineIntersection {
         if self.from == other.from || self.from == other.to {
             return LineIntersection::Intersection(self.from);
         } else if self.to == other.from || self.to == other.to {
@@ -160,24 +160,24 @@ impl Line {
     /// Returns the closest point on the infinite line to the given point.
     ///
     /// For line segments, see [`Self::closest_point`].
-    pub fn closest_point_on_infinite_line(&self, point: &V2) -> V2 {
+    pub fn closest_point_on_infinite_line(&self, point: V2) -> V2 {
         if self.from == self.to {
             return self.from;
         }
         let l = self.to - self.from;
-        let t = (point - self.from).dot(&l) / l.len_squared();
+        let t = (point - self.from).dot(l) / l.len_squared();
         self.from + l * t
     }
 
     /// Returns the closest point on the line segment to the given point.
     ///
     /// For infinite lines, see [`Self::closest_point_on_infinite_line`].
-    pub fn closest_point(&self, point: &V2) -> V2 {
+    pub fn closest_point(&self, point: V2) -> V2 {
         if self.from == self.to {
             return self.from;
         }
         let l = self.to - self.from;
-        let t = (point - self.from).dot(&l) / l.len_squared();
+        let t = (point - self.from).dot(l) / l.len_squared();
         if t < 0.0 {
             return self.from;
         }
@@ -191,12 +191,12 @@ impl Line {
     pub fn intersect_multiple_sorted_by_dist(&self, line_segments: &[Line]) -> Vec<V2> {
         line_segments
             .iter()
-            .map(|segment| self.intersection(segment))
+            .map(|segment| self.intersection(*segment))
             .filter_map(|intersection| match intersection {
                 LineIntersection::Intersection(point) => Some(point),
                 _ => None,
             })
-            .sorted_by_cached_key(|point| point.dist_squared(&self.from).to_bits())
+            .sorted_by_cached_key(|point| point.dist_squared(self.from).to_bits())
             .collect()
     }
 }

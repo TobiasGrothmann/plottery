@@ -72,7 +72,7 @@ impl Circle {
         vec![V2::new(x2 + rx, y2 + ry), V2::new(x2 - rx, y2 - ry)]
     }
 
-    fn get_points(&self, start_angle: Angle, sample_settings: &SampleSettings) -> Vec<V2> {
+    fn get_points(&self, start_angle: Angle, sample_settings: SampleSettings) -> Vec<V2> {
         let num_samples = sample_settings
             .get_num_points_for_length(self.circumference())
             .max(8);
@@ -92,7 +92,7 @@ impl Circle {
         &self,
         mut thickness: f32,
         pen_width: f32,
-        sample_settings: &SampleSettings,
+        sample_settings: SampleSettings,
     ) -> super::Path {
         thickness = thickness.min(self.radius - pen_width * 0.5);
         let num_rotations = thickness / pen_width;
@@ -129,14 +129,14 @@ impl Circle {
 }
 
 impl Plottable for Circle {
-    fn get_points(&self, sample_settings: &SampleSettings) -> Vec<V2> {
+    fn get_points(&self, sample_settings: SampleSettings) -> Vec<V2> {
         self.get_points(Angle::zero(), sample_settings)
     }
 
     fn get_points_from(
         &self,
-        current_drawing_head_pos: &V2,
-        sample_settings: &SampleSettings,
+        current_drawing_head_pos: V2,
+        sample_settings: SampleSettings,
     ) -> Vec<V2> {
         if self.center == current_drawing_head_pos {
             return self.get_points(Angle::zero(), sample_settings);
@@ -153,8 +153,8 @@ impl Plottable for Circle {
         true
     }
 
-    fn contains_point(&self, point: &V2) -> bool {
-        point.dist(&self.center) <= self.radius
+    fn contains_point(&self, point: V2) -> bool {
+        point.dist(self.center) <= self.radius
     }
 
     fn reduce_points(&self, _aggression_factor: f32) -> Self {
@@ -163,23 +163,23 @@ impl Plottable for Circle {
 }
 
 impl Rotate for Circle {
-    fn rotate(&self, angle: &Angle) -> Self {
+    fn rotate(&self, angle: Angle) -> Self {
         Circle {
             center: self.center.rotate(angle),
             radius: self.radius,
         }
     }
-    fn rotate_mut(&mut self, angle: &Angle) {
+    fn rotate_mut(&mut self, angle: Angle) {
         self.center.rotate_mut(angle);
     }
 
-    fn rotate_around(&self, pivot: &V2, angle: &Angle) -> Self {
+    fn rotate_around(&self, pivot: V2, angle: Angle) -> Self {
         Circle {
             center: self.center.rotate_around(pivot, angle),
             radius: self.radius,
         }
     }
-    fn rotate_around_mut(&mut self, pivot: &V2, angle: &Angle) {
+    fn rotate_around_mut(&mut self, pivot: V2, angle: Angle) {
         self.center.rotate_around_mut(pivot, angle);
     }
 }
@@ -215,46 +215,46 @@ impl Rotate90 for Circle {
         self.center.rotate_270_mut();
     }
 
-    fn rotate_90_around(&self, pivot: &V2) -> Self {
+    fn rotate_90_around(&self, pivot: V2) -> Self {
         Circle {
             center: self.center.rotate_90_around(pivot),
             radius: self.radius,
         }
     }
-    fn rotate_90_around_mut(&mut self, pivot: &V2) {
+    fn rotate_90_around_mut(&mut self, pivot: V2) {
         self.center.rotate_90_around_mut(pivot);
     }
 
-    fn rotate_180_around(&self, pivot: &V2) -> Self {
+    fn rotate_180_around(&self, pivot: V2) -> Self {
         Circle {
             center: self.center.rotate_180_around(pivot),
             radius: self.radius,
         }
     }
-    fn rotate_180_around_mut(&mut self, pivot: &V2) {
+    fn rotate_180_around_mut(&mut self, pivot: V2) {
         self.center.rotate_180_around_mut(pivot);
     }
 
-    fn rotate_270_around(&self, pivot: &V2) -> Self {
+    fn rotate_270_around(&self, pivot: V2) -> Self {
         Circle {
             center: self.center.rotate_270_around(pivot),
             radius: self.radius,
         }
     }
-    fn rotate_270_around_mut(&mut self, pivot: &V2) {
+    fn rotate_270_around_mut(&mut self, pivot: V2) {
         self.center.rotate_270_around_mut(pivot);
     }
 }
 
 impl Translate for Circle {
-    fn translate(&self, dist: &V2) -> Self {
+    fn translate(&self, dist: V2) -> Self {
         Circle {
-            center: self.center + *dist,
+            center: self.center + dist,
             radius: self.radius,
         }
     }
-    fn translate_mut(&mut self, dist: &V2) {
-        self.center += *dist;
+    fn translate_mut(&mut self, dist: V2) {
+        self.center += dist;
     }
 }
 
@@ -304,7 +304,7 @@ impl BoundingBox for Circle {
 }
 
 impl ClosestPoint for Circle {
-    fn closest_point(&self, _: &SampleSettings, point: &V2) -> Option<V2> {
+    fn closest_point(&self, _: SampleSettings, point: V2) -> Option<V2> {
         let direction = point - self.center;
         if direction == V2::zero() {
             // point is at the center

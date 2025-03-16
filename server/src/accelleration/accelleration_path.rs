@@ -5,14 +5,14 @@ use plottery_lib::{LARGE_EPSILON, V2};
 
 use super::maths::get_corner_sharpness;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct V2Speed {
     pub point: V2,
     pub speed: f32,
 }
 
 impl V2Speed {
-    pub fn compute_speed(before: &V2, point: &V2, after: &V2, edge_slow_down_power: f32) -> f32 {
+    pub fn compute_speed(before: V2, point: V2, after: V2, edge_slow_down_power: f32) -> f32 {
         let sharpness = get_corner_sharpness(before, point, after);
         1.0 - sharpness.powf(edge_slow_down_power)
     }
@@ -74,7 +74,7 @@ impl AccellerationPath {
         let mut speed = 0.0;
         let speeds = points.zip(corner_sharpness_speeds).tuple_windows().map(
             |((a, _a_speed), (b, b_speed))| {
-                let segment_length = a.dist(&b);
+                let segment_length = a.dist(b);
                 let max_acc = segment_length / accell_dist;
 
                 if speed < b_speed {
@@ -103,7 +103,7 @@ impl AccellerationPath {
             .iter()
             .tuple_windows::<(_, _, _)>()
             .map(|(before, point, after)| {
-                V2Speed::compute_speed(before, point, after, edge_slow_down_power)
+                V2Speed::compute_speed(*before, *point, *after, edge_slow_down_power)
             });
 
         once(0.0).chain(speeds).chain(once(0.0)).collect()
@@ -116,7 +116,7 @@ impl AccellerationPath {
         for ((a, _speed_a), (b, speed_b)) in points.iter().zip(speeds.iter()).tuple_windows() {
             speed_points.push(V2Speed { point: *a, speed });
 
-            let segment_length = a.dist(b);
+            let segment_length = a.dist(*b);
 
             let a_needed_dist_to_max_speed = (1.0 - speed) * accell_dist;
             let b_needed_dist_to_max_speed = (1.0 - *speed_b) * accell_dist;

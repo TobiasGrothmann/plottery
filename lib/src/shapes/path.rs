@@ -137,11 +137,11 @@ impl Path {
     }
 
     pub fn arc(
-        from: &Angle,
-        to: &Angle,
-        center: &V2,
+        from: Angle,
+        to: Angle,
+        center: V2,
         radius: f32,
-        sample_settings: &SampleSettings,
+        sample_settings: SampleSettings,
     ) -> Self {
         let arc_length = (to.to_rad() - from.to_rad()).abs() * radius * 2.0 * PI;
         let num_points = sample_settings.get_num_points_for_length(arc_length);
@@ -156,21 +156,21 @@ impl Path {
 }
 
 impl Plottable for Path {
-    fn get_points(&self, _: &SampleSettings) -> Vec<V2> {
+    fn get_points(&self, _: SampleSettings) -> Vec<V2> {
         self.points.clone()
     }
 
     fn get_points_from(
         &self,
-        current_drawing_head_pos: &V2,
-        sample_settings: &SampleSettings,
+        current_drawing_head_pos: V2,
+        sample_settings: SampleSettings,
     ) -> Vec<V2> {
         let mut points = self.get_points(sample_settings);
         if points.is_empty() {
             return points;
         }
-        if current_drawing_head_pos.dist(points.last().unwrap())
-            < current_drawing_head_pos.dist(points.first().unwrap())
+        if current_drawing_head_pos.dist(*points.last().unwrap())
+            < current_drawing_head_pos.dist(*points.first().unwrap())
         {
             points.reverse();
         }
@@ -181,14 +181,14 @@ impl Plottable for Path {
         self.points
             .iter()
             .tuple_windows()
-            .fold(0.0, |acc, (from, to)| acc + from.dist(to))
+            .fold(0.0, |acc, (from, to)| acc + from.dist(*to))
     }
 
     fn is_closed(&self) -> bool {
         !self.points.is_empty() && self.points.first() == self.points.last()
     }
 
-    fn contains_point(&self, point: &V2) -> bool {
+    fn contains_point(&self, point: V2) -> bool {
         let mut inside = false;
         for (from, to) in self.points.iter().tuple_windows() {
             let crosses_horizontal_line_through_point = (from.y > point.y) != (to.y > point.y);
@@ -227,18 +227,18 @@ impl FromIterator<V2> for Path {
 }
 
 impl Rotate for Path {
-    fn rotate(&self, angle: &Angle) -> Self {
+    fn rotate(&self, angle: Angle) -> Self {
         Path {
             points: self.iter().map(|point| point.rotate(angle)).collect(),
         }
     }
-    fn rotate_mut(&mut self, angle: &Angle) {
+    fn rotate_mut(&mut self, angle: Angle) {
         for point in self.iter_mut() {
             point.rotate_mut(angle);
         }
     }
 
-    fn rotate_around(&self, pivot: &V2, angle: &Angle) -> Self {
+    fn rotate_around(&self, pivot: V2, angle: Angle) -> Self {
         Path {
             points: self
                 .iter()
@@ -246,7 +246,7 @@ impl Rotate for Path {
                 .collect(),
         }
     }
-    fn rotate_around_mut(&mut self, pivot: &V2, angle: &Angle) {
+    fn rotate_around_mut(&mut self, pivot: V2, angle: Angle) {
         for point in self.iter_mut() {
             point.rotate_around_mut(pivot, angle);
         }
@@ -287,7 +287,7 @@ impl Rotate90 for Path {
         }
     }
 
-    fn rotate_90_around(&self, pivot: &V2) -> Self {
+    fn rotate_90_around(&self, pivot: V2) -> Self {
         Path {
             points: self
                 .iter()
@@ -295,13 +295,13 @@ impl Rotate90 for Path {
                 .collect(),
         }
     }
-    fn rotate_90_around_mut(&mut self, pivot: &V2) {
+    fn rotate_90_around_mut(&mut self, pivot: V2) {
         for point in self.iter_mut() {
             point.rotate_90_around_mut(pivot);
         }
     }
 
-    fn rotate_180_around(&self, pivot: &V2) -> Self {
+    fn rotate_180_around(&self, pivot: V2) -> Self {
         Path {
             points: self
                 .iter()
@@ -309,13 +309,13 @@ impl Rotate90 for Path {
                 .collect(),
         }
     }
-    fn rotate_180_around_mut(&mut self, pivot: &V2) {
+    fn rotate_180_around_mut(&mut self, pivot: V2) {
         for point in self.iter_mut() {
             point.rotate_180_around_mut(pivot);
         }
     }
 
-    fn rotate_270_around(&self, pivot: &V2) -> Self {
+    fn rotate_270_around(&self, pivot: V2) -> Self {
         Path {
             points: self
                 .iter()
@@ -323,7 +323,7 @@ impl Rotate90 for Path {
                 .collect(),
         }
     }
-    fn rotate_270_around_mut(&mut self, pivot: &V2) {
+    fn rotate_270_around_mut(&mut self, pivot: V2) {
         for point in self.iter_mut() {
             point.rotate_270_around_mut(pivot);
         }
@@ -340,14 +340,14 @@ impl IntoIterator for Path {
 }
 
 impl Translate for Path {
-    fn translate(&self, dist: &V2) -> Self {
+    fn translate(&self, dist: V2) -> Self {
         Path {
-            points: self.iter().map(|point| point + *dist).collect(),
+            points: self.iter().map(|point| point + dist).collect(),
         }
     }
-    fn translate_mut(&mut self, dist: &V2) {
+    fn translate_mut(&mut self, dist: V2) {
         for point in self.iter_mut() {
-            *point += *dist;
+            *point += dist;
         }
     }
 }
@@ -366,12 +366,12 @@ impl Scale for Path {
 }
 
 impl Scale2D for Path {
-    fn scale_2d(&self, factor: &V2) -> Self {
+    fn scale_2d(&self, factor: V2) -> Self {
         Path {
             points: self.iter().map(|point| point * factor).collect(),
         }
     }
-    fn scale_2d_mut(&mut self, factor: &V2) {
+    fn scale_2d_mut(&mut self, factor: V2) {
         for point in self.iter_mut() {
             *point *= factor;
         }
@@ -382,14 +382,14 @@ impl Normalize for Path {}
 
 impl BoundingBox for Path {
     fn bounding_box(&self) -> Option<Rect> {
-        let points = self.get_points(&SampleSettings::default());
+        let points = self.get_points(SampleSettings::default());
         let min = points.iter().fold(None, |acc, v| match acc {
             None => Some(*v),
-            Some(acc) => Some(acc.min(v)),
+            Some(acc) => Some(acc.min(*v)),
         });
         let max = points.iter().fold(None, |acc, v| match acc {
             None => Some(*v),
-            Some(acc) => Some(acc.max(v)),
+            Some(acc) => Some(acc.max(*v)),
         });
         if min.is_none() || max.is_none() {
             return None;
@@ -401,12 +401,12 @@ impl BoundingBox for Path {
 impl Transform for Path {
     fn transform(&self, matrix: &TransformMatrix) -> Self {
         Path {
-            points: self.iter().map(|point| matrix.mul_vector(point)).collect(),
+            points: self.iter().map(|point| matrix.mul_vector(*point)).collect(),
         }
     }
     fn transform_mut(&mut self, matrix: &TransformMatrix) {
         for point in self.iter_mut() {
-            *point = matrix.mul_vector(point);
+            *point = matrix.mul_vector(*point);
         }
     }
 }
@@ -438,7 +438,7 @@ impl Mirror for Path {
 }
 
 impl ClosestPoint for Path {
-    fn closest_point(&self, sample_settings: &SampleSettings, point: &V2) -> Option<V2> {
+    fn closest_point(&self, sample_settings: SampleSettings, point: V2) -> Option<V2> {
         let points_and_distances: Vec<(V2, f32)> = self
             .get_line_segments(sample_settings)
             .iter()

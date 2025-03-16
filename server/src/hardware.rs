@@ -207,7 +207,7 @@ impl Hardware {
 
     fn move_steps(
         &mut self,
-        movement: &V2i,
+        movement: V2i,
         speed_handler: &SpeedDelayHandler,
         speed_fraction_start: f32,
         speed_fraction_end: f32,
@@ -241,7 +241,7 @@ impl Hardware {
             );
 
             if Line::new(V2::new(0.0, 0.0), movement_abs.abs().to_float())
-                .point_relation(&V2::new(stepped_x as f32, stepped_y as f32))
+                .point_relation(V2::new(stepped_x as f32, stepped_y as f32))
                 == PointLineRelation::Left
             {
                 let delay_until = self.last_steps_timestamp[&Axis::X] + delay;
@@ -268,7 +268,7 @@ impl Hardware {
     pub fn move_to(
         &mut self,
         speed_fraction_start: f32,
-        pos: &V2Speed,
+        pos: V2Speed,
         speed_handler: &SpeedDelayHandler,
     ) {
         let delta =
@@ -276,7 +276,7 @@ impl Hardware {
         if delta.is_zero() {
             return;
         }
-        self.move_steps(&delta, speed_handler, speed_fraction_start, pos.speed);
+        self.move_steps(delta, speed_handler, speed_fraction_start, pos.speed);
         self.server_state.lock().unwrap().location = self.get_pos();
     }
 

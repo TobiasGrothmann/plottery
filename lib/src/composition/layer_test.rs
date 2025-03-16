@@ -24,7 +24,7 @@ mod test_layer {
         l.push(Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0)));
 
         for shape in l.iter() {
-            assert!(!shape.get_points(&SampleSettings::default()).is_empty());
+            assert!(!shape.get_points(SampleSettings::default()).is_empty());
         }
 
         let l2: Layer = l.clone();
@@ -167,7 +167,7 @@ mod test_layer {
 
         let translate_dist = V2::new(2.0, 1.0);
 
-        let l2 = l.translate(&translate_dist);
+        let l2 = l.translate(translate_dist);
         assert_eq!(l2.iter().len() + 1, l2.iter_flattened().collect_vec().len());
 
         let l_box = l.bounding_box().unwrap();
@@ -188,7 +188,7 @@ mod test_layer {
 
         let translate_dist = V2::new(2.0, 1.0);
         let l_orig = l.clone();
-        l.translate_mut(&translate_dist);
+        l.translate_mut(translate_dist);
 
         let l_orig_box = l_orig.bounding_box().unwrap();
         let l_box = l.bounding_box().unwrap();
@@ -206,8 +206,8 @@ mod test_layer {
         l.push_layer(sublayer);
 
         let pivot = V2::new(3.0, 0.1);
-        let mut l2 = l.rotate_around(&pivot, &Angle::from_degrees(55.0));
-        l2.rotate_around_mut(&pivot, &Angle::from_degrees(-55.0));
+        let mut l2 = l.rotate_around(pivot, Angle::from_degrees(55.0));
+        l2.rotate_around_mut(pivot, Angle::from_degrees(-55.0));
 
         let l_box = l.bounding_box().unwrap();
         let l2_box = l2.bounding_box().unwrap();
@@ -445,12 +445,12 @@ mod test_layer {
 
             println!("{:?}", shapes);
 
-            assert!(shapes[0].get_points(&SampleSettings::default())[0] == V2::new(0.0, 1.0));
-            assert!(shapes[0].get_points(&SampleSettings::default())[1] == V2::new(0.0, 0.0));
+            assert!(shapes[0].get_points(SampleSettings::default())[0] == V2::new(0.0, 1.0));
+            assert!(shapes[0].get_points(SampleSettings::default())[1] == V2::new(0.0, 0.0));
 
-            assert!(shapes[1].get_points(&SampleSettings::default())[0].y <= LARGE_EPSILON);
-            assert!(shapes[1].get_points(&SampleSettings::default())[1] == V2::new(0.0, 0.0));
-            assert!(shapes[1].get_points(&SampleSettings::default())[2].y <= LARGE_EPSILON);
+            assert!(shapes[1].get_points(SampleSettings::default())[0].y <= LARGE_EPSILON);
+            assert!(shapes[1].get_points(SampleSettings::default())[1] == V2::new(0.0, 0.0));
+            assert!(shapes[1].get_points(SampleSettings::default())[2].y <= LARGE_EPSILON);
         }
     }
 

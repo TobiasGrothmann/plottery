@@ -278,12 +278,12 @@ mod test_grid_combineable {
         // Verify that non-main parts of combined cells aren't visited
         let mut part_cells_count = 0;
         for cell_info in combineable.iter() {
-            if (cell_info.position.x == 1 && cell_info.position.y == 0)
-                || (cell_info.position.x == 0 && cell_info.position.y == 1)
-                || (cell_info.position.x == 1 && cell_info.position.y == 1)
-                || (cell_info.position.x == 4 && cell_info.position.y == 1)
-                || (cell_info.position.x == 3 && cell_info.position.y == 2)
-                || (cell_info.position.x == 4 && cell_info.position.y == 2)
+            #[allow(clippy::nonminimal_bool)]
+            if !(cell_info.position.x != 1 && cell_info.position.y != 1
+                || cell_info.position.y != 0 && cell_info.position.y != 1
+                || cell_info.position.x != 1
+                    && cell_info.position.x != 0
+                    && cell_info.position.x != 4)
             {
                 part_cells_count += 1;
             }

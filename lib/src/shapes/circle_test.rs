@@ -24,10 +24,10 @@ mod test_circle {
         let c = Circle::new_shape(center, radius);
         let sample_settings = SampleSettings::default();
 
-        let points = c.get_points(&sample_settings);
+        let points = c.get_points(sample_settings);
         assert!(points.len() > 50); // enough points
         for point in points.iter() {
-            assert!((point.dist(&center) - radius).abs() < LARGE_EPSILON); // radius distance from center
+            assert!((point.dist(center) - radius).abs() < LARGE_EPSILON); // radius distance from center
         }
         assert_eq!(points.first().unwrap(), points.last().unwrap()); // is closed
     }
@@ -46,15 +46,15 @@ mod test_circle {
         let c_scaled = c.scale(2.0);
         assert_eq!(c.length() * 2.0, c_scaled.length());
 
-        let c_p = Path::new_shape_from(c.get_points(&SampleSettings::default()));
-        let c_scaled_p = Path::new_shape_from(c_scaled.get_points(&SampleSettings::default()));
+        let c_p = Path::new_shape_from(c.get_points(SampleSettings::default()));
+        let c_scaled_p = Path::new_shape_from(c_scaled.get_points(SampleSettings::default()));
         assert!((c_p.length() * 2.0 - c_scaled_p.length()).abs() < 0.001);
     }
 
     #[test]
     fn scale_shape_2d() {
         let c = Circle::new_shape(V2::new(1.0, 2.0), 3.0);
-        let mut c_scaled = c.scale_2d(&V2::new(2.0, 3.0));
+        let mut c_scaled = c.scale_2d(V2::new(2.0, 3.0));
 
         match c_scaled {
             crate::Shape::Circle(_) => panic!("Expected Path, got circle {:?}", c_scaled),
@@ -63,7 +63,7 @@ mod test_circle {
         }
         assert!(c.length() < c_scaled.length());
 
-        c_scaled.scale_2d_mut(&V2::new(1.0 / 2.0, 1.0 / 3.0)); // scale back to original
+        c_scaled.scale_2d_mut(V2::new(1.0 / 2.0, 1.0 / 3.0)); // scale back to original
         assert!((c.length() - c_scaled.length()).abs() < 0.001);
     }
 
@@ -84,19 +84,19 @@ mod test_circle {
 
         let point = V2::new(1.0, 1.0);
         assert_eq!(
-            c.closest_point(&SampleSettings::default(), &point),
+            c.closest_point(SampleSettings::default(), point),
             Some(V2::new(2.0, 1.0))
         );
 
         let point = V2::new(2.0, 1.0);
         assert_eq!(
-            c.closest_point(&SampleSettings::default(), &point),
+            c.closest_point(SampleSettings::default(), point),
             Some(point)
         );
 
         let point = V2::new(2.0, 2.0);
         assert_eq!(
-            c.closest_point(&SampleSettings::default(), &point),
+            c.closest_point(SampleSettings::default(), point),
             Some(V2::new(1.7071068, 1.7071068))
         );
     }
@@ -158,8 +158,8 @@ mod test_circle {
         let start_point = V2::new(1.0, 5.0);
         let sample_settings = SampleSettings::default();
 
-        let points = c.get_points(&sample_settings);
-        let points_from = c.get_points_from(&start_point, &sample_settings);
+        let points = c.get_points(sample_settings);
+        let points_from = c.get_points_from(start_point, sample_settings);
 
         assert_eq!(points.first().unwrap(), V2::new(2.0, 1.0));
         assert_eq!(points_from.first().unwrap(), V2::new(1.0, 2.0));

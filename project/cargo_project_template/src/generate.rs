@@ -39,7 +39,7 @@ pub fn generate(params: Params) -> Layer {
     l.push_many(
         circles
             .into_iter()
-            .filter(|circle| frame.inner_rect().contains_point(&circle.center))
+            .filter(|circle| frame.inner_rect().contains_point(circle.center))
             .map(|circle| circle.into()),
     );
 

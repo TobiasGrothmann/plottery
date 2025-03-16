@@ -9,7 +9,7 @@ mod test_path {
     #[test]
     fn path() {
         let p = Path::new_shape_from(vec![V2::new(0.0, 0.0), V2::new(1.0, 0.0)]);
-        let points = p.get_points(&SampleSettings::default());
+        let points = p.get_points(SampleSettings::default());
         assert_eq!(points.len(), 2);
     }
 
@@ -18,10 +18,10 @@ mod test_path {
         let p: Path = (0..100)
             .map(|i| V2::new(i as f32 * 0.1, (i as f32).sin()))
             .collect();
-        assert_eq!(p.get_points(&SampleSettings::default()).len(), 100);
+        assert_eq!(p.get_points(SampleSettings::default()).len(), 100);
 
-        for (i, point) in p.get_points(&SampleSettings::default()).iter().enumerate() {
-            assert_eq!(point, &V2::new(i as f32 * 0.1, (i as f32).sin()));
+        for (i, point) in p.get_points(SampleSettings::default()).iter().enumerate() {
+            assert_eq!(point, V2::new(i as f32 * 0.1, (i as f32).sin()));
         }
     }
 
@@ -36,7 +36,7 @@ mod test_path {
         assert!(!p.is_closed());
 
         let r = Rect::new_shape(V2::new(-1.2, -5.0), V2::new(2.0, 3.1));
-        let p = Path::new_shape_from(r.get_points(&SampleSettings::default()));
+        let p = Path::new_shape_from(r.get_points(SampleSettings::default()));
         assert!((r.length() - p.length()).abs() < LARGE_EPSILON);
         assert!(p.is_closed());
     }
@@ -45,13 +45,13 @@ mod test_path {
     fn scale() {
         let p = Path::new_shape_from(vec![V2::new(0.0, 0.1), V2::new(1.0, 0.5)]);
         let p_scaled = p.scale(2.0);
-        assert_eq!(p_scaled.get_points(&SampleSettings::default()).len(), 2);
+        assert_eq!(p_scaled.get_points(SampleSettings::default()).len(), 2);
         assert_eq!(
-            p_scaled.get_points(&SampleSettings::default())[0],
+            p_scaled.get_points(SampleSettings::default())[0],
             V2::new(0.0, 0.2)
         );
         assert_eq!(
-            p_scaled.get_points(&SampleSettings::default())[1],
+            p_scaled.get_points(SampleSettings::default())[1],
             V2::new(2.0, 1.0)
         );
     }
@@ -60,16 +60,16 @@ mod test_path {
     fn transform() {
         let p = Path::new_shape_from(vec![V2::new(0.0, 0.1), V2::new(1.0, 0.5)]);
 
-        let scale = TransformMatrix::scale_2d(&V2::xy(2.0));
-        let translate = TransformMatrix::translate(&V2::new(1.0, 0.0));
+        let scale = TransformMatrix::scale_2d(V2::xy(2.0));
+        let translate = TransformMatrix::translate(V2::new(1.0, 0.0));
         let combined = TransformMatrix::combine_transforms(&[scale, translate]);
 
         let transformed = p.transform(&combined);
-        let transformed_2 = p.scale(2.0).translate(&V2::new(1.0, 0.0));
+        let transformed_2 = p.scale(2.0).translate(V2::new(1.0, 0.0));
 
         assert_eq!(
-            transformed.get_points(&SampleSettings::default()),
-            transformed_2.get_points(&SampleSettings::default())
+            transformed.get_points(SampleSettings::default()),
+            transformed_2.get_points(SampleSettings::default())
         );
     }
 
@@ -83,37 +83,37 @@ mod test_path {
 
         let point = V2::new(3.0, 3.0);
         assert_eq!(
-            p.closest_point(&SampleSettings::default(), &point),
+            p.closest_point(SampleSettings::default(), point),
             Some(point)
         );
 
         let point = V2::new(5.0, 5.0);
         assert_eq!(
-            p.closest_point(&SampleSettings::default(), &point),
+            p.closest_point(SampleSettings::default(), point),
             Some(V2::new(3.0, 3.0))
         );
 
         let point = V2::new(1.5, 1.5);
         assert_eq!(
-            p.closest_point(&SampleSettings::default(), &point),
+            p.closest_point(SampleSettings::default(), point),
             Some(point)
         );
 
         let point = V2::new(0.0, 3.0); // (1.5, 4.5) has the same distance, but first point is chosen
         assert_eq!(
-            p.closest_point(&SampleSettings::default(), &point),
+            p.closest_point(SampleSettings::default(), point),
             Some(V2::new(1.5, 1.5))
         );
 
         let point = V2::new(3.0, 0.0);
         assert_eq!(
-            p.closest_point(&SampleSettings::default(), &point),
+            p.closest_point(SampleSettings::default(), point),
             Some(V2::new(1.5, 1.5))
         );
 
         let point = V2::new(100.0, 0.0);
         assert_eq!(
-            p.closest_point(&SampleSettings::default(), &point),
+            p.closest_point(SampleSettings::default(), point),
             Some(V2::new(6.0, 0.0))
         );
     }
@@ -127,7 +127,7 @@ mod test_path {
         ]);
 
         let p_rounded = p.rounded_chaikins(1);
-        let points = p_rounded.get_points(&SampleSettings::default());
+        let points = p_rounded.get_points(SampleSettings::default());
         assert_eq!(points.len(), 4);
         assert_eq!(points[0], V2::new(0.0, 0.0));
         assert_eq!(points[1], V2::new(0.75, 0.0));
@@ -147,7 +147,7 @@ mod test_path {
         ]);
 
         let p_rounded = p.rounded_chaikins(1);
-        let points = p_rounded.get_points(&SampleSettings::default());
+        let points = p_rounded.get_points(SampleSettings::default());
         assert_eq!(points.len(), 9);
         assert_eq!(points[0], V2::new(0.25, 0.0));
         assert_eq!(points[1], V2::new(0.75, 0.0));
@@ -166,14 +166,14 @@ mod test_path {
         let radius = 5.0;
 
         let c = Circle::new(center, radius);
-        let points = c.get_points(&SampleSettings::default());
+        let points = c.get_points(SampleSettings::default());
         let p = Path::new_from(points.clone());
 
         let p_simplified1 = p.reduce_points(0.01);
-        let points_simplified = p_simplified1.get_points(&SampleSettings::default());
+        let points_simplified = p_simplified1.get_points(SampleSettings::default());
 
         let p_simplified2 = p.reduce_points(0.5);
-        let points_simplified2 = p_simplified2.get_points(&SampleSettings::default());
+        let points_simplified2 = p_simplified2.get_points(SampleSettings::default());
 
         assert!(points.len() > points_simplified.len());
         assert!(points_simplified.len() > points_simplified2.len());
@@ -181,11 +181,11 @@ mod test_path {
 
         for point in points_simplified.iter() {
             assert!(points.contains(point));
-            assert!((point.dist(&center) - radius).abs() < LARGE_EPSILON);
+            assert!((point.dist(center) - radius).abs() < LARGE_EPSILON);
         }
         for point in points_simplified2.iter() {
             assert!(points.contains(point));
-            assert!((point.dist(&center) - radius).abs() < LARGE_EPSILON);
+            assert!((point.dist(center) - radius).abs() < LARGE_EPSILON);
         }
     }
 
@@ -199,14 +199,14 @@ mod test_path {
             V2::new(0.0, 0.0),
         ]);
 
-        assert!(p.contains_point(&V2::new(0.5, 0.5)));
-        assert!(p.contains_point(&V2::new(0.9, 0.9)));
-        assert!(p.contains_point(&V2::new(0.1, 0.1)));
+        assert!(p.contains_point(V2::new(0.5, 0.5)));
+        assert!(p.contains_point(V2::new(0.9, 0.9)));
+        assert!(p.contains_point(V2::new(0.1, 0.1)));
 
-        assert!(!p.contains_point(&V2::new(0.5, 1.5)));
-        assert!(!p.contains_point(&V2::new(1.5, 0.5)));
-        assert!(!p.contains_point(&V2::new(-0.5, 0.5)));
-        assert!(!p.contains_point(&V2::new(0.5, -0.5)));
+        assert!(!p.contains_point(V2::new(0.5, 1.5)));
+        assert!(!p.contains_point(V2::new(1.5, 0.5)));
+        assert!(!p.contains_point(V2::new(-0.5, 0.5)));
+        assert!(!p.contains_point(V2::new(0.5, -0.5)));
     }
 
     #[test]
@@ -218,12 +218,12 @@ mod test_path {
             V2::new(0.0, 0.0),
         ]);
 
-        assert!(p.contains_point(&V2::new(0.25, 0.25)));
-        assert!(!p.contains_point(&V2::new(1.0, 1.0)));
+        assert!(p.contains_point(V2::new(0.25, 0.25)));
+        assert!(!p.contains_point(V2::new(1.0, 1.0)));
 
-        assert!(!p.contains_point(&V2::new(0.5, 1.5)));
-        assert!(!p.contains_point(&V2::new(1.5, 0.5)));
-        assert!(!p.contains_point(&V2::new(-0.5, 0.5)));
-        assert!(!p.contains_point(&V2::new(0.5, -0.5)));
+        assert!(!p.contains_point(V2::new(0.5, 1.5)));
+        assert!(!p.contains_point(V2::new(1.5, 0.5)));
+        assert!(!p.contains_point(V2::new(-0.5, 0.5)));
+        assert!(!p.contains_point(V2::new(0.5, -0.5)));
     }
 }

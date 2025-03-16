@@ -11,16 +11,16 @@
 //! let length = v1.len();
 //!
 //! let v2 = V2::xy(10.0) * 2.0;
-//! let distance = v2.dist(&v1);
+//! let distance = v2.dist(v1);
 //!
 //! // transformation matrix
 //! let matrix = TransformMatrix::builder()
 //!     .scale(2.0)
-//!     .rotate(&Angle::quarter_rotation())
-//!     .translate(&V2::new(5.0, 10.0))
+//!     .rotate(Angle::quarter_rotation())
+//!     .translate(V2::new(5.0, 10.0))
 //!     .mirror_y()
 //!     .build();
-//! let transformed_v = matrix.mul_vector(&v1);
+//! let transformed_v = matrix.mul_vector(v1);
 //! ```
 //!
 //! ### Shapes

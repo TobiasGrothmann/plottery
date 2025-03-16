@@ -310,7 +310,7 @@ impl V2 {
     /// - If a · b > 0, the vectors point in a similar direction
     /// - If a · b < 0, the vectors point in opposite directions
     /// - If a · b = 0, the vectors are perpendicular (orthogonal)
-    pub fn dot(&self, other: &Self) -> f32 {
+    pub fn dot(&self, other: Self) -> f32 {
         self.x * other.x + self.y * other.y
     }
 
@@ -321,9 +321,9 @@ impl V2 {
     /// # use plottery_lib::*;
     /// let v1 = V2::new(1.0, 2.0);
     /// let v2 = V2::new(2.0, 1.0);
-    /// assert_eq!(v1.min(&v2), V2::new(1.0, 1.0));
+    /// assert_eq!(v1.min(v2), V2::new(1.0, 1.0));
     /// ```
-    pub fn min(&self, other: &Self) -> Self {
+    pub fn min(&self, other: Self) -> Self {
         V2::new(self.x.min(other.x), self.y.min(other.y))
     }
     /// Returns a new V2 where each component is the maximum of the corresponding components.
@@ -333,9 +333,9 @@ impl V2 {
     /// # use plottery_lib::*;
     /// let v1 = V2::new(1.0, 2.0);
     /// let v2 = V2::new(2.0, 1.0);
-    /// assert_eq!(v1.max(&v2), V2::new(2.0, 2.0));
+    /// assert_eq!(v1.max(v2), V2::new(2.0, 2.0));
     /// ```
-    pub fn max(&self, other: &Self) -> Self {
+    pub fn max(&self, other: Self) -> Self {
         V2::new(self.x.max(other.x), self.y.max(other.y))
     }
 
@@ -349,11 +349,11 @@ impl V2 {
     }
 
     /// Calculates the Euclidean distance to another vector.
-    pub fn dist(&self, other: &Self) -> f32 {
+    pub fn dist(&self, other: Self) -> f32 {
         ((self.x - other.x).powi(2) + (self.y - other.y).powi(2)).sqrt()
     }
     /// Calculates the squared Euclidean distance to another vector.
-    pub fn dist_squared(&self, other: &Self) -> f32 {
+    pub fn dist_squared(&self, other: Self) -> f32 {
         (self.x - other.x).powi(2) + (self.y - other.y).powi(2)
     }
     /// Calculates the Manhattan (taxicab) distance to another vector.
@@ -365,9 +365,9 @@ impl V2 {
     /// # use plottery_lib::*;
     /// let v1 = V2::new(0.0, 0.0);
     /// let v2 = V2::new(2.0, 2.0);
-    /// assert_eq!(v1.dist_manhattan(&v2), 4.0);
+    /// assert_eq!(v1.dist_manhattan(v2), 4.0);
     /// ```
-    pub fn dist_manhattan(&self, other: &Self) -> f32 {
+    pub fn dist_manhattan(&self, other: Self) -> f32 {
         (self.x - other.x).abs() + (self.y - other.y).abs()
     }
 
@@ -389,7 +389,7 @@ impl V2 {
         Angle::from_rad(rad)
     }
     /// Returns the angle from this vector to another vector.
-    pub fn angle_to(&self, other: &Self) -> Angle {
+    pub fn angle_to(&self, other: Self) -> Angle {
         (other - self).angle()
     }
 
@@ -408,7 +408,7 @@ impl V2 {
     }
 
     /// Projects this vector onto another vector.
-    pub fn project_onto(&self, other: &Self) -> Self {
+    pub fn project_onto(&self, other: Self) -> Self {
         let length_squared = other.len_squared();
         let dot_product = self.dot(other);
         V2::new(
@@ -448,9 +448,9 @@ impl V2 {
     /// # use plottery_lib::*;
     /// let v1 = V2::new(0.0, 0.0);
     /// let v2 = V2::new(2.0, 2.0);
-    /// assert_eq!(v1.lerp(&v2, 0.5), V2::new(1.0, 1.0));
+    /// assert_eq!(v1.lerp(v2, 0.5), V2::new(1.0, 1.0));
     /// ```
-    pub fn lerp(&self, other: &Self, t: f32) -> Self {
+    pub fn lerp(&self, other: Self, t: f32) -> Self {
         V2::new(
             self.x + t * (other.x - self.x),
             self.y + t * (other.y - self.y),
@@ -483,12 +483,12 @@ impl V2 {
     /// # use plottery_lib::*;
     /// let start = V2::new(0.0, 0.0);
     /// let end = V2::new(10.0, 10.0);
-    /// for point in start.lerp_iter(end, &SampleSettings::new(5.0)) {
+    /// for point in start.lerp_iter(end, SampleSettings::new(5.0)) {
     ///     println!("{:?}", point);
     /// }
     /// ```
-    pub fn lerp_iter(&self, end: V2, sample_settings: &SampleSettings) -> V2Interpolator {
-        let distance = self.dist(&end);
+    pub fn lerp_iter(&self, end: V2, sample_settings: SampleSettings) -> V2Interpolator {
+        let distance = self.dist(end);
         V2Interpolator::new(
             *self,
             end,
@@ -505,11 +505,11 @@ impl V2 {
     /// let v = V2::new(2.0, 0.0); // point to distort
     /// let around = V2::zero(); // center point for distortion
     /// let power = 3.0;
-    /// assert_eq!(v.distort_pow(&around, power), V2::new(2.0_f32.powf(power), 0.0));
+    /// assert_eq!(v.distort_pow(around, power), V2::new(2.0_f32.powf(power), 0.0));
     /// ```
-    pub fn distort_pow(&self, around: &V2, distance_power: f32) -> Self {
+    pub fn distort_pow(&self, around: V2, distance_power: f32) -> Self {
         let distance = self.dist(around);
-        let angle = around.angle_to(self);
+        let angle = around.angle_to(*self);
         let new_distance = distance.powf(distance_power);
         around + V2::polar(angle, new_distance)
     }
@@ -541,14 +541,14 @@ impl Iterator for V2Interpolator {
             return None;
         }
         let t = self.current_step as f32 / self.steps as f32;
-        let interpolated = self.start.lerp(&self.end, t);
+        let interpolated = self.start.lerp(self.end, t);
         self.current_step += 1;
         Some(interpolated)
     }
 }
 
 impl Rotate for V2 {
-    fn rotate(&self, angle: &Angle) -> Self {
+    fn rotate(&self, angle: Angle) -> Self {
         let angle = angle.to_rad();
         let angle_sin = angle.sin();
         let angle_cos = angle.cos();
@@ -557,11 +557,11 @@ impl Rotate for V2 {
             self.x * angle_sin + self.y * angle_cos,
         )
     }
-    fn rotate_mut(&mut self, angle: &Angle) {
+    fn rotate_mut(&mut self, angle: Angle) {
         *self = self.rotate(angle);
     }
 
-    fn rotate_around(&self, pivot: &V2, angle: &Angle) -> Self {
+    fn rotate_around(&self, pivot: V2, angle: Angle) -> Self {
         let angle = angle.to_rad();
         let angle_sin = angle.sin();
         let angle_cos = angle.cos();
@@ -574,7 +574,7 @@ impl Rotate for V2 {
             (x_offset * angle_sin + y_offset * angle_cos) + pivot.y,
         )
     }
-    fn rotate_around_mut(&mut self, pivot: &V2, angle: &Angle) {
+    fn rotate_around_mut(&mut self, pivot: V2, angle: Angle) {
         *self = self.rotate_around(pivot, angle);
     }
 }
@@ -601,24 +601,24 @@ impl Rotate90 for V2 {
         *self = self.rotate_270();
     }
 
-    fn rotate_90_around(&self, pivot: &V2) -> Self {
+    fn rotate_90_around(&self, pivot: V2) -> Self {
         Self::new(-self.y + pivot.y + pivot.x, self.x - pivot.x + pivot.y)
     }
-    fn rotate_90_around_mut(&mut self, pivot: &V2) {
+    fn rotate_90_around_mut(&mut self, pivot: V2) {
         *self = self.rotate_90_around(pivot);
     }
 
-    fn rotate_180_around(&self, pivot: &V2) -> Self {
+    fn rotate_180_around(&self, pivot: V2) -> Self {
         Self::new(pivot.x * 2.0 - self.x, pivot.y * 2.0 - self.y)
     }
-    fn rotate_180_around_mut(&mut self, pivot: &V2) {
+    fn rotate_180_around_mut(&mut self, pivot: V2) {
         *self = self.rotate_180_around(pivot);
     }
 
-    fn rotate_270_around(&self, pivot: &V2) -> Self {
+    fn rotate_270_around(&self, pivot: V2) -> Self {
         Self::new(self.y - pivot.y + pivot.x, -self.x + pivot.x + pivot.y)
     }
-    fn rotate_270_around_mut(&mut self, pivot: &V2) {
+    fn rotate_270_around_mut(&mut self, pivot: V2) {
         *self = self.rotate_270_around(pivot);
     }
 }
@@ -640,21 +640,21 @@ impl Mirror for V2 {
 }
 
 impl Translate for V2 {
-    fn translate(&self, dist: &V2) -> Self {
-        *self + *dist
+    fn translate(&self, dist: V2) -> Self {
+        self + dist
     }
-    fn translate_mut(&mut self, dist: &V2) {
-        *self += *dist;
+    fn translate_mut(&mut self, dist: V2) {
+        *self += dist;
     }
 }
 
 impl Transform for V2 {
     fn transform(&self, matrix: &super::TransformMatrix) -> Self {
-        matrix.mul_vector(self)
+        matrix.mul_vector(*self)
     }
 
     fn transform_mut(&mut self, matrix: &super::TransformMatrix) {
-        *self = matrix.mul_vector(self);
+        *self = matrix.mul_vector(*self);
     }
 }
 

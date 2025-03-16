@@ -10,9 +10,9 @@ use super::TransformMatrix;
 /// ```
 /// # use plottery_lib::*;
 /// let transform = TransformMatrix::builder()
-///     .scale_2d(&V2::new(2.0, 3.0))
-///     .rotate(&Angle::from_degrees(45.0))
-///     .translate(&V2::new(10.0, 5.0))
+///     .scale_2d(V2::new(2.0, 3.0))
+///     .rotate(Angle::from_degrees(45.0))
+///     .translate(V2::new(10.0, 5.0))
 ///     .build();
 /// ```
 ///
@@ -31,7 +31,7 @@ impl TransformMatrixBuilder {
     }
 
     /// Adds a non-uniform scale transformation using different scale factors for x and y.
-    pub fn scale_2d(mut self, scale: &V2) -> Self {
+    pub fn scale_2d(mut self, scale: V2) -> Self {
         self.transforms.push(TransformMatrix::scale_2d(scale));
         self
     }
@@ -39,18 +39,18 @@ impl TransformMatrixBuilder {
     /// Adds a uniform scale transformation using the same scale factor for both x and y.
     pub fn scale(mut self, scalar: f32) -> Self {
         self.transforms
-            .push(TransformMatrix::scale_2d(&V2::xy(scalar)));
+            .push(TransformMatrix::scale_2d(V2::xy(scalar)));
         self
     }
 
     /// Adds a rotation transformation by the specified angle.
-    pub fn rotate(mut self, angle: &Angle) -> Self {
+    pub fn rotate(mut self, angle: Angle) -> Self {
         self.transforms.push(TransformMatrix::rotate(angle));
         self
     }
 
     /// Adds a shear transformation, where `dist.x` controls horizontal shearing and `dist.y` controls vertical shearing.
-    pub fn shear(mut self, dist: &V2) -> Self {
+    pub fn shear(mut self, dist: V2) -> Self {
         self.transforms.push(TransformMatrix::shear(dist));
         self
     }
@@ -68,7 +68,7 @@ impl TransformMatrixBuilder {
     }
 
     /// Adds a translation transformation that moves points by the specified offset.
-    pub fn translate(mut self, offset: &V2) -> Self {
+    pub fn translate(mut self, offset: V2) -> Self {
         self.transforms.push(TransformMatrix::translate(offset));
         self
     }

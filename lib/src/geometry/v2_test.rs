@@ -85,36 +85,36 @@ mod test_v2 {
 
     #[test]
     fn dist() {
-        let dist = V2::new(1.0, 2.0).dist(&V2::new(1.0, 1.0));
+        let dist = V2::new(1.0, 2.0).dist(V2::new(1.0, 1.0));
         assert_eq!(dist, 1.0);
 
         let v1 = V2::new(5.0, 2.0);
         let v2 = V2::new(6.0, 3.0);
-        assert_eq!(v1.dist(&v2), 2.0_f32.sqrt());
+        assert_eq!(v1.dist(v2), 2.0_f32.sqrt());
     }
 
     #[test]
     fn dist_manhattan() {
-        let dist = V2::new(1.0, 2.0).dist_manhattan(&V2::new(1.0, 1.0));
+        let dist = V2::new(1.0, 2.0).dist_manhattan(V2::new(1.0, 1.0));
         assert_eq!(dist, 1.0);
 
         let v1 = V2::new(5.0, 2.0);
         let v2 = V2::new(6.0, 3.0);
-        assert_eq!(v1.dist_manhattan(&v2), 2.0);
+        assert_eq!(v1.dist_manhattan(v2), 2.0);
     }
 
     #[test]
     fn rotate() {
         let v = V2::new(1.0, 0.0);
-        let v_new = v.rotate(&Angle::from_degrees(90.0));
+        let v_new = v.rotate(Angle::from_degrees(90.0));
         assert_eq!(v_new, V2::new(0.0, 1.0));
 
         let v = V2::new(1.0, 0.0);
-        let v_new = v.rotate(&Angle::from_degrees(-90.0));
+        let v_new = v.rotate(Angle::from_degrees(-90.0));
         assert_eq!(v_new, V2::new(0.0, -1.0));
 
         let v = V2::new(1.0, 0.0);
-        let v_new = v.rotate(&Angle::from_rotations(1.0));
+        let v_new = v.rotate(Angle::from_rotations(1.0));
         assert_eq!(v, v_new);
     }
 
@@ -136,15 +136,15 @@ mod test_v2 {
     #[test]
     fn rotate_around_90_180_270() {
         let v = V2::new(1.0, 0.0);
-        let v_new = v.rotate_90_around(&V2::new(1.0, 1.0));
+        let v_new = v.rotate_90_around(V2::new(1.0, 1.0));
         assert_eq!(v_new, V2::new(2.0, 1.0));
 
         let v = V2::new(1.0, 0.0);
-        let v_new = v.rotate_180_around(&V2::new(1.0, 1.0));
+        let v_new = v.rotate_180_around(V2::new(1.0, 1.0));
         assert_eq!(v_new, V2::new(1.0, 2.0));
 
         let v = V2::new(1.0, 0.0);
-        let v_new = v.rotate_270_around(&V2::new(1.0, 1.0));
+        let v_new = v.rotate_270_around(V2::new(1.0, 1.0));
         assert_eq!(v_new, V2::new(0.0, 1.0));
     }
 
@@ -153,39 +153,39 @@ mod test_v2 {
         let v = V2::new(1.61, -9.2);
         let pivot = V2::new(-5.0, 4.221);
 
-        let v1 = v.rotate_90_around(&pivot);
-        let v2 = v.rotate_around(&pivot, &Angle::from_degrees(90.0));
+        let v1 = v.rotate_90_around(pivot);
+        let v2 = v.rotate_around(pivot, Angle::from_degrees(90.0));
         assert_eq!(v1, v2);
 
-        let v1 = v.rotate_180_around(&pivot);
-        let v2 = v.rotate_around(&pivot, &Angle::from_degrees(180.0));
+        let v1 = v.rotate_180_around(pivot);
+        let v2 = v.rotate_around(pivot, Angle::from_degrees(180.0));
         assert_eq!(v1, v2);
 
-        let v1 = v.rotate_270_around(&pivot);
-        let v2 = v.rotate_around(&pivot, &Angle::from_degrees(270.0));
+        let v1 = v.rotate_270_around(pivot);
+        let v2 = v.rotate_around(pivot, Angle::from_degrees(270.0));
         assert_eq!(v1, v2);
     }
 
     #[test]
     fn rotate_around() {
         let v = V2::new(1.0, 0.0);
-        let v_new = v.rotate_around(&V2::new(1.0, 1.0), &Angle::from_degrees(90.0));
+        let v_new = v.rotate_around(V2::new(1.0, 1.0), Angle::from_degrees(90.0));
         assert_eq!(v_new, V2::new(2.0, 1.0));
     }
 
     #[test]
     fn rotate_around_mut() {
         let mut v = V2::new(1.0, 0.0);
-        v.rotate_around_mut(&V2::new(1.0, 1.0), &Angle::from_degrees(90.0));
+        v.rotate_around_mut(V2::new(1.0, 1.0), Angle::from_degrees(90.0));
         assert_eq!(v, V2::new(2.0, 1.0));
     }
 
     #[test]
     fn min_max() {
-        let v = V2::new(1.0, 0.0).min(&V2::new(1.0, 1.0));
+        let v = V2::new(1.0, 0.0).min(V2::new(1.0, 1.0));
         assert_eq!(v, V2::new(1.0, 0.0));
 
-        let v = V2::new(1.0, 0.0).max(&V2::new(1.0, 1.0));
+        let v = V2::new(1.0, 0.0).max(V2::new(1.0, 1.0));
         assert_eq!(v, V2::new(1.0, 1.0));
     }
 
@@ -266,15 +266,15 @@ mod test_v2 {
     #[test]
     fn project() {
         let v = V2::new(0.0, 1.0);
-        let v_proj = v.project_onto(&V2::new(1.0, 1.0));
+        let v_proj = v.project_onto(V2::new(1.0, 1.0));
         assert_eq!(v_proj, V2::new(0.5, 0.5));
 
         let v = V2::new(1.0, 1.0);
-        let v_proj = v.project_onto(&V2::new(1.0, 0.0));
+        let v_proj = v.project_onto(V2::new(1.0, 0.0));
         assert_eq!(v_proj, V2::new(1.0, 0.0));
 
         let v = V2::new(-3.0, -2.0);
-        let v_proj = v.project_onto(&V2::new(-1.0, 0.0));
+        let v_proj = v.project_onto(V2::new(-1.0, 0.0));
         assert_eq!(v_proj, V2::new(-3.0, 0.0));
     }
 
@@ -301,13 +301,13 @@ mod test_v2 {
         let v1 = V2::new(1.0, 1.0);
         let v2 = V2::new(3.0, 2.0);
 
-        let v_lerp = v1.lerp(&v2, 0.0);
+        let v_lerp = v1.lerp(v2, 0.0);
         assert_eq!(v_lerp, v1);
 
-        let v_lerp = v1.lerp(&v2, 1.0);
+        let v_lerp = v1.lerp(v2, 1.0);
         assert_eq!(v_lerp, v2);
 
-        let v_lerp = v1.lerp(&v2, 0.5);
+        let v_lerp = v1.lerp(v2, 0.5);
         assert_eq!(v_lerp, V2::new(2.0, 1.5));
     }
 
@@ -342,14 +342,14 @@ mod test_v2 {
         let v = V2::new(2.0, 1.0);
         let around = V2::new(5.0, 6.0);
 
-        assert_eq!(v.distort_pow(&around, 1.0), v); // power of 1.0 -> no change
+        assert_eq!(v.distort_pow(around, 1.0), v); // power of 1.0 -> no change
         assert_eq!(
-            v.distort_pow(&around, 2.0).dist(&around),
-            v.dist(&around).pow(2.0)
+            v.distort_pow(around, 2.0).dist(around),
+            v.dist(around).pow(2.0)
         );
         assert_eq!(
-            v.distort_pow(&around, 0.1).dist(&around),
-            v.dist(&around).pow(0.1)
+            v.distort_pow(around, 0.1).dist(around),
+            v.dist(around).pow(0.1)
         );
     }
 }

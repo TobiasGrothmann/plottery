@@ -77,16 +77,16 @@ mod test_matrix {
         };
 
         let v = V2 { x: 2.0, y: 1.0 };
-        let r = a.mul_vector(&v);
+        let r = a.mul_vector(v);
 
         assert_eq!(r, V2::new(7.0, 19.0));
     }
 
     #[test]
     fn translate() {
-        let t = TransformMatrix::translate(&V2::new(2.0, 3.0));
+        let t = TransformMatrix::translate(V2::new(2.0, 3.0));
         let v = V2 { x: 0.5, y: 0.5 };
-        let r = t.mul_vector(&v);
+        let r = t.mul_vector(v);
 
         assert_eq!(r, V2::new(2.5, 3.5));
     }
@@ -95,7 +95,7 @@ mod test_matrix {
     fn mirror_x() {
         let t = TransformMatrix::mirror_y();
         let v = V2 { x: 1.0, y: 1.0 };
-        let r = t.mul_vector(&v);
+        let r = t.mul_vector(v);
 
         assert_eq!(r, V2::new(1.0, -1.0));
     }
@@ -104,47 +104,47 @@ mod test_matrix {
     fn mirror_y() {
         let t = TransformMatrix::mirror_x();
         let v = V2 { x: 1.0, y: 1.0 };
-        let r = t.mul_vector(&v);
+        let r = t.mul_vector(v);
 
         assert_eq!(r, V2::new(-1.0, 1.0));
     }
 
     #[test]
     fn scale2d() {
-        let t = TransformMatrix::scale_2d(&V2::new(2.0, 3.0));
+        let t = TransformMatrix::scale_2d(V2::new(2.0, 3.0));
         let v = V2 { x: 1.0, y: 1.0 };
-        let r = t.mul_vector(&v);
+        let r = t.mul_vector(v);
 
         assert_eq!(r, V2::new(2.0, 3.0));
     }
 
     #[test]
     fn rotate() {
-        let t = TransformMatrix::rotate(&Angle::from_degrees(90.0));
+        let t = TransformMatrix::rotate(Angle::from_degrees(90.0));
         let v = V2 { x: 1.0, y: 0.0 };
-        let r = t.mul_vector(&v);
+        let r = t.mul_vector(v);
 
         assert_eq!(r, V2::new(0.0, 1.0));
     }
 
     #[test]
     fn shear() {
-        let t = TransformMatrix::shear(&V2::new(1.0, 0.0));
+        let t = TransformMatrix::shear(V2::new(1.0, 0.0));
         let v = V2 { x: 1.0, y: 1.0 };
-        let r = t.mul_vector(&v);
+        let r = t.mul_vector(v);
 
         assert_eq!(r, V2::new(2.0, 1.0));
     }
 
     #[test]
     fn combine_transforms_0() {
-        let scale = TransformMatrix::scale_2d(&V2::xy(2.0));
-        let translate = TransformMatrix::translate(&V2::new(1.0, 0.0));
+        let scale = TransformMatrix::scale_2d(V2::xy(2.0));
+        let translate = TransformMatrix::translate(V2::new(1.0, 0.0));
 
         let combined = translate.mul_matrix(&scale); // first scale, then translate
 
         let v = V2 { x: 0.0, y: 0.5 };
-        let r = combined.mul_vector(&v);
+        let r = combined.mul_vector(v);
 
         println!("{:?}", r);
         assert_eq!(r, V2::new(1.0, 1.0));
@@ -152,13 +152,13 @@ mod test_matrix {
 
     #[test]
     fn combine_transforms_1() {
-        let scale = TransformMatrix::scale_2d(&V2::xy(2.0));
-        let translate = TransformMatrix::translate(&V2::new(1.0, 0.0));
+        let scale = TransformMatrix::scale_2d(V2::xy(2.0));
+        let translate = TransformMatrix::translate(V2::new(1.0, 0.0));
 
         let combined = TransformMatrix::combine_transforms(&[scale, translate]); // first scale, then translate
 
         let v = V2 { x: 0.0, y: 0.5 };
-        let r = combined.mul_vector(&v);
+        let r = combined.mul_vector(v);
 
         println!("{:?}", r);
         assert_eq!(r, V2::new(1.0, 1.0));
@@ -166,16 +166,16 @@ mod test_matrix {
 
     #[test]
     fn combine_to_result_in_identity() {
-        let scale = TransformMatrix::scale_2d(&V2::xy(2.0));
-        let translate = TransformMatrix::translate(&V2::new(1.0, 0.0));
-        let scale_back = TransformMatrix::scale_2d(&V2::xy(0.5));
-        let translate_back = TransformMatrix::translate(&V2::new(-1.0, 0.0));
+        let scale = TransformMatrix::scale_2d(V2::xy(2.0));
+        let translate = TransformMatrix::translate(V2::new(1.0, 0.0));
+        let scale_back = TransformMatrix::scale_2d(V2::xy(0.5));
+        let translate_back = TransformMatrix::translate(V2::new(-1.0, 0.0));
 
         let transforms = vec![scale, translate, translate_back, scale_back];
         let combined = TransformMatrix::combine_transforms(&transforms);
 
         let v = V2 { x: 1.0, y: 1.0 };
-        let r = combined.mul_vector(&v);
+        let r = combined.mul_vector(v);
 
         assert_eq!(r, v);
     }
@@ -184,9 +184,9 @@ mod test_matrix {
     fn builder() {
         let matrix = TransformMatrix::builder()
             .scale(2.0)
-            .translate(&V2::new(2.0, 1.0))
-            .translate(&V2::new(-3.0, 1.0))
-            .translate(&V2::new(1.0, -2.0))
+            .translate(V2::new(2.0, 1.0))
+            .translate(V2::new(-3.0, 1.0))
+            .translate(V2::new(1.0, -2.0))
             .scale(0.5)
             .build();
 

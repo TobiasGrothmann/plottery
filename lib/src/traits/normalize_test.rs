@@ -126,12 +126,12 @@ mod test_normalize {
 
         let target_offset = V2::new(0.1, -20.0);
         let rect_offset = V2::new(-40.0, 10.0);
-        target.translate_mut(&target_offset);
-        rect.translate_mut(&rect_offset);
+        target.translate_mut(target_offset);
+        rect.translate_mut(rect_offset);
 
         let normalized = rect.normalize(&target, Alignment::Right).unwrap();
         let mut normalized_bounds = normalized.bounding_box().unwrap();
-        normalized_bounds.translate_mut(&(target_offset * -1.0));
+        normalized_bounds.translate_mut(target_offset * -1.0);
 
         assert_eq!(normalized_bounds.width(), 0.5);
         assert_eq!(normalized_bounds.height(), target.height());

@@ -14,8 +14,8 @@ pub struct Rect {
 impl Rect {
     pub fn new(bl: V2, tr: V2) -> Self {
         Self {
-            bot_left: bl.min(&tr),
-            top_right: tr.max(&bl),
+            bot_left: bl.min(tr),
+            top_right: tr.max(bl),
         }
     }
     pub fn new_shape(bl: V2, tr: V2) -> Shape {
@@ -23,8 +23,8 @@ impl Rect {
     }
 
     fn fix_corners_min_max(&mut self) {
-        let bl = self.bot_left.min(&self.top_right);
-        let tr = self.bot_left.max(&self.top_right);
+        let bl = self.bot_left.min(self.top_right);
+        let tr = self.bot_left.max(self.top_right);
         self.bot_left = bl;
         self.top_right = tr;
     }
@@ -65,7 +65,7 @@ impl Rect {
         self.top_right.x - self.bot_left.x
     }
 
-    pub fn max_dist_to_any_corner(&self, point: &V2) -> f32 {
+    pub fn max_dist_to_any_corner(&self, point: V2) -> f32 {
         *[
             self.bl().dist(point),
             self.br().dist(point),
@@ -110,7 +110,7 @@ impl Rect {
     pub fn rounded_corners(
         &self,
         radius: f32,
-        sample_settings: &SampleSettings,
+        sample_settings: SampleSettings,
     ) -> anyhow::Result<Path> {
         if self.width() < 2.0 * radius || self.height() < 2.0 * radius {
             return Err(anyhow::anyhow!("Radius too large for rectangle"));
@@ -123,59 +123,47 @@ impl Rect {
         let tl_inner = self.tl() + V2::new(half_radius, -half_radius);
 
         let path = std::iter::once(bl_inner + V2::polar(Angle::left_cc(), half_radius))
-            .chain(
-                Path::arc(
-                    &Angle::left_cc(),
-                    &Angle::up_cc(),
-                    &tl_inner,
-                    half_radius,
-                    sample_settings,
-                )
-                .into_iter(),
-            )
-            .chain(
-                Path::arc(
-                    &Angle::up_cc(),
-                    &Angle::right_cc(),
-                    &tr_inner,
-                    half_radius,
-                    sample_settings,
-                )
-                .into_iter(),
-            )
-            .chain(
-                Path::arc(
-                    &Angle::full_rotation(),
-                    &Angle::down_cc(),
-                    &br_inner,
-                    half_radius,
-                    sample_settings,
-                )
-                .into_iter(),
-            )
-            .chain(
-                Path::arc(
-                    &Angle::down_cc(),
-                    &Angle::left_cc(),
-                    &bl_inner,
-                    half_radius,
-                    sample_settings,
-                )
-                .into_iter(),
-            )
+            .chain(Path::arc(
+                Angle::left_cc(),
+                Angle::up_cc(),
+                tl_inner,
+                half_radius,
+                sample_settings,
+            ))
+            .chain(Path::arc(
+                Angle::up_cc(),
+                Angle::right_cc(),
+                tr_inner,
+                half_radius,
+                sample_settings,
+            ))
+            .chain(Path::arc(
+                Angle::full_rotation(),
+                Angle::down_cc(),
+                br_inner,
+                half_radius,
+                sample_settings,
+            ))
+            .chain(Path::arc(
+                Angle::down_cc(),
+                Angle::left_cc(),
+                bl_inner,
+                half_radius,
+                sample_settings,
+            ))
             .collect();
         Ok(path)
     }
 }
 
 impl Plottable for Rect {
-    fn get_points(&self, _: &SampleSettings) -> Vec<V2> {
+    fn get_points(&self, _: SampleSettings) -> Vec<V2> {
         vec![self.bl(), self.tl(), self.tr(), self.br(), self.bl()]
     }
     fn get_points_from(
         &self,
-        _current_drawing_head_pos: &V2,
-        sample_settings: &SampleSettings,
+        _current_drawing_head_pos: V2,
+        sample_settings: SampleSettings,
     ) -> Vec<V2> {
         self.get_points(sample_settings)
     }
@@ -188,7 +176,7 @@ impl Plottable for Rect {
         true
     }
 
-    fn contains_point(&self, point: &V2) -> bool {
+    fn contains_point(&self, point: V2) -> bool {
         point.x >= self.bot_left.x
             && point.x <= self.top_right.x
             && point.y >= self.bot_left.y
@@ -226,35 +214,35 @@ impl Rotate90 for Rect {
         self.fix_corners_min_max();
     }
 
-    fn rotate_90_around(&self, pivot: &V2) -> Self {
+    fn rotate_90_around(&self, pivot: V2) -> Self {
         Rect::new(
             self.bot_left.rotate_90_around(pivot),
             self.top_right.rotate_90_around(pivot),
         )
     }
-    fn rotate_90_around_mut(&mut self, pivot: &V2) {
+    fn rotate_90_around_mut(&mut self, pivot: V2) {
         self.top_right = self.top_right.rotate_90_around(pivot);
         self.bot_left = self.bot_left.rotate_90_around(pivot);
         self.fix_corners_min_max();
     }
-    fn rotate_180_around(&self, pivot: &V2) -> Self {
+    fn rotate_180_around(&self, pivot: V2) -> Self {
         Rect::new(
             self.bot_left.rotate_180_around(pivot),
             self.top_right.rotate_180_around(pivot),
         )
     }
-    fn rotate_180_around_mut(&mut self, pivot: &V2) {
+    fn rotate_180_around_mut(&mut self, pivot: V2) {
         self.top_right = self.top_right.rotate_180_around(pivot);
         self.bot_left = self.bot_left.rotate_180_around(pivot);
         self.fix_corners_min_max();
     }
-    fn rotate_270_around(&self, pivot: &V2) -> Self {
+    fn rotate_270_around(&self, pivot: V2) -> Self {
         Rect::new(
             self.bot_left.rotate_270_around(pivot),
             self.top_right.rotate_270_around(pivot),
         )
     }
-    fn rotate_270_around_mut(&mut self, pivot: &V2) {
+    fn rotate_270_around_mut(&mut self, pivot: V2) {
         self.top_right = self.top_right.rotate_270_around(pivot);
         self.bot_left = self.bot_left.rotate_270_around(pivot);
         self.fix_corners_min_max();
@@ -262,13 +250,13 @@ impl Rotate90 for Rect {
 }
 
 impl Translate for Rect {
-    fn translate(&self, dist: &V2) -> Self {
+    fn translate(&self, dist: V2) -> Self {
         Rect::new(self.bot_left + dist, self.top_right + dist)
     }
 
-    fn translate_mut(&mut self, dist: &V2) {
-        self.bot_left += *dist;
-        self.top_right += *dist;
+    fn translate_mut(&mut self, dist: V2) {
+        self.bot_left += dist;
+        self.top_right += dist;
     }
 }
 
@@ -284,11 +272,11 @@ impl Scale for Rect {
 }
 
 impl Scale2D for Rect {
-    fn scale_2d(&self, scale: &V2) -> Self {
+    fn scale_2d(&self, scale: V2) -> Self {
         Rect::new(self.bot_left * scale, self.top_right * scale)
     }
 
-    fn scale_2d_mut(&mut self, scale: &V2) {
+    fn scale_2d_mut(&mut self, scale: V2) {
         self.bot_left *= scale;
         self.top_right *= scale;
     }
@@ -325,8 +313,8 @@ impl BoundingBox for Rect {
 }
 
 impl ClosestPoint for Rect {
-    fn closest_point(&self, _: &SampleSettings, point: &V2) -> Option<V2> {
+    fn closest_point(&self, _: SampleSettings, point: V2) -> Option<V2> {
         Path::new_from(vec![self.bl(), self.tl(), self.tr(), self.br(), self.bl()])
-            .closest_point(&SampleSettings::default(), point)
+            .closest_point(SampleSettings::default(), point)
     }
 }

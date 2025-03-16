@@ -54,7 +54,7 @@ impl SampleTriangle {
             let err_a = (target_value - a.value).abs();
             let err_b = (target_value - b.value).abs();
             let t = err_a / (err_a + err_b);
-            points.push(a.pos.lerp(&b.pos, t));
+            points.push(a.pos.lerp(b.pos, t));
         }
 
         Some(Line::new(points[0], points[1]))

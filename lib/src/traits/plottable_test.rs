@@ -10,12 +10,12 @@ mod test_shape {
         let sample_settings = SampleSettings {
             points_per_unit: 4.0,
         };
-        let points = r.get_points_oversampled(&sample_settings);
+        let points = r.get_points_oversampled(sample_settings);
         assert!(points.len() > 5);
         let distances = points
             .iter()
             .tuple_windows()
-            .map(|(from, to)| from.dist(to));
+            .map(|(from, to)| from.dist(*to));
         let max_distance = distances.clone().fold(0.0, f32::max);
 
         assert_eq!(max_distance, 1.0 / sample_settings.points_per_unit);
@@ -36,12 +36,12 @@ mod test_shape {
         let sample_settings = SampleSettings {
             points_per_unit: 1.0,
         };
-        let points = r.get_points_oversampled(&sample_settings);
+        let points = r.get_points_oversampled(sample_settings);
         assert_eq!(points.len(), 5);
         let max_distance = points
             .iter()
             .tuple_windows()
-            .map(|(from, to)| from.dist(to))
+            .map(|(from, to)| from.dist(*to))
             .fold(0.0, f32::max);
 
         assert_eq!(max_distance, 1.0)
@@ -53,7 +53,7 @@ mod test_shape {
         let sample_settings = SampleSettings {
             points_per_unit: 50.0,
         };
-        let points = r.get_points_and_dist_oversampled(&sample_settings);
+        let points = r.get_points_and_dist_oversampled(sample_settings);
 
         assert!(points.len() > 45);
         assert_eq!(points.last().unwrap().1, 4.0);
@@ -83,7 +83,7 @@ mod test_shape {
         let mask = Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
         let p = Path::new_shape_from(vec![V2::new(0.5, 0.5), V2::new(1.5, 0.5)]);
 
-        let masked = p.mask_geo(&mask, &SampleSettings::default());
+        let masked = p.mask_geo(&mask, SampleSettings::default());
         assert_eq!(masked.inside.len(), 1);
         assert_eq!(masked.outside.len(), 1);
     }
@@ -93,7 +93,7 @@ mod test_shape {
         let mask = Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
         let p = Path::new_shape_from(vec![V2::new(0.5, 0.5), V2::new(1.5, 1.5)]);
 
-        let masked = p.mask_geo(&mask, &SampleSettings::default());
+        let masked = p.mask_geo(&mask, SampleSettings::default());
         assert_eq!(masked.inside.len(), 1);
         assert_eq!(masked.outside.len(), 1);
     }
@@ -103,7 +103,7 @@ mod test_shape {
         let mask = Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
         let p = Path::new_shape_from(vec![V2::new(1.0, 1.0), V2::new(1.0, 1.5)]);
 
-        let masked = p.mask_geo(&mask, &SampleSettings::default());
+        let masked = p.mask_geo(&mask, SampleSettings::default());
         assert_eq!(masked.inside.len(), 0);
         assert_eq!(masked.outside.len(), 1);
     }
@@ -113,7 +113,7 @@ mod test_shape {
         let mask = Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
         let p = Path::new_shape_from(vec![V2::new(1.0, 1.0), V2::new(0.5, 0.5)]);
 
-        let masked = p.mask_geo(&mask, &SampleSettings::default());
+        let masked = p.mask_geo(&mask, SampleSettings::default());
         assert_eq!(masked.inside.len(), 1);
         assert_eq!(masked.outside.len(), 0);
     }
@@ -123,11 +123,11 @@ mod test_shape {
         let mask = Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
         let p = Path::new_shape_from(vec![V2::new(0.5, 1.2), V2::new(1.2, 0.5)]);
 
-        let masked = p.mask_geo(&mask, &SampleSettings::default());
+        let masked = p.mask_geo(&mask, SampleSettings::default());
         assert_eq!(masked.inside.len(), 1);
         assert_eq!(
             masked.inside.shapes[0]
-                .get_points(&SampleSettings::default())
+                .get_points(SampleSettings::default())
                 .len(),
             2
         );
@@ -151,16 +151,16 @@ mod test_shape {
             );
         }
 
-        let masked = p.mask_geo(&mask.clone(), &SampleSettings::default());
+        let masked = p.mask_geo(&mask.clone(), SampleSettings::default());
 
         for shape_inside in masked.inside.shapes {
-            for point in shape_inside.get_points(&SampleSettings::default()) {
-                assert!(center.dist(&point) - 0.001 <= radius);
+            for point in shape_inside.get_points(SampleSettings::default()) {
+                assert!(center.dist(point) - 0.001 <= radius);
             }
         }
         for shape_outside in masked.outside.shapes {
-            for point in shape_outside.get_points(&SampleSettings::default()) {
-                assert!(center.dist(&point) + 0.001 >= radius);
+            for point in shape_outside.get_points(SampleSettings::default()) {
+                assert!(center.dist(point) + 0.001 >= radius);
             }
         }
     }

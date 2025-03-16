@@ -45,7 +45,7 @@ where
                 }
                 Alignment::Right => bl_offset + size_difference,
             };
-            self.translate_mut(&offset)
+            self.translate_mut(offset)
         } else {
             // shape is wider than target
             let scale: f32 = target.width() / bounds.width();
@@ -62,7 +62,7 @@ where
                 }
                 Alignment::Top => bl_offset + size_difference,
             };
-            self.translate_mut(&offset)
+            self.translate_mut(offset)
         };
 
         Ok(())

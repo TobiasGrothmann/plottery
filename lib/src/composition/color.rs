@@ -58,7 +58,7 @@ impl ColorRgb {
 
     /// Returns the Euclidean distance between this color and another color.
     /// This measure is not a perfect representation of human perception of color difference.
-    pub fn dist_euclidean(&self, other: &ColorRgb) -> f32 {
+    pub fn dist_euclidean(&self, other: ColorRgb) -> f32 {
         let dr = self.r - other.r;
         let dg = self.g - other.g;
         let db = self.b - other.b;
@@ -69,7 +69,7 @@ impl ColorRgb {
     pub fn get_name(&self) -> ColorName {
         *COLOR_NAMES
             .iter()
-            .min_by_key(|color| self.dist_euclidean(&color.color).to_bits())
+            .min_by_key(|color| self.dist_euclidean(color.color).to_bits())
             .unwrap()
     }
 }
@@ -96,7 +96,6 @@ impl From<ColorRgb> for ColorHsv {
         Self { h, s, v }
     }
 }
-
 impl From<&ColorRgb> for ColorHsv {
     fn from(rgb: &ColorRgb) -> Self {
         ColorHsv::from(*rgb)

@@ -5,7 +5,7 @@ pub use crate::shapes::rect::Rect;
 use crate::{
     geometry::TransformMatrix,
     traits::{ClosestPoint, Normalize, Scale, Scale2D, Transform, Translate},
-    BoundingBox, Mirror, Plottable, Rotate, Rotate90, SampleSettings, V2,
+    Angle, BoundingBox, Mirror, Plottable, Rotate, Rotate90, SampleSettings, V2,
 };
 use serde::{Deserialize, Serialize};
 
@@ -17,7 +17,7 @@ pub enum Shape {
 }
 
 impl Plottable for Shape {
-    fn get_points(&self, sample_settings: &SampleSettings) -> Vec<V2> {
+    fn get_points(&self, sample_settings: SampleSettings) -> Vec<V2> {
         match self {
             Shape::Circle(c) => c.get_points(sample_settings),
             Shape::Rect(r) => r.get_points(sample_settings),
@@ -26,8 +26,8 @@ impl Plottable for Shape {
     }
     fn get_points_from(
         &self,
-        current_drawing_head_pos: &V2,
-        sample_settings: &SampleSettings,
+        current_drawing_head_pos: V2,
+        sample_settings: SampleSettings,
     ) -> Vec<V2> {
         match self {
             Shape::Circle(c) => c.get_points_from(current_drawing_head_pos, sample_settings),
@@ -52,7 +52,7 @@ impl Plottable for Shape {
         }
     }
 
-    fn contains_point(&self, point: &V2) -> bool {
+    fn contains_point(&self, point: V2) -> bool {
         match self {
             Shape::Circle(c) => c.contains_point(point),
             Shape::Rect(r) => r.contains_point(point),
@@ -80,7 +80,7 @@ impl Clone for Shape {
 }
 
 impl Rotate for Shape {
-    fn rotate(&self, angle: &crate::Angle) -> Self {
+    fn rotate(&self, angle: Angle) -> Self {
         match self {
             Shape::Circle(c) => Shape::Circle(c.rotate(angle)),
             Shape::Rect(r) => {
@@ -89,7 +89,7 @@ impl Rotate for Shape {
             Shape::Path(p) => Shape::Path(p.rotate(angle)),
         }
     }
-    fn rotate_mut(&mut self, angle: &crate::Angle) {
+    fn rotate_mut(&mut self, angle: Angle) {
         match self {
             Shape::Circle(c) => c.rotate_mut(angle),
             Shape::Rect(r) => {
@@ -100,7 +100,7 @@ impl Rotate for Shape {
         }
     }
 
-    fn rotate_around(&self, pivot: &V2, angle: &crate::Angle) -> Self {
+    fn rotate_around(&self, pivot: V2, angle: Angle) -> Self {
         match self {
             Shape::Circle(c) => Shape::Circle(c.rotate_around(pivot, angle)),
             Shape::Rect(r) => Path::new_shape_from(vec![r.bl(), r.tl(), r.tr(), r.br(), r.bl()])
@@ -108,7 +108,7 @@ impl Rotate for Shape {
             Shape::Path(p) => Shape::Path(p.rotate_around(pivot, angle)),
         }
     }
-    fn rotate_around_mut(&mut self, pivot: &V2, angle: &crate::Angle) {
+    fn rotate_around_mut(&mut self, pivot: V2, angle: Angle) {
         match self {
             Shape::Circle(c) => c.rotate_around_mut(pivot, angle),
             Shape::Rect(r) => {
@@ -166,14 +166,14 @@ impl Rotate90 for Shape {
         }
     }
 
-    fn rotate_90_around(&self, pivot: &V2) -> Self {
+    fn rotate_90_around(&self, pivot: V2) -> Self {
         match self {
             Shape::Circle(c) => Shape::Circle(c.rotate_90_around(pivot)),
             Shape::Rect(r) => Shape::Rect(r.rotate_90_around(pivot)),
             Shape::Path(p) => Shape::Path(p.rotate_90_around(pivot)),
         }
     }
-    fn rotate_90_around_mut(&mut self, pivot: &V2) {
+    fn rotate_90_around_mut(&mut self, pivot: V2) {
         match self {
             Shape::Circle(c) => c.rotate_90_around_mut(pivot),
             Shape::Rect(r) => r.rotate_90_around_mut(pivot),
@@ -181,14 +181,14 @@ impl Rotate90 for Shape {
         }
     }
 
-    fn rotate_180_around(&self, pivot: &V2) -> Self {
+    fn rotate_180_around(&self, pivot: V2) -> Self {
         match self {
             Shape::Circle(c) => Shape::Circle(c.rotate_180_around(pivot)),
             Shape::Rect(r) => Shape::Rect(r.rotate_180_around(pivot)),
             Shape::Path(p) => Shape::Path(p.rotate_180_around(pivot)),
         }
     }
-    fn rotate_180_around_mut(&mut self, pivot: &V2) {
+    fn rotate_180_around_mut(&mut self, pivot: V2) {
         match self {
             Shape::Circle(c) => c.rotate_180_around_mut(pivot),
             Shape::Rect(r) => r.rotate_180_around_mut(pivot),
@@ -196,7 +196,7 @@ impl Rotate90 for Shape {
         }
     }
 
-    fn rotate_270_around(&self, pivot: &V2) -> Self {
+    fn rotate_270_around(&self, pivot: V2) -> Self {
         match self {
             Shape::Circle(c) => Shape::Circle(c.rotate_270_around(pivot)),
             Shape::Rect(r) => Shape::Rect(r.rotate_270_around(pivot)),
@@ -204,7 +204,7 @@ impl Rotate90 for Shape {
         }
     }
 
-    fn rotate_270_around_mut(&mut self, pivot: &V2) {
+    fn rotate_270_around_mut(&mut self, pivot: V2) {
         match self {
             Shape::Circle(c) => c.rotate_270_around_mut(pivot),
             Shape::Rect(r) => r.rotate_270_around_mut(pivot),
@@ -214,7 +214,7 @@ impl Rotate90 for Shape {
 }
 
 impl Translate for Shape {
-    fn translate(&self, dist: &V2) -> Self {
+    fn translate(&self, dist: V2) -> Self {
         match self {
             Shape::Circle(c) => Shape::Circle(c.translate(dist)),
             Shape::Rect(r) => Shape::Rect(r.translate(dist)),
@@ -222,7 +222,7 @@ impl Translate for Shape {
         }
     }
 
-    fn translate_mut(&mut self, dist: &V2) {
+    fn translate_mut(&mut self, dist: V2) {
         match self {
             Shape::Circle(c) => c.translate_mut(dist),
             Shape::Rect(r) => r.translate_mut(dist),
@@ -250,10 +250,10 @@ impl Scale for Shape {
 }
 
 impl Scale2D for Shape {
-    fn scale_2d(&self, factor: &V2) -> Self {
+    fn scale_2d(&self, factor: V2) -> Self {
         match self {
             Shape::Circle(c) => {
-                let mut points = c.get_points(&SampleSettings::default());
+                let mut points = c.get_points(SampleSettings::default());
                 for p in &mut points {
                     *p *= factor;
                 }
@@ -264,10 +264,10 @@ impl Scale2D for Shape {
         }
     }
 
-    fn scale_2d_mut(&mut self, factor: &V2) {
+    fn scale_2d_mut(&mut self, factor: V2) {
         match self {
             Shape::Circle(c) => {
-                let mut points = c.get_points(&SampleSettings::default());
+                let mut points = c.get_points(SampleSettings::default());
                 for p in &mut points {
                     *p *= factor;
                 }
@@ -329,18 +329,18 @@ impl Transform for Shape {
     fn transform(&self, matrix: &TransformMatrix) -> Self {
         match self {
             Shape::Circle(c) => Shape::Path(
-                c.get_points(&SampleSettings::default())
+                c.get_points(SampleSettings::default())
                     .iter()
-                    .map(|p| matrix.mul_vector(p))
+                    .map(|p| matrix.mul_vector(*p))
                     .collect::<Path>(),
             ),
             Shape::Rect(r) => {
                 let points = vec![
-                    matrix.mul_vector(&r.bl()),
-                    matrix.mul_vector(&r.tl()),
-                    matrix.mul_vector(&r.tr()),
-                    matrix.mul_vector(&r.br()),
-                    matrix.mul_vector(&r.bl()),
+                    matrix.mul_vector(r.bl()),
+                    matrix.mul_vector(r.tl()),
+                    matrix.mul_vector(r.tr()),
+                    matrix.mul_vector(r.br()),
+                    matrix.mul_vector(r.bl()),
                 ];
                 Path::new_shape_from(points)
             }
@@ -352,19 +352,19 @@ impl Transform for Shape {
         match self {
             Shape::Circle(c) => {
                 let points = c
-                    .get_points(&SampleSettings::default())
+                    .get_points(SampleSettings::default())
                     .iter()
-                    .map(|p| matrix.mul_vector(p))
+                    .map(|p| matrix.mul_vector(*p))
                     .collect::<Path>();
                 *self = Shape::Path(points);
             }
             Shape::Rect(r) => {
                 let points = vec![
-                    matrix.mul_vector(&r.bl()),
-                    matrix.mul_vector(&r.tl()),
-                    matrix.mul_vector(&r.tr()),
-                    matrix.mul_vector(&r.br()),
-                    matrix.mul_vector(&r.bl()),
+                    matrix.mul_vector(r.bl()),
+                    matrix.mul_vector(r.tl()),
+                    matrix.mul_vector(r.tr()),
+                    matrix.mul_vector(r.br()),
+                    matrix.mul_vector(r.bl()),
                 ];
                 *self = Path::new_shape_from(points);
             }
@@ -374,7 +374,7 @@ impl Transform for Shape {
 }
 
 impl ClosestPoint for Shape {
-    fn closest_point(&self, sample_settings: &SampleSettings, point: &V2) -> Option<V2> {
+    fn closest_point(&self, sample_settings: SampleSettings, point: V2) -> Option<V2> {
         match self {
             Shape::Circle(c) => c.closest_point(sample_settings, point),
             Shape::Rect(r) => r.closest_point(sample_settings, point),

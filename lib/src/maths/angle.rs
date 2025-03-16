@@ -14,7 +14,7 @@ use crate::{SampleSettings, GR};
 /// assert_eq!(angle_deg, angle_rad);
 /// assert_eq!(angle_deg, angle_rot);
 /// ```
-#[derive(Debug, Clone, Serialize, Deserialize, Copy, PartialOrd)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialOrd)]
 pub struct Angle {
     rad: f32,
 }
@@ -219,14 +219,14 @@ impl Angle {
     /// # use plottery_lib::*;
     /// let a1 = Angle::zero();
     /// let a2 = Angle::from_degrees(90.0);
-    /// for angle in a1.lerp_iter(a2, &SampleSettings::new(10.0), 1.0) {
+    /// for angle in a1.lerp_iter(a2, SampleSettings::new(10.0), 1.0) {
     ///     println!("{:?}", angle);
     /// }
     /// ```
     pub fn lerp_iter(
         &self,
         end: Angle,
-        sample_settings: &SampleSettings,
+        sample_settings: SampleSettings,
         radius: f32,
     ) -> AngleInterpolator {
         let distance = (end.rad - self.rad).abs() * radius;

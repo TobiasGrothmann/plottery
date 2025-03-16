@@ -30,7 +30,7 @@ pub async fn start_server(
                 } => {
                     server_state.lock().unwrap().plotting = true;
                     hardware.set_enabled(true);
-                    plot_layer(&mut hardware, &layer, &sample_settings, &plot_settings).await;
+                    plot_layer(&mut hardware, &layer, sample_settings, &plot_settings).await;
                     travel_to(&mut hardware, V2::zero(), &plot_settings).await;
                     hardware.set_enabled(false);
                     server_state.lock().unwrap().plotting = false;
@@ -42,7 +42,7 @@ pub async fn start_server(
                 } => {
                     server_state.lock().unwrap().plotting = true;
                     hardware.set_enabled(true);
-                    plot_shape(&mut hardware, &shape, &sample_settings, &plot_settings).await;
+                    plot_shape(&mut hardware, &shape, sample_settings, &plot_settings).await;
                     travel_to(&mut hardware, V2::zero(), &plot_settings).await;
                     hardware.set_enabled(false);
                     server_state.lock().unwrap().plotting = false;
@@ -117,7 +117,7 @@ pub async fn start_server(
 pub async fn plot_layer(
     hardware: &mut Hardware,
     layer: &Layer,
-    sample_settings: &SampleSettings,
+    sample_settings: SampleSettings,
     plot_settings: &PlotSettings,
 ) {
     for shape in layer.iter_flattened() {
@@ -147,18 +147,18 @@ pub async fn travel_to(hardware: &mut Hardware, target_pos: V2, plot_settings: &
         speed_head_up,
     );
     for (from, to) in acc_path.points.iter().tuple_windows() {
-        hardware.move_to(from.speed, to, &speed_travel);
+        hardware.move_to(from.speed, *to, &speed_travel);
     }
 }
 
 pub async fn plot_shape(
     hardware: &mut Hardware,
     shape: &Shape,
-    sample_settings: &SampleSettings,
+    sample_settings: SampleSettings,
     plot_settings: &PlotSettings,
 ) {
     let accelleration_path = AccellerationPath::new(
-        &shape.get_points_from(&hardware.get_pos(), sample_settings),
+        &shape.get_points_from(hardware.get_pos(), sample_settings),
         plot_settings.speed_draw.accelleration_distance,
         plot_settings.corner_slowdown_power,
     );
@@ -183,6 +183,6 @@ pub async fn plot_shape(
         speed_head_down,
     );
     for (from, to) in accelleration_path.points.iter().tuple_windows() {
-        hardware.move_to(from.speed, to, &speed_draw);
+        hardware.move_to(from.speed, *to, &speed_draw);
     }
 }

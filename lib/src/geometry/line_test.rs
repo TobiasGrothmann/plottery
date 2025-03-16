@@ -10,15 +10,15 @@ mod test_line {
 
             let point_on_line = V2::new(3.0, 3.0);
             assert_eq!(
-                line.point_relation(&point_on_line),
+                line.point_relation(point_on_line),
                 PointLineRelation::OnLine
             );
 
             let point_left = V2::new(-1.0, 2.0);
-            assert_eq!(line.point_relation(&point_left), PointLineRelation::Left);
+            assert_eq!(line.point_relation(point_left), PointLineRelation::Left);
 
             let point_right = V2::new(6.0, 3.0);
-            assert_eq!(line.point_relation(&point_right), PointLineRelation::Right);
+            assert_eq!(line.point_relation(point_right), PointLineRelation::Right);
         }
 
         #[test]
@@ -27,7 +27,7 @@ mod test_line {
             let line1 = Line::new(V2::new(0.0, 0.0), V2::new(5.0, 5.0));
             let line2 = Line::new(V2::new(0.0, 5.0), V2::new(5.0, 0.0));
             assert_eq!(
-                line1.intersection(&line2),
+                line1.intersection(line2),
                 LineIntersection::Intersection(V2 { x: 2.5, y: 2.5 })
             );
         }
@@ -37,7 +37,7 @@ mod test_line {
             // colinear lines with no intersection
             let line1 = Line::new(V2::new(0.0, 0.0), V2::new(5.0, 5.0));
             let line2 = Line::new(V2::new(6.0, 6.0), V2::new(8.0, 8.0));
-            assert_eq!(line1.intersection(&line2), LineIntersection::NoIntersection);
+            assert_eq!(line1.intersection(line2), LineIntersection::NoIntersection);
         }
 
         #[test]
@@ -45,15 +45,15 @@ mod test_line {
             // lines without intersection
             let line1 = Line::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
             let line2 = Line::new(V2::new(3.5, 0.0), V2::new(0.0, 3.5));
-            assert_eq!(line1.intersection(&line2), LineIntersection::NoIntersection);
+            assert_eq!(line1.intersection(line2), LineIntersection::NoIntersection);
 
             let line1 = Line::new(V2::new(0.0, 0.0), V2::new(1.0, 0.0));
             let line2 = Line::new(V2::new(1.0, -1.0), V2::new(3.0, 1.0));
-            assert_eq!(line1.intersection(&line2), LineIntersection::NoIntersection);
+            assert_eq!(line1.intersection(line2), LineIntersection::NoIntersection);
 
             let line1 = Line::new(V2::new(5.0, 5.0), V2::new(5.0, -3.0));
             let line2 = Line::new(V2::new(4.0, -7.0), V2::new(6.0, -5.0));
-            assert_eq!(line1.intersection(&line2), LineIntersection::NoIntersection);
+            assert_eq!(line1.intersection(line2), LineIntersection::NoIntersection);
         }
 
         #[test]
@@ -62,7 +62,7 @@ mod test_line {
             let line1 = Line::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
             let line2 = Line::new(V2::new(1.0, 1.0), V2::new(2.0, 2.0));
             assert_eq!(
-                line1.intersection(&line2),
+                line1.intersection(line2),
                 LineIntersection::Intersection(line1.to)
             );
         }
@@ -73,7 +73,7 @@ mod test_line {
             let line1 = Line::new(V2::new(0.0, 0.0), V2::new(1.0, 0.0));
             let line2 = Line::new(V2::new(1.0, 1.0), V2::new(1.0, -1.0));
             assert_eq!(
-                line1.intersection(&line2),
+                line1.intersection(line2),
                 LineIntersection::Intersection(line1.to)
             );
         }
@@ -84,7 +84,7 @@ mod test_line {
             let line1 = Line::new(V2::new(1.0, 1.0), V2::new(0.0, 0.0));
             let line2 = Line::new(V2::new(0.0, 2.0), V2::new(2.0, 0.0));
             assert_eq!(
-                line1.intersection(&line2),
+                line1.intersection(line2),
                 LineIntersection::Intersection(line1.from)
             );
         }
@@ -127,28 +127,28 @@ mod test_line {
             let line = Line::new(V2::new(0.0, 0.0), V2::new(3.0, 3.0));
 
             let point = V2::new(3.0, 3.0);
-            assert_eq!(line.closest_point(&point), point);
+            assert_eq!(line.closest_point(point), point);
 
             let point = V2::new(5.0, 5.0);
-            assert_eq!(line.closest_point(&point), line.to.clone());
+            assert_eq!(line.closest_point(point), line.to.clone());
 
             let point = V2::new(1.5, 1.5);
-            assert_eq!(line.closest_point(&point), point);
+            assert_eq!(line.closest_point(point), point);
 
             let point = V2::new(0.0, 3.0);
-            assert_eq!(line.closest_point(&point), V2::new(1.5, 1.5));
+            assert_eq!(line.closest_point(point), V2::new(1.5, 1.5));
 
             let point = V2::new(3.0, 0.0);
-            assert_eq!(line.closest_point(&point), V2::new(1.5, 1.5));
+            assert_eq!(line.closest_point(point), V2::new(1.5, 1.5));
 
             let point = V2::new(100.0, 0.0);
-            assert_eq!(line.closest_point(&point), V2::new(3.0, 3.0));
+            assert_eq!(line.closest_point(point), V2::new(3.0, 3.0));
 
             let point = V2::new(0.0, 5.0);
-            assert_eq!(line.closest_point(&point), V2::new(2.5, 2.5));
+            assert_eq!(line.closest_point(point), V2::new(2.5, 2.5));
 
             let point = V2::new(5.0, 0.0);
-            assert_eq!(line.closest_point(&point), V2::new(2.5, 2.5));
+            assert_eq!(line.closest_point(point), V2::new(2.5, 2.5));
         }
 
         #[test]
@@ -157,7 +157,7 @@ mod test_line {
             let line = Line::new(V2::new(0.0, 0.0), V2::new(0.0, 0.0));
 
             let point = V2::new(1.0, 1.0);
-            assert_eq!(line.closest_point(&point), V2::new(0.0, 0.0));
+            assert_eq!(line.closest_point(point), V2::new(0.0, 0.0));
         }
 
         #[test]
@@ -165,7 +165,7 @@ mod test_line {
             let line = Line::new(V2::new(0.0, 1.0), V2::new(1.0, 2.0));
 
             let point = V2::new(0.0, 2.0);
-            assert_eq!(line.project(&point), V2::new(0.5, 1.5));
+            assert_eq!(line.project(point), V2::new(0.5, 1.5));
         }
 
         #[test]
