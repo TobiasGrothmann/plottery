@@ -24,6 +24,11 @@
 
 <br/>
 
+# Editor
+
+The [Editor](./editor) lets you manage, preview and run **Plottery** projects.
+<div align="center"><img width="65%" src="https://github.com/user-attachments/assets/ee596420-4315-4596-a015-b93ff821fefd" /></div>
+
 # Projects
 
 ### Create
