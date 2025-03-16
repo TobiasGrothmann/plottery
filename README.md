@@ -46,7 +46,7 @@ The [editor](./editor) can also be used to run a project and tweak its input par
 ### Parameters
 
 Projects expose parameters as a struct:
-```rs
+```rust
 #[derive(PlotteryParamsDefinition)]
 pub struct Params {
     num_points: i32,
@@ -58,7 +58,7 @@ pub struct Params {
 
 `generate.rs` defines the function used to generate the art. It receives an instance of `Params` as an argument and returns a [`Layer`](./lib/src/composition/layer.rs):
 
-```rs
+```rust
 pub fn generate(params: Params) -> Layer {
     let mut l = Layer::new();
 
@@ -76,7 +76,7 @@ This project generates a spiral masked inside a rectangle:
   <img src="https://github.com/user-attachments/assets/8aa40c30-4c36-498a-87de-ca9f2cc3fdd3" width="50%" />
 </div>
 
-```rs
+```rust
 use plottery_lib::*;
 use plottery_project::*;
 

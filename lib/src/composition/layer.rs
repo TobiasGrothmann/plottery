@@ -21,12 +21,12 @@ use super::{path_end::PathEnd, ColorRgb, Inheritable, LayerProps, LayerPropsInhe
 /// `Layer` represents a tree of [`Shape`]s by holding a list of [`Shape`]s and other `Layer`s.
 ///
 /// ### Example
-/// ```rs
-/// # use plottery_lib::{Layer, Shape, V2};
+/// ```
+/// # use plottery_lib::*;
 ///
 /// let mut layer = Layer::new();
 /// layer.push(Circle::new_shape(V2::new(0.0, 0.0), 1.0));
-/// layer.push(Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+/// layer.push(Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0)));
 ///
 /// let mut sublayer = Layer::new();
 /// sublayer.push(Circle::new_shape(V2::new(3.0, 3.0), 5.0));
