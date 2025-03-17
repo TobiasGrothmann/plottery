@@ -125,7 +125,7 @@ pub struct ColorHsv {
 impl ColorHsv {
     /// Creates a new HSV color with the specified hue, saturation and value values.
     ///
-    /// Each value should be between 0.0 and 1.0.
+    /// `saturation` and `value` should be between 0.0 and 1.0.
     pub fn new(h: f32, s: f32, v: f32) -> Self {
         Self { h, s, v }
     }
@@ -138,7 +138,7 @@ impl ColorHsv {
 
 impl From<ColorHsv> for ColorRgb {
     fn from(hsv: ColorHsv) -> Self {
-        let h = hsv.h.clamp(0.0, 1.0) * 360.0;
+        let h = (hsv.h % 1.0) * 360.0;
         let s = hsv.s.clamp(0.0, 1.0);
         let v = hsv.v.clamp(0.0, 1.0);
         let c = v * s;
