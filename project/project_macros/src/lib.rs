@@ -3,7 +3,7 @@ use proc_macro2::Span;
 use quote::quote;
 use syn::{self, punctuated::Punctuated,Field, Ident, Meta, Token, Expr};
 
-#[proc_macro_derive(PlotteryParamsDefinition, attributes(value, range))]
+#[proc_macro_derive(PlotteryParams, attributes(value, range))]
 pub fn plottery_params(input: TokenStream) -> TokenStream {
     let ast = syn::parse(input).expect("Failed to parse macro.");
     plottery_params_impl(&ast)
@@ -202,7 +202,7 @@ fn plottery_params_impl(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
 
     // TRAIT IMPLEMENTATION
     let expanded = quote! {
-        impl PlotteryParamsDefinition for #name {
+        impl PlotteryParams for #name {
             #get_params_impl
             #new_from_map_impl
 

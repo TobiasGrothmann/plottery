@@ -52,7 +52,7 @@ The [editor](./editor) can also be used to run a project and tweak its input par
 
 Projects expose parameters as a struct:
 ```rust
-#[derive(PlotteryParamsDefinition)]
+#[derive(PlotteryParams)]
 pub struct Params {
     num_points: i32,
     points_distance: f32,
@@ -86,7 +86,7 @@ use plottery_lib::*;
 use plottery_project::*;
 
 // These project parameters are exposed in the Plottery Editor.
-#[derive(PlotteryParamsDefinition)]
+#[derive(PlotteryParams)]
 pub struct Params {
     #[value(2_000)]
     num_points: i32,

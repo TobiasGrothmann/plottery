@@ -6,7 +6,7 @@ use std::io::{self, Read, Write};
 use std::path::PathBuf;
 
 use crate::project_param::ProjectParam;
-use crate::project_params_definition::PlotteryParamsDefinition;
+use crate::project_params_definition::PlotteryParams;
 use crate::project_params_list_wrapper::ProjectParamsListWrapper;
 
 #[derive(Debug, Clone, Subcommand)]
@@ -47,7 +47,7 @@ fn read_params_from_stdin() -> Result<Vec<ProjectParam>, Box<dyn Error>> {
 
 pub fn run_project<P, F>(generate_function: F) -> Result<(), Box<dyn Error>>
 where
-    P: PlotteryParamsDefinition,
+    P: PlotteryParams,
     F: Fn(P) -> Layer,
 {
     let args = Args::parse();

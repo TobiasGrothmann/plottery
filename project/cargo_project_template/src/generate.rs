@@ -2,7 +2,7 @@ use plottery_lib::*;
 use plottery_project::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PlotteryParamsDefinition, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, PlotteryParams, Serialize, Deserialize, PartialEq)]
 pub struct Params {
     #[value(0.1)]
     #[range(0.02, 0.35)]
