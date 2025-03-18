@@ -6,7 +6,7 @@
 * [**plottery_editor**](./editor): Plottery Editor ([releases](https://github.com/TobiasGrothmann/plottery/releases)) – The GUI Application to create, manage and run projects, preview artworks and control the plotter hardware.
 * [**plottery_server**](./server): Controller for the pen-plotter hardware – The server offers a http interface to send tasks to execute on the hardware and controls the motors. This is highly customized to my personal DIY pen-plotter.
 * [**plottery_cli**](./cli) ([crates.io](https://docs.rs/crate/plottery_cli/latest)): Command line interface to create and run projects.
-* [**plottery_project**](./project) ([crates.io](https://docs.rs/plottery_project/latest/plottery_project/)): Library containing functions and tools to handle **Plottery** projects.
+* [**plottery_project**](./project) ([crates.io](https://docs.rs/plottery_project/latest/plottery_project/)): Library containing functionality to handle **Plottery** projects.
 
 <br/>
 
@@ -39,7 +39,7 @@ cargo install plottery_cli
 plottery new /path/to/folder awesome_project
 ```
 
-Projects in **Plottery** are a wrapper around a regular cargo project. They support a couple of commands when run directly:
+Projects in **Plottery** are a [wrapper around a regular cargo project](./project). They support a couple of commands when run directly:
 
 ```sh
 cargo run svg # run project and open the result as .svg
