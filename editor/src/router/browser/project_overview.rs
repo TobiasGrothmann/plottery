@@ -58,7 +58,7 @@ pub fn ProjectOverview(props: ProjectOverviewProps) -> Element {
             div { class: "actions",
                 button { class: "delete_button",
                     onclick: move |_event| { props.on_delete_clicked.call(props.project.read().clone()) },
-                    img { src: "{format_svg(include_bytes!(\"../../../public/icons/delete.svg\"))}" }
+                    img { src: "{format_svg(include_bytes!(\"../../../public/icons/trash_white.svg\"))}" }
                 }
                 if project_exists {
                     button { class: "icon_button",
