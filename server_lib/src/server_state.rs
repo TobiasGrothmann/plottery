@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use plottery_lib::V2;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -22,14 +24,15 @@ impl ServerState {
     }
 }
 
-pub async fn request_server_state() -> anyhow::Result<ServerState> {
+pub async fn request_server_state(timeout: Option<Duration>) -> anyhow::Result<ServerState> {
     let client = Client::new();
-    let bytes = client
-        .get(format!("http://{}:{}/state", HOST_NAME, HOST_PORT))
-        .send()
-        .await?
-        .bytes()
-        .await?
-        .to_vec();
+    let mut request = client.get(format!("http://{}:{}/state", HOST_NAME, HOST_PORT));
+
+    match timeout {
+        Some(timeout_duration) => request = request.timeout(timeout_duration),
+        None => {}
+    }
+
+    let bytes = request.send().await?.bytes().await?.to_vec();
     ServerState::from_binary(&bytes)
 }
