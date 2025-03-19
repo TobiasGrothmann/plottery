@@ -39,8 +39,8 @@ fn pick_project(error: &mut Signal<String>, navigator: &Navigator) {
     // no error
     error.set("".to_string());
 
-    if app_state.projects.iter().any(|p| *p == project_to_import) {
-        error.set("Project does not need to be imported.".to_string());
+    if app_state.projects.contains(&project_to_import) {
+        error.set("Project already in Database. It does not need to be imported.".to_string());
         return;
     }
 

@@ -222,7 +222,7 @@ pub fn Editor(project_path: String) -> Element {
                     }
                 }
                 div { class: "run_actions",
-                    if !matches!(running_state(), RunningState::Idle {}) {
+                    if !matches!(running_state(), RunningState::Idle) {
                         div { class: "{running_state_class}",
                             p { "{running_state().get_msg()}" }
                         }

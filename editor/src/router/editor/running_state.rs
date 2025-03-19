@@ -20,7 +20,7 @@ impl RunningState {
     pub fn is_busy(&self) -> bool {
         !matches!(
             self,
-            RunningState::Idle {}
+            RunningState::Idle
                 | RunningState::BuildFailed { .. }
                 | RunningState::RunFailed { .. }
                 | RunningState::GetParamsFailed { .. }
@@ -39,7 +39,7 @@ impl RunningState {
     }
     pub fn get_msg(&self) -> String {
         match self {
-            RunningState::Idle {} => "".to_string(),
+            RunningState::Idle => "".to_string(),
             RunningState::Preparing { msg } => msg.clone(),
             RunningState::StartingBuild { msg } => msg.clone(),
             RunningState::Building { msg } => msg.clone(),
