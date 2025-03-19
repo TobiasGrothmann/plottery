@@ -5,6 +5,11 @@ pub mod plot_setting;
 pub mod server_state;
 pub mod task;
 
+pub use midi::*;
+pub use plot_setting::*;
+pub use server_state::*;
+pub use task::*;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum Axis {
     X,

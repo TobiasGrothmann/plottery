@@ -30,8 +30,10 @@ pub async fn start_server(
                 } => {
                     server_state.lock().unwrap().plotting = true;
                     hardware.set_enabled(true);
+
                     plot_layer(&mut hardware, &layer, sample_settings, &plot_settings).await;
                     travel_to(&mut hardware, V2::zero(), &plot_settings).await;
+
                     hardware.set_enabled(false);
                     server_state.lock().unwrap().plotting = false;
                 }
@@ -42,8 +44,10 @@ pub async fn start_server(
                 } => {
                     server_state.lock().unwrap().plotting = true;
                     hardware.set_enabled(true);
+
                     plot_shape(&mut hardware, &shape, sample_settings, &plot_settings).await;
                     travel_to(&mut hardware, V2::zero(), &plot_settings).await;
+
                     hardware.set_enabled(false);
                     server_state.lock().unwrap().plotting = false;
                 }

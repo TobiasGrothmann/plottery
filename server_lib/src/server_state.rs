@@ -7,6 +7,9 @@ use crate::{HOST_NAME, HOST_PORT};
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy, Default)]
 pub struct ServerState {
     pub location: V2,
+    pub motors_enabled: bool,
+    pub head_down: bool,
+
     pub plotting: bool,
 }
 
