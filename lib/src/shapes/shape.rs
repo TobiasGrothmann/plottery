@@ -9,7 +9,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum Shape {
     Circle(Circle),
     Rect(Rect),
@@ -65,16 +65,6 @@ impl Plottable for Shape {
             Shape::Circle(c) => Shape::Circle(c.reduce_points(aggression_factor)),
             Shape::Rect(r) => Shape::Rect(r.reduce_points(aggression_factor)),
             Shape::Path(p) => Shape::Path(p.reduce_points(aggression_factor)),
-        }
-    }
-}
-
-impl Clone for Shape {
-    fn clone(&self) -> Self {
-        match self {
-            Shape::Circle(c) => Shape::Circle(c.clone()),
-            Shape::Rect(r) => Shape::Rect(r.clone()),
-            Shape::Path(p) => Shape::Path(p.clone()),
         }
     }
 }

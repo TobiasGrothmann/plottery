@@ -1,7 +1,7 @@
 use crate::{composition::grid::Grid, Rect, V2i};
 
 /// Represents the state of a cell in the grid
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum CellState {
     /// A cell with specific dimensions (either a standalone cell or the bottom-left of a combined cell)
     Cell { width: usize, height: usize },
@@ -34,6 +34,7 @@ pub enum CellState {
 /// // Get the rectangle for the combined cell
 /// let rect = combineable_grid.get_cell(0, 0);
 /// ```
+#[derive(Debug, Clone, PartialEq)]
 pub struct GridCombineable {
     grid: Grid,
     cell_states: Vec<Vec<CellState>>,

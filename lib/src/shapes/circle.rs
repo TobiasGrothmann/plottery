@@ -7,7 +7,7 @@ use crate::{
     V2,
 };
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq)]
 pub struct Circle {
     pub center: V2,
     pub radius: f32,
@@ -158,7 +158,7 @@ impl Plottable for Circle {
     }
 
     fn reduce_points(&self, _aggression_factor: f32) -> Self {
-        self.clone()
+        *self
     }
 }
 

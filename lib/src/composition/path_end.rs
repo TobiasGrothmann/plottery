@@ -1,6 +1,6 @@
 use crate::{Angle, Path, V2};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PathEnd {
     pub point: V2,
     pub angle: Angle,

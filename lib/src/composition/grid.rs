@@ -23,6 +23,7 @@ use super::grid_comineable::GridCombineable;
 ///     // ...
 /// }
 /// ```
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Grid {
     pub rows: usize,
     pub cols: usize,

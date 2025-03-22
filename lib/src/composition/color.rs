@@ -15,7 +15,7 @@ use super::color_names::{ColorName, COLOR_NAMES};
 /// let custom_color = ColorRgb::new(0.5, 0.7, 0.3);
 /// let hex_string = custom_color.hex();
 /// ```
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default)]
 pub struct ColorRgb {
     pub r: f32,
     pub g: f32,

@@ -28,9 +28,8 @@ pub async fn request_server_state(timeout: Option<Duration>) -> anyhow::Result<S
     let client = Client::new();
     let mut request = client.get(format!("http://{}:{}/state", HOST_NAME, HOST_PORT));
 
-    match timeout {
-        Some(timeout_duration) => request = request.timeout(timeout_duration),
-        None => {}
+    if let Some(timeout_duration) = timeout {
+        request = request.timeout(timeout_duration)
     }
 
     let bytes = request.send().await?.bytes().await?.to_vec();

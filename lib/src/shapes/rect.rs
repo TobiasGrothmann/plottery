@@ -5,7 +5,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq)]
 pub struct Rect {
     bot_left: V2,
     top_right: V2,
@@ -184,7 +184,7 @@ impl Plottable for Rect {
     }
 
     fn reduce_points(&self, _aggression_factor: f32) -> Self {
-        self.clone()
+        *self
     }
 }
 
@@ -308,7 +308,7 @@ impl Mirror for Rect {
 
 impl BoundingBox for Rect {
     fn bounding_box(&self) -> Option<Rect> {
-        Some(self.clone())
+        Some(*self)
     }
 }
 

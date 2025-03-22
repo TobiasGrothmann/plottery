@@ -4,7 +4,7 @@ use itertools::Itertools;
 use crate::{Angle, LARGE_EPSILON, V2};
 
 /// A line defined by two points. Can represent both finite line segments and infinite lines.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Line {
     pub from: V2,
     pub to: V2,

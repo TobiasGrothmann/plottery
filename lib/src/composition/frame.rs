@@ -12,6 +12,7 @@ use crate::{Rect, V2};
 /// let frame_inner = frame.inner_rect();
 /// let frame_outer = frame.outer_rect();
 /// ```
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Frame {
     pub bottom_left: V2,
     pub size: V2,
