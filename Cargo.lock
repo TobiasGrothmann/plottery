@@ -4502,6 +4502,7 @@ dependencies = [
  "geo-types",
  "geometry-predicates",
  "itertools 0.13.0",
+ "lazy_static",
  "mint",
  "ramer_douglas_peucker",
  "rand 0.8.5",
