@@ -74,8 +74,8 @@ where
 
                     open::that_in_background(path)
                         .join()
-                        .expect("Failed to open svg.")
-                        .expect("Failed to open svg.");
+                        .expect("Failed to join background process for opening SVG")
+                        .expect("Failed to open SVG file in default viewer");
                 }
             }
         }
@@ -91,7 +91,9 @@ where
 
             let mut stdout = io::stdout().lock();
             let art = generate_function(params);
-            let binary = art.to_binary().expect("Failed to convert layer to binary.");
+            let binary = art
+                .to_binary()
+                .expect("Failed to convert layer to binary format");
             stdout.write_all(&binary)?;
         }
         RunCommand::NamedPipe {
@@ -108,7 +110,9 @@ where
             };
 
             let art = generate_function(params);
-            let binary = art.to_binary().expect("Failed to convert layer to binary.");
+            let binary = art
+                .to_binary()
+                .expect("Failed to convert layer to binary format");
 
             let mut file = std::fs::OpenOptions::new()
                 .write(true)

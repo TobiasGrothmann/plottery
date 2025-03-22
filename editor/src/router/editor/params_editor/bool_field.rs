@@ -37,7 +37,7 @@ pub fn BoolField(mut props: BoolFieldProps) -> Element {
                     let mut new_params = props.project_params.read().clone();
                     for param_field in new_params.list.iter_mut() {
                         if param_field.name == props.param.name.clone() {
-                            param_field.value.set_bool(event.value() == "true");
+                            param_field.value.set_bool(event.value().parse().expect("Failed to parse boolean value"));
                         }
                     }
                     props.project_params.set(new_params);

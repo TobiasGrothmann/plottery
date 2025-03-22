@@ -24,18 +24,23 @@ struct ManagedState {
 
 #[post("/task", data = "<task_data>")]
 async fn set_task(managed_state: &State<ManagedState>, task_data: &[u8]) {
-    let task = Task::from_binary(task_data).expect("Failed to decode task");
+    let task = Task::from_binary(task_data).expect("Failed to decode task data from binary format");
     managed_state
         .task_sender
         .send(task)
         .await
-        .expect("Failed to process task");
+        .expect("Failed to send task to task handler");
 }
 
 #[get("/state")]
 async fn get_state(managed_state: &State<ManagedState>) -> Vec<u8> {
-    let state = managed_state.server_state.lock().unwrap();
-    state.to_binary().expect("Failed to encode state")
+    let state = managed_state
+        .server_state
+        .lock()
+        .expect("Failed to acquire server state lock");
+    state
+        .to_binary()
+        .expect("Failed to encode server state to binary format")
 }
 
 #[rocket::main]
@@ -68,5 +73,5 @@ async fn main() {
         .manage(managed_state)
         .launch()
         .await
-        .unwrap();
+        .expect("Failed to launch Rocket server");
 }

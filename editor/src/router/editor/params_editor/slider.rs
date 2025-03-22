@@ -86,11 +86,11 @@ pub fn Slider(mut props: EditorSliderProps) -> Element {
                     let mut new_params = props.project_params.read().clone();
                     for param_field in new_params.list.iter_mut() {
                         if param_field.name == props.param.name.clone() {
-                            let new_val = event.value().parse().unwrap();
+                            let new_val = event.value().parse().expect("Failed to parse slider value");
                             match param_field.value {
                                 ProjectParamValue::FloatRanged { .. } => param_field.value.set_f32(new_val),
                                 ProjectParamValue::IntRanged { .. } => param_field.value.set_i32(new_val.round() as i32),
-                                _ => panic!("Unexpected Error"),
+                                _ => panic!("Unexpected parameter value type in slider"),
                             }
                         }
                     }

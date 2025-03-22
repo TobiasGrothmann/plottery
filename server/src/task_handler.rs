@@ -28,28 +28,40 @@ pub async fn start_server(
                     sample_settings,
                     plot_settings,
                 } => {
-                    server_state.lock().unwrap().plotting = true;
+                    server_state
+                        .lock()
+                        .expect("Failed to acquire server state lock")
+                        .plotting = true;
                     hardware.set_enabled(true);
 
                     plot_layer(&mut hardware, &layer, sample_settings, &plot_settings).await;
                     travel_to(&mut hardware, V2::zero(), &plot_settings).await;
 
                     hardware.set_enabled(false);
-                    server_state.lock().unwrap().plotting = false;
+                    server_state
+                        .lock()
+                        .expect("Failed to acquire server state lock")
+                        .plotting = false;
                 }
                 Task::PlotShape {
                     shape,
                     sample_settings,
                     plot_settings,
                 } => {
-                    server_state.lock().unwrap().plotting = true;
+                    server_state
+                        .lock()
+                        .expect("Failed to acquire server state lock")
+                        .plotting = true;
                     hardware.set_enabled(true);
 
                     plot_shape(&mut hardware, &shape, sample_settings, &plot_settings).await;
                     travel_to(&mut hardware, V2::zero(), &plot_settings).await;
 
                     hardware.set_enabled(false);
-                    server_state.lock().unwrap().plotting = false;
+                    server_state
+                        .lock()
+                        .expect("Failed to acquire server state lock")
+                        .plotting = false;
                 }
                 Task::SetEnabled(enabled) => {
                     hardware.set_enabled(enabled);

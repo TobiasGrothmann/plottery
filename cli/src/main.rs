@@ -41,7 +41,10 @@ pub fn main() {
             if project.exists() {
                 println!(
                     "Project already exists at '{}'",
-                    project.dir.to_str().unwrap()
+                    project
+                        .dir
+                        .to_str()
+                        .expect("Failed to convert project directory path to string")
                 );
                 return;
             }
@@ -52,7 +55,13 @@ pub fn main() {
                 return;
             }
 
-            println!("Created project at '{}'", project.dir.to_str().unwrap());
+            println!(
+                "Created project at '{}'",
+                project
+                    .dir
+                    .to_str()
+                    .expect("Failed to convert project directory path to string")
+            );
         }
         Command::Build { project_path } => {
             let project_path_buf = PathBuf::from(project_path);
