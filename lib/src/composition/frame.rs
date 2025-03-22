@@ -8,38 +8,61 @@ use crate::{Rect, V2};
 /// ```
 /// # use plottery_lib::*;
 /// let size = V2::a4(); // A4 paper size
-/// let frame = Frame::new(size, size.min_axis() * 0.1); // 10% margin of the smallest axis
+/// let frame = Frame::new_xy(size, size.min_axis() * 0.1); // 10% margin of the smallest axis
 /// let frame_inner = frame.inner_rect();
 /// let frame_outer = frame.outer_rect();
 /// ```
 pub struct Frame {
     pub bottom_left: V2,
     pub size: V2,
-    pub margin: f32,
+    pub margin: V2,
 }
 
 impl Frame {
-    pub fn new(size: V2, margin: f32) -> Self {
+    pub fn new(size: V2, margin: V2) -> Self {
         Self {
             bottom_left: V2::xy(0.0),
             size,
             margin,
         }
     }
-    /// Creates a new frame at the specified position with the given size and margin.
-    pub fn new_at(bottom_left: V2, size: V2, margin: f32) -> Self {
+    pub fn new_at(bottom_left: V2, size: V2, margin: V2) -> Self {
         Self {
             bottom_left,
             size,
             margin,
         }
     }
-    /// Creates a new frame from an existing rectangle with the specified margin.
-    pub fn new_from_rect(rect: Rect, margin: f32) -> Self {
+    pub fn new_from_rect(rect: Rect, margin: V2) -> Self {
         Self {
             bottom_left: rect.bl(),
             size: rect.size(),
             margin,
+        }
+    }
+
+    /// Creates a new `Frame` with a symmetric margin.
+    pub fn new_xy(size: V2, margin: f32) -> Self {
+        Self {
+            bottom_left: V2::xy(0.0),
+            size,
+            margin: V2::xy(margin),
+        }
+    }
+    /// Creates a new `Frame` with a symmetric margin.
+    pub fn new_at_xy(bottom_left: V2, size: V2, margin: f32) -> Self {
+        Self {
+            bottom_left,
+            size,
+            margin: V2::xy(margin),
+        }
+    }
+    /// Creates a new `Frame` with a symmetric margin.
+    pub fn new_from_rect_xy(rect: Rect, margin: f32) -> Self {
+        Self {
+            bottom_left: rect.bl(),
+            size: rect.size(),
+            margin: V2::xy(margin),
         }
     }
 

@@ -98,7 +98,7 @@ pub struct Params {
 pub fn generate(params: Params) -> Layer {
     let mut l = Layer::new();
     let size = V2::a6(); // DIN-A6 paper size
-    let frame = Frame::new(
+    let frame = Frame::new_xy(
         size,
         size.min_axis() * 0.1, // 10% margin of smallest side
     );

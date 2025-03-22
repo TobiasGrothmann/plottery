@@ -18,7 +18,7 @@ pub fn generate(params: Params) -> Layer {
     // setup
     let mut l = Layer::new();
     let size = V2::din_a(params.din_size as u8);
-    let frame = Frame::new(size, size.min_axis() * 0.12);
+    let frame = Frame::new_xy(size, size.min_axis() * 0.12);
 
     // create circles in a spiral
     let mut circles = vec![];
