@@ -191,9 +191,9 @@ pub trait Plottable: Clone + Into<Shape> {
             let new_inside = mask.contains_point(point);
             if is_inside != new_inside {
                 if is_inside {
-                    inside.push_path(current_part);
+                    inside.push(current_part);
                 } else {
-                    outside.push_path(current_part);
+                    outside.push(current_part);
                 }
                 current_part = Path::new_from(vec![point]);
             }
@@ -202,9 +202,9 @@ pub trait Plottable: Clone + Into<Shape> {
         }
 
         if is_inside {
-            inside.push_path(current_part);
+            inside.push(current_part);
         } else {
-            outside.push_path(current_part);
+            outside.push(current_part);
         }
 
         if inside.is_empty() && !outside.is_empty() {
@@ -257,9 +257,9 @@ pub trait Plottable: Clone + Into<Shape> {
             for intersection in intersections_sorted {
                 current_part.push(intersection);
                 if currently_inside {
-                    inside.push_path(current_part);
+                    inside.push(current_part);
                 } else {
-                    outside.push_path(current_part);
+                    outside.push(current_part);
                 }
                 current_part = Path::new_from(vec![intersection]);
                 currently_inside = !currently_inside;
@@ -269,9 +269,9 @@ pub trait Plottable: Clone + Into<Shape> {
         }
 
         if currently_inside {
-            inside.push_path(current_part);
+            inside.push(current_part);
         } else {
-            outside.push_path(current_part);
+            outside.push(current_part);
         }
 
         Masked { inside, outside }

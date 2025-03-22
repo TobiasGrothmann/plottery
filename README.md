@@ -104,7 +104,7 @@ pub fn generate(params: Params) -> Layer {
     );
 
     // add outer border as a paper cutting guide
-    l.push_rect(frame.outer_rect());
+    l.push(frame.outer_rect());
 
     // generate spiral by collecting from iterator of points
     let path: Path = (0..params.num_points)

@@ -12,8 +12,7 @@ use svg::{
 
 use crate::{
     traits::{Normalize, Scale, Scale2D, Translate},
-    Angle, BoundingBox, Circle, Masked, Mirror, Path, Plottable, Rect, Rotate, SampleSettings,
-    Shape, V2,
+    Angle, BoundingBox, Masked, Mirror, Path, Plottable, Rect, Rotate, SampleSettings, Shape, V2,
 };
 
 use super::{path_end::PathEnd, ColorRgb, Inheritable, LayerProps, LayerPropsInheritable};
@@ -133,30 +132,26 @@ impl Layer {
         self
     }
 
-    pub fn push(&mut self, shape: Shape) {
-        self.shapes.push(shape);
-    }
-    pub fn push_path(&mut self, path: Path) {
-        self.shapes.push(Shape::Path(path));
-    }
-    pub fn push_circle(&mut self, circle: Circle) {
-        self.shapes.push(Shape::Circle(circle));
-    }
-    pub fn push_rect(&mut self, rect: Rect) {
-        self.shapes.push(Shape::Rect(rect));
+    pub fn push<S: Into<Shape>>(&mut self, shape: S) {
+        self.shapes.push(shape.into());
     }
     /// Add a layer as sublayer.
-    pub fn push_layer(&mut self, sublayer: Layer) {
-        self.sublayers.push(sublayer);
+    pub fn push_layer<L: Into<Layer>>(&mut self, sublayer: L) {
+        self.sublayers.push(sublayer.into());
     }
     /// Add all the [`Shape`]s of the `sublayer` recursively to `self`.
-    pub fn push_layer_flat(&mut self, sublayer: Layer) {
-        for shape in sublayer.iter_flattened() {
+    pub fn push_layer_flat<L: Into<Layer>>(&mut self, sublayer: L) {
+        let layer = sublayer.into();
+        for shape in layer.iter_flattened() {
             self.shapes.push(shape.clone());
         }
     }
-    pub fn push_many<I: IntoIterator<Item = Shape>>(&mut self, shapes: I) {
-        self.shapes.extend(shapes);
+    pub fn push_many<I, S>(&mut self, shapes: I)
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<Shape>,
+    {
+        self.shapes.extend(shapes.into_iter().map(Into::into));
     }
 
     /// Returns an iterator over the shapes of the layer, excluding sublayers.

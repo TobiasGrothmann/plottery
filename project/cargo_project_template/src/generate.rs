@@ -35,12 +35,11 @@ pub fn generate(params: Params) -> Layer {
     }
 
     // generate plot with only the circles that fit in the frame
-    l.push_rect(frame.outer_rect());
+    l.push(frame.outer_rect());
     l.push_many(
         circles
             .into_iter()
-            .filter(|circle| frame.inner_rect().contains_point(circle.center))
-            .map(|circle| circle.into()),
+            .filter(|circle| frame.inner_rect().contains_point(circle.center)),
     );
 
     l.with_name("root").optimize_recursive()

@@ -239,8 +239,8 @@ mod test_layer {
     #[test]
     fn combine_shapes_end_to_start() {
         let mut a = Layer::new();
-        a.push_path(Path::new_from(vec![V2::xy(0.0), V2::xy(1.0)]));
-        a.push_path(Path::new_from(vec![V2::xy(1.0), V2::xy(2.0)]));
+        a.push(Path::new_from(vec![V2::xy(0.0), V2::xy(1.0)]));
+        a.push(Path::new_from(vec![V2::xy(1.0), V2::xy(2.0)]));
         let b = a.combine_shapes_flat(Some(Angle::from_degrees(1.0)));
         println!("{:?}", b);
         assert_eq!(b.len(), 1);
@@ -249,8 +249,8 @@ mod test_layer {
     #[test]
     fn combine_shapes_end_to_end() {
         let mut a = Layer::new();
-        a.push_path(Path::new_from(vec![V2::xy(0.0), V2::xy(1.0)]));
-        a.push_path(Path::new_from(vec![V2::xy(2.0), V2::xy(1.0)]));
+        a.push(Path::new_from(vec![V2::xy(0.0), V2::xy(1.0)]));
+        a.push(Path::new_from(vec![V2::xy(2.0), V2::xy(1.0)]));
         let b = a.combine_shapes_flat(Some(Angle::from_degrees(1.0)));
         assert_eq!(b.len(), 1);
     }
@@ -258,8 +258,8 @@ mod test_layer {
     #[test]
     fn combine_shapes_start_to_start() {
         let mut a = Layer::new();
-        a.push_path(Path::new_from(vec![V2::xy(1.0), V2::xy(0.0)]));
-        a.push_path(Path::new_from(vec![V2::xy(1.0), V2::xy(2.0)]));
+        a.push(Path::new_from(vec![V2::xy(1.0), V2::xy(0.0)]));
+        a.push(Path::new_from(vec![V2::xy(1.0), V2::xy(2.0)]));
         let b = a.combine_shapes_flat(Some(Angle::from_degrees(1.0)));
         assert_eq!(b.len(), 1);
     }
@@ -267,8 +267,8 @@ mod test_layer {
     #[test]
     fn combine_shapes_start_to_end() {
         let mut a = Layer::new();
-        a.push_path(Path::new_from(vec![V2::xy(1.0), V2::xy(0.0)]));
-        a.push_path(Path::new_from(vec![V2::xy(2.0), V2::xy(1.0)]));
+        a.push(Path::new_from(vec![V2::xy(1.0), V2::xy(0.0)]));
+        a.push(Path::new_from(vec![V2::xy(2.0), V2::xy(1.0)]));
         let b = a.combine_shapes_flat(Some(Angle::from_degrees(1.0)));
         assert_eq!(b.len(), 1);
     }
@@ -276,10 +276,10 @@ mod test_layer {
     #[test]
     fn combine_shapes_rect() {
         let mut a = Layer::new();
-        a.push_path(Path::new_from(vec![V2::new(0.0, 0.0), V2::new(1.0, 0.0)]));
-        a.push_path(Path::new_from(vec![V2::new(0.0, 0.0), V2::new(0.0, 1.0)]));
-        a.push_path(Path::new_from(vec![V2::new(1.0, 1.0), V2::new(1.0, 0.0)]));
-        a.push_path(Path::new_from(vec![V2::new(1.0, 1.0), V2::new(0.0, 1.0)]));
+        a.push(Path::new_from(vec![V2::new(0.0, 0.0), V2::new(1.0, 0.0)]));
+        a.push(Path::new_from(vec![V2::new(0.0, 0.0), V2::new(0.0, 1.0)]));
+        a.push(Path::new_from(vec![V2::new(1.0, 1.0), V2::new(1.0, 0.0)]));
+        a.push(Path::new_from(vec![V2::new(1.0, 1.0), V2::new(0.0, 1.0)]));
 
         let b = a.combine_shapes_flat(None);
         assert_eq!(b.len(), 1);
@@ -291,8 +291,8 @@ mod test_layer {
     #[test]
     fn combine_shapes_angle_end_to_start() {
         let mut a = Layer::new();
-        a.push_path(Path::new_from(vec![V2::new(0.0, 0.0), V2::new(1.0, 0.0)]));
-        a.push_path(Path::new_from(vec![V2::new(1.0, 0.0), V2::new(2.0, 1.0)])); // 45°
+        a.push(Path::new_from(vec![V2::new(0.0, 0.0), V2::new(1.0, 0.0)]));
+        a.push(Path::new_from(vec![V2::new(1.0, 0.0), V2::new(2.0, 1.0)])); // 45°
 
         let b = a.combine_shapes_flat(None);
         assert_eq!(b.len(), 1);
@@ -307,8 +307,8 @@ mod test_layer {
     #[test]
     fn combine_shapes_angle_end_to_end() {
         let mut a = Layer::new();
-        a.push_path(Path::new_from(vec![V2::new(0.0, 0.0), V2::new(1.0, 0.0)]));
-        a.push_path(Path::new_from(vec![V2::new(2.0, 1.0), V2::new(1.0, 0.0)])); // 45°
+        a.push(Path::new_from(vec![V2::new(0.0, 0.0), V2::new(1.0, 0.0)]));
+        a.push(Path::new_from(vec![V2::new(2.0, 1.0), V2::new(1.0, 0.0)])); // 45°
 
         let b = a.combine_shapes_flat(None);
         assert_eq!(b.len(), 1);
@@ -323,8 +323,8 @@ mod test_layer {
     #[test]
     fn combine_shapes_angle_start_to_end() {
         let mut a = Layer::new();
-        a.push_path(Path::new_from(vec![V2::new(1.0, 0.0), V2::new(0.0, 0.0)]));
-        a.push_path(Path::new_from(vec![V2::new(2.0, 1.0), V2::new(1.0, 0.0)])); // 45°
+        a.push(Path::new_from(vec![V2::new(1.0, 0.0), V2::new(0.0, 0.0)]));
+        a.push(Path::new_from(vec![V2::new(2.0, 1.0), V2::new(1.0, 0.0)])); // 45°
 
         let b = a.combine_shapes_flat(None);
         assert_eq!(b.len(), 1);
@@ -339,8 +339,8 @@ mod test_layer {
     #[test]
     fn combine_shapes_angle_start_to_start() {
         let mut a = Layer::new();
-        a.push_path(Path::new_from(vec![V2::new(1.0, 0.0), V2::new(0.0, 0.0)]));
-        a.push_path(Path::new_from(vec![V2::new(1.0, 0.0), V2::new(2.0, 1.0)])); // 45°
+        a.push(Path::new_from(vec![V2::new(1.0, 0.0), V2::new(0.0, 0.0)]));
+        a.push(Path::new_from(vec![V2::new(1.0, 0.0), V2::new(2.0, 1.0)])); // 45°
 
         let b = a.combine_shapes_flat(None);
         assert_eq!(b.len(), 1);
@@ -462,7 +462,7 @@ mod test_layer {
         let mut a = Layer::new();
         for i in 0..num_lines {
             let path = Path::new_from(vec![V2::xy(0.0), V2::polar(angle_per_line * i as f32, 1.0)]);
-            a.push_path(path);
+            a.push(path);
         }
 
         let b = a.combine_shapes_flat(None);
@@ -490,14 +490,14 @@ mod test_layer {
     #[test]
     fn combine_shapes_recursive() {
         let mut a = Layer::new();
-        a.push_path(Path::new_from(vec![V2::xy(0.0), V2::xy(1.0)]));
-        a.push_path(Path::new_from(vec![V2::xy(1.0), V2::xy(2.0)]));
-        a.push_path(Path::new_from(vec![V2::xy(2.0), V2::xy(3.0)]));
-        a.push_path(Path::new_from(vec![V2::xy(3.0), V2::xy(4.0)]));
+        a.push(Path::new_from(vec![V2::xy(0.0), V2::xy(1.0)]));
+        a.push(Path::new_from(vec![V2::xy(1.0), V2::xy(2.0)]));
+        a.push(Path::new_from(vec![V2::xy(2.0), V2::xy(3.0)]));
+        a.push(Path::new_from(vec![V2::xy(3.0), V2::xy(4.0)]));
 
         let mut b = Layer::new();
-        b.push_path(Path::new_from(vec![V2::xy(0.0), V2::xy(1.0)]));
-        b.push_path(Path::new_from(vec![V2::xy(1.0), V2::xy(2.0)]));
+        b.push(Path::new_from(vec![V2::xy(0.0), V2::xy(1.0)]));
+        b.push(Path::new_from(vec![V2::xy(1.0), V2::xy(2.0)]));
 
         a.push_layer(b);
 
