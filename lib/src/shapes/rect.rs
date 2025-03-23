@@ -7,7 +7,9 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq)]
 pub struct Rect {
+    /// guaranteed: `bot_left.x <= top_right.x && bot_left.y <= top_right.y`
     bot_left: V2,
+    /// guaranteed: `top_right.x >= bot_left.x && top_right.y >= bot_left.y`
     top_right: V2,
 }
 
@@ -20,6 +22,15 @@ impl Rect {
     }
     pub fn new_shape(bl: V2, tr: V2) -> Shape {
         Shape::Rect(Rect::new(bl, tr))
+    }
+    pub fn new_from_center(center: V2, size: V2) -> Self {
+        Self {
+            bot_left: center - size * 0.5,
+            top_right: center + size * 0.5,
+        }
+    }
+    pub fn new_shape_from_center(center: V2, size: V2) -> Shape {
+        Shape::Rect(Rect::new_from_center(center, size))
     }
 
     fn fix_corners_min_max(&mut self) {

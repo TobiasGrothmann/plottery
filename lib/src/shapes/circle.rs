@@ -88,6 +88,8 @@ impl Circle {
             .collect()
     }
 
+    /// This utility function returns a path to draw a circle with a given thickness disregarding the pen width.
+    /// It creates a spiralling path from the circle's radius towards the center with a given `thickness`.
     pub fn with_thickness_towards_center(
         &self,
         mut thickness: f32,

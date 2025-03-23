@@ -9,12 +9,22 @@ use crate::{
     V2i,
 };
 
-/// A 2D vector with float coordinates (x, y).
+/// A 2D vector with floating-point coordinates.
 ///
-/// see also [`V2i`]
+/// # Examples
+///
+/// ```
+/// # use plottery_lib::*;
+/// let v1 = V2::new(1.0, 2.0);
+/// let v2 = V2::new(3.0, 4.0);
+/// let sum = v1 + v2;
+/// let scaled = v1 * 2.0;
+/// ```
 #[derive(Debug, Copy, Clone, Default, Serialize, Deserialize)]
 pub struct V2 {
+    /// In **Plottery** this represents the horizontal axis (left/right)
     pub x: f32,
+    /// In **Plottery** this represents the vertical axis (up/down)
     pub y: f32,
 }
 
