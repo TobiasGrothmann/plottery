@@ -16,7 +16,7 @@ impl ProjectParamsListWrapper {
     }
 
     pub fn new_combined(old: &[ProjectParam], new: &[ProjectParam]) -> Self {
-        let mut out_list = Vec::new();
+        let mut out_list = Vec::with_capacity(old.len() + new.len());
         for old_el in old.iter() {
             if new.contains(old_el) {
                 out_list.push(old_el.clone());
