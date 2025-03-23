@@ -1,5 +1,6 @@
 use geometry_predicates::orient2d;
 use itertools::Itertools;
+use rayon::prelude::*;
 
 use crate::{Angle, LARGE_EPSILON, V2};
 
@@ -190,12 +191,14 @@ impl Line {
     /// Returns all intersections of this line with the given line segments, sorted by distance from `self.from`.
     pub fn intersect_multiple_sorted_by_dist(&self, line_segments: &[Line]) -> Vec<V2> {
         line_segments
-            .iter()
+            .par_iter()
             .map(|segment| self.intersection(*segment))
             .filter_map(|intersection| match intersection {
                 LineIntersection::Intersection(point) => Some(point),
                 _ => None,
             })
+            .collect::<Vec<_>>()
+            .into_iter()
             .sorted_by_cached_key(|point| point.dist_squared(self.from).to_bits())
             .collect()
     }

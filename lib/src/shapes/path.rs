@@ -1,6 +1,7 @@
 use geo_types::{LineString, Polygon};
 use itertools::Itertools;
 use ramer_douglas_peucker::rdp;
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashSet,
@@ -439,24 +440,17 @@ impl Mirror for Path {
 
 impl ClosestPoint for Path {
     fn closest_point(&self, sample_settings: SampleSettings, point: V2) -> Option<V2> {
-        let points_and_distances: Vec<(V2, f32)> = self
-            .get_line_segments(sample_settings)
-            .iter()
+        self.get_line_segments(sample_settings)
+            .par_iter()
             .map(|line| {
                 let closest_point = line.closest_point(point);
                 let dist_sqaured = closest_point.dist_squared(point);
                 (closest_point, dist_sqaured)
             })
-            .collect();
-
-        let closest =
-            points_and_distances
-                .iter()
-                .min_by(|(_, dist_sqaured_a), (_, dist_sqaured_b)| {
-                    dist_sqaured_a.partial_cmp(dist_sqaured_b).unwrap()
-                });
-
-        closest.map(|closest| closest.0)
+            .min_by(|(_a, dist_sqaured_a), (_b, dist_sqaured_b)| {
+                dist_sqaured_a.partial_cmp(dist_sqaured_b).unwrap()
+            })
+            .map(|closest| closest.0)
     }
 }
 

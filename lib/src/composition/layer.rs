@@ -1,9 +1,10 @@
 use anyhow::{Ok, Result};
 use bincode::{deserialize_from, serialize};
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use std::{
-    collections::BTreeSet, fs::File, io::Write, iter::FromIterator, path::PathBuf, rc::Rc,
-    slice::Iter, vec,
+    collections::BTreeSet, fs::File, io::Write, iter::FromIterator, path::PathBuf, slice::Iter, vec,
 };
 use svg::{
     node::element::{path::Data, Group},
@@ -44,6 +45,14 @@ impl Layer {
     pub fn new() -> Self {
         Self {
             shapes: Vec::new(),
+            sublayers: Vec::new(),
+            props_inheritable: Inheritable::Inherit,
+            props: LayerProps::default(),
+        }
+    }
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            shapes: Vec::with_capacity(capacity),
             sublayers: Vec::new(),
             props_inheritable: Inheritable::Inherit,
             props: LayerProps::default(),
@@ -471,10 +480,10 @@ impl Layer {
 
     /// Map a function recursively to all [`Shape`]s in the `Layer` and its sublayers.
     pub fn map_recursive_mut<F: Fn(&mut Shape)>(&mut self, f: F) {
-        let f = Rc::new(f);
+        let f = Arc::new(f);
         self.map_recursive_mut_internal(f)
     }
-    fn map_recursive_mut_internal<F: Fn(&mut Shape)>(&mut self, f: Rc<F>) {
+    fn map_recursive_mut_internal<F: Fn(&mut Shape)>(&mut self, f: Arc<F>) {
         for shape in &mut self.shapes {
             f(shape);
         }
@@ -484,20 +493,30 @@ impl Layer {
     }
 
     /// Create a new [`Layer`] with a function mapped recursively to all [`Shape`]s in the `Layer` and its sublayers.
-    pub fn map_recursive<F: Fn(&Shape) -> Shape>(&self, f: F) -> Self {
-        let f = Rc::new(f);
+    pub fn map_recursive<F>(&self, f: F) -> Self
+    where
+        F: Fn(&Shape) -> Shape + Send + Sync,
+    {
+        let f = Arc::new(f);
         self.map_shapes_recursive_internal(f)
     }
-    fn map_shapes_recursive_internal<F: Fn(&Shape) -> Shape>(&self, f: Rc<F>) -> Self {
-        Layer::new_from_shapes_and_layers(
-            self.shapes.iter().map(|shape| f(shape)).collect(),
-            self.sublayers
-                .iter()
-                .map(|sublayer| sublayer.map_shapes_recursive_internal(f.clone()))
-                .collect(),
-        )
-        .with_props_inheritable(self.props_inheritable.clone())
-        .with_props(self.props.clone())
+    fn map_shapes_recursive_internal<F>(&self, f: Arc<F>) -> Self
+    where
+        F: Fn(&Shape) -> Shape + Send + Sync,
+    {
+        let (shapes, sublayers) = rayon::join(
+            || self.shapes.par_iter().map(|shape| f(shape)).collect(),
+            || {
+                self.sublayers
+                    .par_iter()
+                    .map(|sublayer| sublayer.map_shapes_recursive_internal(f.clone()))
+                    .collect()
+            },
+        );
+
+        Layer::new_from_shapes_and_layers(shapes, sublayers)
+            .with_props_inheritable(self.props_inheritable.clone())
+            .with_props(self.props.clone())
     }
 
     /// Filter the [`Shape`]s in the `Layer` and its sublayers with a predicate function.
@@ -505,10 +524,10 @@ impl Layer {
     where
         F: Fn(&Shape) -> bool + Clone,
     {
-        let predicate = Rc::new(predicate);
+        let predicate = Arc::new(predicate);
         self.filter_recursive_mut_internal(predicate)
     }
-    fn filter_recursive_mut_internal<F>(&mut self, predicate: Rc<F>)
+    fn filter_recursive_mut_internal<F>(&mut self, predicate: Arc<F>)
     where
         F: Fn(&Shape) -> bool,
     {
@@ -521,26 +540,31 @@ impl Layer {
     /// Create a new [`Layer`] with the [`Shape`]s in the `Layer` and its sublayers filtered with a predicate function.
     pub fn filter_recursive<F>(&self, f: F) -> Self
     where
-        F: Fn(&Shape) -> bool + Clone,
+        F: Fn(&Shape) -> bool + Clone + Send + Sync,
     {
-        let f = Rc::new(f);
+        let f = Arc::new(f);
         self.filter_recursive_internal(f)
     }
-    fn filter_recursive_internal<F>(&self, f: Rc<F>) -> Self
+    fn filter_recursive_internal<F>(&self, f: Arc<F>) -> Self
     where
-        F: Fn(&Shape) -> bool,
+        F: Fn(&Shape) -> bool + Send + Sync,
     {
-        let filtered_shapes: Vec<Shape> = self
-            .shapes
-            .iter()
-            .filter(|shape| f(shape))
-            .cloned()
-            .collect();
-        let filtered_sublayers: Vec<Layer> = self
-            .sublayers
-            .iter()
-            .map(|layer| layer.filter_recursive_internal(f.clone()))
-            .collect();
+        let (filtered_shapes, filtered_sublayers) = rayon::join(
+            || {
+                self.shapes
+                    .par_iter()
+                    .filter(|shape| f(shape))
+                    .cloned()
+                    .collect()
+            },
+            || {
+                self.sublayers
+                    .par_iter()
+                    .map(|layer| layer.filter_recursive_internal(f.clone()))
+                    .collect()
+            },
+        );
+
         Layer::new_from_shapes_and_layers(filtered_shapes, filtered_sublayers)
             .with_props_inheritable(self.props_inheritable.clone())
             .with_props(self.props.clone())
@@ -554,11 +578,16 @@ impl Layer {
     /// There can be unexpected outputs for example with shapes that self-intersect.
     /// See also [`Layer::mask_flattened_brute_force`] for a different and more stable masking.
     pub fn mask_geo_flattened(&self, mask: &Shape, sample_settings: SampleSettings) -> Masked {
-        let mut inside = Layer::new();
-        let mut outside = Layer::new();
+        let shapes: Vec<_> = self.iter_flattened().collect();
+        let masked_shapes: Vec<_> = shapes
+            .par_iter()
+            .map(|shape| shape.mask_geo(mask, sample_settings))
+            .collect();
 
-        for shape in self.iter_flattened() {
-            let masked = shape.mask_geo(mask, sample_settings);
+        let mut inside = Layer::with_capacity(masked_shapes.len() * 2);
+        let mut outside = Layer::with_capacity(masked_shapes.len() * 2);
+
+        for masked in masked_shapes {
             inside.push_layer_flat(masked.inside);
             outside.push_layer_flat(masked.outside);
         }
