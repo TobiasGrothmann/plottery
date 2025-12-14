@@ -9,6 +9,7 @@
 mod cargo_project_template;
 mod project;
 mod project_config;
+mod util;
 
 mod project_main;
 mod project_params;
@@ -22,3 +23,5 @@ pub use project_config::*;
 pub use project_main::*;
 pub use project_params::*;
 pub use project_util::*;
+
+pub use util::*;
