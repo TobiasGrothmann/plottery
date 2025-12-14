@@ -1,6 +1,6 @@
 use clap::Subcommand;
 use clap::{Parser, ValueEnum};
-use plottery_project::{LibSource, Project};
+use plottery_project::{export_plottery_home, LibSource, Project};
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, ValueEnum, PartialEq)]
@@ -45,6 +45,10 @@ enum Command {
     Build {
         #[arg(help = "Path to the .plottery project file")]
         project_path: String,
+    },
+    SetHome {
+        #[arg(help = "Path to the plottery workspace directory")]
+        path: String,
     },
 }
 
@@ -143,6 +147,30 @@ pub fn main() {
                 }
                 RenderType::Png => {
                     project.write_png(out_path_buf, release, &params).unwrap();
+                }
+            }
+        }
+        Command::SetHome { path } => {
+            let path_buf = PathBuf::from(&path);
+            if !path_buf.exists() {
+                println!("Error: Path does not exist: {}", path);
+                return;
+            }
+            if !path_buf.is_dir() {
+                println!("Error: Path is not a directory: {}", path);
+                return;
+            }
+
+            let absolute_path = path_buf.canonicalize().unwrap_or(path_buf);
+            let absolute_path_str = absolute_path.to_string_lossy();
+
+            match export_plottery_home(&absolute_path_str) {
+                Ok(()) => {
+                    println!("PLOTTERY_HOME has been set to: {}", absolute_path_str);
+                    println!("This setting will persist across terminal sessions.");
+                }
+                Err(e) => {
+                    println!("Failed to set PLOTTERY_HOME: {}", e);
                 }
             }
         }
