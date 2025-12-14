@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
-use syn::{self, punctuated::Punctuated,Field, Ident, Meta, Token, Expr};
+use syn::{self, punctuated::Punctuated, Expr, Field, Ident, Meta, Token};
 
 #[proc_macro_derive(PlotteryParams, attributes(value, range))]
 pub fn plottery_params(input: TokenStream) -> TokenStream {
@@ -123,10 +123,15 @@ fn get_parameters_vector_items(data: &syn::DataStruct) -> Vec<proc_macro2::Token
                         ProjectParam::new(#field_name, ProjectParamValue::Bool(#default_value)),
                     }
                 },
+                "Graph2d" => {
+                    quote! {
+                        ProjectParam::new(#field_name, ProjectParamValue::Graph2d(#default_value)),
+                    }
+                },
                 _ => panic!("Invalid field type: {}", field_type_name),
             }
 
-            
+
         })
         .collect::<Vec<_>>()
 }
@@ -138,10 +143,19 @@ fn get_constructor_fields_items(data: &syn::DataStruct) -> Vec<proc_macro2::Toke
         .map(|field| {
             let field_name = field.ident.as_ref().expect("Failed to access field.");
             let field_type_name = get_field_type_name(field);
-            let accessor_function = Ident::new(&format!("get_{}", field_type_name), Span::call_site());
 
-            quote! {
-                #field_name: params.get(stringify!(#field_name)).unwrap_or_else(|| panic!("Field '{}' is missing in params from stdin.", stringify!(#field_name))).value.#accessor_function().unwrap(),
+            if field_type_name == "Graph2d" {
+                quote! {
+                    #field_name: match &params.get(stringify!(#field_name)).unwrap_or_else(|| panic!("Field '{}' is missing in params from stdin.", stringify!(#field_name))).value {
+                        ProjectParamValue::Graph2d(g) => g.clone(),
+                        _ => panic!("Expected Graph2d for field '{}'", stringify!(#field_name)),
+                    },
+                }
+            } else {
+                let accessor_function = Ident::new(&format!("get_{}", field_type_name), Span::call_site());
+                quote! {
+                    #field_name: params.get(stringify!(#field_name)).unwrap_or_else(|| panic!("Field '{}' is missing in params from stdin.", stringify!(#field_name))).value.#accessor_function().unwrap(),
+                }
             }
         })
         .collect()

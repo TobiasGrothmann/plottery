@@ -8,7 +8,9 @@ use tokio::sync::Mutex;
 
 use crate::router::editor::{
     console_messages::ConsoleMessages,
-    params_editor::{bool_field::BoolField, number_field::NumberField, slider::Slider},
+    params_editor::{
+        bool_field::BoolField, graph_field::GraphField, number_field::NumberField, slider::Slider,
+    },
     project_runner::ProjectRunner,
     running_state::RunningState,
 };
@@ -57,6 +59,18 @@ pub fn ParamsEditor(props: ParamsEditorProps) -> Element {
                     ProjectParamValue::Bool { .. } => {
                         rsx! {
                             BoolField {
+                                param: param,
+                                project_params: props.project_params,
+                                project_runner: props.project_runner,
+                                running_state: props.running_state,
+                                console: props.console,
+                                release: props.release,
+                            }
+                        }
+                    }
+                    ProjectParamValue::Graph2d(_) => {
+                        rsx! {
+                            GraphField {
                                 param: param,
                                 project_params: props.project_params,
                                 project_runner: props.project_runner,
