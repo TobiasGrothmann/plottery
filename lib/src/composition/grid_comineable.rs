@@ -198,7 +198,7 @@ impl GridCombineable {
 
     /// Returns an iterator that yields information about each cell
     /// For combined cells, only the main (bottom-left) cell is visited
-    pub fn iter(&self) -> GridCombineableIterator {
+    pub fn iter(&self) -> GridCombineableIterator<'_> {
         GridCombineableIterator {
             grid_combineable: self,
             current_row: 0,

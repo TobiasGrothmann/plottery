@@ -123,7 +123,7 @@ impl Grid {
     }
 
     /// Returns an iterator that yields each cell in the grid in row-major order.
-    pub fn iter(&self) -> GridIterator {
+    pub fn iter(&self) -> GridIterator<'_> {
         GridIterator {
             grid: self,
             current_row: 0,

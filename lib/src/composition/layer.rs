@@ -168,11 +168,11 @@ impl Layer {
         self.shapes.iter()
     }
     /// Returns an iterator over the Sublayers of the layer, non recursively.
-    pub fn iter_sublayers(&self) -> Iter<Layer> {
+    pub fn iter_sublayers(&self) -> Iter<'_, Layer> {
         self.sublayers.iter()
     }
     /// Returns an iterator over all the shapes of the layer, recursively also iterating all sublayers.
-    pub fn iter_flattened(&self) -> LayerFlattenedIterator {
+    pub fn iter_flattened(&self) -> LayerFlattenedIterator<'_> {
         LayerFlattenedIterator::new(self)
     }
 
