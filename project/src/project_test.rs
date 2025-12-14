@@ -121,7 +121,7 @@ mod tests {
         generate_cargo_project_to_disk(
             temp_dir.path().to_path_buf(),
             "a_test_project",
-            LibSource::Cargo,
+            LibSource::CratesIO,
         )?;
 
         assert!(temp_dir.path().join("Cargo.toml").exists());

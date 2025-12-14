@@ -9,18 +9,41 @@ enum RenderType {
     Png,
 }
 
+fn parse_lib_source(value: &str) -> LibSource {
+    match value {
+        "cratesio" => LibSource::CratesIO,
+        "home" => LibSource::PlotteryHome,
+        path => LibSource::Path {
+            path: PathBuf::from(path),
+        },
+    }
+}
+
 #[derive(Debug, Clone, Subcommand)]
 enum Command {
     New {
+        #[arg(help = "Directory where the project will be created")]
         path: String,
+        #[arg(help = "Name of the project")]
         name: String,
+        #[arg(
+            value_name = "cratesio|home|PATH",
+            short = 'l',
+            help = "Plottery library source [default: cratesio]",
+            long_help = "Plottery library source\n    cratesio [default]    Use the published crate from crates.io\n    home                  Use local source from PLOTTERY_HOME env var\n    PATH                  Use local source from a custom path"
+        )]
+        lib: Option<String>,
     },
     Render {
+        #[arg(help = "Output format (svg or png)")]
         format: RenderType,
+        #[arg(help = "Path to the .plottery project file")]
         project_path: String,
+        #[arg(help = "Output file path")]
         out_path: String,
     },
     Build {
+        #[arg(help = "Path to the .plottery project file")]
         project_path: String,
     },
 }
@@ -35,7 +58,12 @@ struct Args {
 pub fn main() {
     let args = Args::parse();
     match args.command {
-        Command::New { name, path } => {
+        Command::New { name, path, lib } => {
+            let lib_source = match lib {
+                Some(value) => parse_lib_source(&value),
+                None => LibSource::CratesIO,
+            };
+
             let project = Project::new(PathBuf::from(path), &name);
 
             if project.exists() {
@@ -49,7 +77,7 @@ pub fn main() {
                 return;
             }
 
-            let result = project.generate_to_disk(LibSource::Cargo, true);
+            let result = project.generate_to_disk(lib_source, true);
             if result.is_err() {
                 println!("Failed to create project: {}", result.unwrap_err());
                 return;

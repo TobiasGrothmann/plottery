@@ -82,7 +82,7 @@ pub fn ProjectCreate() -> Element {
                     }
 
                     let project = Project::new(folder, &name);
-                    if let Err(e) = project.generate_to_disk(LibSource::Cargo, true) {
+                    if let Err(e) = project.generate_to_disk(LibSource::CratesIO, true) {
                         error.set(e.to_string());
                         return;
                     }
