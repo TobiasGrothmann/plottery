@@ -12,7 +12,7 @@ This is a **Plottery Project** - a generative art generator for pen-plotters.
 
 All from `plottery_lib::*`:
 
-Some exapmles:
+Some examples:
 - `V2` - 2D vector. Use `V2::new(x, y)`, `V2::polar(angle, radius)`, `V2::a4()` for paper sizes
 - `Angle` - Use `Angle::from_degrees()`, `Angle::from_rotations()`, `Angle::rand()`
 - `Layer` - Recursive container for shapes. Use `push()`, `push_many()`, `push_layer()`
@@ -24,9 +24,9 @@ Some exapmles:
 ```rust
 #[derive(PlotteryParams)]
 pub struct Params {
-    #[value(10.0)]           // Default value (required)
-    #[range(0.0, 100.0)]     // Optional min/max for editor slider
-    pub my_param: f32,
+    #[value(10.0)]          // Default value (required)
+    #[range(0.0, 100.0)]    // Optional min/max for editor slider
+    pub my_param: f32,      // there are many more types that can be exposed to the editor (for example, `i32`, `Curve2D`, ...)
 }
 ```
 
