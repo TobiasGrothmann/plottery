@@ -65,6 +65,7 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                         view_box: "{view_box}",
                         preserve_aspect_ratio: "none",
                         ondoubleclick: move |event| {
+                            event.prevent_default();
                             let rect = event.data.element_coordinates();
                             props.console.read().info(&format!("🖱️ Double click at ({}, {})", rect.x, rect.y));
                             let x = ((rect.x - MARGIN) / GRAPH_WIDTH).clamp(0.0, 1.0) as f32;
