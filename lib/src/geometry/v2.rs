@@ -439,6 +439,12 @@ impl V2 {
         }
     }
 
+    /// Clamps the vector's components inside the given range. This is equivalent to clamping
+    /// it inside a rectangle defined by the corners `min` and `max`.
+    pub fn clamp(&self, min: V2, max: V2) -> Self {
+        V2::new(self.x.clamp(min.x, max.x), self.y.clamp(min.y, max.y))
+    }
+
     /// Returns a new V2 with a function applied to both x and y components.
     pub fn map(&self, f: fn(f32) -> f32) -> Self {
         V2::new(f(self.x), f(self.y))

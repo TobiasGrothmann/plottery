@@ -1,3 +1,5 @@
+pub mod curve_2d_norm;
+mod curve_2d_norm_test;
 pub mod project_param;
 pub mod project_param_value;
 pub mod project_params_definition;

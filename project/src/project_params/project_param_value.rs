@@ -1,63 +1,7 @@
 use anyhow::Result;
-use plottery_lib::V2;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct Graph2d {
-    pub points: Vec<V2>,
-}
-
-impl Graph2d {
-    pub fn new(points: Vec<V2>) -> Self {
-        Self { points }
-    }
-
-    /// get the y value at x
-    pub fn sample(&self, x: f32) -> f32 {
-        if self.points.is_empty() {
-            return 0.0;
-        }
-        if self.points.len() == 1 {
-            return self.points[0].y;
-        }
-
-        let x = x.clamp(0.0, 1.0);
-
-        for i in 0..self.points.len() - 1 {
-            let p0 = self.points[i];
-            let p1 = self.points[i + 1];
-
-            if x >= p0.x && x <= p1.x {
-                let t = (x - p0.x) / (p1.x - p0.x);
-                return p0.y + (p1.y - p0.y) * t;
-            }
-        }
-
-        self.points.last().unwrap().y
-    }
-
-    pub fn add_at(&mut self, new_point: V2) {
-        let index = self
-            .points
-            .binary_search_by(|p| p.x.partial_cmp(&new_point.x).unwrap())
-            .unwrap_or_else(|i| i);
-        self.points.insert(index, new_point);
-    }
-
-    pub fn remove_index(&mut self, index: usize) {
-        if index < self.points.len() {
-            self.points.remove(index);
-        }
-    }
-}
-
-impl Default for Graph2d {
-    fn default() -> Self {
-        Self {
-            points: vec![V2::new(0.0, 0.0), V2::new(1.0, 1.0)],
-        }
-    }
-}
+pub use super::curve_2d_norm::Curve2DNorm;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ProjectParamValue {
@@ -66,7 +10,7 @@ pub enum ProjectParamValue {
     Int(i32),
     IntRanged { val: i32, min: i32, max: i32 },
     Bool(bool),
-    Graph2d(Graph2d),
+    Curve2DNorm(Curve2DNorm),
 }
 
 impl ProjectParamValue {
@@ -137,7 +81,7 @@ impl ProjectParamValue {
             ProjectParamValue::Int(_) => "i32".to_string(),
             ProjectParamValue::IntRanged { .. } => "i32 (ranged)".to_string(),
             ProjectParamValue::Bool(_) => "bool".to_string(),
-            ProjectParamValue::Graph2d(_) => "Graph2d".to_string(),
+            ProjectParamValue::Curve2DNorm(_) => "curve2d_norm".to_string(),
         }
     }
 
@@ -148,7 +92,7 @@ impl ProjectParamValue {
             ProjectParamValue::Int(val) => val.to_string(),
             ProjectParamValue::IntRanged { val, .. } => val.to_string(),
             ProjectParamValue::Bool(val) => val.to_string(),
-            ProjectParamValue::Graph2d(graph) => format!("{} points", graph.points.len()),
+            ProjectParamValue::Curve2DNorm(graph) => format!("{} points", graph.len()),
         }
     }
 }

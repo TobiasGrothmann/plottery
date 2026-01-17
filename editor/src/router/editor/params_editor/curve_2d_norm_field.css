@@ -1,0 +1,12 @@
+.Curve2DNorm {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.Curve2DNorm svg {
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 4px;
+    cursor: default;
+}
