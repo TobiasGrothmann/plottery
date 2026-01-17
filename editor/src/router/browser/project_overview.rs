@@ -8,7 +8,7 @@ use crate::{components::image::Image, routes::Route, util::format_datetime_to_re
 
 #[derive(Props, Clone)]
 pub struct ProjectOverviewProps {
-    pub project: ReadOnlySignal<Project>,
+    pub project: ReadSignal<Project>,
     pub on_delete_clicked: EventHandler<Project>,
 }
 
@@ -64,8 +64,10 @@ pub fn ProjectOverview(props: ProjectOverviewProps) -> Element {
                     button { class: "icon_button",
                         onclick: move |_event| {
                             let nav = use_navigator();
+                            let path_str = props.project.read().get_project_config_path().absolutize().unwrap().to_string_lossy().to_string();
+                            let project_path: Vec<String> = path_str.split('/').filter(|s| !s.is_empty()).map(|s| s.to_string()).collect();
                             nav.push(Route::Editor {
-                                project_path: props.project.read().get_project_config_path().absolutize().unwrap().to_string_lossy().to_string()
+                                project_path
                             });
                         },
                         img { src: "{format_svg(include_bytes!(\"../../../public/icons/forward.svg\"))}" }

@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use dioxus::signals::{Readable, SyncSignal};
+use dioxus::signals::{ReadableExt, SyncSignal};
 use plottery_lib::rand_range_i;
 
 #[derive(Debug, Clone)]

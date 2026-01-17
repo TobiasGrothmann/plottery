@@ -1,7 +1,6 @@
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use dioxus_timer::use_timer;
 use plottery_lib::V2;
 use plottery_server_lib::{
     server_state::{request_server_state, ServerState},
@@ -13,14 +12,16 @@ use crate::components::navigation::Navigation;
 
 #[component]
 pub fn Remote() -> Element {
-    let polling_interval = Duration::from_millis(1200);
-    let timer = use_timer(polling_interval);
-
     let mut state_resource =
         use_resource(async move || request_server_state(Some(Duration::from_millis(1000))).await);
-    use_effect(move || {
-        timer.read();
-        state_resource.restart();
+
+    // Poll server state every 1200ms
+    use_future(move || async move {
+        let mut interval = tokio::time::interval(Duration::from_millis(1200));
+        loop {
+            interval.tick().await;
+            state_resource.restart();
+        }
     });
 
     rsx! {

@@ -1,5 +1,5 @@
 use crate::router::editor::running_state::RunningState;
-use dioxus::signals::{Readable, SyncSignal, Writable};
+use dioxus::signals::{ReadableExt, SyncSignal, WritableExt};
 use plottery_lib::Layer;
 use plottery_project::{
     process_stdout_lines, project_params_list_wrapper::ProjectParamsListWrapper,

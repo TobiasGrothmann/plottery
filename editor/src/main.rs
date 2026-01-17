@@ -4,7 +4,7 @@ use dioxus::{
     desktop::{Config, LogicalSize, WindowBuilder, WindowCloseBehaviour},
     prelude::*,
 };
-use dioxus_router::prelude::*;
+use dioxus_router::*;
 
 mod components;
 mod model;
@@ -34,7 +34,7 @@ fn main() {
                 })
                 .with_focused(true),
         )
-        .with_close_behaviour(WindowCloseBehaviour::CloseWindow);
+        .with_close_behaviour(WindowCloseBehaviour::WindowCloses);
 
     LaunchBuilder::new()
         .with_cfg(desktop! {

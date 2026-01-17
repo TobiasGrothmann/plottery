@@ -1,7 +1,7 @@
 use crate::{model::app_state::AppState, util::format_svg};
 
 use dioxus::prelude::*;
-use dioxus_router::{hooks::use_navigator, prelude::Navigator};
+use dioxus_router::{hooks::use_navigator, Navigator};
 use plottery_project::Project;
 use rfd::FileDialog;
 

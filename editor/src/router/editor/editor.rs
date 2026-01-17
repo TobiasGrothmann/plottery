@@ -32,9 +32,10 @@ impl PartialEq for LayerChangeWrapper {
 }
 
 #[component]
-pub fn Editor(project_path: String) -> Element {
+pub fn Editor(project_path: Vec<String>) -> Element {
     let project = use_signal(|| {
-        let p = PathBuf::from(project_path.clone());
+        let path_str = format!("/{}", project_path.join("/"));
+        let p = PathBuf::from(path_str);
         Project::load_from_file(p).expect("Failed to load project from file")
     });
 
