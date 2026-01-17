@@ -133,6 +133,11 @@ fn get_parameters_vector_items(data: &syn::DataStruct) -> Vec<proc_macro2::Token
                         ProjectParam::new(#field_name, ProjectParamValue::Curve2DNorm(#default_value)),
                     }
                 },
+                "Curve2D" => {
+                    quote! {
+                        ProjectParam::new(#field_name, ProjectParamValue::Curve2D(#default_value)),
+                    }
+                },
                 _ => panic!("Invalid field type: {}", field_type_name),
             }
 
@@ -161,6 +166,13 @@ fn get_constructor_fields_items(data: &syn::DataStruct) -> Vec<proc_macro2::Toke
                     #field_name: match &params.get(stringify!(#field_name)).unwrap_or_else(|| panic!("Field '{}' is missing in params from stdin.", stringify!(#field_name))).value {
                         ProjectParamValue::Curve2DNorm(c) => c.clone(),
                         _ => panic!("Expected Curve2DNorm for field '{}'", stringify!(#field_name)),
+                    },
+                }
+            } else if field_type_name == "Curve2D" {
+                quote! {
+                    #field_name: match &params.get(stringify!(#field_name)).unwrap_or_else(|| panic!("Field '{}' is missing in params from stdin.", stringify!(#field_name))).value {
+                        ProjectParamValue::Curve2D(c) => c.clone(),
+                        _ => panic!("Expected Curve2D for field '{}'", stringify!(#field_name)),
                     },
                 }
             } else {

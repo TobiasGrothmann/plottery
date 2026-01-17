@@ -1,6 +1,7 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
+pub use super::curve_2d::Curve2D;
 pub use super::curve_2d_norm::Curve2DNorm;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -11,6 +12,7 @@ pub enum ProjectParamValue {
     IntRanged { val: i32, min: i32, max: i32 },
     Bool(bool),
     Curve2DNorm(Curve2DNorm),
+    Curve2D(Curve2D),
 }
 
 impl ProjectParamValue {
@@ -82,6 +84,7 @@ impl ProjectParamValue {
             ProjectParamValue::IntRanged { .. } => "i32 (ranged)".to_string(),
             ProjectParamValue::Bool(_) => "bool".to_string(),
             ProjectParamValue::Curve2DNorm(_) => "curve2d_norm".to_string(),
+            ProjectParamValue::Curve2D(_) => "curve2d".to_string(),
         }
     }
 
@@ -93,6 +96,7 @@ impl ProjectParamValue {
             ProjectParamValue::IntRanged { val, .. } => val.to_string(),
             ProjectParamValue::Bool(val) => val.to_string(),
             ProjectParamValue::Curve2DNorm(graph) => format!("{} points", graph.len()),
+            ProjectParamValue::Curve2D(curve) => format!("{} points", curve.len()),
         }
     }
 }

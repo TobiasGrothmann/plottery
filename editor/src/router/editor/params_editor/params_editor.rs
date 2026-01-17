@@ -9,7 +9,7 @@ use tokio::sync::Mutex;
 use crate::router::editor::{
     console_messages::ConsoleMessages,
     params_editor::{
-        bool_field::BoolField, curve_2d_norm_field::Curve2DField, number_field::NumberField,
+        bool_field::BoolField, curve_2d_field::Curve2DField, number_field::NumberField,
         slider::Slider,
     },
     project_runner::ProjectRunner,
@@ -69,7 +69,7 @@ pub fn ParamsEditor(props: ParamsEditorProps) -> Element {
                             }
                         }
                     }
-                    ProjectParamValue::Curve2DNorm(_) => {
+                    ProjectParamValue::Curve2DNorm(_) | ProjectParamValue::Curve2D(_) => {
                         rsx! {
                             Curve2DField {
                                 param: param,
