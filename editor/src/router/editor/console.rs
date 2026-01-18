@@ -32,6 +32,6 @@ pub fn Console(props: ConsoleProps) -> Element {
         style { { include_str!("console.css") } }
         div { class: "Console",
             { console_items },
-        },
+        }
     }
 }

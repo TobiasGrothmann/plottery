@@ -72,6 +72,7 @@ pub fn Editor(project_path: Vec<String>) -> Element {
     let console_change_counter = use_signal_sync(|| 0);
     let console: Signal<ConsoleMessages, SyncStorage> =
         use_signal_sync(|| ConsoleMessages::new(console_change_counter));
+    let mut console_expanded = use_signal(|| false);
 
     // ui state
     let project_params = use_signal_sync(|| {
@@ -387,9 +388,24 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                             }
                         }
                     }
-                    div { class: "console",
-                        Console {
-                            console: console,
+                    div { class: "console_container",
+                        {
+                            let button_text = if console_expanded() { "▼" } else { "▲" };
+                            rsx! {
+                                button {
+                                    class: "console_toggle",
+                                    onclick: move |_| {
+                                        let current = console_expanded();
+                                        console_expanded.set(!current);
+                                    },
+                                    "{button_text}"
+                                }
+                            }
+                        }
+                        div { class: if console_expanded() { "console expanded" } else { "console" },
+                            Console {
+                                console: console,
+                            }
                         }
                     }
                 }
