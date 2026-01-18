@@ -227,9 +227,8 @@ impl Layer {
         let props_inheritable = parent_props.overwrite_with(&self.props_inheritable);
 
         let mut group = Group::new();
-        if self.props.name.is_some() {
-            let name = self.props.name.as_ref().unwrap().as_str();
-            group = group.set("id", name);
+        if let Some(name) = &self.props.name {
+            group = group.set("id", name.as_str());
         }
 
         for shape_svg in self.get_shapes_as_svg_nodes(scale, &props_inheritable) {

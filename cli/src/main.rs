@@ -82,8 +82,8 @@ pub fn main() {
             }
 
             let result = project.generate_to_disk(lib_source, true);
-            if result.is_err() {
-                println!("Failed to create project: {}", result.unwrap_err());
+            if let Err(error) = result {
+                println!("Failed to create project: {}", error);
                 return;
             }
 

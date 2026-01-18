@@ -41,18 +41,6 @@ fn is_sublime_installed() -> bool {
     which::which("subl").is_ok()
 }
 
-fn get_default_editor_command() -> Option<String> {
-    // Check for known GUI editors in priority order
-    let known_editors = ["zed", "code", "cursor", "subl"];
-    for editor in &known_editors {
-        if which::which(editor).is_ok() {
-            return Some(editor.to_string());
-        }
-    }
-
-    None
-}
-
 #[derive(Debug, Clone)]
 pub struct LayerChangeWrapper {
     pub layer: Option<Layer>,
@@ -74,12 +62,11 @@ pub fn Editor(project_path: Vec<String>) -> Element {
 
     let release = true;
 
-    let gitkraken_installed = use_signal(|| is_gitkraken_installed());
-    let vscode_installed = use_signal(|| is_vscode_installed());
-    let zed_installed = use_signal(|| is_zed_installed());
-    let cursor_installed = use_signal(|| is_cursor_installed());
-    let sublime_installed = use_signal(|| is_sublime_installed());
-    let default_editor = use_signal(|| get_default_editor_command());
+    let gitkraken_installed = use_signal(is_gitkraken_installed);
+    let vscode_installed = use_signal(is_vscode_installed);
+    let zed_installed = use_signal(is_zed_installed);
+    let cursor_installed = use_signal(is_cursor_installed);
+    let sublime_installed = use_signal(is_sublime_installed);
 
     // console
     let console_change_counter = use_signal_sync(|| 0);

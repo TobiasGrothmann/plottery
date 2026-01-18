@@ -9,6 +9,7 @@ pub mod project_params_list_wrapper;
 mod project_params_list_wrapper_test;
 
 pub use curve_2d::{Curve2D, Domain};
+pub use curve_2d_norm::Curve2DNorm;
 pub use project_param::*;
 pub use project_param_value::*;
 pub use project_params_definition::*;

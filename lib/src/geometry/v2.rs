@@ -358,6 +358,12 @@ impl V2 {
         self.x.max(self.y)
     }
 
+    /// Maps a value from one linear range to another. (see [`crate::maths::FloatInterpolation::linlin`])
+    pub fn linlin(&self, from_start: Self, from_end: Self, to_start: Self, to_end: Self) -> Self {
+        let normalized = (self - from_start) / (from_end - from_start);
+        to_start + normalized * (to_end - to_start)
+    }
+
     /// Calculates the Euclidean distance to another vector.
     pub fn dist(&self, other: Self) -> f32 {
         ((self.x - other.x).powi(2) + (self.y - other.y).powi(2)).sqrt()

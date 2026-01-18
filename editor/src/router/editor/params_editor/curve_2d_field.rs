@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use plottery_lib::V2;
 use plottery_project::{
     project_param::ProjectParam, project_param_value::ProjectParamValue,
     project_params_list_wrapper::ProjectParamsListWrapper,
@@ -60,7 +61,7 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
 
                 let graph = match &param_value {
                     ProjectParamValue::Curve2DNorm(g) => g.clone(),
-                    ProjectParamValue::Curve2D(c) => c.curve().clone(),
+                    ProjectParamValue::Curve2D(c) => c.get_curve_norm().clone(),
                     _ => {
                         log::warn!("Unexpected parameter type for '{}', using default", param_name.read());
                         Default::default()
@@ -219,7 +220,7 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                             let _ = g.add_point(plottery_lib::V2::new(x, y));
                                         }
                                         ProjectParamValue::Curve2D(ref mut c) => {
-                                            let _ = c.add_point(plottery_lib::V2::new(x, y));
+                                            let _ = c.add_point_norm(plottery_lib::V2::new(x, y));
                                         }
                                         _ => {}
                                     }
@@ -260,17 +261,17 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                                 } else if index == total_points - 1 {
                                                     g.update_endpoint(false, y);
                                                 } else {
-                                                    let _ = g.update_point_xy(index - 1, x, y);
+                                                    let _ = g.update_point_norm(index - 1, V2::new(x, y));
                                                 }
                                             }
                                             ProjectParamValue::Curve2D(ref mut c) => {
                                                 let total_points = c.len();
                                                 if index == 0 {
-                                                    c.update_endpoint(true, y);
+                                                    c.update_endpoint_norm(true, y);
                                                 } else if index == total_points - 1 {
-                                                    c.update_endpoint(false, y);
+                                                    c.update_endpoint_norm(false, y);
                                                 } else {
-                                                    let _ = c.update_point_xy(index - 1, x, y);
+                                                    let _ = c.update_point_norm(index - 1, V2::new(x, y));
                                                 }
                                             }
                                             _ => {}
@@ -348,11 +349,11 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                                 for param_field in new_params.list.iter_mut() {
                                                     if param_field.name == *param_name.read() {
                                                         match &mut param_field.value {
-                                                            ProjectParamValue::Curve2DNorm(ref mut g) => {
-                                                                let _ = g.remove_point(i - 1);
+                                                            ProjectParamValue::Curve2DNorm(c) => {
+                                                                let _ = c.remove_point_at(i);
                                                             }
                                                             ProjectParamValue::Curve2D(ref mut c) => {
-                                                                let _ = c.remove_point(i - 1);
+                                                                let _ = c.remove_point_at(i);
                                                             }
                                                             _ => {}
                                                         }

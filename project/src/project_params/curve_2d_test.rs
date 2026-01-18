@@ -48,8 +48,8 @@ mod tests {
     fn test_sample_with_custom_ranges() {
         // Curve with custom endpoint values and ranges
         let mut curve = Curve2D::new(Domain::new(-1.0, 1.0, 10.0, 20.0));
-        curve.curve_mut().update_endpoint(true, 0.5);
-        curve.curve_mut().update_endpoint(false, 0.5);
+        curve.update_endpoint_norm(true, 0.5);
+        curve.update_endpoint_norm(false, 0.5);
 
         // Input -1.0 (x_start) should map to normalized 0.0, then to 0.5 * (20-10) + 10 = 15.0
         assert_eq!(curve.sample(-1.0), 15.0);
@@ -64,7 +64,7 @@ mod tests {
     #[test]
     fn test_add_point_in_normalized_space() {
         let mut curve = Curve2D::new(Domain::new(0.0, 10.0, 0.0, 100.0));
-        curve.add_point(V2::new(0.5, 0.8)).unwrap();
+        curve.add_point_norm(V2::new(0.5, 0.8)).unwrap();
         assert_eq!(curve.len(), 3);
 
         // Sample at x=5.0 which maps to normalized 0.5
@@ -75,9 +75,9 @@ mod tests {
     #[test]
     fn test_iter_points_normalized() {
         let mut curve = Curve2D::new(Domain::new(0.0, 10.0, 0.0, 100.0));
-        curve.add_point(V2::new(0.5, 0.5)).unwrap();
+        curve.add_point_norm(V2::new(0.5, 0.5)).unwrap();
 
-        let points: Vec<_> = curve.iter_points().collect();
+        let points: Vec<_> = curve.iter_points_norm().collect();
         assert_eq!(points.len(), 3);
         // Points are in normalized [0,1] space
         assert_eq!(points[0], V2::new(0.0, 0.0));
@@ -88,8 +88,8 @@ mod tests {
     #[test]
     fn test_curve_mut() {
         let mut curve = Curve2D::new(Domain::new(0.0, 10.0, 0.0, 100.0));
-        curve.curve_mut().update_endpoint(true, 0.5);
-        curve.curve_mut().update_endpoint(false, 0.5);
+        curve.update_endpoint_norm(true, 0.5);
+        curve.update_endpoint_norm(false, 0.5);
 
         // Both endpoints at 0.5 normalized = 50.0 in [0,100]
         assert_eq!(curve.sample(0.0), 50.0);

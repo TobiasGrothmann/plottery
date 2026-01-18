@@ -4,14 +4,14 @@ use serde::{Deserialize, Serialize};
 
 /// A normalized 2D curve for transfer functions and easing curves.
 ///
-/// Both x and y values are in the range [0.0, 1.0].
+/// Both x and y values are in the range \[0.0, 1.0\].
 ///
 /// # Usage
 ///
 /// Use `sample(x)` to get the y-value at any x position:
 ///
 /// ```
-/// use plottery_project::project_params::curve_2d_norm::Curve2DNorm;
+/// use plottery_project::Curve2DNorm;
 ///
 /// let curve = Curve2DNorm::default();
 /// let y = curve.sample(0.5);
@@ -49,6 +49,7 @@ impl Curve2DNorm {
             .chain(std::iter::once(V2::new(1.0, self.y_last)))
     }
 
+    #[allow(clippy::len_without_is_empty)]
     pub fn len(&self) -> usize {
         self.points.len() + 2
     }
@@ -56,7 +57,7 @@ impl Curve2DNorm {
     /// Sample the curve at position x.
     ///
     /// Returns the y-value at the given x position using linear interpolation.
-    /// Input x is clamped to [0.0, 1.0].
+    /// Input x is clamped to \[0.0, 1.0\].
     pub fn sample(&self, x: f32) -> f32 {
         let x = x.clamp(0.0, 1.0);
 
@@ -93,13 +94,28 @@ impl Curve2DNorm {
         Ok(())
     }
 
-    pub fn remove_point(&mut self, index: usize) -> Result<()> {
-        if index < self.points.len() {
-            self.points.remove(index);
+    pub fn remove_point_at(&mut self, index: usize) -> Result<()> {
+        if index == 0 {
+            return Err(anyhow::anyhow!(
+                "Cannot remove point at index {}, endpoints are not removable",
+                index
+            ));
+        }
+        if index >= self.len() - 1 {
+            return Err(anyhow::anyhow!(
+                "Cannot remove point at index {} (of {}), endpoints are not removable",
+                index,
+                self.len()
+            ));
+        }
+
+        let index_without_endpoints = index - 1;
+        if index_without_endpoints < self.points.len() {
+            self.points.remove(index_without_endpoints);
             Ok(())
         } else {
             Err(anyhow::anyhow!(
-                "Cannot remove point at index {}, only {} points exist",
+                "Cannot remove point at index {}, only {} points exist (excluding endpoints)",
                 index,
                 self.points.len()
             ))
@@ -114,16 +130,16 @@ impl Curve2DNorm {
         }
     }
 
-    pub fn update_point(&mut self, index: usize, y: f32) -> Result<()> {
-        if index < self.points.len() {
-            self.points[index].y = y.clamp(0.0, 1.0);
-            Ok(())
-        } else {
-            Err(anyhow::anyhow!("Point index {} out of bounds", index))
+    pub fn update_point_y_norm(&mut self, index: usize, y: f32) -> Result<()> {
+        if index >= self.points.len() {
+            return Err(anyhow::anyhow!("Point index {} out of bounds", index));
         }
+
+        self.points[index].y = y.clamp(0.0, 1.0);
+        Ok(())
     }
 
-    pub fn update_point_xy(&mut self, index: usize, x: f32, y: f32) -> Result<()> {
+    pub fn update_point_norm(&mut self, index: usize, new_loc_norm: V2) -> Result<()> {
         if index >= self.points.len() {
             return Err(anyhow::anyhow!("Point index {} out of bounds", index));
         }
@@ -139,8 +155,8 @@ impl Curve2DNorm {
             self.points[index + 1].x
         };
 
-        self.points[index].x = x.clamp(x_min, x_max);
-        self.points[index].y = y.clamp(0.0, 1.0);
+        self.points[index] = new_loc_norm.clamp(V2::new(x_min, 0.0), V2::new(x_max, 1.0));
+
         Ok(())
     }
 }

@@ -79,9 +79,10 @@ mod tests {
     fn test_remove_point() {
         let mut curve = Curve2DNorm::new(0.0, vec![V2::new(0.3, 0.5), V2::new(0.7, 0.5)], 1.0);
         assert_eq!(curve.len(), 4);
-        curve.remove_point(0).unwrap();
+        curve.remove_point_at(1).unwrap(); // Remove first non-endpoint point
         assert_eq!(curve.len(), 3);
-        assert!(curve.remove_point(10).is_err());
+        assert!(curve.remove_point_at(10).is_err());
+        assert!(curve.remove_point_at(0).is_err()); // Cannot remove endpoint
     }
 
     #[test]

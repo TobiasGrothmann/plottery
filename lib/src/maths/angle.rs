@@ -168,7 +168,7 @@ impl Angle {
 
     /// Returns a new angle with flipped sign: `self * -1.0`.
     pub fn flip_sign(&self) -> Self {
-        Angle::from_rad(self.rad * -1.0)
+        Angle::from_rad(-self.rad)
     }
 
     /// Returns a new angle orthogonal to this one (to the right). Equivalent to `self + Angle::quarter_rotation()`.
