@@ -2,8 +2,8 @@ use crate::router::editor::running_state::RunningState;
 use dioxus::signals::{ReadableExt, SyncSignal, WritableExt};
 use plottery_lib::Layer;
 use plottery_project::{
-    process_stdout_lines, project_params_list_wrapper::ProjectParamsListWrapper,
-    read_object_from_stdout, Project,
+    process_stderr_lines, process_stdout_lines,
+    project_params_list_wrapper::ProjectParamsListWrapper, read_object_from_stdout, Project,
 };
 
 use super::{console_messages::ConsoleMessages, editor::LayerChangeWrapper};
@@ -87,7 +87,10 @@ impl ProjectRunner {
                     });
                     false
                 }
-                build_status = run_process.status() => {
+                build_status = process_stderr_lines(
+                    &mut run_process,
+                    |line| console.read().project_message(line.as_str()),
+                ) => {
                     let success: bool = match build_status {
                         Ok(status) => {
                             if !status.success() {

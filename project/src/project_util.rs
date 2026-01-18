@@ -24,6 +24,7 @@ pub async fn build_cargo_project_async(
     let child_process = Command::new("cargo")
         .args(args)
         .current_dir(project_dir)
+        .stderr(Stdio::piped())
         .spawn()?;
     anyhow::Ok(child_process)
 }
@@ -91,6 +92,43 @@ where
         .ok_or_else(|| anyhow::Error::msg("Failed to get stdout handle"))?;
 
     let mut reader = BufReader::new(stdout).lines();
+
+    loop {
+        if let Ok(Some(status)) = child_process.try_status() {
+            // process already exited
+            while let Some(line) = reader.next().await {
+                line_handler(line?);
+            }
+            return Ok(status);
+        }
+
+        // wait for a new line
+        match reader.next().await {
+            Some(Ok(line)) => {
+                line_handler(line);
+            }
+            Some(Err(e)) => return Err(e.into()),
+            None => {
+                // process exited
+                return Ok(child_process.status().await?);
+            }
+        }
+    }
+}
+
+pub async fn process_stderr_lines<F>(
+    child_process: &mut Child,
+    mut line_handler: F,
+) -> Result<ExitStatus>
+where
+    F: FnMut(String),
+{
+    let stderr = child_process
+        .stderr
+        .take()
+        .ok_or_else(|| anyhow::Error::msg("Failed to get stderr handle"))?;
+
+    let mut reader = BufReader::new(stderr).lines();
 
     loop {
         if let Ok(Some(status)) = child_process.try_status() {
