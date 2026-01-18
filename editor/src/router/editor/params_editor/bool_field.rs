@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use dioxus_logger::tracing;
 use plottery_project::{
     project_param::ProjectParam, project_param_value::ProjectParamValue,
     project_params_list_wrapper::ProjectParamsListWrapper,
@@ -46,7 +47,7 @@ pub fn BoolField(mut props: BoolFieldProps) -> Element {
                             runner.trigger_run_project(props.release, props.running_state, props.console);
                         },
                         Err(e) => {
-                            log::error!("Error preparing to run: {:?}", e);
+                            tracing::error!("Error preparing to run: {:?}", e);
                             props.running_state.set(RunningState::RunFailed { msg: format!("Error preparing to run: {}", e) });
                         },
                     }

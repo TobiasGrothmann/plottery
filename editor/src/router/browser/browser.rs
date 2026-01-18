@@ -4,6 +4,7 @@ use crate::router::browser::project_list::ProjectList;
 use crate::routes::Route;
 use crate::util::format_svg;
 use dioxus::prelude::*;
+use dioxus_logger::tracing;
 use dioxus_router::hooks::use_navigator;
 use plottery_project::Project;
 
@@ -11,7 +12,7 @@ use plottery_project::Project;
 pub fn Browser() -> Element {
     let mut app_state = use_signal(|| {
         AppState::load().unwrap_or_else(|| {
-            log::info!("App state file does not exist. Creating new app state.");
+            tracing::info!("App state file does not exist. Creating new app state.");
             let new_state = AppState::new();
             new_state.save();
             new_state

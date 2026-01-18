@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use dioxus_logger::tracing;
 use plottery_lib::V2;
 use plottery_project::{
     project_param::ProjectParam, project_param_value::ProjectParamValue,
@@ -53,7 +54,7 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                     .find(|p| p.name == *param_name.read())
                     .map(|p| p.value.clone())
                     .unwrap_or_else(|| {
-                        log::warn!("Curve2D parameter '{}' not found, using default", param_name.read());
+                        tracing::warn!("Curve2D parameter '{}' not found, using default", param_name.read());
                         ProjectParamValue::Curve2DNorm(Default::default())
                     });
 
@@ -63,7 +64,7 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                     ProjectParamValue::Curve2DNorm(g) => g.clone(),
                     ProjectParamValue::Curve2D(c) => c.get_curve_norm().clone(),
                     _ => {
-                        log::warn!("Unexpected parameter type for '{}', using default", param_name.read());
+                        tracing::warn!("Unexpected parameter type for '{}', using default", param_name.read());
                         Default::default()
                     }
                 };
@@ -98,7 +99,7 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                                         runner.trigger_run_project(props.release, props.running_state, props.console);
                                                     },
                                                     Err(e) => {
-                                                        log::error!("Error preparing to run: {:?}", e);
+                                                        tracing::error!("Error preparing to run: {:?}", e);
                                                         props.running_state.set(RunningState::RunFailed { msg: format!("Error preparing to run: {}", e) });
                                                     },
                                                 }
@@ -127,7 +128,7 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                                         runner.trigger_run_project(props.release, props.running_state, props.console);
                                                     },
                                                     Err(e) => {
-                                                        log::error!("Error preparing to run: {:?}", e);
+                                                        tracing::error!("Error preparing to run: {:?}", e);
                                                         props.running_state.set(RunningState::RunFailed { msg: format!("Error preparing to run: {}", e) });
                                                     },
                                                 }
@@ -158,7 +159,7 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                                         runner.trigger_run_project(props.release, props.running_state, props.console);
                                                     },
                                                     Err(e) => {
-                                                        log::error!("Error preparing to run: {:?}", e);
+                                                        tracing::error!("Error preparing to run: {:?}", e);
                                                         props.running_state.set(RunningState::RunFailed { msg: format!("Error preparing to run: {}", e) });
                                                     },
                                                 }
@@ -187,7 +188,7 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                                         runner.trigger_run_project(props.release, props.running_state, props.console);
                                                     },
                                                     Err(e) => {
-                                                        log::error!("Error preparing to run: {:?}", e);
+                                                        tracing::error!("Error preparing to run: {:?}", e);
                                                         props.running_state.set(RunningState::RunFailed { msg: format!("Error preparing to run: {}", e) });
                                                     },
                                                 }
@@ -233,7 +234,7 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                     runner.trigger_run_project(props.release, props.running_state, props.console);
                                 },
                                 Err(e) => {
-                                    log::error!("Error preparing to run: {:?}", e);
+                                    tracing::error!("Error preparing to run: {:?}", e);
                                     props.running_state.set(RunningState::RunFailed { msg: format!("Error preparing to run: {}", e) });
                                 },
                             }
@@ -289,7 +290,7 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                         runner.trigger_run_project(props.release, props.running_state, props.console);
                                     },
                                     Err(e) => {
-                                        log::error!("Error preparing to run: {:?}", e);
+                                        tracing::error!("Error preparing to run: {:?}", e);
                                         props.running_state.set(RunningState::RunFailed { msg: format!("Error preparing to run: {}", e) });
                                     },
                                 }
@@ -304,7 +305,7 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                         runner.trigger_run_project(props.release, props.running_state, props.console);
                                     },
                                     Err(e) => {
-                                        log::error!("Error preparing to run: {:?}", e);
+                                        tracing::error!("Error preparing to run: {:?}", e);
                                         props.running_state.set(RunningState::RunFailed { msg: format!("Error preparing to run: {}", e) });
                                     },
                                 }
@@ -366,7 +367,7 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                                         runner.trigger_run_project(props.release, props.running_state, props.console);
                                                     },
                                                     Err(e) => {
-                                                        log::error!("Error preparing to run: {:?}", e);
+                                                        tracing::error!("Error preparing to run: {:?}", e);
                                                         props.running_state.set(RunningState::RunFailed { msg: format!("Error preparing to run: {}", e) });
                                                     },
                                                 }

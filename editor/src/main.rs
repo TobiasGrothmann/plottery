@@ -24,8 +24,6 @@ fn app() -> Element {
 fn main() {
     dioxus_logger::init(dioxus_logger::tracing::Level::DEBUG).expect("failed to init logger");
 
-    log::info!("🚀 Plottery Editor starting - logging is working!");
-
     let desktop_config = Config::default()
         .with_window(
             WindowBuilder::new()

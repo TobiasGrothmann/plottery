@@ -14,6 +14,7 @@ use crate::{
 };
 use bincode::{deserialize, serialize};
 use dioxus::prelude::*;
+use dioxus_logger::tracing;
 use notify::FsEventWatcher;
 use plottery_lib::{Layer, LayerPropsInheritable, SampleSettings};
 use plottery_project::{project_params_list_wrapper::ProjectParamsListWrapper, Project};
@@ -161,14 +162,14 @@ pub fn Editor(project_path: Vec<String>) -> Element {
             let binary = layer.to_binary().expect("Failed to serialize layer");
             match std::fs::write(layer_path, binary) {
                 Ok(_) => (),
-                Err(e) => log::error!("Failed to write layer to file: {:?}", e),
+                Err(e) => tracing::error!("Failed to write layer to file: {:?}", e),
             }
         }
         let svg_path = project().get_editor_preview_image_path();
         if let Some(svg) = svg() {
             match std::fs::write(svg_path, svg) {
                 Ok(_) => (),
-                Err(e) => log::error!("Failed to write .svg to file: {:?}", e),
+                Err(e) => tracing::error!("Failed to write .svg to file: {:?}", e),
             }
         }
     });
@@ -284,7 +285,7 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                                 match project_runner().try_lock() {
                                     Ok(mut runner) => runner.trigger_run_project(release, running_state, console),
                                     Err(e) => {
-                                        log::error!("Error preparing to run: {:?}", e);
+                                        tracing::error!("Error preparing to run: {:?}", e);
                                         running_state.set(RunningState::RunFailed { msg: format!("Error preparing to run: {}", e) });
                                     },
                                 }
@@ -347,7 +348,7 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                                 let path = std::env::temp_dir().join("temp_editor.svg");
                                 std::fs::write(&path, svg).unwrap();
                                 if let Err(err) = open::that_in_background(path).join() {
-                                    log::error!("Failed to open svg: {:?}", err);
+                                    tracing::error!("Failed to open svg: {:?}", err);
                                 }
                             }
                             event.stop_propagation();

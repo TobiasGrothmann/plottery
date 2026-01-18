@@ -1,6 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use dioxus::signals::SyncSignal;
+use dioxus_logger::tracing;
 use notify::{Config, FsEventWatcher, RecommendedWatcher, RecursiveMode, Watcher};
 use tokio::{sync::Mutex, task::JoinHandle};
 
@@ -53,17 +54,17 @@ pub fn start_hot_reload(
                         continue;
                     }
 
-                    log::info!("Hot reload triggered");
+                    tracing::info!("Hot reload triggered");
                     project_runner.lock().await.trigger_run_project(
                         release,
                         running_state,
                         console,
                     );
                 }
-                Err(e) => log::error!("Hot reload error: {:?}", e),
+                Err(e) => tracing::error!("Hot reload error: {:?}", e),
             }
         }
-        log::info!("Hot reload thread finished");
+        tracing::info!("Hot reload thread finished");
     });
 
     (hot_reload_handle, watcher)

@@ -79,7 +79,6 @@ impl ConsoleMessages {
                 &formatted,
                 ConsoleMessageType::ProjectLog,
             ));
-        log::info!("{}", formatted);
         self.trigger_change();
     }
     pub fn info(&self, msg: &str) {
@@ -87,7 +86,6 @@ impl ConsoleMessages {
             .lock()
             .expect("Failed to lock console entries")
             .push(ConsoleMessage::new(msg, ConsoleMessageType::Info));
-        log::info!("{}", msg);
         self.trigger_change();
     }
     pub fn error(&self, msg: &str) {
@@ -95,7 +93,6 @@ impl ConsoleMessages {
             .lock()
             .expect("Failed to lock console entries")
             .push(ConsoleMessage::new(msg, ConsoleMessageType::Error));
-        log::error!("{}", msg);
         self.trigger_change();
     }
 
