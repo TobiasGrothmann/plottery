@@ -4867,7 +4867,7 @@ dependencies = [
  "rust-embed",
  "serde",
  "serde_json",
- "set_env",
+ "set_env_perm",
  "tempfile",
  "tokio",
  "toml",
@@ -5978,9 +5978,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "set_env"
-version = "1.3.4"
-source = "git+https://github.com/TobiasGrothmann/set_env.git#fc8951f763b3f50c52df1ec54319881441431c99"
+name = "set_env_perm"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d11f85b6acea5127a93d575f20b0c6580a37b2d2acbb82b5dcb329fbadd35ee7"
 dependencies = [
  "dirs 4.0.0",
 ]
