@@ -31,11 +31,12 @@ pub fn ParamsEditor(props: ParamsEditorProps) -> Element {
         style { { include_str!("params_editor.css") } }
         div { class: "ParamsEditor",
             for param in props.project_params.read().list.iter().cloned() {
-                h2 { "{param.formatted_name()}" }
+                h2 { key: "name_{param.name}", "{param.formatted_name()}" }
                 match param.value {
                     ProjectParamValue::Float(_) | ProjectParamValue::Int(_) => {
                         rsx! {
                             NumberField {
+                                key: "{param.name}",
                                 param: param,
                                 project_params: props.project_params,
                                 project_runner: props.project_runner,
@@ -48,6 +49,7 @@ pub fn ParamsEditor(props: ParamsEditorProps) -> Element {
                     ProjectParamValue::FloatRanged { .. } | ProjectParamValue::IntRanged { .. } => {
                         rsx! {
                             Slider {
+                                key: "{param.name}",
                                 param: param,
                                 project_params: props.project_params,
                                 project_runner: props.project_runner,
@@ -60,6 +62,7 @@ pub fn ParamsEditor(props: ParamsEditorProps) -> Element {
                     ProjectParamValue::Bool { .. } => {
                         rsx! {
                             BoolField {
+                                key: "{param.name}",
                                 param: param,
                                 project_params: props.project_params,
                                 project_runner: props.project_runner,
@@ -72,6 +75,7 @@ pub fn ParamsEditor(props: ParamsEditorProps) -> Element {
                     ProjectParamValue::Curve2DNorm(_) | ProjectParamValue::Curve2D(_) => {
                         rsx! {
                             Curve2DField {
+                                key: "{param.name}",
                                 param: param,
                                 project_params: props.project_params,
                                 project_runner: props.project_runner,
