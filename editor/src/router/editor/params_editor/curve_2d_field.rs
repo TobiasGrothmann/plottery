@@ -28,6 +28,7 @@ pub struct Curve2DNormProps {
 #[component]
 pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
     let mut dragging_index = use_signal(|| None::<usize>);
+    let mut mousedown_index = use_signal(|| None::<usize>);
     let param_name = use_memo(move || props.param.name.clone());
 
     // Fixed 150x150 dimensions
@@ -206,21 +207,18 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                         view_box: "{view_box}",
                         preserve_aspect_ratio: "none",
                         ondoubleclick: move |event| {
-                            event.prevent_default();
                             let rect = event.data.element_coordinates();
-                            props.console.read().info(&format!("🖱️ Double click at ({}, {})", rect.x, rect.y));
                             let x = ((rect.x - MARGIN) / GRAPH_WIDTH).clamp(0.0, 1.0) as f32;
                             let y = ((GRAPH_BOTTOM - rect.y) / GRAPH_HEIGHT).clamp(0.0, 1.0) as f32;
-                            props.console.read().info(&format!("📍 Normalized point: ({}, {})", x, y));
 
                             let mut new_params = props.project_params.read().clone();
                             for param_field in new_params.list.iter_mut() {
                                 if param_field.name == *param_name.read() {
                                     match &mut param_field.value {
-                                        ProjectParamValue::Curve2DNorm(ref mut g) => {
+                                        ProjectParamValue::Curve2DNorm(g) => {
                                             let _ = g.add_point(plottery_lib::V2::new(x, y));
                                         }
-                                        ProjectParamValue::Curve2D(ref mut c) => {
+                                        ProjectParamValue::Curve2D(c) => {
                                             let _ = c.add_point_norm(plottery_lib::V2::new(x, y));
                                         }
                                         _ => {}
@@ -240,6 +238,12 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                             }
                         },
                         onmousemove: move |event| {
+                            // If mouse is down but not yet dragging, start dragging
+                            if mousedown_index().is_some() && dragging_index().is_none() {
+                                dragging_index.set(mousedown_index());
+                                mousedown_index.set(None);
+                            }
+
                             if let Some(index) = dragging_index() {
                                 let rect = event.data.element_coordinates();
                                 let mut x = ((rect.x - MARGIN) / GRAPH_WIDTH).clamp(0.0, 1.0) as f32;
@@ -283,6 +287,9 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                             }
                         },
                         onmouseup: move |_| {
+                            // Clear mousedown state without triggering drag
+                            mousedown_index.set(None);
+
                             if dragging_index().is_some() {
                                 dragging_index.set(None);
                                 match props.project_runner.read().try_lock() {
@@ -297,6 +304,9 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                             }
                         },
                         onmouseleave: move |_| {
+                            // Clear mousedown state
+                            mousedown_index.set(None);
+
                             if dragging_index().is_some() {
                                 dragging_index.set(None);
                                 // Commit changes when dragging outside bounds
@@ -339,10 +349,6 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                         r: "6",
                                         fill: "#333",
                                         style: "cursor: pointer;",
-                                        onmousedown: move |event| {
-                                            event.stop_propagation();
-                                            dragging_index.set(Some(i));
-                                        },
                                         ondoubleclick: move |event| {
                                             event.stop_propagation();
                                             if i > 0 && i < graph_len - 1 {
@@ -353,7 +359,7 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                                             ProjectParamValue::Curve2DNorm(c) => {
                                                                 let _ = c.remove_point_at(i);
                                                             }
-                                                            ProjectParamValue::Curve2D(ref mut c) => {
+                                                            ProjectParamValue::Curve2D(c) => {
                                                                 let _ = c.remove_point_at(i);
                                                             }
                                                             _ => {}
@@ -372,6 +378,11 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                                     },
                                                 }
                                             }
+                                        },
+                                        onmousedown: move |event| {
+                                            event.stop_propagation();
+                                            // Don't start dragging immediately - wait for mousemove
+                                            mousedown_index.set(Some(i));
                                         },
                                     }
                                 }
