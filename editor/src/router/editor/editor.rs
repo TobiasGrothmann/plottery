@@ -3,6 +3,7 @@ use crate::{
     router::editor::{
         console::Console,
         console_messages::ConsoleMessages,
+        external_editor_button::ExternalEditorButton,
         layer_editor::{layer_editor::LayerEditor, layer_tree_ref::LayerTreeReference},
         params_editor::params_editor::ParamsEditor,
         project_hot_reload::start_hot_reload,
@@ -19,6 +20,38 @@ use plottery_project::{project_params_list_wrapper::ProjectParamsListWrapper, Pr
 use plottery_server_lib::{plot_setting::PlotSettings, task::send_task};
 use std::{path::PathBuf, sync::Arc};
 use tokio::{sync::Mutex, task::JoinHandle};
+
+fn is_gitkraken_installed() -> bool {
+    which::which("GitKraken").is_ok()
+}
+
+fn is_vscode_installed() -> bool {
+    which::which("code").is_ok()
+}
+
+fn is_zed_installed() -> bool {
+    which::which("zed").is_ok()
+}
+
+fn is_cursor_installed() -> bool {
+    which::which("cursor").is_ok()
+}
+
+fn is_sublime_installed() -> bool {
+    which::which("subl").is_ok()
+}
+
+fn get_default_editor_command() -> Option<String> {
+    // Check for known GUI editors in priority order
+    let known_editors = ["zed", "code", "cursor", "subl"];
+    for editor in &known_editors {
+        if which::which(editor).is_ok() {
+            return Some(editor.to_string());
+        }
+    }
+
+    None
+}
 
 #[derive(Debug, Clone)]
 pub struct LayerChangeWrapper {
@@ -40,6 +73,13 @@ pub fn Editor(project_path: Vec<String>) -> Element {
     });
 
     let release = true;
+
+    let gitkraken_installed = use_signal(|| is_gitkraken_installed());
+    let vscode_installed = use_signal(|| is_vscode_installed());
+    let zed_installed = use_signal(|| is_zed_installed());
+    let cursor_installed = use_signal(|| is_cursor_installed());
+    let sublime_installed = use_signal(|| is_sublime_installed());
+    let default_editor = use_signal(|| get_default_editor_command());
 
     // console
     let console_change_counter = use_signal_sync(|| 0);
@@ -188,38 +228,59 @@ pub fn Editor(project_path: Vec<String>) -> Element {
         div { class: "Editor",
             div { class: "plot_header",
                 div { class: "open_actions",
-                    button { class: "icon_button",
-                        onclick: move |event| {
-                            let cargo_dir = project().get_cargo_path().unwrap();
-                            std::process::Command::new("code")
-                                .arg(cargo_dir)
-                                .spawn()
-                                .unwrap()
-                                .wait()
-                                .unwrap();
-                            event.stop_propagation();
-                        },
-                        img { src: "{format_svg(include_bytes!(\"../../../public/icons/vscode.svg\"))}" }
-                    }
-                    button { class: "icon_button",
-                        onclick: move |event| {
-                            open::that_in_background(project().dir).join().unwrap().unwrap();
-                            event.stop_propagation();
-                        },
-                        img { src: "{icon_folder}" }
-                    }
-                    button { class: "icon_button",
-                        onclick: move |event| {
-                            std::process::Command::new("GitKraken")
-                                .arg("-p")
-                                .arg(project().get_dir())
-                                .spawn()
-                                .unwrap()
-                                .wait()
-                                .unwrap();
-                            event.stop_propagation();
-                        },
-                        img { src: "{format_svg(include_bytes!(\"../../../public/icons/gitkraken.svg\"))}" }
+                    {
+                        let cargo_dir = use_memo(move || project().get_cargo_path().unwrap());
+                        let project_dir = use_memo(move || project().get_dir());
+                        rsx! {
+                            if vscode_installed() {
+                                ExternalEditorButton {
+                                    editor_name: "VS Code".to_string(),
+                                    editor_command: "code".to_string(),
+                                    icon_svg: include_bytes!("../../../public/icons/vscode.svg"),
+                                    project_dir: cargo_dir,
+                                }
+                            }
+                            if zed_installed() {
+                                ExternalEditorButton {
+                                    editor_name: "Zed".to_string(),
+                                    editor_command: "zed".to_string(),
+                                    icon_svg: include_bytes!("../../../public/icons/zed.svg"),
+                                    project_dir: cargo_dir,
+                                }
+                            }
+                            if cursor_installed() {
+                                ExternalEditorButton {
+                                    editor_name: "Cursor".to_string(),
+                                    editor_command: "cursor".to_string(),
+                                    icon_svg: include_bytes!("../../../public/icons/cursor.svg"),
+                                    project_dir: cargo_dir,
+                                }
+                            }
+                            if sublime_installed() {
+                                ExternalEditorButton {
+                                    editor_name: "Sublime Text".to_string(),
+                                    editor_command: "subl".to_string(),
+                                    icon_svg: include_bytes!("../../../public/icons/sublime-text.svg"),
+                                    project_dir: cargo_dir,
+                                }
+                            }
+                            button { class: "icon_button",
+                                onclick: move |event| {
+                                    open::that_in_background(project().dir).join().unwrap().unwrap();
+                                    event.stop_propagation();
+                                },
+                                img { src: "{icon_folder}" }
+                            }
+                            if gitkraken_installed() {
+                                ExternalEditorButton {
+                                    editor_name: "GitKraken".to_string(),
+                                    editor_command: "GitKraken".to_string(),
+                                    icon_svg: include_bytes!("../../../public/icons/gitkraken.svg"),
+                                    project_dir: project_dir,
+                                    extra_args: vec!["-p".to_string()],
+                                }
+                            }
+                        }
                     }
                 }
                 div { class: "run_actions",
