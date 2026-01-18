@@ -20,7 +20,7 @@ short_description = "Graphical Editor of Plottery, a creative coding framework f
 long_description = "Graphical Editor of Plottery, a creative coding framework for generative vector graphics and pen plotting."
 
 [package.metadata.release]
-pre-release-hook = ["./scripts/release_editor.sh", "{{version}}"]
+pre-release-hook = ["./scripts/release_editor.sh", "{{version}}", "false"]
 
 [dependencies]
 plottery_lib = { path = "../lib", version = "^0.7.0" }
