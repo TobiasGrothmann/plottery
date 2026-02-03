@@ -1,21 +1,26 @@
 .Console {
-  background-color: var(--col-bg-1);
-  overflow: scroll;
-  height: 100% !important;
-  min-width: 400px !important;
-  padding: var(--gap-0) !important;
-  box-sizing: border-box;
+    background-color: var(--col-bg-1);
+    overflow: scroll;
+    height: 100% !important;
+    min-width: 400px !important;
+    padding: var(--gap-0) !important;
+    box-sizing: border-box;
 
-  display: flex;
-  flex-direction: column-reverse;
+    display: flex;
+    flex-direction: column-reverse;
+}
+
+.Console p {
+    white-space: pre-wrap;
+    font-family: monospace !important;
 }
 
 .error {
-  color: red;
+    color: red;
 }
 .info {
-  color: var(--col-fg-0);
+    color: var(--col-fg-0);
 }
 .project_log {
-  color: yellowgreen;
+    color: yellowgreen;
 }
