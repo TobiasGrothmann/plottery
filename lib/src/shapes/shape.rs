@@ -396,3 +396,21 @@ impl From<Path> for Shape {
         Shape::Path(path)
     }
 }
+
+impl From<&Circle> for Shape {
+    fn from(circle: &Circle) -> Self {
+        Shape::Circle(*circle)
+    }
+}
+
+impl From<&Rect> for Shape {
+    fn from(rect: &Rect) -> Self {
+        Shape::Rect(rect.clone())
+    }
+}
+
+impl From<&Path> for Shape {
+    fn from(path: &Path) -> Self {
+        Shape::Path(path.clone())
+    }
+}
