@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SERVICE_NAME="plottery.service"
+CARGO_BIN="/home/pi/.cargo/bin/cargo"
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+
+if [ "$(id -u)" -eq 0 ]; then
+  echo "Error: Do not run this script as root." >&2
+  echo "Run it as user 'pi' so cargo installs to /home/pi/.cargo/bin." >&2
+  exit 1
+fi
+
+if [ ! -x "$CARGO_BIN" ]; then
+  echo "Error: cargo not found at $CARGO_BIN" >&2
+  echo "Install rust for user pi or adjust CARGO_BIN in this script." >&2
+  exit 1
+fi
+
+if [ ! -f "/etc/systemd/system/$SERVICE_NAME" ]; then
+  echo "Error: /etc/systemd/system/$SERVICE_NAME not found." >&2
+  echo "Install the service first, for example:" >&2
+  echo "  sudo cp $REPO_ROOT/server/plottery.service /etc/systemd/system/$SERVICE_NAME" >&2
+  echo "  sudo systemctl daemon-reload" >&2
+  echo "  sudo systemctl enable $SERVICE_NAME" >&2
+  exit 1
+fi
+
+if ! systemctl list-unit-files --type=service --no-legend | grep -q "^$SERVICE_NAME"; then
+  echo "Error: $SERVICE_NAME is not registered with systemd." >&2
+  echo "Run: sudo systemctl daemon-reload" >&2
+  exit 1
+fi
+
+if ! systemctl is-enabled "$SERVICE_NAME" >/dev/null 2>&1; then
+  echo "Error: $SERVICE_NAME is not enabled." >&2
+  echo "Run: sudo systemctl enable $SERVICE_NAME" >&2
+  exit 1
+fi
+
+"$CARGO_BIN" install --path "$REPO_ROOT/server" --features raspi --force
+
+sudo systemctl daemon-reload
+sudo systemctl restart "$SERVICE_NAME"
+sudo systemctl --no-pager --full status "$SERVICE_NAME"

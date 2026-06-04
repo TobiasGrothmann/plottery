@@ -1,0 +1,14 @@
+[Unit]
+Description=Plottery server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/home/pi/.cargo/bin/plottery_server
+WorkingDirectory=/home/pi
+Restart=no
+
+[Install]
+WantedBy=multi-user.target
