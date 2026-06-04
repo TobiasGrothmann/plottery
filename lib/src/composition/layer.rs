@@ -462,10 +462,10 @@ impl Layer {
                             };
 
                             let mut points = Self::parse_svg_points_attr(points_attr);
-                            if tag == "polygon" && points.len() >= 2 {
-                                if points.first() != points.last() {
-                                    points.push(*points.first().unwrap());
-                                }
+                            if tag == "polygon" && points.len() >= 2
+                                && points.first() != points.last()
+                            {
+                                points.push(*points.first().unwrap());
                             }
 
                             if points.len() >= 2 {
@@ -482,10 +482,8 @@ impl Layer {
                     }
                 }
 
-                if matches!(tag_type, SvgTagType::End) {
-                    if transform_stack.len() > 1 {
-                        transform_stack.pop();
-                    }
+                if matches!(tag_type, SvgTagType::End) && transform_stack.len() > 1 {
+                    transform_stack.pop();
                 }
             }
         }

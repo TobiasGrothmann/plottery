@@ -405,7 +405,7 @@ impl From<&Circle> for Shape {
 
 impl From<&Rect> for Shape {
     fn from(rect: &Rect) -> Self {
-        Shape::Rect(rect.clone())
+        Shape::Rect(*rect)
     }
 }
 
