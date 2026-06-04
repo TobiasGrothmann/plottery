@@ -173,8 +173,13 @@ pub async fn plot_shape(
     sample_settings: SampleSettings,
     plot_settings: &PlotSettings,
 ) {
+    let points = shape.get_points_from(hardware.get_pos(), sample_settings);
+    if points.len() < 2 {
+        return;
+    }
+
     let accelleration_path = AccellerationPath::new(
-        &shape.get_points_from(hardware.get_pos(), sample_settings),
+        &points,
         plot_settings.speed_draw.accelleration_distance,
         plot_settings.corner_slowdown_power,
     );
@@ -187,6 +192,10 @@ pub async fn plot_shape(
         &plot_settings.speed_head_down,
         PIN_SETTINGS.dist_per_step_head_cm,
     );
+
+    if accelleration_path.points.len() < 2 {
+        return;
+    }
 
     // travel to start
     travel_to(hardware, accelleration_path.points[0].point, plot_settings).await;
