@@ -1,6 +1,5 @@
 use itertools::Itertools;
 use plottery_lib::{LARGE_EPSILON, V2};
-use rayon::prelude::*;
 
 use super::maths::get_corner_sharpness;
 
@@ -98,16 +97,20 @@ impl AccellerationPath {
     }
 
     fn edge_pass(points: &[V2], edge_slow_down_power: f32) -> Vec<f32> {
-        let speeds = points.iter().tuple_windows::<(_, _, _)>().par_bridge().map(
-            |(before, point, after)| {
-                V2Speed::compute_speed(*before, *point, *after, edge_slow_down_power)
-            },
-        );
+        let mut speeds = Vec::with_capacity(points.len());
+        speeds.push(0.0);
 
-        rayon::iter::once(0.0)
-            .chain(speeds)
-            .chain(rayon::iter::once(0.0))
-            .collect()
+        for (before, point, after) in points.iter().tuple_windows::<(_, _, _)>() {
+            speeds.push(V2Speed::compute_speed(
+                *before,
+                *point,
+                *after,
+                edge_slow_down_power,
+            ));
+        }
+
+        speeds.push(0.0);
+        speeds
     }
 
     fn get_points_with_inbetweens(points: &[V2], speeds: &[f32], accell_dist: f32) -> Vec<V2Speed> {
