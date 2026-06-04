@@ -7,7 +7,11 @@ use std::{
     collections::BTreeSet, fs::File, io::Write, iter::FromIterator, path::PathBuf, slice::Iter, vec,
 };
 use svg::{
-    node::element::{path::Data, Group},
+    node::{
+        element::{path::Data, tag::Type as SvgTagType, Group},
+        Attributes,
+    },
+    parser::Event,
     Document, Node,
 };
 
@@ -39,6 +43,79 @@ pub struct Layer {
     pub sublayers: Vec<Layer>,
     pub props: LayerProps,
     pub props_inheritable: Inheritable<LayerPropsInheritable>,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum SvgPathToken {
+    Command(char),
+    Number(f32),
+}
+
+#[derive(Debug, Clone, Copy)]
+struct SvgTransform {
+    a: f32,
+    b: f32,
+    c: f32,
+    d: f32,
+    e: f32,
+    f: f32,
+}
+
+impl SvgTransform {
+    fn identity() -> Self {
+        Self {
+            a: 1.0,
+            b: 0.0,
+            c: 0.0,
+            d: 1.0,
+            e: 0.0,
+            f: 0.0,
+        }
+    }
+
+    fn translate(tx: f32, ty: f32) -> Self {
+        Self {
+            a: 1.0,
+            b: 0.0,
+            c: 0.0,
+            d: 1.0,
+            e: tx,
+            f: ty,
+        }
+    }
+
+    fn scale(sx: f32, sy: f32) -> Self {
+        Self {
+            a: sx,
+            b: 0.0,
+            c: 0.0,
+            d: sy,
+            e: 0.0,
+            f: 0.0,
+        }
+    }
+
+    fn matrix(a: f32, b: f32, c: f32, d: f32, e: f32, f: f32) -> Self {
+        Self { a, b, c, d, e, f }
+    }
+
+    fn multiply(self, rhs: Self) -> Self {
+        Self {
+            a: self.a * rhs.a + self.c * rhs.b,
+            b: self.b * rhs.a + self.d * rhs.b,
+            c: self.a * rhs.c + self.c * rhs.d,
+            d: self.b * rhs.c + self.d * rhs.d,
+            e: self.a * rhs.e + self.c * rhs.f + self.e,
+            f: self.b * rhs.e + self.d * rhs.f + self.f,
+        }
+    }
+
+    fn apply(self, point: V2) -> V2 {
+        V2::new(
+            self.a * point.x + self.c * point.y + self.e,
+            self.b * point.x + self.d * point.y + self.f,
+        )
+    }
 }
 
 impl Layer {
@@ -310,6 +387,666 @@ impl Layer {
         let document = self.to_svg(scale);
         svg::save(path.to_str().unwrap(), &document)?;
         Ok(())
+    }
+
+    /// Creates a new `Layer` from an .svg file.
+    ///
+    /// Currently this only imports basic `<path d="...">` commands (`M/m`, `L/l`, `H/h`, `V/v`, `Z/z`).
+    pub fn new_from_svg(path: &PathBuf) -> Result<Layer> {
+        let mut svg_content = String::new();
+        let mut layer = Layer::new();
+        let mut transform_stack: Vec<SvgTransform> = vec![SvgTransform::identity()];
+        let mut svg_units_to_cm_scale: f32 = 1.0;
+
+        for event in svg::open(path, &mut svg_content)? {
+            if let Event::Tag(tag, tag_type, attributes) = event {
+                if tag == "svg" && !matches!(tag_type, SvgTagType::End) {
+                    if let Some(scale) = Self::parse_svg_root_units_to_cm_scale(&attributes) {
+                        svg_units_to_cm_scale = scale;
+                    }
+                }
+
+                let parent_transform = *transform_stack.last().unwrap_or(&SvgTransform::identity());
+                let local_transform =
+                    Self::parse_svg_transform_attr(&attributes).unwrap_or(SvgTransform::identity());
+                let combined_transform = parent_transform.multiply(local_transform);
+
+                if matches!(tag_type, SvgTagType::Start) {
+                    transform_stack.push(combined_transform);
+                }
+
+                if !matches!(tag_type, SvgTagType::End) {
+                    match tag {
+                        "path" => {
+                            let Some(data_value) = attributes.get("d") else {
+                                // TODO: Handle malformed `<path>` nodes without `d` attribute more explicitly.
+                                continue;
+                            };
+
+                            let path_data = data_value.to_string();
+                            let should_close_paths = Self::svg_path_has_fill(&attributes);
+                            for mut path in Self::parse_svg_path_data(path_data.as_str()) {
+                                if should_close_paths {
+                                    Self::close_path_if_needed(&mut path);
+                                }
+
+                                if path.get_points_ref().len() >= 2 {
+                                    layer.push(Self::apply_svg_transform_to_path(
+                                        &path,
+                                        combined_transform,
+                                        svg_units_to_cm_scale,
+                                    ));
+                                }
+                            }
+                        }
+                        "line" => {
+                            if let (Some(x1), Some(y1), Some(x2), Some(y2)) = (
+                                Self::parse_svg_attr_f32(&attributes, "x1"),
+                                Self::parse_svg_attr_f32(&attributes, "y1"),
+                                Self::parse_svg_attr_f32(&attributes, "x2"),
+                                Self::parse_svg_attr_f32(&attributes, "y2"),
+                            ) {
+                                layer.push(Self::apply_svg_transform_to_path(
+                                    &Path::new_from(vec![V2::new(x1, y1), V2::new(x2, y2)]),
+                                    combined_transform,
+                                    svg_units_to_cm_scale,
+                                ));
+                            } else {
+                                // TODO: Handle malformed `<line>` nodes more explicitly.
+                            }
+                        }
+                        "polyline" | "polygon" => {
+                            let Some(points_attr) = attributes.get("points") else {
+                                // TODO: Handle malformed polyline/polygon nodes without points attribute.
+                                continue;
+                            };
+
+                            let mut points = Self::parse_svg_points_attr(points_attr);
+                            if tag == "polygon" && points.len() >= 2 {
+                                if points.first() != points.last() {
+                                    points.push(*points.first().unwrap());
+                                }
+                            }
+
+                            if points.len() >= 2 {
+                                layer.push(Self::apply_svg_transform_to_path(
+                                    &Path::new_from(points),
+                                    combined_transform,
+                                    svg_units_to_cm_scale,
+                                ));
+                            }
+                        }
+                        _ => {
+                            // TODO: Support importing non-path SVG elements (`circle`, `rect`, etc.).
+                        }
+                    }
+                }
+
+                if matches!(tag_type, SvgTagType::End) {
+                    if transform_stack.len() > 1 {
+                        transform_stack.pop();
+                    }
+                }
+            }
+        }
+
+        // Convert SVG y-down coordinates back to Plottery y-up coordinates.
+        if let Some(bounds) = layer.bounding_box() {
+            layer = layer.map_recursive(|shape| shape.mirror_y().translate(bounds.tr().only_y()));
+        }
+
+        Ok(layer)
+    }
+
+    fn parse_svg_attr_f32(attributes: &Attributes, key: &str) -> Option<f32> {
+        let value = attributes.get(key)?;
+        value.to_string().parse::<f32>().ok()
+    }
+
+    fn parse_svg_points_attr(points_attr: &svg::node::Value) -> Vec<V2> {
+        let point_tokens = points_attr
+            .to_string()
+            .replace(',', " ")
+            .split_whitespace()
+            .filter_map(|s| s.parse::<f32>().ok())
+            .collect::<Vec<_>>();
+
+        point_tokens
+            .chunks_exact(2)
+            .map(|pair| V2::new(pair[0], pair[1]))
+            .collect()
+    }
+
+    fn apply_svg_transform_to_path(path: &Path, transform: SvgTransform, scale_to_cm: f32) -> Path {
+        Path::new_from_iter(
+            path.get_points_ref()
+                .iter()
+                .map(|point| transform.apply(*point) * scale_to_cm),
+        )
+    }
+
+    fn parse_svg_root_units_to_cm_scale(attributes: &Attributes) -> Option<f32> {
+        let view_box = attributes.get("viewBox")?.to_string();
+        let view_box_values = view_box
+            .replace(',', " ")
+            .split_whitespace()
+            .filter_map(|s| s.parse::<f32>().ok())
+            .collect::<Vec<_>>();
+        if view_box_values.len() < 4 {
+            // TODO: Handle malformed viewBox values with explicit errors.
+            return None;
+        }
+
+        let view_box_w = view_box_values[2];
+        let view_box_h = view_box_values[3];
+
+        let width_cm = attributes
+            .get("width")
+            .and_then(|w| Self::parse_svg_length_to_cm(w.to_string().as_str()));
+        let height_cm = attributes
+            .get("height")
+            .and_then(|h| Self::parse_svg_length_to_cm(h.to_string().as_str()));
+
+        let scale_x = if view_box_w.abs() > f32::EPSILON {
+            width_cm.map(|w| w / view_box_w)
+        } else {
+            None
+        };
+        let scale_y = if view_box_h.abs() > f32::EPSILON {
+            height_cm.map(|h| h / view_box_h)
+        } else {
+            None
+        };
+
+        match (scale_x, scale_y) {
+            (Some(sx), Some(sy)) => Some((sx + sy) * 0.5),
+            (Some(sx), None) => Some(sx),
+            (None, Some(sy)) => Some(sy),
+            (None, None) => None,
+        }
+    }
+
+    fn parse_svg_length_to_cm(length: &str) -> Option<f32> {
+        let trimmed = length.trim();
+        if trimmed.is_empty() {
+            return None;
+        }
+
+        let mut split_at = trimmed.len();
+        for (idx, ch) in trimmed.char_indices() {
+            if !(ch.is_ascii_digit()
+                || ch == '.'
+                || ch == '-'
+                || ch == '+'
+                || ch == 'e'
+                || ch == 'E')
+            {
+                split_at = idx;
+                break;
+            }
+        }
+
+        let value_str = trimmed[..split_at].trim();
+        let unit_str = trimmed[split_at..].trim().to_ascii_lowercase();
+        let value = value_str.parse::<f32>().ok()?;
+
+        match unit_str.as_str() {
+            "cm" => Some(value),
+            "mm" => Some(value * 0.1),
+            "in" => Some(value * 2.54),
+            "px" => Some(value * (2.54 / 96.0)),
+            "pt" => Some(value * (2.54 / 72.0)),
+            "pc" => Some(value * (2.54 / 6.0)),
+            "q" => Some(value * 0.025), // quarter-millimeter
+            _ => {
+                // TODO: Support additional SVG/CSS units or project-level unit defaults.
+                None
+            }
+        }
+    }
+
+    fn close_path_if_needed(path: &mut Path) {
+        let points = path.get_points_ref();
+        if points.len() >= 3 {
+            if let (Some(first), Some(last)) = (points.first(), points.last()) {
+                if first != last {
+                    path.push(*first);
+                }
+            }
+        }
+    }
+
+    fn svg_path_has_fill(attributes: &Attributes) -> bool {
+        if let Some(fill_value) = attributes.get("fill") {
+            let fill = fill_value.to_string().trim().to_ascii_lowercase();
+            if !fill.is_empty() && fill != "none" {
+                return true;
+            }
+        }
+
+        if let Some(style_value) = attributes.get("style") {
+            let style = style_value.to_string().to_ascii_lowercase();
+            for part in style.split(';') {
+                let part = part.trim();
+                if let Some(value) = part.strip_prefix("fill:") {
+                    let fill = value.trim();
+                    if !fill.is_empty() && fill != "none" {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        false
+    }
+
+    fn parse_svg_transform_attr(attributes: &Attributes) -> Option<SvgTransform> {
+        let transform_attr = attributes.get("transform")?.to_string();
+        Self::parse_svg_transform_chain(transform_attr.as_str())
+    }
+
+    fn parse_svg_transform_chain(transform_attr: &str) -> Option<SvgTransform> {
+        let mut combined = SvgTransform::identity();
+        let mut parsed_any = false;
+        let mut rest = transform_attr.trim();
+
+        while !rest.is_empty() {
+            let Some(open_idx) = rest.find('(') else {
+                break;
+            };
+            let Some(close_idx) = rest.find(')') else {
+                break;
+            };
+            if close_idx <= open_idx {
+                break;
+            }
+
+            let name = rest[..open_idx].trim();
+            let args_str = &rest[(open_idx + 1)..close_idx];
+            let args = args_str
+                .replace(',', " ")
+                .split_whitespace()
+                .filter_map(|s| s.parse::<f32>().ok())
+                .collect::<Vec<_>>();
+
+            let next_transform = match name {
+                "matrix" if args.len() == 6 => Some(SvgTransform::matrix(
+                    args[0], args[1], args[2], args[3], args[4], args[5],
+                )),
+                "translate" if args.len() == 1 => Some(SvgTransform::translate(args[0], 0.0)),
+                "translate" if args.len() >= 2 => Some(SvgTransform::translate(args[0], args[1])),
+                "scale" if args.len() == 1 => Some(SvgTransform::scale(args[0], args[0])),
+                "scale" if args.len() >= 2 => Some(SvgTransform::scale(args[0], args[1])),
+                _ => {
+                    // TODO: Support rotate/skew transforms and malformed transform expressions.
+                    None
+                }
+            };
+
+            if let Some(next_transform) = next_transform {
+                combined = combined.multiply(next_transform);
+                parsed_any = true;
+            }
+
+            rest = rest[(close_idx + 1)..].trim_start();
+        }
+
+        if parsed_any {
+            Some(combined)
+        } else {
+            None
+        }
+    }
+
+    fn parse_svg_path_data(path_data: &str) -> Vec<Path> {
+        let mut parsed_paths: Vec<Path> = Vec::new();
+
+        let mut current_points: Vec<V2> = Vec::new();
+        let mut current_point: Option<V2> = None;
+        let mut subpath_start: Option<V2> = None;
+
+        let mut active_command = 'M';
+        let mut command_is_set = false;
+
+        let tokens = Self::tokenize_svg_path_data(path_data);
+        let mut token_index = 0;
+
+        while token_index < tokens.len() {
+            if let SvgPathToken::Command(command) = tokens[token_index] {
+                active_command = command;
+                command_is_set = true;
+                token_index += 1;
+            } else if !command_is_set {
+                // TODO: Handle malformed path data where numbers appear before the first command.
+                break;
+            }
+
+            match active_command {
+                'M' | 'm' => {
+                    let mut is_first_pair = true;
+                    while let Some((x, y)) = Self::read_svg_pair(&tokens, &mut token_index) {
+                        let mut next_point = V2::new(x, y);
+                        if active_command == 'm' {
+                            next_point = current_point.unwrap_or(V2::zero()) + next_point;
+                        }
+
+                        if is_first_pair {
+                            if current_points.len() >= 2 {
+                                parsed_paths
+                                    .push(Path::new_from(std::mem::take(&mut current_points)));
+                            }
+                            current_points.push(next_point);
+                            subpath_start = Some(next_point);
+                            is_first_pair = false;
+                        } else {
+                            current_points.push(next_point);
+                        }
+                        current_point = Some(next_point);
+                    }
+                }
+                'L' | 'l' => {
+                    while let Some((x, y)) = Self::read_svg_pair(&tokens, &mut token_index) {
+                        Self::ensure_svg_subpath_started(
+                            &mut current_points,
+                            &mut subpath_start,
+                            current_point,
+                        );
+
+                        let mut next_point = V2::new(x, y);
+                        if active_command == 'l' {
+                            next_point = current_point.unwrap_or(V2::zero()) + next_point;
+                        }
+                        current_points.push(next_point);
+                        current_point = Some(next_point);
+                    }
+                }
+                'H' | 'h' => {
+                    while let Some(x) = Self::read_svg_number(&tokens, &mut token_index) {
+                        Self::ensure_svg_subpath_started(
+                            &mut current_points,
+                            &mut subpath_start,
+                            current_point,
+                        );
+
+                        let base = current_point.unwrap_or(V2::zero());
+                        let next_point = if active_command == 'h' {
+                            V2::new(base.x + x, base.y)
+                        } else {
+                            V2::new(x, base.y)
+                        };
+                        current_points.push(next_point);
+                        current_point = Some(next_point);
+                    }
+                }
+                'V' | 'v' => {
+                    while let Some(y) = Self::read_svg_number(&tokens, &mut token_index) {
+                        Self::ensure_svg_subpath_started(
+                            &mut current_points,
+                            &mut subpath_start,
+                            current_point,
+                        );
+
+                        let base = current_point.unwrap_or(V2::zero());
+                        let next_point = if active_command == 'v' {
+                            V2::new(base.x, base.y + y)
+                        } else {
+                            V2::new(base.x, y)
+                        };
+                        current_points.push(next_point);
+                        current_point = Some(next_point);
+                    }
+                }
+                'Z' | 'z' => {
+                    if !current_points.is_empty() {
+                        if let Some(start) = subpath_start {
+                            if current_points.last() != Some(&start) {
+                                current_points.push(start);
+                            }
+                        }
+
+                        if current_points.len() >= 2 {
+                            parsed_paths.push(Path::new_from(std::mem::take(&mut current_points)));
+                        } else {
+                            current_points.clear();
+                        }
+                        current_point = subpath_start;
+                        subpath_start = None;
+                    }
+                }
+                'C' | 'c' => {
+                    while let (Some(_x1), Some(_y1), Some(_x2), Some(_y2), Some(x), Some(y)) = (
+                        Self::read_svg_number(&tokens, &mut token_index),
+                        Self::read_svg_number(&tokens, &mut token_index),
+                        Self::read_svg_number(&tokens, &mut token_index),
+                        Self::read_svg_number(&tokens, &mut token_index),
+                        Self::read_svg_number(&tokens, &mut token_index),
+                        Self::read_svg_number(&tokens, &mut token_index),
+                    ) {
+                        Self::ensure_svg_subpath_started(
+                            &mut current_points,
+                            &mut subpath_start,
+                            current_point,
+                        );
+
+                        // TODO: Sample bezier curves instead of approximating them as straight segments.
+                        let base = current_point.unwrap_or(V2::zero());
+                        let next_point = if active_command == 'c' {
+                            V2::new(base.x + x, base.y + y)
+                        } else {
+                            V2::new(x, y)
+                        };
+                        current_points.push(next_point);
+                        current_point = Some(next_point);
+                    }
+                }
+                'S' | 's' => {
+                    while let (Some(_x2), Some(_y2), Some(x), Some(y)) = (
+                        Self::read_svg_number(&tokens, &mut token_index),
+                        Self::read_svg_number(&tokens, &mut token_index),
+                        Self::read_svg_number(&tokens, &mut token_index),
+                        Self::read_svg_number(&tokens, &mut token_index),
+                    ) {
+                        Self::ensure_svg_subpath_started(
+                            &mut current_points,
+                            &mut subpath_start,
+                            current_point,
+                        );
+
+                        // TODO: Sample smooth cubic bezier curves instead of endpoint approximation.
+                        let base = current_point.unwrap_or(V2::zero());
+                        let next_point = if active_command == 's' {
+                            V2::new(base.x + x, base.y + y)
+                        } else {
+                            V2::new(x, y)
+                        };
+                        current_points.push(next_point);
+                        current_point = Some(next_point);
+                    }
+                }
+                'Q' | 'q' => {
+                    while let (Some(_cx), Some(_cy), Some(x), Some(y)) = (
+                        Self::read_svg_number(&tokens, &mut token_index),
+                        Self::read_svg_number(&tokens, &mut token_index),
+                        Self::read_svg_number(&tokens, &mut token_index),
+                        Self::read_svg_number(&tokens, &mut token_index),
+                    ) {
+                        Self::ensure_svg_subpath_started(
+                            &mut current_points,
+                            &mut subpath_start,
+                            current_point,
+                        );
+
+                        // TODO: Sample quadratic bezier curves instead of endpoint approximation.
+                        let base = current_point.unwrap_or(V2::zero());
+                        let next_point = if active_command == 'q' {
+                            V2::new(base.x + x, base.y + y)
+                        } else {
+                            V2::new(x, y)
+                        };
+                        current_points.push(next_point);
+                        current_point = Some(next_point);
+                    }
+                }
+                'T' | 't' => {
+                    while let Some((x, y)) = Self::read_svg_pair(&tokens, &mut token_index) {
+                        Self::ensure_svg_subpath_started(
+                            &mut current_points,
+                            &mut subpath_start,
+                            current_point,
+                        );
+
+                        // TODO: Sample smooth quadratic bezier curves instead of endpoint approximation.
+                        let base = current_point.unwrap_or(V2::zero());
+                        let next_point = if active_command == 't' {
+                            V2::new(base.x + x, base.y + y)
+                        } else {
+                            V2::new(x, y)
+                        };
+                        current_points.push(next_point);
+                        current_point = Some(next_point);
+                    }
+                }
+                'A' | 'a' => {
+                    while let (
+                        Some(_rx),
+                        Some(_ry),
+                        Some(_x_axis_rotation),
+                        Some(_large_arc_flag),
+                        Some(_sweep_flag),
+                        Some(x),
+                        Some(y),
+                    ) = (
+                        Self::read_svg_number(&tokens, &mut token_index),
+                        Self::read_svg_number(&tokens, &mut token_index),
+                        Self::read_svg_number(&tokens, &mut token_index),
+                        Self::read_svg_number(&tokens, &mut token_index),
+                        Self::read_svg_number(&tokens, &mut token_index),
+                        Self::read_svg_number(&tokens, &mut token_index),
+                        Self::read_svg_number(&tokens, &mut token_index),
+                    ) {
+                        Self::ensure_svg_subpath_started(
+                            &mut current_points,
+                            &mut subpath_start,
+                            current_point,
+                        );
+
+                        // TODO: Sample elliptical arcs instead of endpoint approximation.
+                        let base = current_point.unwrap_or(V2::zero());
+                        let next_point = if active_command == 'a' {
+                            V2::new(base.x + x, base.y + y)
+                        } else {
+                            V2::new(x, y)
+                        };
+                        current_points.push(next_point);
+                        current_point = Some(next_point);
+                    }
+                }
+                _ => {
+                    // TODO: Support additional SVG path commands.
+                    while Self::read_svg_number(&tokens, &mut token_index).is_some() {}
+                }
+            }
+        }
+
+        if current_points.len() >= 2 {
+            parsed_paths.push(Path::new_from(current_points));
+        }
+
+        parsed_paths
+    }
+
+    fn tokenize_svg_path_data(path_data: &str) -> Vec<SvgPathToken> {
+        let mut tokens = Vec::new();
+        let mut chars = path_data.chars().peekable();
+
+        while let Some(ch) = chars.peek().copied() {
+            if ch.is_ascii_alphabetic() {
+                chars.next();
+                tokens.push(SvgPathToken::Command(ch));
+                continue;
+            }
+
+            if ch.is_ascii_whitespace() || ch == ',' {
+                chars.next();
+                continue;
+            }
+
+            let mut number = String::new();
+            let mut seen_exponent = false;
+
+            while let Some(next_ch) = chars.peek().copied() {
+                if next_ch.is_ascii_digit() || next_ch == '.' {
+                    number.push(next_ch);
+                    chars.next();
+                    continue;
+                }
+
+                if (next_ch == 'e' || next_ch == 'E') && !seen_exponent {
+                    seen_exponent = true;
+                    number.push(next_ch);
+                    chars.next();
+                    continue;
+                }
+
+                if next_ch == '-' || next_ch == '+' {
+                    if number.is_empty() || number.ends_with('e') || number.ends_with('E') {
+                        number.push(next_ch);
+                        chars.next();
+                        continue;
+                    }
+                    break;
+                }
+
+                break;
+            }
+
+            if !number.is_empty() {
+                if let std::result::Result::Ok(value) = number.parse::<f32>() {
+                    tokens.push(SvgPathToken::Number(value));
+                } else {
+                    // TODO: Handle parse failures with richer diagnostics (line/column/path id).
+                }
+            } else {
+                chars.next();
+            }
+        }
+
+        tokens
+    }
+
+    fn ensure_svg_subpath_started(
+        current_points: &mut Vec<V2>,
+        subpath_start: &mut Option<V2>,
+        current_point: Option<V2>,
+    ) {
+        if current_points.is_empty() {
+            if let Some(start) = current_point {
+                current_points.push(start);
+                if subpath_start.is_none() {
+                    *subpath_start = Some(start);
+                }
+            }
+        }
+    }
+
+    fn read_svg_number(tokens: &[SvgPathToken], token_index: &mut usize) -> Option<f32> {
+        if *token_index >= tokens.len() {
+            return None;
+        }
+
+        match tokens[*token_index] {
+            SvgPathToken::Number(value) => {
+                *token_index += 1;
+                Some(value)
+            }
+            SvgPathToken::Command(_) => None,
+        }
+    }
+
+    fn read_svg_pair(tokens: &[SvgPathToken], token_index: &mut usize) -> Option<(f32, f32)> {
+        let x = Self::read_svg_number(tokens, token_index)?;
+        let y = Self::read_svg_number(tokens, token_index)?;
+        Some((x, y))
     }
 
     /// Returns a new `Layer` with [`Shape`]s that start/end at another [`Shape`]'s start/end combined into a single [`Path`].
