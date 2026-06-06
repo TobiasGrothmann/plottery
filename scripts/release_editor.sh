@@ -53,6 +53,9 @@ if [ -d "$DMG_PATH" ]; then
   echo ""
 fi
 
+echo -e "${YELLOW}Cleaning .DS_Store files from assets...${NC}"
+find "$EDITOR_DIR/public" -name ".DS_Store" -type f -delete
+
 echo -e "${YELLOW}Building .dmg using Dioxus CLI (dx)...${NC}"
 (
   cd "$EDITOR_DIR"
