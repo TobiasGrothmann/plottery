@@ -33,11 +33,16 @@ impl AppState {
         }
     }
 
-    pub fn save(&self) {
+    pub fn save(&mut self) {
         let path = Self::get_save_file_path();
         if !path.parent().unwrap().exists() {
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         }
+
+        for project in &mut self.projects {
+            project.normalize_paths_mut();
+        }
+
         let file = std::fs::File::create(path).unwrap();
         serde_json::to_writer_pretty(file, self).unwrap();
     }

@@ -13,7 +13,7 @@ pub fn Browser() -> Element {
     let mut app_state = use_signal(|| {
         AppState::load().unwrap_or_else(|| {
             tracing::info!("App state file does not exist. Creating new app state.");
-            let new_state = AppState::new();
+            let mut new_state = AppState::new();
             new_state.save();
             new_state
         })

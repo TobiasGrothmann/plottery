@@ -41,7 +41,12 @@ impl PartialEq for Project {
 
 impl Project {
     pub fn new(parent: PathBuf, name: &str) -> Self {
-        let mut project_dir = parent.clone();
+        let parent = parent
+            .absolutize()
+            .map(|p| p.to_path_buf())
+            .unwrap_or(parent);
+
+        let mut project_dir = parent;
         project_dir.push(name);
         Self {
             config: ProjectConfig::new(name),
@@ -71,6 +76,12 @@ impl Project {
         };
         assert!(loaded_project.exists());
         Ok(loaded_project)
+    }
+
+    pub fn normalize_paths_mut(&mut self) {
+        if let core::result::Result::Ok(path) = self.dir.absolutize() {
+            self.dir = path.to_path_buf();
+        }
     }
 
     pub fn get_dir(&self) -> PathBuf {
