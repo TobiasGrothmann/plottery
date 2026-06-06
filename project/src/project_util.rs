@@ -9,26 +9,35 @@ use std::{path::PathBuf, process::ExitStatus};
 
 use crate::project_params_list_wrapper::ProjectParamsListWrapper;
 
-fn ensure_cargo_available() -> Result<()> {
-    #[cfg(target_os = "windows")]
-    let (locator_cmd, locator_arg) = ("where", "cargo.exe");
+fn find_cargo_executable() -> Result<PathBuf> {
+    let output = std::process::Command::new("which").arg("cargo").output()?;
+    if output.status.success() {
+        let cargo_output = String::from_utf8_lossy(&output.stdout).to_string();
+        let cargo_path = cargo_output
+            .lines()
+            .map(str::trim)
+            .find(|line| !line.is_empty())
+            .map(PathBuf::from);
 
-    #[cfg(not(target_os = "windows"))]
-    let (locator_cmd, locator_arg) = ("which", "cargo");
-
-    let status = std::process::Command::new(locator_cmd)
-        .arg(locator_arg)
-        .status()?;
-
-    if !status.success() {
-        return Err(anyhow::anyhow!(
-            "Cargo executable not found ({} {}). Please ensure Cargo is installed and available on PATH.",
-            locator_cmd,
-            locator_arg
-        ));
+        if let Some(cargo_path) = cargo_path {
+            if cargo_path.exists() {
+                return Ok(cargo_path);
+            }
+        }
     }
 
-    Ok(())
+    let fallback = PathBuf::from(std::env::var("HOME")?)
+        .join(".cargo")
+        .join("bin")
+        .join("cargo");
+    if fallback.exists() {
+        return Ok(fallback);
+    }
+
+    Err(anyhow::anyhow!(
+        "Cargo executable not found. Tried `which cargo` and {}",
+        fallback.to_string_lossy()
+    ))
 }
 
 pub async fn build_cargo_project_async(
@@ -36,7 +45,7 @@ pub async fn build_cargo_project_async(
     target_dir: PathBuf,
     release: bool,
 ) -> Result<Child> {
-    ensure_cargo_available()?;
+    let cargo_executable = find_cargo_executable()?;
 
     let mut args = vec!["build".to_string()];
     if release {
@@ -45,7 +54,7 @@ pub async fn build_cargo_project_async(
     args.push("--target-dir".to_string());
     args.push(target_dir.to_string_lossy().to_string());
 
-    let child_process = Command::new("cargo")
+    let child_process = Command::new(cargo_executable)
         .args(args)
         .current_dir(project_dir)
         .stderr(Stdio::piped())
@@ -58,8 +67,6 @@ pub async fn run_project_executable_async(
     arguments: &[&str],
     params: Option<&ProjectParamsListWrapper>, // will be piped into stdin of the child process
 ) -> Result<Child> {
-    ensure_cargo_available()?;
-
     let exec_stdin = if params.is_some() {
         Stdio::piped()
     } else {
