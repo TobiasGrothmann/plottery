@@ -9,11 +9,35 @@ use std::{path::PathBuf, process::ExitStatus};
 
 use crate::project_params_list_wrapper::ProjectParamsListWrapper;
 
+fn ensure_cargo_available() -> Result<()> {
+    #[cfg(target_os = "windows")]
+    let (locator_cmd, locator_arg) = ("where", "cargo.exe");
+
+    #[cfg(not(target_os = "windows"))]
+    let (locator_cmd, locator_arg) = ("which", "cargo");
+
+    let status = std::process::Command::new(locator_cmd)
+        .arg(locator_arg)
+        .status()?;
+
+    if !status.success() {
+        return Err(anyhow::anyhow!(
+            "Cargo executable not found ({} {}). Please ensure Cargo is installed and available on PATH.",
+            locator_cmd,
+            locator_arg
+        ));
+    }
+
+    Ok(())
+}
+
 pub async fn build_cargo_project_async(
     project_dir: PathBuf,
     target_dir: PathBuf,
     release: bool,
 ) -> Result<Child> {
+    ensure_cargo_available()?;
+
     let mut args = vec!["build".to_string()];
     if release {
         args.push("--release".to_string());
@@ -34,6 +58,8 @@ pub async fn run_project_executable_async(
     arguments: &[&str],
     params: Option<&ProjectParamsListWrapper>, // will be piped into stdin of the child process
 ) -> Result<Child> {
+    ensure_cargo_available()?;
+
     let exec_stdin = if params.is_some() {
         Stdio::piped()
     } else {
