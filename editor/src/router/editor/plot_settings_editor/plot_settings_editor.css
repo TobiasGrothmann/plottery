@@ -1,0 +1,33 @@
+.PlotSettingsEditor {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: var(--gap-1);
+  row-gap: var(--gap-1);
+  background-color: var(--col-bg-1);
+  padding: var(--gap-1);
+  align-content: start;
+}
+
+.PlotSettingsEditor .title {
+  margin: 0;
+}
+
+.PlotSettingsEditor .reset_button {
+  justify-self: end;
+}
+
+.PlotSettingsEditor .section_title {
+  margin-top: var(--gap-1);
+  margin-bottom: 0;
+  font-weight: bold;
+}
+
+.PlotSettingsEditor .section_spacer {
+  margin-top: var(--gap-1);
+}
+
+.PlotSettingsEditor input {
+  background-color: var(--col-bg-2);
+  width: 100%;
+  box-sizing: border-box;
+}

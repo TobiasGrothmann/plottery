@@ -1,0 +1,14 @@
+.ProjectPlotSettings {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--col-bg-0);
+}
+
+.plot_settings_content {
+  width: min(860px, 95vw);
+  max-height: calc(100vh - var(--header-height) - var(--gap-2));
+  overflow: auto;
+  border-radius: var(--border-radius);
+}

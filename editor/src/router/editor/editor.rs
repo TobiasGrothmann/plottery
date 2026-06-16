@@ -10,11 +10,13 @@ use crate::{
         project_runner::ProjectRunner,
         running_state::RunningState,
     },
+    routes::Route,
     util::format_svg,
 };
 use bincode::{deserialize, serialize};
 use dioxus::prelude::*;
 use dioxus_logger::tracing;
+use dioxus_router::hooks::use_navigator;
 use notify::FsEventWatcher;
 use plottery_lib::{Layer, LayerPropsInheritable, SampleSettings};
 use plottery_project::{project_params_list_wrapper::ProjectParamsListWrapper, Project};
@@ -55,6 +57,7 @@ impl PartialEq for LayerChangeWrapper {
 
 #[component]
 pub fn Editor(project_path: Vec<String>) -> Element {
+    let project_path_for_settings = project_path.clone();
     let project = use_signal(|| {
         let path_str = format!("/{}", project_path.join("/"));
         let p = PathBuf::from(path_str);
@@ -62,6 +65,7 @@ pub fn Editor(project_path: Vec<String>) -> Element {
     });
 
     let release = true;
+    let nav = use_navigator();
 
     let gitkraken_installed = use_signal(is_gitkraken_installed);
     let vscode_installed = use_signal(is_vscode_installed);
@@ -89,6 +93,22 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                 }
             },
             Err(_) => ProjectParamsListWrapper::new(vec![]),
+        }
+    });
+    let plot_settings = use_signal_sync(|| {
+        let plot_settings_file_path = project().get_editor_plot_settings_path();
+        match std::fs::read(plot_settings_file_path) {
+            Ok(plot_settings_binary) => match deserialize(&plot_settings_binary) {
+                Ok(plot_settings) => plot_settings,
+                Err(err) => {
+                    console().error(
+                        format!("failed to deserialize plot settings from binary: {:?}", err)
+                            .as_str(),
+                    );
+                    PlotSettings::default()
+                }
+            },
+            Err(_) => PlotSettings::default(),
         }
     });
     let layer = use_signal_sync(|| {
@@ -148,6 +168,14 @@ pub fn Editor(project_path: Vec<String>) -> Element {
         let params_file_path = project().get_editor_params_path();
         std::fs::write(params_file_path, params_binary)
             .expect("Failed to write project params to file");
+    });
+    // plot settings
+    use_effect(move || {
+        let plot_settings_binary =
+            serialize(&(plot_settings())).expect("Failed to serialize plot settings");
+        let plot_settings_file_path = project().get_editor_plot_settings_path();
+        std::fs::write(plot_settings_file_path, plot_settings_binary)
+            .expect("Failed to write plot settings to file");
     });
     // layer
     let svg = use_memo(move || {
@@ -320,14 +348,24 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                 div { class: "output_actions",
                     button { class: "img_button",
                         onclick: move |event| {
+                            nav.push(Route::ProjectPlotSettings {
+                                project_path: project_path_for_settings.clone(),
+                            });
+                            event.stop_propagation();
+                        },
+                        p { "plot settings" }
+                    }
+                    button { class: "img_button",
+                        onclick: move |event| {
                             match layer_only_visible().layer {
                                 Some(layer) => {
+                                    let current_plot_settings = plot_settings();
                                     tokio::spawn(async move {
                                         console().info("...sending plot");
                                         let plot_result = send_task(plottery_server_lib::task::Task::Plot {
                                             layer: layer.clone(),
                                             sample_settings: SampleSettings::default(),
-                                            plot_settings: PlotSettings::default()
+                                            plot_settings: current_plot_settings
                                         }).await;
                                         if plot_result.is_err() {
                                             console().error(format!("failed to send plot: {:?}", plot_result.err().unwrap()).as_str());

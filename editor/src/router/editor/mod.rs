@@ -4,6 +4,7 @@ pub mod editor;
 pub mod external_editor_button;
 pub mod layer_editor;
 pub mod params_editor;
+pub mod plot_settings_editor;
 pub mod project_hot_reload;
 pub mod project_runner;
 pub mod running_state;

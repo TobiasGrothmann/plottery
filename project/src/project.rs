@@ -109,6 +109,9 @@ impl Project {
     pub fn get_editor_params_path(&self) -> PathBuf {
         self.get_resource_dir_asset_path("latest_editor.plotp")
     }
+    pub fn get_editor_plot_settings_path(&self) -> PathBuf {
+        self.get_resource_dir_asset_path("latest_editor.plots")
+    }
 
     pub fn get_project_config_path(&self) -> PathBuf {
         let mut project_config_path = self.dir.clone();
