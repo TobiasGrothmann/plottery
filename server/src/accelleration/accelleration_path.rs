@@ -116,60 +116,85 @@ impl AccellerationPath {
     fn get_points_with_inbetweens(points: &[V2], speeds: &[f32], accell_dist: f32) -> Vec<V2Speed> {
         let mut speed_points = Vec::with_capacity(points.len() * 3);
 
-        let mut speed = 0.0;
-        for ((a, _speed_a), (b, speed_b)) in points.iter().zip(speeds.iter()).tuple_windows() {
-            speed_points.push(V2Speed { point: *a, speed });
+        if points.is_empty() {
+            return speed_points;
+        }
 
-            let segment_length = a.dist(*b);
+        if accell_dist <= LARGE_EPSILON {
+            return points
+                .iter()
+                .zip(speeds.iter())
+                .map(|(point, speed)| V2Speed {
+                    point: *point,
+                    speed: *speed,
+                })
+                .collect();
+        }
 
-            let a_needed_dist_to_max_speed = (1.0 - speed) * accell_dist;
-            let b_needed_dist_to_max_speed = (1.0 - *speed_b) * accell_dist;
+        for i in 0..points.len() - 1 {
+            let a = points[i];
+            let b = points[i + 1];
+            let speed_a = speeds[i].clamp(0.0, 1.0);
+            let speed_b = speeds[i + 1].clamp(0.0, 1.0);
 
-            if speed + LARGE_EPSILON >= 1.0 && speed_b + LARGE_EPSILON >= 1.0 {
-                // we are already at max speed and stay there
-                speed = 1.0;
-            } else if segment_length >= a_needed_dist_to_max_speed + b_needed_dist_to_max_speed {
-                // we can accellerate and decellerate to 1.0 completely
-                // adding two points with speed 1.0
-                let a_factor_to_peak = a_needed_dist_to_max_speed / segment_length;
-                let b_factor_to_peak = b_needed_dist_to_max_speed / segment_length;
-                speed = 1.0;
+            speed_points.push(V2Speed {
+                point: a,
+                speed: speed_a,
+            });
+
+            let segment_length = a.dist(b);
+            if segment_length <= LARGE_EPSILON {
+                continue;
+            }
+
+            let a_dist_to_max_speed = (1.0 - speed_a) * accell_dist;
+            let b_dist_to_max_speed = (1.0 - speed_b) * accell_dist;
+
+            if segment_length + LARGE_EPSILON >= a_dist_to_max_speed + b_dist_to_max_speed {
+                // We can reach full speed somewhere in this segment.
+                let first_max_dist = a_dist_to_max_speed;
+                let second_max_dist = segment_length - b_dist_to_max_speed;
+
+                if first_max_dist > LARGE_EPSILON && first_max_dist < segment_length - LARGE_EPSILON
+                {
+                    speed_points.push(V2Speed {
+                        point: a.lerp(b, first_max_dist / segment_length),
+                        speed: 1.0,
+                    });
+                }
+
+                if second_max_dist > first_max_dist + LARGE_EPSILON
+                    && second_max_dist < segment_length - LARGE_EPSILON
+                {
+                    speed_points.push(V2Speed {
+                        point: a.lerp(b, second_max_dist / segment_length),
+                        speed: 1.0,
+                    });
+                }
+                continue;
+            }
+
+            // We cannot reach full speed. The best profile is triangular with one peak.
+            let dist_to_peak = 0.5 * (segment_length + accell_dist * (speed_b - speed_a));
+            if dist_to_peak <= LARGE_EPSILON || dist_to_peak >= segment_length - LARGE_EPSILON {
+                continue;
+            }
+
+            let peak_speed = (speed_a + dist_to_peak / accell_dist)
+                .min(speed_b + (segment_length - dist_to_peak) / accell_dist)
+                .min(1.0);
+
+            if peak_speed > speed_a.max(speed_b) + LARGE_EPSILON {
                 speed_points.push(V2Speed {
-                    point: a + (b - a) * a_factor_to_peak,
-                    speed,
+                    point: a.lerp(b, dist_to_peak / segment_length),
+                    speed: peak_speed,
                 });
-                speed_points.push(V2Speed {
-                    point: b + (a - b) * b_factor_to_peak,
-                    speed,
-                });
-                speed = *speed_b; // at the end of segment speed is at speed_b
-            } else if segment_length >= a_needed_dist_to_max_speed {
-                // we can accellerate to a peak in between
-                // adding one point with appropriate speed
-                let dist_needed_exceeding_length =
-                    (a_needed_dist_to_max_speed + b_needed_dist_to_max_speed) - segment_length;
-                // distribute the missing speed equally
-                let a_dist_to_midpoint =
-                    a_needed_dist_to_max_speed - dist_needed_exceeding_length / 2.0;
-                let b_dist_to_midpoint =
-                    b_needed_dist_to_max_speed - dist_needed_exceeding_length / 2.0;
-                let peak_point = a + (b - a) * (a_dist_to_midpoint / segment_length);
-                // speed at midpoint is min of accelleration from a and decelleration to b
-                speed += (a_dist_to_midpoint / accell_dist)
-                    .min(speed_b + b_dist_to_midpoint / accell_dist);
-                speed_points.push(V2Speed {
-                    point: peak_point,
-                    speed,
-                });
-                speed = *speed_b; // at the end of segment speed is at speed_b
-            } else {
-                speed = *speed_b;
             }
         }
 
         speed_points.push(V2Speed {
             point: *points.last().unwrap(),
-            speed: 0.0,
+            speed: speeds.last().copied().unwrap_or(0.0),
         });
 
         speed_points
