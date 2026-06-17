@@ -3,8 +3,8 @@ use std::f32::consts::PI;
 
 use crate::{
     traits::{ClosestPoint, Mirror, Normalize, Scale, Translate},
-    Angle, BoundingBox, Plottable, Rect, Rotate, Rotate90, SampleSettings, Shape, LARGE_EPSILON,
-    V2,
+    Angle, BoundingBox, Path, Plottable, Rect, Rotate, Rotate90, SampleSettings, Shape,
+    LARGE_EPSILON, V2,
 };
 
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq)]
@@ -129,8 +129,20 @@ impl Circle {
         outside_and_spiral.into_iter().chain(inside).collect()
     }
 
-    pub fn overlaps(&self, other: &Circle) -> bool {
-        self.center.dist(other.center) < self.radius + other.radius
+    pub fn intersects_circle(&self, other: &Circle) -> bool {
+        let center_dist = self.center.dist(other.center);
+        let radius_sum = self.radius + other.radius;
+        let radius_diff = (self.radius - other.radius).abs();
+
+        center_dist <= radius_sum && center_dist >= radius_diff
+    }
+
+    pub fn intersects_rect(&self, other: &Rect) -> bool {
+        other.intersects_circle(self)
+    }
+
+    pub fn intersects_path(&self, other: &Path) -> bool {
+        other.intersects_circle(self)
     }
 }
 

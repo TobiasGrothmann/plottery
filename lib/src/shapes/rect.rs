@@ -1,7 +1,7 @@
 use crate::{
     traits::{ClosestPoint, Normalize, Scale, Scale2D, Translate},
-    Angle, BoundingBox, Mirror, Path, Plottable, Rotate90, SampleSettings, Shape, LARGE_EPSILON,
-    V2,
+    Angle, BoundingBox, Circle, Line, LineIntersection, Mirror, Path, Plottable, PointLineRelation,
+    Rotate90, SampleSettings, Shape, LARGE_EPSILON, V2,
 };
 use serde::{Deserialize, Serialize};
 
@@ -118,11 +118,52 @@ impl Rect {
         self.width() * self.height()
     }
 
-    pub fn overlaps(&self, other: &Self) -> bool {
-        self.bot_left.x < other.top_right.x
-            && self.top_right.x > other.bot_left.x
-            && self.bot_left.y < other.top_right.y
-            && self.top_right.y > other.bot_left.y
+    pub fn intersects_rect(&self, other: &Rect) -> bool {
+        let self_edges = [
+            (self.bl(), self.tl()),
+            (self.tl(), self.tr()),
+            (self.tr(), self.br()),
+            (self.br(), self.bl()),
+        ];
+        let other_edges = [
+            (other.bl(), other.tl()),
+            (other.tl(), other.tr()),
+            (other.tr(), other.br()),
+            (other.br(), other.bl()),
+        ];
+
+        self_edges.iter().any(|(self_from, self_to)| {
+            let self_segment = Line::new(*self_from, *self_to);
+            other_edges.iter().any(|(other_from, other_to)| {
+                segments_intersect_or_touch(self_segment, Line::new(*other_from, *other_to))
+            })
+        })
+    }
+
+    pub fn intersects_circle(&self, other: &Circle) -> bool {
+        let radius_squared = other.radius.powi(2);
+        let edges = [
+            (self.bl(), self.tl()),
+            (self.tl(), self.tr()),
+            (self.tr(), self.br()),
+            (self.br(), self.bl()),
+        ];
+
+        edges.iter().any(|(from, to)| {
+            let segment = Line::new(*from, *to);
+            let from_dist_squared = from.dist_squared(other.center);
+            let to_dist_squared = to.dist_squared(other.center);
+            let closest_dist_squared = segment
+                .closest_point(other.center)
+                .dist_squared(other.center);
+
+            closest_dist_squared <= radius_squared
+                && (from_dist_squared >= radius_squared || to_dist_squared >= radius_squared)
+        })
+    }
+
+    pub fn intersects_path(&self, other: &Path) -> bool {
+        other.intersects_rect(self)
     }
 
     pub fn rounded_corners(
@@ -172,6 +213,33 @@ impl Rect {
             .collect();
         Ok(path)
     }
+}
+
+fn segments_intersect_or_touch(a: Line, b: Line) -> bool {
+    if matches!(a.intersection(b), LineIntersection::Intersection(_)) {
+        return true;
+    }
+
+    if a.point_relation(b.from) == PointLineRelation::OnLine
+        && a.point_relation(b.to) == PointLineRelation::OnLine
+    {
+        let a_min_x = a.from.x.min(a.to.x);
+        let a_max_x = a.from.x.max(a.to.x);
+        let a_min_y = a.from.y.min(a.to.y);
+        let a_max_y = a.from.y.max(a.to.y);
+
+        let b_min_x = b.from.x.min(b.to.x);
+        let b_max_x = b.from.x.max(b.to.x);
+        let b_min_y = b.from.y.min(b.to.y);
+        let b_max_y = b.from.y.max(b.to.y);
+
+        let overlaps_x = a_min_x <= b_max_x && a_max_x >= b_min_x;
+        let overlaps_y = a_min_y <= b_max_y && a_max_y >= b_min_y;
+
+        return overlaps_x && overlaps_y;
+    }
+
+    false
 }
 
 impl Plottable for Rect {

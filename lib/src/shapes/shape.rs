@@ -16,6 +16,40 @@ pub enum Shape {
     Path(Path),
 }
 
+impl Shape {
+    pub fn intersects_circle(&self, other: &Circle) -> bool {
+        match self {
+            Shape::Circle(c) => c.intersects_circle(other),
+            Shape::Rect(r) => r.intersects_circle(other),
+            Shape::Path(p) => p.intersects_circle(other),
+        }
+    }
+
+    pub fn intersects_rect(&self, other: &Rect) -> bool {
+        match self {
+            Shape::Circle(c) => c.intersects_rect(other),
+            Shape::Rect(r) => r.intersects_rect(other),
+            Shape::Path(p) => p.intersects_rect(other),
+        }
+    }
+
+    pub fn intersects_path(&self, other: &Path) -> bool {
+        match self {
+            Shape::Circle(c) => c.intersects_path(other),
+            Shape::Rect(r) => r.intersects_path(other),
+            Shape::Path(p) => p.intersects_path(other),
+        }
+    }
+
+    pub fn intersects(&self, other: &Shape) -> bool {
+        match other {
+            Shape::Circle(c) => self.intersects_circle(c),
+            Shape::Rect(r) => self.intersects_rect(r),
+            Shape::Path(p) => self.intersects_path(p),
+        }
+    }
+}
+
 impl Plottable for Shape {
     fn get_points(&self, sample_settings: SampleSettings) -> Vec<V2> {
         match self {
