@@ -128,6 +128,10 @@ impl Circle {
 
         outside_and_spiral.into_iter().chain(inside).collect()
     }
+
+    pub fn overlaps(&self, other: &Circle) -> bool {
+        self.center.dist(other.center) < self.radius + other.radius
+    }
 }
 
 impl Plottable for Circle {

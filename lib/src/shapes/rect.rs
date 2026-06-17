@@ -118,6 +118,13 @@ impl Rect {
         self.width() * self.height()
     }
 
+    pub fn overlaps(&self, other: &Self) -> bool {
+        self.bot_left.x < other.top_right.x
+            && self.top_right.x > other.bot_left.x
+            && self.bot_left.y < other.top_right.y
+            && self.top_right.y > other.bot_left.y
+    }
+
     pub fn rounded_corners(
         &self,
         radius: f32,
