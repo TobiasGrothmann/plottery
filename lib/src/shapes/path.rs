@@ -12,8 +12,8 @@ use std::{
 use crate::{
     geometry::TransformMatrix,
     traits::{ClosestPoint, Normalize, Scale, Scale2D, Transform, Translate},
-    Angle, BoundingBox, Circle, Line, LineIntersection, Mirror, Plottable, PointLineRelation, Rect,
-    Rotate, Rotate90, SampleSettings, Shape, V2,
+    Angle, BoundingBox, Circle, Containment, Line, LineIntersection, Mirror, Plottable,
+    PointLineRelation, Rect, Rotate, Rotate90, SampleSettings, Shape, V2,
 };
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
@@ -216,6 +216,188 @@ impl Path {
                         segments_intersect_or_touch(self_segment, Line::new(*other_from, *other_to))
                     })
             })
+    }
+
+    pub(crate) fn points_closed(&self) -> Vec<V2> {
+        let mut points = self.points.clone();
+        if !self.is_closed() && !points.is_empty() {
+            points.push(*points.first().unwrap());
+        }
+        points
+    }
+
+    pub(crate) fn contains_point_or_on_boundary_as_closed(&self, point: V2) -> bool {
+        Self::contains_point_or_on_boundary_in_closed_points(&self.points_closed(), point)
+    }
+
+    fn contains_point_or_on_boundary_in_closed_points(points_closed: &[V2], point: V2) -> bool {
+        if points_closed.len() < 2 {
+            return false;
+        }
+
+        if points_closed
+            .iter()
+            .tuple_windows()
+            .any(|(from, to)| Line::new(*from, *to).contains_point_on_segment(point))
+        {
+            return true;
+        }
+
+        let mut inside = false;
+        for (from, to) in points_closed.iter().tuple_windows() {
+            let crosses_horizontal_line_through_point = (from.y > point.y) != (to.y > point.y);
+            let intersec_right_of_point =
+                point.x < (to.x - from.x) * (point.y - from.y) / (to.y - from.y) + from.x;
+
+            if crosses_horizontal_line_through_point && intersec_right_of_point {
+                inside = !inside;
+            }
+        }
+
+        inside
+    }
+
+    pub fn contains_circle(&self, other: &Circle) -> Containment {
+        let self_points = self.points_closed();
+        if self_points.len() < 2 {
+            return Containment::None;
+        }
+
+        let radius_squared = other.radius.powi(2);
+        let intersects_boundary = self_points.iter().tuple_windows().any(|(from, to)| {
+            let segment = Line::new(*from, *to);
+            let from_dist_squared = from.dist_squared(other.center);
+            let to_dist_squared = to.dist_squared(other.center);
+            let closest_dist_squared = segment
+                .closest_point(other.center)
+                .dist_squared(other.center);
+
+            closest_dist_squared <= radius_squared
+                && (from_dist_squared >= radius_squared || to_dist_squared >= radius_squared)
+        });
+
+        if intersects_boundary {
+            return Containment::Partial;
+        }
+
+        let center_inside =
+            Self::contains_point_or_on_boundary_in_closed_points(&self_points, other.center);
+        let min_dist_to_boundary_squared = self_points
+            .iter()
+            .tuple_windows()
+            .map(|(from, to)| {
+                Line::new(*from, *to)
+                    .closest_point(other.center)
+                    .dist_squared(other.center)
+            })
+            .fold(f32::INFINITY, f32::min);
+
+        if center_inside && min_dist_to_boundary_squared >= radius_squared {
+            return Containment::Full;
+        }
+
+        if center_inside
+            || self_points
+                .iter()
+                .any(|point| point.dist_squared(other.center) <= radius_squared)
+        {
+            return Containment::Partial;
+        }
+
+        Containment::None
+    }
+
+    pub fn contains_rect(&self, other: &Rect) -> Containment {
+        let self_points = self.points_closed();
+        if self_points.len() < 2 {
+            return Containment::None;
+        }
+
+        let rect_points = [other.bl(), other.tl(), other.tr(), other.br()];
+        let rect_edges = [
+            (other.bl(), other.tl()),
+            (other.tl(), other.tr()),
+            (other.tr(), other.br()),
+            (other.br(), other.bl()),
+        ];
+
+        let intersects_boundary = self_points.iter().tuple_windows().any(|(from, to)| {
+            let path_segment = Line::new(*from, *to);
+            rect_edges.iter().any(|(edge_from, edge_to)| {
+                segments_intersect_or_touch(path_segment, Line::new(*edge_from, *edge_to))
+            })
+        });
+        if intersects_boundary {
+            return Containment::Partial;
+        }
+
+        let all_rect_points_inside = rect_points.iter().all(|point| {
+            Self::contains_point_or_on_boundary_in_closed_points(&self_points, *point)
+        });
+        if all_rect_points_inside {
+            return Containment::Full;
+        }
+
+        if rect_points
+            .iter()
+            .any(|point| Self::contains_point_or_on_boundary_in_closed_points(&self_points, *point))
+            || self_points.iter().any(|point| other.contains_point(*point))
+        {
+            return Containment::Partial;
+        }
+
+        Containment::None
+    }
+
+    pub fn contains_path(&self, other: &Path) -> Containment {
+        let self_points = self.points_closed();
+        let other_points = other.points_closed();
+        if self_points.len() < 2 || other_points.len() < 2 {
+            return Containment::None;
+        }
+
+        let intersects_boundary = self_points
+            .iter()
+            .tuple_windows()
+            .any(|(self_from, self_to)| {
+                let self_segment = Line::new(*self_from, *self_to);
+                other_points
+                    .iter()
+                    .tuple_windows()
+                    .any(|(other_from, other_to)| {
+                        segments_intersect_or_touch(self_segment, Line::new(*other_from, *other_to))
+                    })
+            });
+        if intersects_boundary {
+            return Containment::Partial;
+        }
+
+        let all_other_points_inside = other_points.iter().all(|point| {
+            Self::contains_point_or_on_boundary_in_closed_points(&self_points, *point)
+        });
+        if all_other_points_inside {
+            return Containment::Full;
+        }
+
+        if other_points
+            .iter()
+            .any(|point| Self::contains_point_or_on_boundary_in_closed_points(&self_points, *point))
+            || self_points.iter().any(|point| {
+                Self::contains_point_or_on_boundary_in_closed_points(&other_points, *point)
+            })
+        {
+            return Containment::Partial;
+        }
+
+        Containment::None
+    }
+
+    pub fn contains_shape(&self, other: &Shape) -> Containment {
+        match other {
+            Shape::Circle(c) => self.contains_circle(c),
+            Shape::Rect(r) => self.contains_rect(r),
+            Shape::Path(p) => self.contains_path(p),
+        }
     }
 }
 

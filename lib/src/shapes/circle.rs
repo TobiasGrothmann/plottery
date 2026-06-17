@@ -3,8 +3,8 @@ use std::f32::consts::PI;
 
 use crate::{
     traits::{ClosestPoint, Mirror, Normalize, Scale, Translate},
-    Angle, BoundingBox, Path, Plottable, Rect, Rotate, Rotate90, SampleSettings, Shape,
-    LARGE_EPSILON, V2,
+    Angle, BoundingBox, Containment, Path, Plottable, Rect, Rotate, Rotate90, SampleSettings,
+    Shape, LARGE_EPSILON, V2,
 };
 
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq)]
@@ -143,6 +143,76 @@ impl Circle {
 
     pub fn intersects_path(&self, other: &Path) -> bool {
         other.intersects_circle(self)
+    }
+
+    pub fn contains_circle(&self, other: &Circle) -> Containment {
+        let center_dist = self.center.dist(other.center);
+
+        if center_dist + other.radius <= self.radius {
+            return Containment::Full;
+        }
+
+        if center_dist <= self.radius + other.radius {
+            return Containment::Partial;
+        }
+
+        Containment::None
+    }
+
+    pub fn contains_rect(&self, other: &Rect) -> Containment {
+        let rect_points = [other.bl(), other.tl(), other.tr(), other.br()];
+
+        if rect_points
+            .iter()
+            .all(|point| point.dist_squared(self.center) <= self.radius.powi(2))
+        {
+            return Containment::Full;
+        }
+
+        if self.intersects_rect(other)
+            || rect_points
+                .iter()
+                .any(|point| point.dist_squared(self.center) <= self.radius.powi(2))
+            || other.contains_point(self.center)
+        {
+            return Containment::Partial;
+        }
+
+        Containment::None
+    }
+
+    pub fn contains_path(&self, other: &Path) -> Containment {
+        let other_points_closed = other.points_closed();
+        if other_points_closed.is_empty() {
+            return Containment::None;
+        }
+
+        if other_points_closed
+            .iter()
+            .all(|point| point.dist_squared(self.center) <= self.radius.powi(2))
+        {
+            return Containment::Full;
+        }
+
+        let other_closed = Path::new_from(other_points_closed.clone());
+        if self.intersects_path(&other_closed)
+            || other_points_closed
+                .iter()
+                .any(|point| point.dist_squared(self.center) <= self.radius.powi(2))
+            || other.contains_point_or_on_boundary_as_closed(self.center)
+        {
+            return Containment::Partial;
+        }
+
+        Containment::None
+    }
+
+    pub fn contains_shape(&self, other: &Shape) -> Containment {
+        match other {
+            Shape::Circle(c) => self.contains_circle(c),
+            Shape::Rect(r) => self.contains_rect(r),
+            Shape::Path(p) => self.contains_path(p),
+        }
     }
 }
 

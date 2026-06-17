@@ -169,6 +169,18 @@ mod test_line {
         }
 
         #[test]
+        fn contains_point_on_segment() {
+            let line = Line::new(V2::new(0.0, 0.0), V2::new(2.0, 2.0));
+
+            assert!(line.contains_point_on_segment(V2::new(1.0, 1.0)));
+            assert!(line.contains_point_on_segment(V2::new(0.0, 0.0)));
+            assert!(line.contains_point_on_segment(V2::new(2.0, 2.0)));
+
+            assert!(!line.contains_point_on_segment(V2::new(3.0, 3.0)));
+            assert!(!line.contains_point_on_segment(V2::new(1.0, 1.2)));
+        }
+
+        #[test]
         fn intersect_multiple_sorted() {
             let a = Line::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
 

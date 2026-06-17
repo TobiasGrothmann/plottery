@@ -5,7 +5,7 @@ pub use crate::shapes::rect::Rect;
 use crate::{
     geometry::TransformMatrix,
     traits::{ClosestPoint, Normalize, Scale, Scale2D, Transform, Translate},
-    Angle, BoundingBox, Mirror, Plottable, Rotate, Rotate90, SampleSettings, V2,
+    Angle, BoundingBox, Containment, Mirror, Plottable, Rotate, Rotate90, SampleSettings, V2,
 };
 use serde::{Deserialize, Serialize};
 
@@ -46,6 +46,38 @@ impl Shape {
             Shape::Circle(c) => self.intersects_circle(c),
             Shape::Rect(r) => self.intersects_rect(r),
             Shape::Path(p) => self.intersects_path(p),
+        }
+    }
+
+    pub fn contains_circle(&self, other: &Circle) -> Containment {
+        match self {
+            Shape::Circle(c) => c.contains_circle(other),
+            Shape::Rect(r) => r.contains_circle(other),
+            Shape::Path(p) => p.contains_circle(other),
+        }
+    }
+
+    pub fn contains_rect(&self, other: &Rect) -> Containment {
+        match self {
+            Shape::Circle(c) => c.contains_rect(other),
+            Shape::Rect(r) => r.contains_rect(other),
+            Shape::Path(p) => p.contains_rect(other),
+        }
+    }
+
+    pub fn contains_path(&self, other: &Path) -> Containment {
+        match self {
+            Shape::Circle(c) => c.contains_path(other),
+            Shape::Rect(r) => r.contains_path(other),
+            Shape::Path(p) => p.contains_path(other),
+        }
+    }
+
+    pub fn contains(&self, other: &Shape) -> Containment {
+        match other {
+            Shape::Circle(c) => self.contains_circle(c),
+            Shape::Rect(r) => self.contains_rect(r),
+            Shape::Path(p) => self.contains_path(p),
         }
     }
 }

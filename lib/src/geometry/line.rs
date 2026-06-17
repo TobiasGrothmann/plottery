@@ -14,7 +14,10 @@ pub struct Line {
 /// Describes the position of a point relative to a line.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum PointLineRelation {
-    /// The point lies on the line.
+    /// The point lies on the infinite line.
+    ///
+    /// Note: this does **not** imply the point lies on the finite segment between `from` and `to`.
+    /// Use [`Line::contains_point_on_segment`] when segment bounds matter.
     OnLine,
     /// The point is on the left side of the line (relative to direction from `from` to `to`).
     Left,
@@ -64,7 +67,9 @@ impl Line {
         self.from + (point - self.from).project_onto(self.vector())
     }
 
-    /// Determines the position of a point relative to this line.
+    /// Determines the position of a point relative to this infinite line.
+    ///
+    /// If you need to check membership on the finite segment, use [`Self::contains_point_on_segment`].
     pub fn point_relation(&self, point: V2) -> PointLineRelation {
         let orientation = orient2d(
             [self.from.x as f64, self.from.y as f64],
@@ -77,6 +82,11 @@ impl Line {
             return PointLineRelation::Right;
         }
         PointLineRelation::OnLine
+    }
+
+    /// Returns whether a point lies on this finite line segment (including endpoints).
+    pub fn contains_point_on_segment(&self, point: V2) -> bool {
+        self.closest_point(point).dist_squared(point) <= LARGE_EPSILON
     }
 
     /// Checks for an intersection between this line segment and another.

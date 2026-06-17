@@ -1,7 +1,7 @@
 use crate::{
     traits::{ClosestPoint, Normalize, Scale, Scale2D, Translate},
-    Angle, BoundingBox, Circle, Line, LineIntersection, Mirror, Path, Plottable, PointLineRelation,
-    Rotate90, SampleSettings, Shape, LARGE_EPSILON, V2,
+    Angle, BoundingBox, Circle, Containment, Line, LineIntersection, Mirror, Path, Plottable,
+    PointLineRelation, Rotate90, SampleSettings, Shape, LARGE_EPSILON, V2,
 };
 use serde::{Deserialize, Serialize};
 
@@ -164,6 +164,88 @@ impl Rect {
 
     pub fn intersects_path(&self, other: &Path) -> bool {
         other.intersects_rect(self)
+    }
+
+    pub fn contains_circle(&self, other: &Circle) -> Containment {
+        let fully_inside = other.center.x - other.radius >= self.bot_left.x
+            && other.center.x + other.radius <= self.top_right.x
+            && other.center.y - other.radius >= self.bot_left.y
+            && other.center.y + other.radius <= self.top_right.y;
+
+        if fully_inside {
+            return Containment::Full;
+        }
+
+        if self.intersects_circle(other)
+            || self.contains_point(other.center)
+            || [self.bl(), self.tl(), self.tr(), self.br()]
+                .iter()
+                .any(|corner| corner.dist_squared(other.center) <= other.radius.powi(2))
+        {
+            return Containment::Partial;
+        }
+
+        Containment::None
+    }
+
+    pub fn contains_rect(&self, other: &Rect) -> Containment {
+        let fully_inside = self.contains_point(other.bl())
+            && self.contains_point(other.tl())
+            && self.contains_point(other.tr())
+            && self.contains_point(other.br());
+
+        if fully_inside {
+            return Containment::Full;
+        }
+
+        if self.intersects_rect(other) || self.overlaps_area_rect(other) {
+            return Containment::Partial;
+        }
+
+        Containment::None
+    }
+
+    pub fn contains_path(&self, other: &Path) -> Containment {
+        let other_points_closed = other.points_closed();
+        if other_points_closed.is_empty() {
+            return Containment::None;
+        }
+
+        if other_points_closed
+            .iter()
+            .all(|point| self.contains_point(*point))
+        {
+            return Containment::Full;
+        }
+
+        let other_closed = Path::new_from(other_points_closed.clone());
+        if self.intersects_path(&other_closed)
+            || other_points_closed
+                .iter()
+                .any(|point| self.contains_point(*point))
+            || [self.bl(), self.tl(), self.tr(), self.br()]
+                .iter()
+                .any(|corner| other.contains_point_or_on_boundary_as_closed(*corner))
+        {
+            return Containment::Partial;
+        }
+
+        Containment::None
+    }
+
+    fn overlaps_area_rect(&self, other: &Rect) -> bool {
+        self.bot_left.x < other.top_right.x
+            && self.top_right.x > other.bot_left.x
+            && self.bot_left.y < other.top_right.y
+            && self.top_right.y > other.bot_left.y
+    }
+
+    pub fn contains_shape(&self, other: &Shape) -> Containment {
+        match other {
+            Shape::Circle(c) => self.contains_circle(c),
+            Shape::Rect(r) => self.contains_rect(r),
+            Shape::Path(p) => self.contains_path(p),
+        }
     }
 
     pub fn rounded_corners(
