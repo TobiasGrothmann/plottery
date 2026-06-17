@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod test_normalize {
     use crate::{
-        traits::{normalize::Alignment, Normalize},
+        traits::{normalize::Alignment, normalize::NormalizeMode, Normalize},
         BoundingBox, Rect, Translate, V2,
     };
 
@@ -176,5 +176,33 @@ mod test_normalize {
         assert_eq!(normalized_bounds.height(), 0.5);
         assert_eq!(normalized_bounds.bl(), V2::new(0.0, 0.5));
         assert_eq!(normalized_bounds.tr(), V2::new(1.0, 1.0));
+    }
+
+    #[test]
+    fn normalize_mode_around_tall_shape() {
+        let target = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+        let rect = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 2.0));
+
+        let normalized = rect
+            .normalize_with_mode(&target, Alignment::Center, NormalizeMode::Around)
+            .unwrap();
+        let normalized_bounds = normalized.bounding_box().unwrap();
+
+        assert_eq!(normalized_bounds.bl(), V2::new(0.0, -0.5));
+        assert_eq!(normalized_bounds.tr(), V2::new(1.0, 1.5));
+    }
+
+    #[test]
+    fn normalize_mode_around_wide_shape() {
+        let target = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+        let rect = Rect::new(V2::new(0.0, 0.0), V2::new(2.0, 1.0));
+
+        let normalized = rect
+            .normalize_with_mode(&target, Alignment::Center, NormalizeMode::Around)
+            .unwrap();
+        let normalized_bounds = normalized.bounding_box().unwrap();
+
+        assert_eq!(normalized_bounds.bl(), V2::new(-0.5, 0.0));
+        assert_eq!(normalized_bounds.tr(), V2::new(1.5, 1.0));
     }
 }
