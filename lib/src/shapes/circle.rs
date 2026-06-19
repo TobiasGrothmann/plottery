@@ -88,9 +88,9 @@ impl Circle {
             .collect()
     }
 
-    /// This utility function returns a path to draw a circle with a given thickness disregarding the pen width.
-    /// It creates a spiralling path from the circle's radius towards the center with a given `thickness`.
-    pub fn with_thickness_towards_center(
+    /// Path to draw a circle with a given thickness
+    /// It creates a spiralling path from the circle's radius towards the center with a given `thickness`
+    pub fn filled_partially_towards_center(
         &self,
         mut thickness: f32,
         pen_width: f32,
@@ -127,6 +127,97 @@ impl Circle {
         });
 
         outside_and_spiral.into_iter().chain(inside).collect()
+    }
+
+    /// Path to draw a circle filled similar to `with_thickness_towards_center`
+    /// It creates a spiralling path from the circle's radius towards the center with a given `thickness`
+    pub fn filled_spiral(&self, pen_width: f32, sample_settings: SampleSettings) -> super::Path {
+        if self.radius <= pen_width * 0.5 {
+            return Path::new_from(self.get_points(Angle::zero(), sample_settings));
+        }
+
+        let thickness = self.radius - pen_width * 0.4; // we go a little bit more inside here (instead of 0.5) to ensure the center is filled
+        let num_rotations = thickness / pen_width;
+        let circumference = 2.0 * PI * self.radius;
+        let resolution = sample_settings.get_num_points_for_length(circumference);
+
+        let outside = (0..resolution + 1).map(|i| {
+            let rot = i as f32 / resolution as f32;
+            let angle = Angle::from_rotations(rot);
+            self.center + V2::polar(angle, self.radius)
+        });
+
+        outside
+            .chain(
+                (1..(resolution as f32 * num_rotations - 1.0).round() as i32).map(|i| {
+                    let angle = Angle::from_rotations(i as f32 / resolution as f32);
+                    let factor = i as f32 / (num_rotations * resolution as f32);
+                    let radius = self.radius - thickness * factor;
+                    self.center + V2::polar(angle, radius)
+                }),
+            )
+            .collect()
+    }
+
+    /// Path to draw a circle's outer border and criss cross filling
+    pub fn filled_criss_cross(
+        &self,
+        pen_width: f32,
+        sample_settings: SampleSettings,
+    ) -> super::Path {
+        if self.radius <= pen_width * 0.5 {
+            return Path::new_from(self.get_points(Angle::down_cw(), sample_settings));
+        }
+
+        let smaller_inner = Circle::new(self.center, self.radius - pen_width);
+        let filling = smaller_inner.criss_cross_filling(pen_width);
+
+        Path::new_from_iter(
+            self.get_points(Angle::down_cw(), sample_settings)
+                .into_iter()
+                .chain(filling),
+        )
+    }
+
+    fn criss_cross_filling(&self, pen_width: f32) -> Vec<V2> {
+        let diameter = self.radius * 2.0;
+        if diameter <= pen_width * 0.05 {
+            return Vec::new();
+        }
+
+        let num_lines = (diameter / pen_width).ceil() as usize;
+        let height_per_line = diameter / num_lines as f32;
+
+        let mut points = Vec::with_capacity((num_lines + 1) * 2);
+        for i in 0..(num_lines + 1) {
+            let y = self.center.y - self.radius + i as f32 * height_per_line;
+
+            if let Some((left, right)) = self.horizontal_line_intersections(y) {
+                if i % 2 == 0 {
+                    points.push(left);
+                    points.push(right);
+                } else {
+                    points.push(right);
+                    points.push(left);
+                }
+            }
+        }
+
+        points
+    }
+
+    pub fn horizontal_line_intersections(&self, y: f32) -> Option<(V2, V2)> {
+        let dy = y - self.center.y;
+        let dx_squared = self.radius.powi(2) - dy.powi(2);
+
+        if dx_squared < -LARGE_EPSILON {
+            return None;
+        }
+
+        let dx = dx_squared.max(0.0).sqrt();
+        let left = V2::new(self.center.x - dx, y);
+        let right = V2::new(self.center.x + dx, y);
+        Some((left, right))
     }
 
     pub fn intersects_circle(&self, other: &Circle) -> bool {

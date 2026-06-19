@@ -118,6 +118,140 @@ impl Rect {
         self.width() * self.height()
     }
 
+    /// Path to draw a rect with a given thickness.
+    /// It creates a spiralling path from the rectangle border towards the center with `thickness`.
+    pub fn filled_partially_towards_center(
+        &self,
+        mut thickness: f32,
+        pen_width: f32,
+    ) -> super::Path {
+        if pen_width <= LARGE_EPSILON {
+            return Path::new_from(self.get_points(SampleSettings::default()));
+        }
+
+        let max_thickness_x = (self.width() * 0.5 - pen_width * 0.5).max(0.0);
+        let max_thickness_y = (self.height() * 0.5 - pen_width * 0.5).max(0.0);
+        thickness = thickness.min(max_thickness_x.min(max_thickness_y));
+
+        if thickness <= LARGE_EPSILON {
+            return Path::new_from(self.get_points(SampleSettings::default()));
+        }
+
+        let thickness_x = thickness.min(max_thickness_x);
+        let thickness_y = thickness.min(max_thickness_y);
+
+        let num_steps_x = (thickness_x / pen_width).ceil().max(1.0) as usize;
+        let num_steps_y = (thickness_y / pen_width).ceil().max(1.0) as usize;
+        let spiral_steps = num_steps_x.min(num_steps_y);
+        let step_x = thickness_x / num_steps_x as f32;
+        let step_y = thickness_y / num_steps_y as f32;
+
+        self.spiral_fill_with_steps(spiral_steps, step_x, step_y)
+    }
+
+    /// Path to draw a rect's outer border and spiral filling.
+    pub fn filled_spiral(&self, pen_width: f32) -> super::Path {
+        let max_thickness = (self.width().min(self.height()) * 0.5 - pen_width * 0.4).max(0.0);
+        self.filled_partially_towards_center(max_thickness, pen_width)
+    }
+
+    fn spiral_fill_with_steps(&self, max_steps: usize, step_x: f32, step_y: f32) -> super::Path {
+        let border = vec![self.bl(), self.tl(), self.tr(), self.br(), self.bl()];
+
+        if max_steps == 0 || step_x <= LARGE_EPSILON || step_y <= LARGE_EPSILON {
+            return Path::new_from(border);
+        }
+
+        let mut left = self.bot_left.x + step_x;
+        let mut right = self.top_right.x - step_x;
+        let mut bottom = self.bot_left.y + step_y;
+        let mut top = self.top_right.y - step_y;
+
+        if left > right || bottom > top {
+            return Path::new_from(border);
+        }
+
+        let mut points = Vec::with_capacity(4 + 1 + max_steps * 4);
+        for point in border {
+            points.push(point);
+        }
+        points.push(V2::new(left, bottom));
+
+        for _ in 0..max_steps {
+            points.push(V2::new(left, top));
+            left += step_x;
+            if left > right + LARGE_EPSILON {
+                break;
+            }
+
+            points.push(V2::new(right, top));
+            top -= step_y;
+            if bottom > top + LARGE_EPSILON {
+                break;
+            }
+
+            points.push(V2::new(right, bottom));
+            right -= step_x;
+            if left > right + LARGE_EPSILON {
+                break;
+            }
+
+            points.push(V2::new(left, bottom));
+            bottom += step_y;
+            if bottom > top + LARGE_EPSILON {
+                break;
+            }
+        }
+
+        Path::new_from(points)
+    }
+
+    /// Path to draw a rect's outer border and criss cross filling
+    pub fn filled_criss_cross(&self, pen_width: f32) -> super::Path {
+        if self.height() <= pen_width * 0.5 {
+            return Path::new_from(self.get_points(SampleSettings::default()));
+        }
+
+        let smaller_inner = Rect::new(
+            self.bot_left + V2::xy(pen_width),
+            self.top_right - V2::xy(pen_width),
+        );
+        let filling = smaller_inner.criss_cross_filling(pen_width);
+
+        Path::new_from_iter(
+            [self.bl(), self.tl(), self.tr(), self.br(), self.bl()]
+                .into_iter()
+                .chain(filling),
+        )
+    }
+
+    fn criss_cross_filling(&self, pen_width: f32) -> Vec<V2> {
+        let height = self.height();
+        if height <= pen_width * 0.05 {
+            return Vec::new();
+        }
+        if self.height() <= pen_width * 0.5 {
+            return self.get_points(SampleSettings::default());
+        }
+
+        let num_lines = (self.height() / pen_width).ceil() as usize;
+        let height_per_line = self.height() / num_lines as f32;
+
+        let mut points = Vec::with_capacity(num_lines * 2);
+        for i in 0..(num_lines + 1) {
+            let y = self.bot_left.y + i as f32 * height_per_line;
+            if i % 2 == 0 {
+                points.push(V2::new(self.bot_left.x, y));
+                points.push(V2::new(self.top_right.x, y));
+            } else {
+                points.push(V2::new(self.top_right.x, y));
+                points.push(V2::new(self.bot_left.x, y));
+            }
+        }
+
+        points
+    }
+
     pub fn intersects_rect(&self, other: &Rect) -> bool {
         let self_edges = [
             (self.bl(), self.tl()),
