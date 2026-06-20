@@ -480,3 +480,9 @@ impl From<&Path> for Shape {
         Shape::Path(path.clone())
     }
 }
+
+impl From<&Shape> for Shape {
+    fn from(shape: &Shape) -> Self {
+        shape.clone()
+    }
+}

@@ -17,7 +17,8 @@ use svg::{
 
 use crate::{
     traits::{Normalize, Scale, Scale2D, Translate},
-    Angle, BoundingBox, Masked, Mirror, Path, Plottable, Rect, Rotate, SampleSettings, Shape, V2,
+    Angle, BoundingBox, Circle, Masked, Mirror, Path, Plottable, Rect, Rotate, SampleSettings,
+    Shape, V2,
 };
 
 use super::{path_end::PathEnd, ColorRgb, Inheritable, LayerProps, LayerPropsInheritable};
@@ -462,7 +463,8 @@ impl Layer {
                             };
 
                             let mut points = Self::parse_svg_points_attr(points_attr);
-                            if tag == "polygon" && points.len() >= 2
+                            if tag == "polygon"
+                                && points.len() >= 2
                                 && points.first() != points.last()
                             {
                                 points.push(*points.first().unwrap());
@@ -1467,10 +1469,69 @@ impl Default for Layer {
     }
 }
 
-impl From<Vec<Vec<V2>>> for Layer {
-    fn from(vecs: Vec<Vec<V2>>) -> Self {
-        let shapes = vecs.into_iter().map(|points| points.into()).collect();
+impl From<Vec<Shape>> for Layer {
+    fn from(shapes: Vec<Shape>) -> Self {
         Layer::new_from(shapes)
+    }
+}
+
+impl From<Vec<&Shape>> for Layer {
+    fn from(shapes: Vec<&Shape>) -> Self {
+        Layer::new_from(shapes.into_iter().map(Into::into).collect())
+    }
+}
+
+impl From<Vec<Path>> for Layer {
+    fn from(paths: Vec<Path>) -> Self {
+        Layer::new_from(paths.into_iter().map(Into::into).collect())
+    }
+}
+
+impl From<Vec<&Path>> for Layer {
+    fn from(paths: Vec<&Path>) -> Self {
+        Layer::new_from(paths.into_iter().map(Into::into).collect())
+    }
+}
+
+impl From<Vec<Vec<V2>>> for Layer {
+    fn from(points_lists: Vec<Vec<V2>>) -> Self {
+        points_lists.into_iter().collect()
+    }
+}
+
+impl From<Vec<Circle>> for Layer {
+    fn from(circles: Vec<Circle>) -> Self {
+        Layer::new_from(circles.into_iter().map(Into::into).collect())
+    }
+}
+
+impl From<Vec<&Circle>> for Layer {
+    fn from(circles: Vec<&Circle>) -> Self {
+        Layer::new_from(circles.into_iter().map(Into::into).collect())
+    }
+}
+
+impl From<Vec<Rect>> for Layer {
+    fn from(rects: Vec<Rect>) -> Self {
+        Layer::new_from(rects.into_iter().map(Into::into).collect())
+    }
+}
+
+impl From<Vec<&Rect>> for Layer {
+    fn from(rects: Vec<&Rect>) -> Self {
+        Layer::new_from(rects.into_iter().map(Into::into).collect())
+    }
+}
+
+impl From<Vec<Layer>> for Layer {
+    fn from(layers: Vec<Layer>) -> Self {
+        Layer::new_from_shapes_and_layers(Vec::new(), layers)
+    }
+}
+
+impl From<Vec<&Layer>> for Layer {
+    fn from(layers: Vec<&Layer>) -> Self {
+        Layer::new_from_shapes_and_layers(Vec::new(), layers.into_iter().cloned().collect())
     }
 }
 
@@ -1512,10 +1573,13 @@ impl<'a> Iterator for LayerFlattenedIterator<'a> {
     }
 }
 
-impl FromIterator<Shape> for Layer {
-    fn from_iter<I: IntoIterator<Item = Shape>>(iter: I) -> Self {
+impl<S> FromIterator<S> for Layer
+where
+    S: Into<Shape>,
+{
+    fn from_iter<I: IntoIterator<Item = S>>(iter: I) -> Self {
         Layer {
-            shapes: iter.into_iter().collect(),
+            shapes: iter.into_iter().map(Into::into).collect(),
             sublayers: Vec::new(),
             props_inheritable: Inheritable::Inherit,
             props: LayerProps::default(),

@@ -26,6 +26,30 @@ mod test_path {
     }
 
     #[test]
+    fn from_vec_v2_into_path() {
+        let points = vec![V2::new(0.0, 0.0), V2::new(1.0, 2.0), V2::new(3.0, 5.0)];
+        let path: Path = points.clone().into();
+
+        assert_eq!(path.get_points_ref(), points.as_slice());
+    }
+
+    #[test]
+    fn from_slice_v2_into_path() {
+        let points = [V2::new(0.0, 0.0), V2::new(1.0, 2.0), V2::new(3.0, 5.0)];
+        let path: Path = points.as_slice().into();
+
+        assert_eq!(path.get_points_ref(), points.as_slice());
+    }
+
+    #[test]
+    fn from_iterator_ref_v2_into_path() {
+        let points = [V2::new(0.0, 0.0), V2::new(1.0, 2.0), V2::new(3.0, 5.0)];
+        let path: Path = points.iter().collect();
+
+        assert_eq!(path.get_points_ref(), points.as_slice());
+    }
+
+    #[test]
     fn shape() {
         let p = Path::new_shape_from(vec![
             V2::new(0.0, 0.0),

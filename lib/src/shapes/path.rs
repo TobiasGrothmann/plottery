@@ -499,6 +499,14 @@ impl FromIterator<V2> for Path {
     }
 }
 
+impl<'a> FromIterator<&'a V2> for Path {
+    fn from_iter<I: IntoIterator<Item = &'a V2>>(iter: I) -> Self {
+        Path {
+            points: iter.into_iter().copied().collect(),
+        }
+    }
+}
+
 impl Rotate for Path {
     fn rotate(&self, angle: Angle) -> Self {
         Path {
@@ -729,6 +737,14 @@ impl ClosestPoint for Path {
 impl From<Vec<V2>> for Path {
     fn from(points: Vec<V2>) -> Self {
         Self { points }
+    }
+}
+
+impl From<&[V2]> for Path {
+    fn from(points: &[V2]) -> Self {
+        Self {
+            points: points.to_vec(),
+        }
     }
 }
 

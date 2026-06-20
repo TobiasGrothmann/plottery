@@ -32,6 +32,198 @@ mod test_layer {
     }
 
     #[test]
+    fn from_iterator_of_paths() {
+        let paths = vec![
+            Path::new_from(vec![V2::new(0.0, 0.0), V2::new(1.0, 1.0)]),
+            Path::new_from(vec![V2::new(2.0, 2.0), V2::new(3.0, 3.0)]),
+        ];
+
+        let layer: Layer = paths.into_iter().collect();
+
+        assert_eq!(layer.len(), 2);
+        assert!(layer.iter().all(|shape| matches!(shape, Shape::Path(_))));
+    }
+
+    #[test]
+    fn from_iterator_of_circles() {
+        let circles = vec![
+            Circle::new(V2::new(0.0, 0.0), 1.0),
+            Circle::new(V2::new(2.0, 2.0), 1.5),
+        ];
+
+        let layer: Layer = circles.into_iter().collect();
+
+        assert_eq!(layer.len(), 2);
+        assert!(layer.iter().all(|shape| matches!(shape, Shape::Circle(_))));
+    }
+
+    #[test]
+    fn from_iterator_of_rects() {
+        let rects = vec![
+            Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0)),
+            Rect::new(V2::new(2.0, 2.0), V2::new(4.0, 5.0)),
+        ];
+
+        let layer: Layer = rects.into_iter().collect();
+
+        assert_eq!(layer.len(), 2);
+        assert!(layer.iter().all(|shape| matches!(shape, Shape::Rect(_))));
+    }
+
+    #[test]
+    fn from_vec_paths_into_layer() {
+        let paths = vec![
+            Path::new_from(vec![V2::new(0.0, 0.0), V2::new(1.0, 1.0)]),
+            Path::new_from(vec![V2::new(2.0, 2.0), V2::new(3.0, 3.0)]),
+        ];
+
+        let layer: Layer = paths.into();
+
+        assert_eq!(layer.len(), 2);
+        assert!(layer.iter().all(|shape| matches!(shape, Shape::Path(_))));
+    }
+
+    #[test]
+    fn from_vec_circles_into_layer() {
+        let circles = vec![
+            Circle::new(V2::new(0.0, 0.0), 1.0),
+            Circle::new(V2::new(2.0, 2.0), 1.5),
+        ];
+
+        let layer: Layer = circles.into();
+
+        assert_eq!(layer.len(), 2);
+        assert!(layer.iter().all(|shape| matches!(shape, Shape::Circle(_))));
+    }
+
+    #[test]
+    fn from_vec_rects_into_layer() {
+        let rects = vec![
+            Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0)),
+            Rect::new(V2::new(2.0, 2.0), V2::new(4.0, 5.0)),
+        ];
+
+        let layer: Layer = rects.into();
+
+        assert_eq!(layer.len(), 2);
+        assert!(layer.iter().all(|shape| matches!(shape, Shape::Rect(_))));
+    }
+
+    #[test]
+    fn from_vec_shapes_into_layer() {
+        let shapes = vec![
+            Shape::from(Path::new_from(vec![V2::new(0.0, 0.0), V2::new(1.0, 1.0)])),
+            Shape::from(Circle::new(V2::new(2.0, 2.0), 1.5)),
+            Shape::from(Rect::new(V2::new(3.0, 3.0), V2::new(5.0, 6.0))),
+        ];
+
+        let layer: Layer = shapes.into();
+
+        assert_eq!(layer.len(), 3);
+        assert!(matches!(layer.iter().nth(0), Some(Shape::Path(_))));
+        assert!(matches!(layer.iter().nth(1), Some(Shape::Circle(_))));
+        assert!(matches!(layer.iter().nth(2), Some(Shape::Rect(_))));
+    }
+
+    #[test]
+    fn from_vec_ref_paths_into_layer() {
+        let paths = vec![
+            Path::new_from(vec![V2::new(0.0, 0.0), V2::new(1.0, 1.0)]),
+            Path::new_from(vec![V2::new(2.0, 2.0), V2::new(3.0, 3.0)]),
+        ];
+
+        let layer: Layer = paths.iter().collect::<Vec<_>>().into();
+
+        assert_eq!(layer.len(), 2);
+        assert!(layer.iter().all(|shape| matches!(shape, Shape::Path(_))));
+    }
+
+    #[test]
+    fn from_vec_ref_circles_into_layer() {
+        let circles = vec![
+            Circle::new(V2::new(0.0, 0.0), 1.0),
+            Circle::new(V2::new(2.0, 2.0), 1.5),
+        ];
+
+        let layer: Layer = circles.iter().collect::<Vec<_>>().into();
+
+        assert_eq!(layer.len(), 2);
+        assert!(layer.iter().all(|shape| matches!(shape, Shape::Circle(_))));
+    }
+
+    #[test]
+    fn from_vec_ref_rects_into_layer() {
+        let rects = vec![
+            Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0)),
+            Rect::new(V2::new(2.0, 2.0), V2::new(4.0, 5.0)),
+        ];
+
+        let layer: Layer = rects.iter().collect::<Vec<_>>().into();
+
+        assert_eq!(layer.len(), 2);
+        assert!(layer.iter().all(|shape| matches!(shape, Shape::Rect(_))));
+    }
+
+    #[test]
+    fn from_vec_ref_shapes_into_layer() {
+        let shapes = vec![
+            Shape::from(Path::new_from(vec![V2::new(0.0, 0.0), V2::new(1.0, 1.0)])),
+            Shape::from(Circle::new(V2::new(2.0, 2.0), 1.5)),
+            Shape::from(Rect::new(V2::new(3.0, 3.0), V2::new(5.0, 6.0))),
+        ];
+
+        let layer: Layer = shapes.iter().collect::<Vec<_>>().into();
+
+        assert_eq!(layer.len(), 3);
+        assert!(matches!(layer.iter().nth(0), Some(Shape::Path(_))));
+        assert!(matches!(layer.iter().nth(1), Some(Shape::Circle(_))));
+        assert!(matches!(layer.iter().nth(2), Some(Shape::Rect(_))));
+    }
+
+    #[test]
+    fn from_vec_layers_into_layer() {
+        let mut l1 = Layer::new();
+        l1.push(Circle::new(V2::new(0.0, 0.0), 1.0));
+
+        let mut l2 = Layer::new();
+        l2.push(Rect::new(V2::new(2.0, 2.0), V2::new(3.0, 3.0)));
+
+        let merged: Layer = vec![l1, l2].into();
+
+        assert_eq!(merged.len(), 0);
+        assert_eq!(merged.len_sublayers(), 2);
+        assert_eq!(merged.len_recursive(), 2);
+    }
+
+    #[test]
+    fn from_vec_ref_layers_into_layer() {
+        let mut l1 = Layer::new();
+        l1.push(Circle::new(V2::new(0.0, 0.0), 1.0));
+
+        let mut l2 = Layer::new();
+        l2.push(Rect::new(V2::new(2.0, 2.0), V2::new(3.0, 3.0)));
+
+        let merged: Layer = vec![&l1, &l2].into();
+
+        assert_eq!(merged.len(), 0);
+        assert_eq!(merged.len_sublayers(), 2);
+        assert_eq!(merged.len_recursive(), 2);
+    }
+
+    #[test]
+    fn from_iterator_of_point_lists_into_layer() {
+        let point_lists = vec![
+            vec![V2::new(0.0, 0.0), V2::new(1.0, 1.0)],
+            vec![V2::new(2.0, 2.0), V2::new(3.0, 3.0)],
+        ];
+
+        let layer: Layer = point_lists.into_iter().collect();
+
+        assert_eq!(layer.len(), 2);
+        assert!(layer.iter().all(|shape| matches!(shape, Shape::Path(_))));
+    }
+
+    #[test]
     fn children() {
         let shape = Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
 
