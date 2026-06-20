@@ -14,8 +14,8 @@ default = []
 raspi = ["dep:rppal", "dep:ioprio"]
 
 [dependencies]
-plottery_lib = { path = "../lib", version = "^0.8.1" }
-plottery_server_lib = { path = "../server_lib", version = "^0.8.1" }
+plottery_lib = { path = "../lib", version = "^0.9.0" }
+plottery_server_lib = { path = "../server_lib", version = "^0.9.0" }
 rocket = "0.5.1"
 tokio = "1.43.0"
 rppal = { version = "0.22.1", features = ["hal"], optional = true }
