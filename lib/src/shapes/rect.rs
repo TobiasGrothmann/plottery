@@ -208,8 +208,16 @@ impl Rect {
 
     /// Path to draw a rect's outer border and criss cross filling
     pub fn filled_criss_cross(&self, pen_width: f32) -> super::Path {
-        if self.height() <= pen_width * 0.5 {
-            return Path::new_from(self.get_points(SampleSettings::default()));
+        let outer_border = [self.bl(), self.tl(), self.tr(), self.br(), self.bl()];
+
+        if self.height() <= pen_width * 0.5 || self.width() <= pen_width * 0.5 {
+            return Path::new_from_iter(outer_border);
+        }
+
+        // If we cannot inset by `pen_width` on all sides, skip filling.
+        // Otherwise `Rect::new` would normalize inverted corners into a bigger rect.
+        if self.width() <= pen_width * 2.0 || self.height() <= pen_width * 2.0 {
+            return Path::new_from_iter(outer_border);
         }
 
         let smaller_inner = Rect::new(
@@ -218,11 +226,7 @@ impl Rect {
         );
         let filling = smaller_inner.criss_cross_filling(pen_width);
 
-        Path::new_from_iter(
-            [self.bl(), self.tl(), self.tr(), self.br(), self.bl()]
-                .into_iter()
-                .chain(filling),
-        )
+        Path::new_from_iter(outer_border.into_iter().chain(filling))
     }
 
     fn criss_cross_filling(&self, pen_width: f32) -> Vec<V2> {

@@ -92,4 +92,27 @@ mod test_rect {
             Some(V2::new(1.0, 3.0))
         );
     }
+
+    #[test]
+    fn filled_criss_cross_small_rect_large_pen_skips_inner_fill() {
+        let rect = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+        let path = rect.filled_criss_cross(2.0);
+        let points = path.get_points(SampleSettings::default());
+
+        assert_eq!(
+            points,
+            vec![rect.bl(), rect.tl(), rect.tr(), rect.br(), rect.bl()]
+        );
+    }
+
+    #[test]
+    fn filled_criss_cross_does_not_generate_points_outside_rect() {
+        let rect = Rect::new(V2::new(10.0, 20.0), V2::new(11.0, 21.0));
+        let path = rect.filled_criss_cross(2.0);
+
+        for point in path.get_points(SampleSettings::default()) {
+            assert!(point.x >= rect.bl().x && point.x <= rect.tr().x);
+            assert!(point.y >= rect.bl().y && point.y <= rect.tr().y);
+        }
+    }
 }
