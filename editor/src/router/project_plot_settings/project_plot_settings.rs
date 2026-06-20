@@ -20,10 +20,7 @@ pub fn ProjectPlotSettings(project_path: Vec<String>) -> Element {
     let plot_settings = use_signal_sync(|| {
         let plot_settings_file_path = project().get_editor_plot_settings_path();
         match std::fs::read(plot_settings_file_path) {
-            Ok(plot_settings_binary) => match deserialize(&plot_settings_binary) {
-                Ok(plot_settings) => plot_settings,
-                Err(_) => PlotSettings::default(),
-            },
+            Ok(plot_settings_binary) => deserialize(&plot_settings_binary).unwrap_or_default(),
             Err(_) => PlotSettings::default(),
         }
     });
