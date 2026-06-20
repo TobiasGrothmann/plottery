@@ -1,5 +1,12 @@
 // pins order is [Y1, Y2, X, HEAD]
 #[derive(Debug, Clone, Copy)]
+pub struct HardwareConsts {
+    pub pin_settings: PinSettings,
+    pub hardware_profile: HardwareProfile,
+}
+
+// pins order is [Y1, Y2, X, HEAD]
+#[derive(Debug, Clone, Copy)]
 pub struct PinSettings {
     // pins
     pub dir_pins: [u8; 4],
@@ -9,7 +16,10 @@ pub struct PinSettings {
 
     // micro stepping
     pub micstep_vals: [[bool; 3]; 4],
+}
 
+#[derive(Debug, Clone, Copy)]
+pub struct HardwareProfile {
     // distance and speed to cm
     pub dist_per_step_axis_cm: f32,
     pub dist_per_step_head_cm: f32,
@@ -17,7 +27,7 @@ pub struct PinSettings {
     pub extra_head_travel_for_pressure_cm: f32,
 }
 
-impl PinSettings {
+impl HardwareProfile {
     pub fn steps_for_cm_head(&self, cm: f32) -> i32 {
         (cm / self.dist_per_step_head_cm).round() as i32
     }
@@ -35,22 +45,25 @@ impl PinSettings {
 */
 
 // TODO: get settings from file
-pub static PIN_SETTINGS: PinSettings = PinSettings {
-    dir_pins: [18, 4, 11, 16],
-    step_pins: [15, 3, 7, 20],
-    enable_pins: [14, 2, 8, 21],
-    micstep_pins: [[22, 10, 12, 13], [27, 9, 6, 19], [17, 25, 5, 26]],
+pub static HARDWARE_CONSTS: HardwareConsts = HardwareConsts {
+    pin_settings: PinSettings {
+        dir_pins: [18, 4, 11, 16],
+        step_pins: [15, 3, 7, 20],
+        enable_pins: [14, 2, 8, 21],
+        micstep_pins: [[22, 10, 12, 13], [27, 9, 6, 19], [17, 25, 5, 26]],
 
-    micstep_vals: [
-        [true, true, true],
-        [true, true, true],
-        [true, true, true],
-        [true, true, false],
-    ],
+        micstep_vals: [
+            [true, true, true],
+            [true, true, true],
+            [true, true, true],
+            [true, true, false],
+        ],
+    },
+    hardware_profile: HardwareProfile {
+        dist_per_step_axis_cm: 0.013_993_56 / 16.0, // distance per step / microstepping factor for x and y axes
+        dist_per_step_head_cm: 0.8 / (200.0 * 8.0), // 8mm travel per revolution / (200 steps per revolution * microstepping factor for head)
 
-    dist_per_step_axis_cm: 0.013_993_56 / 16.0, // distance per step / microstepping factor for x and y axes
-    dist_per_step_head_cm: 0.8 / (200.0 * 8.0), // 8mm travel per revolution / (200 steps per revolution * microstepping factor for head)
-
-    head_travel_to_touch_cm: 0.6,            // cm
-    extra_head_travel_for_pressure_cm: 0.25, // cm
+        head_travel_to_touch_cm: 0.6,            // cm
+        extra_head_travel_for_pressure_cm: 0.25, // cm
+    },
 };

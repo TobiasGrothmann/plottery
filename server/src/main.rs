@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate rocket;
 
-mod hardware;
+mod gpio_executor;
 mod task_handler;
 mod util;
 

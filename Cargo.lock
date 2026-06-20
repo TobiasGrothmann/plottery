@@ -5309,7 +5309,6 @@ version = "0.8.1"
 dependencies = [
  "anyhow",
  "ioprio",
- "itertools 0.14.0",
  "plottery_lib",
  "plottery_server_lib",
  "rayon",

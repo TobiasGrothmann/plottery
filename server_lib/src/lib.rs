@@ -2,8 +2,10 @@ use serde::{Deserialize, Serialize};
 
 pub mod accelleration;
 pub mod estimation;
+pub mod hardware;
 pub mod midi;
 pub mod pins;
+pub mod plot_execution;
 pub mod plot_setting;
 pub mod server_state;
 pub mod task;
