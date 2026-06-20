@@ -1,23 +1,22 @@
-use itertools::Itertools;
-use plottery_lib::*;
-use plottery_server_lib::midi::midi_to_freq;
-use plottery_server_lib::plot_setting::PlotSettings;
-use plottery_server_lib::server_state::ServerState;
-use plottery_server_lib::task::Task;
+use plottery_lib::V2;
+use plottery_server_lib::{
+    accelleration::speed_delay_handler::SpeedDelayHandler, hardware::Hardware, midi::midi_to_freq,
+    pins::HARDWARE_CONSTS, plot_execution, plot_setting::PlotSettings, server_state::ServerState,
+    task::Task,
+};
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 use tokio::task;
 
-use crate::accelleration::accelleration_path::AccellerationPath;
-use crate::accelleration::speed_delay_handler::SpeedDelayHandler;
-use crate::hardware::Hardware;
-use crate::pins::PIN_SETTINGS;
+use crate::gpio_executor::GpioExecutor;
 
 pub async fn start_server(
     mut receiver: mpsc::Receiver<Task>,
     server_state: Arc<Mutex<ServerState>>,
 ) -> anyhow::Result<()> {
-    let mut hardware = Hardware::new(PIN_SETTINGS, server_state.clone())?;
+    let executor = GpioExecutor::new(HARDWARE_CONSTS.pin_settings)?;
+    let mut hardware = Hardware::new(HARDWARE_CONSTS.hardware_profile, executor);
+    sync_server_state(&server_state, &hardware, false);
 
     task::spawn(async move {
         while let Some(task) = receiver.recv().await {
@@ -28,43 +27,42 @@ pub async fn start_server(
                     sample_settings,
                     plot_settings,
                 } => {
-                    server_state
-                        .lock()
-                        .expect("Failed to acquire server state lock")
-                        .plotting = true;
                     hardware.set_enabled(true);
+                    sync_server_state(&server_state, &hardware, true);
 
-                    plot_layer(&mut hardware, &layer, sample_settings, &plot_settings).await;
-                    travel_to(&mut hardware, V2::zero(), &plot_settings).await;
+                    plot_execution::plot_layer(
+                        &mut hardware,
+                        &layer,
+                        sample_settings,
+                        &plot_settings,
+                    );
+                    plot_execution::travel_to(&mut hardware, V2::zero(), &plot_settings);
 
                     hardware.set_enabled(false);
-                    server_state
-                        .lock()
-                        .expect("Failed to acquire server state lock")
-                        .plotting = false;
+                    sync_server_state(&server_state, &hardware, false);
                 }
                 Task::PlotShape {
                     shape,
                     sample_settings,
                     plot_settings,
                 } => {
-                    server_state
-                        .lock()
-                        .expect("Failed to acquire server state lock")
-                        .plotting = true;
                     hardware.set_enabled(true);
+                    sync_server_state(&server_state, &hardware, true);
 
-                    plot_shape(&mut hardware, &shape, sample_settings, &plot_settings).await;
-                    travel_to(&mut hardware, V2::zero(), &plot_settings).await;
+                    plot_execution::plot_shape(
+                        &mut hardware,
+                        &shape,
+                        sample_settings,
+                        &plot_settings,
+                    );
+                    plot_execution::travel_to(&mut hardware, V2::zero(), &plot_settings);
 
                     hardware.set_enabled(false);
-                    server_state
-                        .lock()
-                        .expect("Failed to acquire server state lock")
-                        .plotting = false;
+                    sync_server_state(&server_state, &hardware, false);
                 }
                 Task::SetEnabled(enabled) => {
                     hardware.set_enabled(enabled);
+                    sync_server_state(&server_state, &hardware, false);
                 }
                 Task::Abort => {
                     todo!()
@@ -78,28 +76,34 @@ pub async fn start_server(
                     };
 
                     hardware.set_enabled(true);
+                    sync_server_state(&server_state, &hardware, false);
                     hardware.set_head(
                         head_down,
                         settings.head_pressure,
                         speed_range.accelleration_distance,
                         SpeedDelayHandler::new_from_speed_range(
                             &speed_range,
-                            PIN_SETTINGS.dist_per_step_head_cm,
+                            HARDWARE_CONSTS.hardware_profile.dist_per_step_head_cm,
                         ),
                     );
                     hardware.set_enabled(false);
+                    sync_server_state(&server_state, &hardware, false);
                 }
                 Task::MoveTo(pos, plot_setting) => {
                     hardware.set_enabled(true);
-                    travel_to(&mut hardware, pos, &plot_setting).await;
+                    sync_server_state(&server_state, &hardware, false);
+                    plot_execution::travel_to(&mut hardware, pos, &plot_setting);
                     hardware.set_enabled(false);
+                    sync_server_state(&server_state, &hardware, false);
                 }
                 Task::Move(delta, plot_settings) => {
                     let target_pos = hardware.get_pos() + delta;
 
                     hardware.set_enabled(true);
-                    travel_to(&mut hardware, target_pos, &plot_settings).await;
+                    sync_server_state(&server_state, &hardware, false);
+                    plot_execution::travel_to(&mut hardware, target_pos, &plot_settings);
                     hardware.set_enabled(false);
+                    sync_server_state(&server_state, &hardware, false);
                 }
                 Task::NoteFreq {
                     axis,
@@ -107,8 +111,10 @@ pub async fn start_server(
                     duration_s,
                 } => {
                     hardware.set_enabled(true);
+                    sync_server_state(&server_state, &hardware, false);
                     hardware.play_freq(&axis, frequency, duration_s);
                     hardware.set_enabled(false);
+                    sync_server_state(&server_state, &hardware, false);
                 }
                 Task::Note {
                     axis,
@@ -116,12 +122,15 @@ pub async fn start_server(
                     duration_s,
                 } => {
                     hardware.set_enabled(true);
+                    sync_server_state(&server_state, &hardware, false);
                     let freq = midi_to_freq(midi);
                     hardware.play_freq(&axis, freq, duration_s);
                     hardware.set_enabled(false);
+                    sync_server_state(&server_state, &hardware, false);
                 }
                 Task::SetOrigin() => {
                     hardware.set_origin();
+                    sync_server_state(&server_state, &hardware, false);
                 }
             }
         }
@@ -130,84 +139,16 @@ pub async fn start_server(
     Ok(())
 }
 
-pub async fn plot_layer(
-    hardware: &mut Hardware,
-    layer: &Layer,
-    sample_settings: SampleSettings,
-    plot_settings: &PlotSettings,
+fn sync_server_state(
+    server_state: &Arc<Mutex<ServerState>>,
+    hardware: &Hardware<GpioExecutor>,
+    plotting: bool,
 ) {
-    for shape in layer.iter_flattened() {
-        plot_shape(hardware, shape, sample_settings, plot_settings).await;
-    }
-}
-
-pub async fn travel_to(hardware: &mut Hardware, target_pos: V2, plot_settings: &PlotSettings) {
-    let acc_path = AccellerationPath::new(
-        &[hardware.get_pos(), target_pos],
-        plot_settings.speed_travel.accelleration_distance,
-        plot_settings.corner_slowdown_power,
-    );
-    let speed_travel = SpeedDelayHandler::new_from_speed_range(
-        &plot_settings.speed_travel,
-        PIN_SETTINGS.dist_per_step_axis_cm,
-    );
-    let speed_head_up = SpeedDelayHandler::new_from_speed_range(
-        &plot_settings.speed_head_up,
-        PIN_SETTINGS.dist_per_step_head_cm,
-    );
-
-    hardware.set_head(
-        false,
-        plot_settings.head_pressure,
-        plot_settings.speed_head_up.accelleration_distance,
-        speed_head_up,
-    );
-    for (from, to) in acc_path.points.iter().tuple_windows() {
-        hardware.move_to(from.speed, *to, &speed_travel);
-    }
-}
-
-pub async fn plot_shape(
-    hardware: &mut Hardware,
-    shape: &Shape,
-    sample_settings: SampleSettings,
-    plot_settings: &PlotSettings,
-) {
-    let points = shape.get_points_from(hardware.get_pos(), sample_settings);
-    if points.len() < 2 {
-        return;
-    }
-
-    let accelleration_path = AccellerationPath::new(
-        &points,
-        plot_settings.speed_draw.accelleration_distance,
-        plot_settings.corner_slowdown_power,
-    );
-
-    let speed_draw = SpeedDelayHandler::new_from_speed_range(
-        &plot_settings.speed_draw,
-        PIN_SETTINGS.dist_per_step_axis_cm,
-    );
-    let speed_head_down = SpeedDelayHandler::new_from_speed_range(
-        &plot_settings.speed_head_down,
-        PIN_SETTINGS.dist_per_step_head_cm,
-    );
-
-    if accelleration_path.points.len() < 2 {
-        return;
-    }
-
-    // travel to start
-    travel_to(hardware, accelleration_path.points[0].point, plot_settings).await;
-
-    // draw
-    hardware.set_head(
-        true,
-        plot_settings.head_pressure,
-        plot_settings.speed_head_down.accelleration_distance,
-        speed_head_down,
-    );
-    for (from, to) in accelleration_path.points.iter().tuple_windows() {
-        hardware.move_to(from.speed, *to, &speed_draw);
-    }
+    let mut state = server_state
+        .lock()
+        .expect("Failed to acquire server state lock");
+    state.location = hardware.get_pos();
+    state.head_down = hardware.is_head_down();
+    state.motors_enabled = hardware.is_enabled();
+    state.plotting = plotting;
 }

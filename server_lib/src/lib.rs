@@ -1,11 +1,18 @@
 use serde::{Deserialize, Serialize};
 
+pub mod accelleration;
+pub mod estimation;
+pub mod hardware;
 pub mod midi;
+pub mod pins;
+pub mod plot_execution;
 pub mod plot_setting;
 pub mod server_state;
 pub mod task;
 
+pub use estimation::*;
 pub use midi::*;
+pub use pins::*;
 pub use plot_setting::*;
 pub use server_state::*;
 pub use task::*;
