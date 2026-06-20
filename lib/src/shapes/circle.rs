@@ -136,7 +136,7 @@ impl Circle {
             return Path::new_from(self.get_points(Angle::zero(), sample_settings));
         }
 
-        let thickness = self.radius - pen_width * 0.4; // we go a little bit more inside here (instead of 0.5) to ensure the center is filled
+        let thickness = self.radius - 0.005;
         let num_rotations = thickness / pen_width;
         let circumference = 2.0 * PI * self.radius;
         let resolution = sample_settings.get_num_points_for_length(circumference);
