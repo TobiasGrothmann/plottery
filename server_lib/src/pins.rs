@@ -1,5 +1,4 @@
 // pins order is [Y1, Y2, X, HEAD]
-#[cfg_attr(not(feature = "raspi"), allow(dead_code))]
 #[derive(Debug, Clone, Copy)]
 pub struct PinSettings {
     // pins

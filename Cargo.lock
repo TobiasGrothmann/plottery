@@ -5324,6 +5324,7 @@ version = "0.8.1"
 dependencies = [
  "anyhow",
  "bincode",
+ "itertools 0.14.0",
  "plottery_lib",
  "reqwest",
  "serde",

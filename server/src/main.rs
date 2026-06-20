@@ -1,9 +1,7 @@
 #[macro_use]
 extern crate rocket;
 
-mod accelleration;
 mod hardware;
-mod pins;
 mod task_handler;
 mod util;
 

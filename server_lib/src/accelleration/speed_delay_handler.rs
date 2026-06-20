@@ -1,4 +1,4 @@
-use plottery_server_lib::plot_setting::SpeedRange;
+use crate::plot_setting::SpeedRange;
 
 #[derive(Debug, Clone, Copy)]
 pub struct SpeedDelayHandler {
@@ -24,7 +24,7 @@ impl SpeedDelayHandler {
     pub fn get_delay_nanos(&self, speed_fraction: f32) -> f64 {
         let speed = self.speed_min_cm_per_s
             + (self.speed_max_cm_per_s - self.speed_min_cm_per_s) * speed_fraction.clamp(0.0, 1.0);
-        
+
         (self.dist_per_step / speed) as f64 * 1000.0 * 1000.0 * 1000.0
     }
 }

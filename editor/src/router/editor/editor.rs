@@ -20,8 +20,10 @@ use dioxus_router::hooks::use_navigator;
 use notify::FsEventWatcher;
 use plottery_lib::{Layer, LayerPropsInheritable, SampleSettings};
 use plottery_project::{project_params_list_wrapper::ProjectParamsListWrapper, Project};
-use plottery_server_lib::{plot_setting::PlotSettings, task::send_task};
-use std::{path::PathBuf, sync::Arc};
+use plottery_server_lib::{
+    estimation::estimate_plot_layer_duration, plot_setting::PlotSettings, task::send_task,
+};
+use std::{path::PathBuf, sync::Arc, time::Duration};
 use tokio::{sync::Mutex, task::JoinHandle};
 
 fn is_gitkraken_installed() -> bool {
@@ -42,6 +44,27 @@ fn is_cursor_installed() -> bool {
 
 fn is_sublime_installed() -> bool {
     which::which("subl").is_ok()
+}
+
+fn format_estimated_plot_duration(duration: Duration) -> String {
+    if duration.is_zero() {
+        return "~0m".to_string();
+    }
+
+    let total_minutes = (duration.as_secs_f64() / 60.0).ceil() as u64;
+
+    if total_minutes < 60 {
+        format!("~{}m", total_minutes.max(1))
+    } else {
+        let hours = total_minutes / 60;
+        let minutes = total_minutes % 60;
+
+        if minutes == 0 {
+            format!("~{}h", hours)
+        } else {
+            format!("~{}h {:02}m", hours, minutes)
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -158,6 +181,16 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                 change_counter: new_count,
             },
         }
+    });
+    let estimated_plot_duration = use_memo(move || {
+        layer_only_visible().layer.as_ref().map(|layer| {
+            estimate_plot_layer_duration(layer, SampleSettings::low_res(), &plot_settings())
+        })
+    });
+    let send_plot_button_text = use_memo(move || {
+        estimated_plot_duration()
+            .map(|duration| format!("send plot ({})", format_estimated_plot_duration(duration)))
+            .unwrap_or_else(|| "send plot".to_string())
     });
 
     // hooks for changes in project
@@ -378,7 +411,7 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                             }
                             event.stop_propagation();
                         },
-                        p { "send plot" }
+                        p { "{send_plot_button_text()}" }
                     }
                     button { class: "img_button",
                         onclick: move |event| {
