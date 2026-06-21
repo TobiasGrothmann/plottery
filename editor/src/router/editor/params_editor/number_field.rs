@@ -8,12 +8,14 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use crate::router::editor::{
-    console_messages::ConsoleMessages, project_runner::ProjectRunner, running_state::RunningState,
+    console_messages::ConsoleMessages, params_editor::param_tree::get_param_mut_by_path,
+    project_runner::ProjectRunner, running_state::RunningState,
 };
 
 #[derive(PartialEq, Props, Clone)]
 pub struct NumberFieldProps {
     param: ProjectParam,
+    path: Vec<String>,
     project_params: SyncSignal<ProjectParamsListWrapper>,
     project_runner: SyncSignal<Arc<Mutex<ProjectRunner>>>,
     running_state: SyncSignal<RunningState>,
@@ -37,21 +39,22 @@ pub fn NumberField(mut props: NumberFieldProps) -> Element {
                 },
                 onchange: move |event| {
                     let mut new_params = props.project_params.read().clone();
-                    for param_field in new_params.list.iter_mut() {
-                        if param_field.name == props.param.name.clone() {
-                            let new_val = event.value().parse::<f32>();
-                            match new_val {
-                                Ok(val) => match param_field.value {
-                                    ProjectParamValue::Float(_) => param_field.value.set_f32(val),
-                                    ProjectParamValue::Int(_) => param_field.value.set_i32(val.round() as i32),
-                                    _ => panic!("Unexpected Error"),
-                                },
-                                Err(e) => {
-                                    tracing::error!("Error parsing value: {:?}", e);
-                                    return;
-                                }
+                    if let Some(param_field) = get_param_mut_by_path(&mut new_params.list, &props.path) {
+                        let new_val = event.value().parse::<f32>();
+                        match new_val {
+                            Ok(val) => match param_field.value {
+                                ProjectParamValue::Float(_) => param_field.value.set_f32(val),
+                                ProjectParamValue::Int(_) => param_field.value.set_i32(val.round() as i32),
+                                _ => panic!("Unexpected Error"),
+                            },
+                            Err(e) => {
+                                tracing::error!("Error parsing value: {:?}", e);
+                                return;
                             }
                         }
+                    } else {
+                        tracing::error!("Param path not found: {:?}", props.path);
+                        return;
                     }
                     props.project_params.set(new_params);
                     match props.project_runner.read().try_lock() {

@@ -8,12 +8,14 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use crate::router::editor::{
-    console_messages::ConsoleMessages, project_runner::ProjectRunner, running_state::RunningState,
+    console_messages::ConsoleMessages, params_editor::param_tree::get_param_mut_by_path,
+    project_runner::ProjectRunner, running_state::RunningState,
 };
 
 #[derive(PartialEq, Props, Clone)]
 pub struct BoolFieldProps {
     param: ProjectParam,
+    path: Vec<String>,
     project_params: SyncSignal<ProjectParamsListWrapper>,
     project_runner: SyncSignal<Arc<Mutex<ProjectRunner>>>,
     running_state: SyncSignal<RunningState>,
@@ -36,10 +38,11 @@ pub fn BoolField(mut props: BoolFieldProps) -> Element {
                 },
                 onchange: move |event| {
                     let mut new_params = props.project_params.read().clone();
-                    for param_field in new_params.list.iter_mut() {
-                        if param_field.name == props.param.name.clone() {
-                            param_field.value.set_bool(event.value().parse().expect("Failed to parse boolean value"));
-                        }
+                    if let Some(param_field) = get_param_mut_by_path(&mut new_params.list, &props.path) {
+                        param_field.value.set_bool(event.value().parse().expect("Failed to parse boolean value"));
+                    } else {
+                        tracing::error!("Param path not found: {:?}", props.path);
+                        return;
                     }
                     props.project_params.set(new_params);
                     match props.project_runner.read().try_lock() {

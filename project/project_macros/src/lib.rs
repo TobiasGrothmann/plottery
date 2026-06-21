@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::Span;
-use quote::quote;
-use syn::{self, punctuated::Punctuated, Expr, Field, Ident, Meta, Token};
+use quote::{quote, ToTokens};
+use syn::{self, punctuated::Punctuated, Expr, Field, Ident, Meta, PathArguments, Token};
 
 #[proc_macro_derive(PlotteryParams, attributes(value, range))]
 pub fn plottery_params(input: TokenStream) -> TokenStream {
@@ -11,7 +11,7 @@ pub fn plottery_params(input: TokenStream) -> TokenStream {
 
 fn perform_sanity_checks(data: &syn::DataStruct) {
     for field in &data.fields {
-        match field.ty {
+        match &field.ty {
             syn::Type::Array(_) => panic!("Parameter fields cannot be of type array."),
             syn::Type::BareFn(_) => panic!("Parameter fields cannot be of type function."),
             syn::Type::Group(_) => panic!("Parameter fields cannot be of type group."),
@@ -20,11 +20,21 @@ fn perform_sanity_checks(data: &syn::DataStruct) {
             syn::Type::Macro(_) => panic!("Parameter fields cannot be of type macro."),
             syn::Type::Never(_) => panic!("Parameter fields cannot be of type never."),
             syn::Type::Paren(_) => panic!("Parameter fields cannot be of type paren."),
-            syn::Type::Path(_) => {}
+            syn::Type::Path(path) => {
+                for segment in &path.path.segments {
+                    if !matches!(segment.arguments, PathArguments::None) {
+                        panic!(
+                            "Generic/wrapper field types are not supported for PlotteryParams (e.g. Option<T>, Vec<T>, Box<T>)."
+                        );
+                    }
+                }
+            }
             syn::Type::Ptr(_) => panic!("Parameter fields cannot be of type pointer."),
             syn::Type::Reference(_) => panic!("Parameter fields cannot be of type reference."),
             syn::Type::Slice(_) => panic!("Parameter fields cannot be of type slice."),
-            syn::Type::TraitObject(_) => panic!("Parameter fields cannot be of type trait object."),
+            syn::Type::TraitObject(_) => {
+                panic!("Parameter fields cannot be of type trait object.")
+            }
             syn::Type::Tuple(_) => panic!("Parameter fields cannot be of type tuple."),
             syn::Type::Verbatim(_) => panic!("Parameter fields cannot be of type verbatim."),
             _ => panic!("Parameter fields must have a specified type."),
@@ -45,54 +55,138 @@ fn get_field_type_name(field: &Field) -> String {
     }
 }
 
+fn is_supported_leaf(field_type_name: &str) -> bool {
+    matches!(
+        field_type_name,
+        "f32" | "i32" | "bool" | "Graph2d" | "Curve2DNorm" | "Curve2D"
+    )
+}
+
+fn parse_field_attributes(
+    field: &Field,
+) -> (
+    proc_macro2::TokenStream,
+    Option<(proc_macro2::TokenStream, proc_macro2::TokenStream)>,
+    bool,
+    bool,
+) {
+    let field_type = &field.ty;
+    let mut default_value: proc_macro2::TokenStream = quote!(#field_type::default());
+    let mut range: Option<(proc_macro2::TokenStream, proc_macro2::TokenStream)> = None;
+    let mut has_value = false;
+    let mut has_range = false;
+
+    for attr in &field.attrs {
+        match &attr.meta {
+            Meta::List(list) => {
+                if list.path.is_ident("value") {
+                    has_value = true;
+                    let attribute_name = list
+                        .path
+                        .get_ident()
+                        .expect("Failed to get attribute name")
+                        .to_string();
+                    let args = list
+                        .parse_args_with(Punctuated::<Expr, Token![,]>::parse_terminated)
+                        .unwrap_or_else(|_| {
+                            panic!(
+                                "Failed to parse attribute arguments for attribute '{}'",
+                                attribute_name
+                            )
+                        });
+                    let num_expected_args = 1;
+                    if args.len() != num_expected_args {
+                        panic!(
+                            "Invalid number of arguments for attribute '{}'. Expected {}, found {}",
+                            attribute_name,
+                            num_expected_args,
+                            args.len()
+                        );
+                    }
+
+                    let argument = args.first().expect("Invalid number of arguments.").clone();
+                    default_value = quote!(#argument);
+                } else if list.path.is_ident("range") {
+                    has_range = true;
+                    let attribute_name = list
+                        .path
+                        .get_ident()
+                        .expect("Failed to get attribute name")
+                        .to_string();
+                    let args = list
+                        .parse_args_with(Punctuated::<Expr, Token![,]>::parse_terminated)
+                        .unwrap_or_else(|_| {
+                            panic!(
+                                "Failed to parse attribute arguments for attribute '{}'",
+                                attribute_name
+                            )
+                        });
+                    let num_expected_args = 2;
+                    if args.len() != num_expected_args {
+                        panic!(
+                            "Invalid number of arguments for attribute '{}'. Expected {}, found {}",
+                            attribute_name,
+                            num_expected_args,
+                            args.len()
+                        );
+                    }
+
+                    let min = args.first().expect("Invalid number of arguments.");
+                    let max = args.last().expect("Invalid number of arguments.");
+                    range = Some((quote!(#min), quote!(#max)));
+                } else {
+                    panic!(
+                        "Unknown attribute '{}'. Only #[value(...)] and #[range(...)] are supported for PlotteryParams fields.",
+                        list.path.to_token_stream()
+                    );
+                }
+            }
+            Meta::Path(path) => {
+                panic!(
+                    "Unknown attribute '{}'. Expected #[value(...)] or #[range(...)].",
+                    path.to_token_stream()
+                )
+            }
+            Meta::NameValue(name_value) => {
+                panic!(
+                    "Unknown attribute '{}'. Expected #[value(...)] or #[range(...)].",
+                    name_value.path.to_token_stream()
+                )
+            }
+        }
+    }
+
+    (default_value, range, has_value, has_range)
+}
+
 fn get_parameters_vector_items(data: &syn::DataStruct) -> Vec<proc_macro2::TokenStream> {
     data.fields
         .iter()
         .map(|field| {
             let field_type = &field.ty;
             let field_type_name = get_field_type_name(field);
-            let field_name = field.ident.as_ref().expect("Failed to get struct field name.").to_string();
+            let field_name = field
+                .ident
+                .as_ref()
+                .expect("Failed to get struct field name.")
+                .to_string();
 
-            let mut default_value: proc_macro2::TokenStream = quote!(#field_type::default());
-            let mut range: Option<(proc_macro2::TokenStream, proc_macro2::TokenStream)> = None;
+            let (default_value, range, has_value, has_range) = parse_field_attributes(field);
 
-            for attr in &field.attrs {
-                match &attr.meta {
-                    Meta::List(list) => {
-                        // #[value(1.0)]
-                        if list.path.is_ident("value") {
-                            let attribute_name = list.path.get_ident().expect("Failed to get attribute name").to_string();
-                            let args = list
-                                .parse_args_with(Punctuated::<Expr, Token![,]>::parse_terminated)
-                                .unwrap_or_else(|_| panic!("Failed to parse attribute arguments for attribute '{}'", attribute_name));
-                            let num_expected_args = 1;
-                            if args.len() != num_expected_args {
-                                panic!("Invalid number of arguments for attribute '{}'. Expected {}, found {}", attribute_name, num_expected_args, args.len());
-                            }
-
-                            let argument = args.first().expect("Invalid number of arguments.").clone();
-                            default_value = quote!(#argument);
-                        }
-
-                        // #[range(0.0, 1.0)]
-                        if list.path.is_ident("range") {
-                            let attribute_name = list.path.get_ident().expect("Failed to get attribute name").to_string();
-                            let args = list
-                                .parse_args_with(Punctuated::<Expr, Token![,]>::parse_terminated)
-                                .unwrap_or_else(|_| panic!("Failed to parse attribute arguments for attribute '{}'", attribute_name));
-                            let num_expected_args = 2;
-                            if args.len() != num_expected_args {
-                                panic!("Invalid number of arguments for attribute '{}'. Expected {}, found {}", attribute_name, num_expected_args, args.len());
-                            }
-
-                            let min = args.first().expect("Invalid number of arguments.");
-                            let max = args.last().expect("Invalid number of arguments.");
-                            range = Some((quote!(#min), quote!(#max)));
-                        }
-                    }
-                    Meta::Path(_) => panic!("Invalid attribute. Expected list. e.g. #[value(1.0)]"),
-                    Meta::NameValue(_) => panic!("Invalid attribute. Expected list. e.g. #[value(1.0)]"),
+            if !is_supported_leaf(field_type_name.as_str()) {
+                if has_value || has_range {
+                    panic!(
+                        "Attributes #[value(...)] and #[range(...)] are only allowed on leaf parameter fields. Field '{}' must define defaults in its nested PlotteryParams type.",
+                        field_name
+                    );
                 }
+
+                return quote! {
+                    ProjectParam::new(
+                        #field_name,
+                        ProjectParamValue::Struct(ProjectParamStruct::new(#field_type::param_defaults_list())),
+                    ),
+                };
             }
 
             match field_type_name.as_str() {
@@ -106,7 +200,7 @@ fn get_parameters_vector_items(data: &syn::DataStruct) -> Vec<proc_macro2::Token
                             ProjectParam::new(#field_name, ProjectParamValue::Float(#default_value)),
                         }
                     }
-                },
+                }
                 "i32" => {
                     if let Some((min, max)) = range {
                         quote! {
@@ -117,44 +211,52 @@ fn get_parameters_vector_items(data: &syn::DataStruct) -> Vec<proc_macro2::Token
                             ProjectParam::new(#field_name, ProjectParamValue::Int(#default_value)),
                         }
                     }
-                },
+                }
                 "bool" => {
                     quote! {
                         ProjectParam::new(#field_name, ProjectParamValue::Bool(#default_value)),
                     }
-                },
+                }
                 "Graph2d" => {
                     quote! {
                         ProjectParam::new(#field_name, ProjectParamValue::Graph2d(#default_value)),
                     }
-                },
+                }
                 "Curve2DNorm" => {
                     quote! {
                         ProjectParam::new(#field_name, ProjectParamValue::Curve2DNorm(#default_value)),
                     }
-                },
+                }
                 "Curve2D" => {
                     quote! {
                         ProjectParam::new(#field_name, ProjectParamValue::Curve2D(#default_value)),
                     }
-                },
-                _ => panic!("Invalid field type: {}", field_type_name),
+                }
+                _ => panic!(
+                    "Invalid field type '{}': expected supported leaf or struct deriving PlotteryParams",
+                    field_type_name
+                ),
             }
-
-
         })
         .collect::<Vec<_>>()
 }
 
 fn get_constructor_fields_items(data: &syn::DataStruct) -> Vec<proc_macro2::TokenStream> {
-    data
-        .fields
+    data.fields
         .iter()
         .map(|field| {
             let field_name = field.ident.as_ref().expect("Failed to access field.");
+            let field_type = &field.ty;
             let field_type_name = get_field_type_name(field);
 
-            if field_type_name == "Graph2d" {
+            if !is_supported_leaf(field_type_name.as_str()) {
+                quote! {
+                    #field_name: match &params.get(stringify!(#field_name)).unwrap_or_else(|| panic!("Field '{}' is missing in params from stdin.", stringify!(#field_name))).value {
+                        ProjectParamValue::Struct(s) => #field_type::new_from_list(s.fields.clone()),
+                        _ => panic!("Expected struct for field '{}'", stringify!(#field_name)),
+                    },
+                }
+            } else if field_type_name == "Graph2d" {
                 quote! {
                     #field_name: match &params.get(stringify!(#field_name)).unwrap_or_else(|| panic!("Field '{}' is missing in params from stdin.", stringify!(#field_name))).value {
                         ProjectParamValue::Graph2d(g) => g.clone(),
@@ -176,7 +278,8 @@ fn get_constructor_fields_items(data: &syn::DataStruct) -> Vec<proc_macro2::Toke
                     },
                 }
             } else {
-                let accessor_function = Ident::new(&format!("get_{}", field_type_name), Span::call_site());
+                let accessor_function =
+                    Ident::new(&format!("get_{}", field_type_name), Span::call_site());
                 quote! {
                     #field_name: params.get(stringify!(#field_name)).unwrap_or_else(|| panic!("Field '{}' is missing in params from stdin.", stringify!(#field_name))).value.#accessor_function().unwrap(),
                 }

@@ -33,7 +33,19 @@ impl PartialEq for ProjectParam {
             _ => true,
         };
 
-        name_equal && type_equal && range_equal
+        let struct_equal = match (&self.value, &other.value) {
+            (ProjectParamValue::Struct(left), ProjectParamValue::Struct(right)) => {
+                left.fields.len() == right.fields.len()
+                    && left
+                        .fields
+                        .iter()
+                        .zip(right.fields.iter())
+                        .all(|(left_field, right_field)| left_field == right_field)
+            }
+            _ => true,
+        };
+
+        name_equal && type_equal && range_equal && struct_equal
     }
 }
 
