@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     rand_range, Angle, Mirror, Rect, Rotate, Rotate90, SampleSettings, Scale, Transform, Translate,
-    V2i,
+    V2i, LARGE_EPSILON,
 };
 
 /// A 2D vector with floating-point coordinates.
@@ -461,9 +461,11 @@ impl V2 {
         V2::new(self.x.sqrt(), self.y.sqrt())
     }
 
-    /// Linearly interpolates between this vector and another.
+    /// Linearly interpolates between this vector and another. see [`V2::towards`] for interpolation based on distance instead of ratio.
     ///
     /// When t=0.0, returns self. When t=1.0, returns other.
+    /// When t is between 0.0 and 1.0, returns a point between self and other.
+    /// When t is less than 0.0 or greater than 1.0, returns a point beyond self or other.
     ///
     /// ### Example
     /// ```
@@ -534,6 +536,29 @@ impl V2 {
         let angle = around.angle_to(*self);
         let new_distance = distance.powf(distance_power);
         around + V2::polar(angle, new_distance)
+    }
+
+    /// Point from self towards other with a given distance. see [`V2::lerp`] for interpolation based on a ratio instead of distance.
+    ///
+    /// When distance=0.0, returns self. When distance=1.0, returns other.
+    /// When distance is greater than the distance between self and other, returns a point beyond other in the same direction.
+    ///
+    /// ### Example
+    /// ```
+    /// # use plottery_lib::*;
+    /// let v1 = V2::new(0.0, 0.0);
+    /// let v2 = V2::new(2.0, 2.0);
+    /// assert_eq!(v1.towards(v2, 1.0), V2::xy(2.0.sqrt()));
+    /// ```
+    pub fn towards(&self, other: Self, distance: f32) -> Self {
+        let point_dist = self.dist(other);
+        let t = if point_dist <= LARGE_EPSILON {
+            0.0
+        } else {
+            distance / point_dist
+        };
+
+        self.lerp(other, t)
     }
 }
 
