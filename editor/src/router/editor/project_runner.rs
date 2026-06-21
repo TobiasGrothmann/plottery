@@ -2,7 +2,7 @@ use crate::router::editor::running_state::RunningState;
 use dioxus::signals::{ReadableExt, SyncSignal, WritableExt};
 use plottery_lib::Layer;
 use plottery_project::{
-    process_stderr_lines, process_stdout_lines,
+    process_lines_to_end, process_stderr_lines, process_stdout_lines,
     project_params_list_wrapper::ProjectParamsListWrapper, read_object_from_stdout, Project,
 };
 
@@ -144,6 +144,16 @@ impl ProjectRunner {
                 msg: "getting params".to_string(),
             });
 
+            let stderr_task = get_params_process.stderr.take().map(|stderr| {
+                let console = console;
+                tokio::spawn(async move {
+                    process_lines_to_end(stderr, |line| {
+                        console.read().project_message(line.as_str())
+                    })
+                    .await
+                })
+            });
+
             let read_params = tokio::select! {
                 _ = cancel_rx.recv() => {
                     nix::sys::signal::kill(
@@ -151,7 +161,9 @@ impl ProjectRunner {
                         nix::sys::signal::SIGTERM,
                     )
                     .expect("Failed to kill get params process");
-                    run_process.kill().expect("Failed to kill get params process");
+                    get_params_process
+                        .kill()
+                        .expect("Failed to kill get params process");
 
                     console.read().info("get params killed");
                     running_state.set(RunningState::GetParamsKilled {
@@ -173,6 +185,22 @@ impl ProjectRunner {
                     }
                 }
             };
+            if let Some(stderr_task) = stderr_task {
+                match stderr_task.await {
+                    Ok(Ok(())) => {}
+                    Ok(Err(e)) => {
+                        console
+                            .read()
+                            .error(format!("error receiving project stderr: {}", e).as_str());
+                    }
+                    Err(e) => {
+                        console
+                            .read()
+                            .error(format!("error receiving project stderr task: {}", e).as_str());
+                    }
+                }
+            }
+
             if read_params.is_none() {
                 return;
             }
@@ -205,6 +233,16 @@ impl ProjectRunner {
             console.read().info("...running");
             running_state.set(RunningState::Running {
                 msg: "running".to_string(),
+            });
+
+            let stderr_task = run_process.stderr.take().map(|stderr| {
+                let console = console;
+                tokio::spawn(async move {
+                    process_lines_to_end(stderr, |line| {
+                        console.read().project_message(line.as_str())
+                    })
+                    .await
+                })
             });
 
             let success = tokio::select! {
@@ -249,6 +287,22 @@ impl ProjectRunner {
                     }
                 }
             };
+            if let Some(stderr_task) = stderr_task {
+                match stderr_task.await {
+                    Ok(Ok(())) => {}
+                    Ok(Err(e)) => {
+                        console
+                            .read()
+                            .error(format!("error receiving project stderr: {}", e).as_str());
+                    }
+                    Err(e) => {
+                        console
+                            .read()
+                            .error(format!("error receiving project stderr task: {}", e).as_str());
+                    }
+                }
+            }
+
             if !success {
                 return;
             }

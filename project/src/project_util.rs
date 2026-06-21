@@ -1,7 +1,7 @@
 use anyhow::Result;
 use async_process::{Child, Command, Stdio};
 use bincode::{deserialize_from, serialize};
-use futures_lite::io::BufReader;
+use futures_lite::io::{AsyncRead, BufReader};
 use futures_lite::prelude::*;
 use futures_lite::{AsyncReadExt, AsyncWriteExt};
 use serde::de::DeserializeOwned;
@@ -77,6 +77,7 @@ pub async fn run_project_executable_async(
         .args(arguments)
         .stdin(exec_stdin)
         .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .spawn()?;
 
     if let Some(params) = params {
@@ -112,6 +113,18 @@ pub async fn read_stdout_as_string_to_end(
     Ok((child_process.status().await?, data))
 }
 
+pub async fn process_lines_to_end<R, F>(stream: R, mut line_handler: F) -> Result<()>
+where
+    R: AsyncRead + Unpin,
+    F: FnMut(String),
+{
+    let mut reader = BufReader::new(stream).lines();
+    while let Some(line) = reader.next().await {
+        line_handler(line?);
+    }
+    Ok(())
+}
+
 pub async fn process_stdout_lines<F>(
     child_process: &mut Child,
     mut line_handler: F,
@@ -124,29 +137,8 @@ where
         .take()
         .ok_or_else(|| anyhow::Error::msg("Failed to get stdout handle"))?;
 
-    let mut reader = BufReader::new(stdout).lines();
-
-    loop {
-        if let Ok(Some(status)) = child_process.try_status() {
-            // process already exited
-            while let Some(line) = reader.next().await {
-                line_handler(line?);
-            }
-            return Ok(status);
-        }
-
-        // wait for a new line
-        match reader.next().await {
-            Some(Ok(line)) => {
-                line_handler(line);
-            }
-            Some(Err(e)) => return Err(e.into()),
-            None => {
-                // process exited
-                return Ok(child_process.status().await?);
-            }
-        }
-    }
+    process_lines_to_end(stdout, &mut line_handler).await?;
+    Ok(child_process.status().await?)
 }
 
 pub async fn process_stderr_lines<F>(
@@ -161,27 +153,6 @@ where
         .take()
         .ok_or_else(|| anyhow::Error::msg("Failed to get stderr handle"))?;
 
-    let mut reader = BufReader::new(stderr).lines();
-
-    loop {
-        if let Ok(Some(status)) = child_process.try_status() {
-            // process already exited
-            while let Some(line) = reader.next().await {
-                line_handler(line?);
-            }
-            return Ok(status);
-        }
-
-        // wait for a new line
-        match reader.next().await {
-            Some(Ok(line)) => {
-                line_handler(line);
-            }
-            Some(Err(e)) => return Err(e.into()),
-            None => {
-                // process exited
-                return Ok(child_process.status().await?);
-            }
-        }
-    }
+    process_lines_to_end(stderr, &mut line_handler).await?;
+    Ok(child_process.status().await?)
 }
