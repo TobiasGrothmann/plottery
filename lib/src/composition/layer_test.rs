@@ -270,6 +270,35 @@ mod test_layer {
     }
 
     #[test]
+    fn iter_flattened_sublayers_fifo_order() {
+        let mut root = Layer::new();
+        root.push(Circle::new_shape(V2::new(0.0, 0.0), 1.0));
+
+        let mut a = Layer::new();
+        a.push(Circle::new_shape(V2::new(1.0, 0.0), 1.0));
+
+        let mut a1 = Layer::new();
+        a1.push(Circle::new_shape(V2::new(2.0, 0.0), 1.0));
+        a.push_layer(a1);
+
+        let mut b = Layer::new();
+        b.push(Circle::new_shape(V2::new(3.0, 0.0), 1.0));
+
+        root.push_layer(a);
+        root.push_layer(b);
+
+        let order_x: Vec<f32> = root
+            .iter_flattened()
+            .map(|shape| match shape {
+                Shape::Circle(c) => c.center.x,
+                _ => panic!("expected circle"),
+            })
+            .collect();
+
+        assert_eq!(order_x, vec![0.0, 1.0, 2.0, 3.0]);
+    }
+
+    #[test]
     fn bounding_box() {
         let mut l = Layer::new();
 

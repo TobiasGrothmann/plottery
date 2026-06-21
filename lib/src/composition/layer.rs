@@ -1563,7 +1563,7 @@ impl<'a> Iterator for LayerFlattenedIterator<'a> {
 
             if let Some(layer) = self.stack.pop() {
                 self.current_layer_iterator = Some(layer.shapes.iter());
-                for sublayer in layer.sublayers.iter() {
+                for sublayer in layer.sublayers.iter().rev() {
                     self.stack.push(sublayer);
                 }
             } else {
