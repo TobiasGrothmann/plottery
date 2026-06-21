@@ -205,4 +205,66 @@ mod test_normalize {
         assert_eq!(normalized_bounds.bl(), V2::new(-0.5, 0.0));
         assert_eq!(normalized_bounds.tr(), V2::new(1.5, 1.0));
     }
+
+    #[test]
+    fn normalize_around_tall_shape_alignment() {
+        let target = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+        let rect = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 2.0));
+
+        let bottom = rect
+            .normalize_around(&target, Alignment::Bottom)
+            .unwrap()
+            .bounding_box()
+            .unwrap();
+        let center = rect
+            .normalize_around(&target, Alignment::Center)
+            .unwrap()
+            .bounding_box()
+            .unwrap();
+        let top = rect
+            .normalize_around(&target, Alignment::Top)
+            .unwrap()
+            .bounding_box()
+            .unwrap();
+
+        assert_eq!(bottom.bl(), V2::new(0.0, 0.0));
+        assert_eq!(bottom.tr(), V2::new(1.0, 2.0));
+
+        assert_eq!(center.bl(), V2::new(0.0, -0.5));
+        assert_eq!(center.tr(), V2::new(1.0, 1.5));
+
+        assert_eq!(top.bl(), V2::new(0.0, -1.0));
+        assert_eq!(top.tr(), V2::new(1.0, 1.0));
+    }
+
+    #[test]
+    fn normalize_around_wide_shape_alignment() {
+        let target = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+        let rect = Rect::new(V2::new(0.0, 0.0), V2::new(2.0, 1.0));
+
+        let left = rect
+            .normalize_around(&target, Alignment::Left)
+            .unwrap()
+            .bounding_box()
+            .unwrap();
+        let center = rect
+            .normalize_around(&target, Alignment::Center)
+            .unwrap()
+            .bounding_box()
+            .unwrap();
+        let right = rect
+            .normalize_around(&target, Alignment::Right)
+            .unwrap()
+            .bounding_box()
+            .unwrap();
+
+        assert_eq!(left.bl(), V2::new(0.0, 0.0));
+        assert_eq!(left.tr(), V2::new(2.0, 1.0));
+
+        assert_eq!(center.bl(), V2::new(-0.5, 0.0));
+        assert_eq!(center.tr(), V2::new(1.5, 1.0));
+
+        assert_eq!(right.bl(), V2::new(-1.0, 0.0));
+        assert_eq!(right.tr(), V2::new(1.0, 1.0));
+    }
 }
