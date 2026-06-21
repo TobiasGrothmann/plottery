@@ -1,4 +1,4 @@
-use crate::{Rect, V2};
+use crate::{Layer, Path, Rect, V2};
 
 /// A rectangular frame with a specified size, position, and margin.
 ///
@@ -17,6 +17,17 @@ pub struct Frame {
     pub bottom_left: V2,
     pub size: V2,
     pub margin: V2,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CutGuideEdge {
+    Top,
+    Right,
+    Bot,
+    Left,
+    TopBot,
+    LeftRight,
+    All,
 }
 
 impl Frame {
@@ -81,5 +92,57 @@ impl Frame {
 
     pub fn center(&self) -> V2 {
         self.outer_rect().center()
+    }
+
+    pub fn cut_guide(&self, edge: CutGuideEdge, start_from_edge: f32) -> Layer {
+        let o = self.outer_rect();
+        let mut guides = vec![];
+
+        if o.width() >= start_from_edge * 2.0 {
+            if matches!(
+                edge,
+                CutGuideEdge::Bot | CutGuideEdge::TopBot | CutGuideEdge::All
+            ) {
+                guides.push(Self::cut_guide_helper(o.bl(), o.br(), start_from_edge));
+            }
+            if matches!(
+                edge,
+                CutGuideEdge::Top | CutGuideEdge::TopBot | CutGuideEdge::All
+            ) {
+                guides.push(Self::cut_guide_helper(o.tl(), o.tr(), start_from_edge));
+            }
+        }
+
+        if o.height() >= start_from_edge * 2.0 {
+            if matches!(
+                edge,
+                CutGuideEdge::Left | CutGuideEdge::LeftRight | CutGuideEdge::All
+            ) {
+                guides.push(Self::cut_guide_helper(o.bl(), o.tl(), start_from_edge));
+            }
+            if matches!(
+                edge,
+                CutGuideEdge::Right | CutGuideEdge::LeftRight | CutGuideEdge::All
+            ) {
+                guides.push(Self::cut_guide_helper(o.br(), o.tr(), start_from_edge));
+            }
+        }
+
+        Layer::new_from(guides)
+    }
+
+    pub fn cut_guide_left_right(&self, start_from_edge: f32) -> Layer {
+        self.cut_guide(CutGuideEdge::LeftRight, start_from_edge)
+    }
+
+    pub fn cut_guide_top_bot(&self, start_from_edge: f32) -> Layer {
+        self.cut_guide(CutGuideEdge::TopBot, start_from_edge)
+    }
+
+    fn cut_guide_helper(v1: V2, v2: V2, start_from_edge: f32) -> crate::Shape {
+        Path::new_shape_from(vec![
+            v1.towards(v2, start_from_edge),
+            v2.towards(v1, start_from_edge),
+        ])
     }
 }
