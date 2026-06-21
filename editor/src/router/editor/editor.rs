@@ -134,59 +134,104 @@ pub fn Editor(project_path: Vec<String>) -> Element {
             Err(_) => PlotSettings::default(),
         }
     });
-    let layer = use_signal_sync(|| {
-        let layer_from_file = {
-            match std::fs::read(project().get_editor_layer_path()) {
-                Ok(layer_binary) => match Layer::new_from_binary(&layer_binary) {
-                    Ok(layer) => Some(layer),
+    let layer = use_signal_sync(|| LayerChangeWrapper {
+        layer: None,
+        change_counter: 0,
+    });
+    {
+        let mut layer = layer;
+        let project = project;
+        let console = console;
+        use_effect(move || {
+            let layer_path = project().get_editor_layer_path();
+            tokio::spawn(async move {
+                let read_result =
+                    tokio::task::spawn_blocking(move || -> Result<Option<Layer>, String> {
+                        match std::fs::read(layer_path) {
+                            Ok(layer_binary) => Layer::new_from_binary(&layer_binary)
+                                .map(Some)
+                                .map_err(|err| {
+                                    format!("failed to deserialize layer from binary: {:?}", err)
+                                }),
+                            Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(None),
+                            Err(err) => Err(format!("failed to read layer from file: {:?}", err)),
+                        }
+                    })
+                    .await;
+
+                match read_result {
+                    Ok(Ok(layer_from_file)) => {
+                        let change_counter = layer.read().change_counter;
+                        layer.set(LayerChangeWrapper {
+                            layer: layer_from_file,
+                            change_counter: change_counter + 1,
+                        });
+                    }
+                    Ok(Err(err_msg)) => {
+                        console().error(err_msg.as_str());
+                    }
                     Err(err) => {
                         console().error(
-                            format!("failed to deserialize layer from binary: {:?}", err).as_str(),
+                            format!("failed to load layer in background: {:?}", err).as_str(),
                         );
-                        None
                     }
-                },
-                Err(err) => {
-                    console().error(format!("failed to read layer from file: {:?}", err).as_str());
-                    None
                 }
-            }
-        };
-        LayerChangeWrapper {
-            layer: layer_from_file,
-            change_counter: 0,
-        }
-    });
+            });
+        });
+    }
+
     let mut layer_tree_ref = use_signal_sync(move || None);
     use_effect(move || {
-        layer_tree_ref.set(
-            layer()
-                .layer
-                .map(|layer| LayerTreeReference::new(&layer, &LayerPropsInheritable::default())),
-        )
+        let layer_tree = layer
+            .read()
+            .layer
+            .as_ref()
+            .map(|layer| LayerTreeReference::new(layer, &LayerPropsInheritable::default()));
+        layer_tree_ref.set(layer_tree)
     });
+
     let mut layer_only_visible_change_counter = use_signal(|| 0);
     let layer_only_visible = use_memo(move || {
         let mut cc = layer_only_visible_change_counter.write();
         let new_count = *cc + 1;
         *cc = new_count;
-        let layer = layer().clone();
-        match layer_tree_ref() {
-            Some(layer_tree_ref) => LayerChangeWrapper {
-                layer: Some(layer_tree_ref.filter_layer_by_visibility(&layer.layer.unwrap())),
+
+        let layer_read = layer.read();
+        match (layer_tree_ref(), layer_read.layer.as_ref()) {
+            (Some(layer_tree_ref), Some(layer)) => LayerChangeWrapper {
+                layer: Some(layer_tree_ref.filter_layer_by_visibility(layer)),
                 change_counter: new_count,
             },
-            None => LayerChangeWrapper {
+            _ => LayerChangeWrapper {
                 layer: None,
                 change_counter: new_count,
             },
         }
     });
-    let estimated_plot_duration = use_memo(move || {
-        layer_only_visible().layer.as_ref().map(|layer| {
-            estimate_plot_layer_duration(layer, SampleSettings::low_res(), &plot_settings())
-        })
+
+    let mut estimated_plot_duration = use_signal_sync(|| None as Option<Duration>);
+    use_effect(move || {
+        let layer = layer_only_visible().layer;
+        let plot_settings = plot_settings();
+        estimated_plot_duration.set(None);
+
+        if let Some(layer) = layer {
+            let mut estimated_plot_duration = estimated_plot_duration;
+            tokio::spawn(async move {
+                match tokio::task::spawn_blocking(move || {
+                    estimate_plot_layer_duration(&layer, SampleSettings::low_res(), &plot_settings)
+                })
+                .await
+                {
+                    Ok(duration) => estimated_plot_duration.set(Some(duration)),
+                    Err(err) => {
+                        tracing::error!("failed to estimate plot duration: {:?}", err);
+                    }
+                }
+            });
+        }
     });
+
     let send_plot_button_text = use_memo(move || {
         estimated_plot_duration()
             .map(|duration| format!("send plot ({})", format_estimated_plot_duration(duration)))
@@ -211,21 +256,30 @@ pub fn Editor(project_path: Vec<String>) -> Element {
             .expect("Failed to write plot settings to file");
     });
     // layer
-    let svg = use_memo(move || {
-        layer_only_visible()
-            .layer
-            .as_ref()
-            .map(|layer| layer.to_svg(1.0).to_string())
+    let svg = use_signal_sync(|| None as Option<String>);
+    use_effect(move || {
+        let layer = layer_only_visible().layer;
+
+        if let Some(layer) = layer {
+            let mut svg = svg;
+            tokio::spawn(async move {
+                match tokio::task::spawn_blocking(move || layer.to_svg(1.0).to_string()).await {
+                    Ok(svg_str) => svg.set(Some(svg_str)),
+                    Err(err) => tracing::error!("failed to generate preview svg: {:?}", err),
+                }
+            });
+        }
     });
     use_effect(move || {
         let layer_path = project().get_editor_layer_path();
-        if let Some(layer) = &layer().layer {
+        if let Some(layer) = layer.read().layer.as_ref() {
             let binary = layer.to_binary().expect("Failed to serialize layer");
             match std::fs::write(layer_path, binary) {
                 Ok(_) => (),
                 Err(e) => tracing::error!("Failed to write layer to file: {:?}", e),
             }
         }
+
         let svg_path = project().get_editor_preview_image_path();
         if let Some(svg) = svg() {
             match std::fs::write(svg_path, svg) {
@@ -449,9 +503,13 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                                 SVGImage { svg }
                             }
                             else {
-                                Image {
-                                    img_path: project().get_editor_preview_image_path().to_str().unwrap().to_string(),
-                                    redraw_counter: layer().change_counter,
+                                div {
+                                    class: "Image",
+                                    style: "height: 100%; width: 100%; flex: 1; display: flex; align-items: flex-start; justify-content: flex-start;",
+                                    Image {
+                                        img_path: project().get_editor_preview_image_path().to_str().unwrap().to_string(),
+                                        redraw_counter: layer().change_counter,
+                                    }
                                 }
                             }
                         } else {
