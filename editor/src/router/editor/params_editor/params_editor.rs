@@ -329,6 +329,7 @@ fn render_vec_value(
                             button {
                                 class: "ParamVecDeleteButton",
                                 r#type: "button",
+                                title: "Delete item",
                                 onclick: move |_| {
                                     remove_vec_item(
                                         &vec_path_for_remove,
