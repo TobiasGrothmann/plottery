@@ -140,8 +140,6 @@ pub fn Editor(project_path: Vec<String>) -> Element {
     });
     {
         let mut layer = layer;
-        let project = project;
-        let console = console;
         use_effect(move || {
             let layer_path = project().get_editor_layer_path();
             tokio::spawn(async move {

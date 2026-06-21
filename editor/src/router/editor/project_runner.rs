@@ -144,8 +144,7 @@ impl ProjectRunner {
                 msg: "getting params".to_string(),
             });
 
-            let stderr_task = get_params_process.stderr.take().map(|stderr| {
-                let console = console;
+            let stderr_task = get_params_process.stderr.take().map(move |stderr| {
                 tokio::spawn(async move {
                     process_lines_to_end(stderr, |line| {
                         console.read().project_message(line.as_str())
@@ -235,8 +234,7 @@ impl ProjectRunner {
                 msg: "running".to_string(),
             });
 
-            let stderr_task = run_process.stderr.take().map(|stderr| {
-                let console = console;
+            let stderr_task = run_process.stderr.take().map(move |stderr| {
                 tokio::spawn(async move {
                     process_lines_to_end(stderr, |line| {
                         console.read().project_message(line.as_str())
