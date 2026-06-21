@@ -5,6 +5,7 @@ pub use super::curve_2d::Curve2D;
 pub use super::curve_2d_norm::Curve2DNorm;
 use super::project_param_optional::ProjectParamOptional;
 use super::project_param_struct::ProjectParamStruct;
+use super::project_param_vec::ProjectParamVec;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ProjectParamValue {
@@ -17,6 +18,7 @@ pub enum ProjectParamValue {
     Curve2D(Curve2D),
     Struct(ProjectParamStruct),
     Optional(ProjectParamOptional),
+    Vec(ProjectParamVec),
 }
 
 impl ProjectParamValue {
@@ -93,6 +95,9 @@ impl ProjectParamValue {
             ProjectParamValue::Optional(optional) => {
                 format!("option<{}>", optional.value.type_name())
             }
+            ProjectParamValue::Vec(vec_value) => {
+                format!("vec<{}>", vec_value.item_prototype.type_name())
+            }
         }
     }
 
@@ -114,6 +119,9 @@ impl ProjectParamValue {
                 } else {
                     "None".to_string()
                 }
+            }
+            ProjectParamValue::Vec(vec_value) => {
+                format!("{} items", vec_value.items.len())
             }
         }
     }

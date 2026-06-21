@@ -10,7 +10,7 @@ use tokio::sync::Mutex;
 
 use crate::router::editor::{
     console_messages::ConsoleMessages,
-    params_editor::param_tree::{get_param_mut_by_path, get_param_value_by_path},
+    params_editor::param_tree::{get_param_value_by_path, get_param_value_mut_by_path},
     project_runner::ProjectRunner,
     running_state::RunningState,
 };
@@ -98,8 +98,8 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                             if let Ok(val) = event.value().parse::<f32>() {
                                                 let mut new_params = props.project_params.read().clone();
                                                 let path = param_path.read().clone();
-                                                if let Some(param_field) = get_param_mut_by_path(&mut new_params.list, &path) {
-                                                    match &mut param_field.value {
+                                                if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, &path) {
+                                                    match param_value {
                                                         ProjectParamValue::Curve2D(c) => c.mapped_to.x_start = val,
                                                         ProjectParamValue::Optional(optional) => {
                                                             if let ProjectParamValue::Curve2D(c) = optional.value.as_mut() {
@@ -132,8 +132,8 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                             if let Ok(val) = event.value().parse::<f32>() {
                                                 let mut new_params = props.project_params.read().clone();
                                                 let path = param_path.read().clone();
-                                                if let Some(param_field) = get_param_mut_by_path(&mut new_params.list, &path) {
-                                                    match &mut param_field.value {
+                                                if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, &path) {
+                                                    match param_value {
                                                         ProjectParamValue::Curve2D(c) => c.mapped_to.x_end = val,
                                                         ProjectParamValue::Optional(optional) => {
                                                             if let ProjectParamValue::Curve2D(c) = optional.value.as_mut() {
@@ -168,8 +168,8 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                             if let Ok(val) = event.value().parse::<f32>() {
                                                 let mut new_params = props.project_params.read().clone();
                                                 let path = param_path.read().clone();
-                                                if let Some(param_field) = get_param_mut_by_path(&mut new_params.list, &path) {
-                                                    match &mut param_field.value {
+                                                if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, &path) {
+                                                    match param_value {
                                                         ProjectParamValue::Curve2D(c) => c.mapped_to.y_start = val,
                                                         ProjectParamValue::Optional(optional) => {
                                                             if let ProjectParamValue::Curve2D(c) = optional.value.as_mut() {
@@ -202,8 +202,8 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                             if let Ok(val) = event.value().parse::<f32>() {
                                                 let mut new_params = props.project_params.read().clone();
                                                 let path = param_path.read().clone();
-                                                if let Some(param_field) = get_param_mut_by_path(&mut new_params.list, &path) {
-                                                    match &mut param_field.value {
+                                                if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, &path) {
+                                                    match param_value {
                                                         ProjectParamValue::Curve2D(c) => c.mapped_to.y_end = val,
                                                         ProjectParamValue::Optional(optional) => {
                                                             if let ProjectParamValue::Curve2D(c) = optional.value.as_mut() {
@@ -243,8 +243,8 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
 
                             let mut new_params = props.project_params.read().clone();
                             let path = param_path.read().clone();
-                            if let Some(param_field) = get_param_mut_by_path(&mut new_params.list, &path) {
-                                match &mut param_field.value {
+                            if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, &path) {
+                                match param_value {
                                     ProjectParamValue::Curve2DNorm(g) => {
                                         let _ = g.add_point(plottery_lib::V2::new(x, y));
                                     }
@@ -297,8 +297,8 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
 
                                 let mut new_params = props.project_params.read().clone();
                                 let path = param_path.read().clone();
-                                if let Some(param_field) = get_param_mut_by_path(&mut new_params.list, &path) {
-                                    match &mut param_field.value {
+                                if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, &path) {
+                                    match param_value {
                                         ProjectParamValue::Curve2DNorm(ref mut g) => {
                                             let total_points = g.len();
                                             if index == 0 {
@@ -418,8 +418,8 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                             if i > 0 && i < graph_len - 1 {
                                                 let mut new_params = props.project_params.read().clone();
                                                 let path = param_path.read().clone();
-                                                if let Some(param_field) = get_param_mut_by_path(&mut new_params.list, &path) {
-                                                    match &mut param_field.value {
+                                                if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, &path) {
+                                                    match param_value {
                                                         ProjectParamValue::Curve2DNorm(c) => {
                                                             let _ = c.remove_point_at(i);
                                                         }

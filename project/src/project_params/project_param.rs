@@ -44,6 +44,9 @@ fn value_schema_equal(left: &ProjectParamValue, right: &ProjectParamValue) -> bo
             ProjectParamValue::Optional(left_optional),
             ProjectParamValue::Optional(right_optional),
         ) => value_schema_equal(&left_optional.value, &right_optional.value),
+        (ProjectParamValue::Vec(left_vec), ProjectParamValue::Vec(right_vec)) => {
+            value_schema_equal(&left_vec.item_prototype, &right_vec.item_prototype)
+        }
         _ => left.type_name() == right.type_name(),
     }
 }

@@ -8,7 +8,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use crate::router::editor::{
-    console_messages::ConsoleMessages, params_editor::param_tree::get_param_mut_by_path,
+    console_messages::ConsoleMessages, params_editor::param_tree::get_param_value_mut_by_path,
     project_runner::ProjectRunner, running_state::RunningState,
 };
 
@@ -44,10 +44,10 @@ pub fn NumberField(mut props: NumberFieldProps) -> Element {
                 },
                 onchange: move |event| {
                     let mut new_params = props.project_params.read().clone();
-                    if let Some(param_field) = get_param_mut_by_path(&mut new_params.list, &props.path) {
+                    if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, &props.path) {
                         let new_val = event.value().parse::<f32>();
                         match new_val {
-                            Ok(val) => match &mut param_field.value {
+                            Ok(val) => match param_value {
                                 ProjectParamValue::Float(inner) => *inner = val,
                                 ProjectParamValue::Int(inner) => *inner = val.round() as i32,
                                 ProjectParamValue::Optional(optional) => match optional.value.as_mut() {

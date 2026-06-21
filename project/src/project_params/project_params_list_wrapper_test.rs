@@ -2,8 +2,8 @@
 mod tests {
     use crate::{
         project_param::ProjectParam, project_param_optional::ProjectParamOptional,
-        project_param_value::ProjectParamValue,
-        project_params_list_wrapper::ProjectParamsListWrapper,
+        project_param_struct::ProjectParamStruct, project_param_value::ProjectParamValue,
+        project_param_vec::ProjectParamVec, project_params_list_wrapper::ProjectParamsListWrapper,
     };
 
     #[test]
@@ -128,5 +128,71 @@ mod tests {
 
         let combined = ProjectParamsListWrapper::new_combined(&old.list, &new.list);
         assert_eq!(combined.list, expected.list);
+    }
+
+    #[test]
+    fn test_combine_vec_params_keeps_items_when_schema_matches() {
+        let old =
+            ProjectParamsListWrapper::new(vec![ProjectParam::new(
+                "points",
+                ProjectParamValue::Vec(ProjectParamVec::new(
+                    ProjectParamValue::Struct(ProjectParamStruct::new(vec![ProjectParam::new(
+                        "x",
+                        ProjectParamValue::Float(0.0),
+                    )])),
+                    vec![
+                        ProjectParamValue::Struct(ProjectParamStruct::new(vec![
+                            ProjectParam::new("x", ProjectParamValue::Float(0.25)),
+                        ])),
+                        ProjectParamValue::Struct(ProjectParamStruct::new(vec![
+                            ProjectParam::new("x", ProjectParamValue::Float(0.75)),
+                        ])),
+                    ],
+                )),
+            )]);
+
+        let new = ProjectParamsListWrapper::new(vec![ProjectParam::new(
+            "points",
+            ProjectParamValue::Vec(ProjectParamVec::new(
+                ProjectParamValue::Struct(ProjectParamStruct::new(vec![ProjectParam::new(
+                    "x",
+                    ProjectParamValue::Float(0.0),
+                )])),
+                vec![],
+            )),
+        )]);
+
+        let combined = ProjectParamsListWrapper::new_combined(&old.list, &new.list);
+        assert_eq!(combined.list, old.list);
+    }
+
+    #[test]
+    fn test_combine_vec_params_resets_items_when_schema_changes() {
+        let old = ProjectParamsListWrapper::new(vec![ProjectParam::new(
+            "points",
+            ProjectParamValue::Vec(ProjectParamVec::new(
+                ProjectParamValue::Struct(ProjectParamStruct::new(vec![ProjectParam::new(
+                    "x",
+                    ProjectParamValue::Float(0.0),
+                )])),
+                vec![ProjectParamValue::Struct(ProjectParamStruct::new(vec![
+                    ProjectParam::new("x", ProjectParamValue::Float(0.25)),
+                ]))],
+            )),
+        )]);
+
+        let new = ProjectParamsListWrapper::new(vec![ProjectParam::new(
+            "points",
+            ProjectParamValue::Vec(ProjectParamVec::new(
+                ProjectParamValue::Struct(ProjectParamStruct::new(vec![
+                    ProjectParam::new("x", ProjectParamValue::Float(0.0)),
+                    ProjectParam::new("y", ProjectParamValue::Float(0.0)),
+                ])),
+                vec![],
+            )),
+        )]);
+
+        let combined = ProjectParamsListWrapper::new_combined(&old.list, &new.list);
+        assert_eq!(combined.list, new.list);
     }
 }

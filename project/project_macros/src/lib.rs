@@ -27,6 +27,13 @@ enum ParsedFieldType {
     OptionStruct {
         inner_ty: syn::Type,
     },
+    VecLeaf {
+        inner_type_name: String,
+        inner_ty: syn::Type,
+    },
+    VecStruct {
+        inner_ty: syn::Type,
+    },
 }
 
 fn perform_sanity_checks(data: &syn::DataStruct) {
@@ -73,12 +80,28 @@ fn ensure_non_generic_type_path(ty: &syn::Type) {
             for segment in &path.path.segments {
                 if !matches!(segment.arguments, PathArguments::None) {
                     panic!(
-                        "Generic/wrapper field types are not supported for PlotteryParams (except Option<T>)."
+                        "Generic/wrapper field types are not supported for PlotteryParams (except Option<T> and Vec<T>)."
                     );
                 }
             }
         }
         _ => panic!("Parameter field type is invalid."),
+    }
+}
+
+fn parse_single_generic_type(type_name: &str, args: &PathArguments) -> syn::Type {
+    let args = match args {
+        PathArguments::AngleBracketed(args) => args,
+        _ => panic!("{} fields must be of the form {}<T>.", type_name, type_name),
+    };
+
+    if args.args.len() != 1 {
+        panic!("{} fields must be of the form {}<T>.", type_name, type_name);
+    }
+
+    match args.args.first().expect("Missing type argument") {
+        GenericArgument::Type(ty) => ty.clone(),
+        _ => panic!("{} fields must be of the form {}<T>.", type_name, type_name),
     }
 }
 
@@ -93,24 +116,14 @@ fn parse_field_type(field: &Field) -> ParsedFieldType {
     let last_segment = path.path.segments.last().expect("Invalid field type path.");
 
     if last_segment.ident == "Option" {
-        let args = match &last_segment.arguments {
-            PathArguments::AngleBracketed(args) => args,
-            _ => panic!("Option fields must be of the form Option<T>."),
-        };
-
-        if args.args.len() != 1 {
-            panic!("Option fields must be of the form Option<T>.");
-        }
-
-        let inner_ty = match args.args.first().expect("Missing Option type argument") {
-            GenericArgument::Type(ty) => ty.clone(),
-            _ => panic!("Option fields must be of the form Option<T>."),
-        };
-
+        let inner_ty = parse_single_generic_type("Option", &last_segment.arguments);
         let inner_name = get_type_name_from_type(&inner_ty);
 
         if inner_name == "Option" {
             panic!("Nested Option<Option<T>> fields are not supported for PlotteryParams.");
+        }
+        if inner_name == "Vec" {
+            panic!("Option<Vec<T>> fields are not supported for PlotteryParams.");
         }
 
         if is_supported_leaf(inner_name.as_str()) {
@@ -121,6 +134,26 @@ fn parse_field_type(field: &Field) -> ParsedFieldType {
         } else {
             ensure_non_generic_type_path(&inner_ty);
             ParsedFieldType::OptionStruct { inner_ty }
+        }
+    } else if last_segment.ident == "Vec" {
+        let inner_ty = parse_single_generic_type("Vec", &last_segment.arguments);
+        let inner_name = get_type_name_from_type(&inner_ty);
+
+        if inner_name == "Option" {
+            panic!("Vec<Option<T>> fields are not supported for PlotteryParams.");
+        }
+        if inner_name == "Vec" {
+            panic!("Nested Vec<Vec<T>> fields are not supported for PlotteryParams.");
+        }
+
+        if is_supported_leaf(inner_name.as_str()) {
+            ParsedFieldType::VecLeaf {
+                inner_type_name: inner_name,
+                inner_ty,
+            }
+        } else {
+            ensure_non_generic_type_path(&inner_ty);
+            ParsedFieldType::VecStruct { inner_ty }
         }
     } else {
         ensure_non_generic_type_path(&field_type);
@@ -343,6 +376,49 @@ fn get_parameters_vector_items(data: &syn::DataStruct) -> Vec<proc_macro2::Token
                         ),
                     }
                 }
+                ParsedFieldType::VecLeaf {
+                    inner_type_name,
+                    inner_ty,
+                } => {
+                    let (default_value, range, has_value, has_range) =
+                        parse_field_attributes(field, quote!(#inner_ty));
+                    if has_value || has_range {
+                        panic!(
+                            "Attributes #[value(...)] and #[range(...)] are not supported on Vec<T> fields. Vec fields always default to an empty vector and use T::default() as item prototype. Field '{}'.",
+                            field_name
+                        );
+                    }
+
+                    let inner_value =
+                        make_leaf_value_tokens(inner_type_name.as_str(), default_value, range);
+
+                    quote! {
+                        ProjectParam::new(
+                            #field_name,
+                            ProjectParamValue::Vec(ProjectParamVec::new(#inner_value, vec![])),
+                        ),
+                    }
+                }
+                ParsedFieldType::VecStruct { inner_ty } => {
+                    let (_, _, has_value, has_range) =
+                        parse_field_attributes(field, quote!(#inner_ty));
+                    if has_value || has_range {
+                        panic!(
+                            "Attributes #[value(...)] and #[range(...)] are not supported on Vec<T> fields. Vec fields always default to an empty vector and use T::default() as item prototype. Field '{}'.",
+                            field_name
+                        );
+                    }
+
+                    quote! {
+                        ProjectParam::new(
+                            #field_name,
+                            ProjectParamValue::Vec(ProjectParamVec::new(
+                                ProjectParamValue::Struct(ProjectParamStruct::new(#inner_ty::param_defaults_list())),
+                                vec![],
+                            )),
+                        ),
+                    }
+                }
             }
         })
         .collect::<Vec<_>>()
@@ -446,6 +522,39 @@ fn get_constructor_fields_items(data: &syn::DataStruct) -> Vec<proc_macro2::Toke
                                 }
                             }
                             _ => panic!("Expected Option<...> for field '{}'", stringify!(#field_name)),
+                        },
+                    }
+                }
+                ParsedFieldType::VecLeaf {
+                    inner_type_name, ..
+                } => {
+                    let inner_value_expr = quote! { item };
+                    let inner_constructor = make_leaf_constructor_expr(
+                        inner_type_name.as_str(),
+                        field_name,
+                        inner_value_expr,
+                    );
+                    quote! {
+                        #field_name: match #value_expr {
+                            ProjectParamValue::Vec(vec_value) => {
+                                vec_value.items.iter().map(|item| #inner_constructor).collect()
+                            }
+                            _ => panic!("Expected Vec<...> for field '{}'", stringify!(#field_name)),
+                        },
+                    }
+                }
+                ParsedFieldType::VecStruct { inner_ty } => {
+                    quote! {
+                        #field_name: match #value_expr {
+                            ProjectParamValue::Vec(vec_value) => {
+                                vec_value.items.iter().map(|item| {
+                                    match item {
+                                        ProjectParamValue::Struct(s) => #inner_ty::new_from_list(s.fields.clone()),
+                                        _ => panic!("Expected Vec<struct> for field '{}'", stringify!(#field_name)),
+                                    }
+                                }).collect()
+                            }
+                            _ => panic!("Expected Vec<...> for field '{}'", stringify!(#field_name)),
                         },
                     }
                 }

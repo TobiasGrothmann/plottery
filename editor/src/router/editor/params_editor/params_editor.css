@@ -34,3 +34,39 @@
     border-left: 2px solid white;
     padding-left: var(--gap-1);
 }
+
+.ParamVec {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-1);
+}
+
+.ParamVecItem {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: start;
+    gap: var(--gap-1);
+}
+
+.ParamVecItemContent {
+    min-width: 0;
+}
+
+.ParamVecDeleteButton,
+.ParamVecAddButton {
+    border: 1px solid var(--col-border-1);
+    background: var(--col-bg-2);
+    color: var(--col-fg-1);
+    border-radius: 4px;
+    padding: 2px 8px;
+    cursor: pointer;
+}
+
+.ParamVecDeleteButton {
+    align-self: center;
+}
+
+.ParamVecAddRow {
+    display: flex;
+    justify-content: flex-start;
+}
