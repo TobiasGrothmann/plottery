@@ -32,14 +32,26 @@ pub fn BoolField(mut props: BoolFieldProps) -> Element {
                 name: "{props.param.name.clone()}",
                 type: "checkbox",
                 required: true,
-                value: match props.param.value {
+                value: match &props.param.value {
                     ProjectParamValue::Bool(val) => val.to_string(),
+                    ProjectParamValue::Optional(optional) => match optional.value.as_ref() {
+                        ProjectParamValue::Bool(val) => val.to_string(),
+                        _ => panic!("Unexpected Error"),
+                    },
                     _ => panic!("Unexpected Error"),
                 },
                 onchange: move |event| {
                     let mut new_params = props.project_params.read().clone();
                     if let Some(param_field) = get_param_mut_by_path(&mut new_params.list, &props.path) {
-                        param_field.value.set_bool(event.value().parse().expect("Failed to parse boolean value"));
+                        let new_val = event.value().parse().expect("Failed to parse boolean value");
+                        match &mut param_field.value {
+                            ProjectParamValue::Bool(val) => *val = new_val,
+                            ProjectParamValue::Optional(optional) => match optional.value.as_mut() {
+                                ProjectParamValue::Bool(val) => *val = new_val,
+                                _ => panic!("Unexpected Error"),
+                            },
+                            _ => panic!("Unexpected Error"),
+                        }
                     } else {
                         tracing::error!("Param path not found: {:?}", props.path);
                         return;

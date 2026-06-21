@@ -26,6 +26,12 @@ pub fn get_param_mut_by_path<'a>(
         ProjectParamValue::Struct(param_struct) => {
             get_param_mut_by_path(&mut param_struct.fields, &path[1..])
         }
+        ProjectParamValue::Optional(optional) => match optional.value.as_mut() {
+            ProjectParamValue::Struct(param_struct) => {
+                get_param_mut_by_path(&mut param_struct.fields, &path[1..])
+            }
+            _ => None,
+        },
         _ => None,
     }
 }
@@ -46,6 +52,12 @@ fn get_param_by_path<'a>(list: &'a [ProjectParam], path: &[String]) -> Option<&'
         ProjectParamValue::Struct(param_struct) => {
             get_param_by_path(&param_struct.fields, &path[1..])
         }
+        ProjectParamValue::Optional(optional) => match optional.value.as_ref() {
+            ProjectParamValue::Struct(param_struct) => {
+                get_param_by_path(&param_struct.fields, &path[1..])
+            }
+            _ => None,
+        },
         _ => None,
     }
 }

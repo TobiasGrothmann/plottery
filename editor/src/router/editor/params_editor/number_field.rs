@@ -32,9 +32,14 @@ pub fn NumberField(mut props: NumberFieldProps) -> Element {
                 name: "{props.param.name.clone()}",
                 placeholder: "value",
                 required: true,
-                value: match props.param.value {
+                value: match &props.param.value {
                     ProjectParamValue::Float(val) => val.to_string(),
                     ProjectParamValue::Int(val) => val.to_string(),
+                    ProjectParamValue::Optional(optional) => match optional.value.as_ref() {
+                        ProjectParamValue::Float(val) => val.to_string(),
+                        ProjectParamValue::Int(val) => val.to_string(),
+                        _ => panic!("Unexpected Error"),
+                    },
                     _ => panic!("Unexpected Error"),
                 },
                 onchange: move |event| {
@@ -42,9 +47,14 @@ pub fn NumberField(mut props: NumberFieldProps) -> Element {
                     if let Some(param_field) = get_param_mut_by_path(&mut new_params.list, &props.path) {
                         let new_val = event.value().parse::<f32>();
                         match new_val {
-                            Ok(val) => match param_field.value {
-                                ProjectParamValue::Float(_) => param_field.value.set_f32(val),
-                                ProjectParamValue::Int(_) => param_field.value.set_i32(val.round() as i32),
+                            Ok(val) => match &mut param_field.value {
+                                ProjectParamValue::Float(inner) => *inner = val,
+                                ProjectParamValue::Int(inner) => *inner = val.round() as i32,
+                                ProjectParamValue::Optional(optional) => match optional.value.as_mut() {
+                                    ProjectParamValue::Float(inner) => *inner = val,
+                                    ProjectParamValue::Int(inner) => *inner = val.round() as i32,
+                                    _ => panic!("Unexpected Error"),
+                                },
                                 _ => panic!("Unexpected Error"),
                             },
                             Err(e) => {

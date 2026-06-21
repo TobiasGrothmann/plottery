@@ -15,6 +15,16 @@
     align-self: center;
 }
 
+.ParamOptionLabel {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ParamOptionLabel input[type="checkbox"] {
+    margin: 0 8px;
+}
+
 .ParamStruct {
     display: grid;
     grid-template-columns: auto 1fr;

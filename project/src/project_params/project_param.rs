@@ -10,42 +10,41 @@ pub struct ProjectParam {
 
 impl PartialEq for ProjectParam {
     fn eq(&self, other: &Self) -> bool {
-        let name_equal = self.name == other.name;
-        let type_equal = self.value.type_name() == other.value.type_name();
+        self.name == other.name && value_schema_equal(&self.value, &other.value)
+    }
+}
 
-        let range_equal = match (&self.value, &other.value) {
-            (
-                ProjectParamValue::FloatRanged { val: _, min, max },
-                ProjectParamValue::FloatRanged {
-                    val: _,
-                    min: min_other,
-                    max: max_other,
-                },
-            ) => min == min_other && max == max_other,
-            (
-                ProjectParamValue::IntRanged { val: _, min, max },
-                ProjectParamValue::IntRanged {
-                    val: _,
-                    min: min_other,
-                    max: max_other,
-                },
-            ) => min == min_other && max == max_other,
-            _ => true,
-        };
-
-        let struct_equal = match (&self.value, &other.value) {
-            (ProjectParamValue::Struct(left), ProjectParamValue::Struct(right)) => {
-                left.fields.len() == right.fields.len()
-                    && left
-                        .fields
-                        .iter()
-                        .zip(right.fields.iter())
-                        .all(|(left_field, right_field)| left_field == right_field)
-            }
-            _ => true,
-        };
-
-        name_equal && type_equal && range_equal && struct_equal
+fn value_schema_equal(left: &ProjectParamValue, right: &ProjectParamValue) -> bool {
+    match (left, right) {
+        (
+            ProjectParamValue::FloatRanged { val: _, min, max },
+            ProjectParamValue::FloatRanged {
+                val: _,
+                min: min_other,
+                max: max_other,
+            },
+        ) => min == min_other && max == max_other,
+        (
+            ProjectParamValue::IntRanged { val: _, min, max },
+            ProjectParamValue::IntRanged {
+                val: _,
+                min: min_other,
+                max: max_other,
+            },
+        ) => min == min_other && max == max_other,
+        (ProjectParamValue::Struct(left_struct), ProjectParamValue::Struct(right_struct)) => {
+            left_struct.fields.len() == right_struct.fields.len()
+                && left_struct
+                    .fields
+                    .iter()
+                    .zip(right_struct.fields.iter())
+                    .all(|(left_field, right_field)| left_field == right_field)
+        }
+        (
+            ProjectParamValue::Optional(left_optional),
+            ProjectParamValue::Optional(right_optional),
+        ) => value_schema_equal(&left_optional.value, &right_optional.value),
+        _ => left.type_name() == right.type_name(),
     }
 }
 

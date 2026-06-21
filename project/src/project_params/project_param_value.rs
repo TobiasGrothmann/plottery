@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 pub use super::curve_2d::Curve2D;
 pub use super::curve_2d_norm::Curve2DNorm;
+use super::project_param_optional::ProjectParamOptional;
 use super::project_param_struct::ProjectParamStruct;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -15,6 +16,7 @@ pub enum ProjectParamValue {
     Curve2DNorm(Curve2DNorm),
     Curve2D(Curve2D),
     Struct(ProjectParamStruct),
+    Optional(ProjectParamOptional),
 }
 
 impl ProjectParamValue {
@@ -88,6 +90,9 @@ impl ProjectParamValue {
             ProjectParamValue::Curve2DNorm(_) => "curve2d_norm".to_string(),
             ProjectParamValue::Curve2D(_) => "curve2d".to_string(),
             ProjectParamValue::Struct(_) => "struct".to_string(),
+            ProjectParamValue::Optional(optional) => {
+                format!("option<{}>", optional.value.type_name())
+            }
         }
     }
 
@@ -102,6 +107,13 @@ impl ProjectParamValue {
             ProjectParamValue::Curve2D(curve) => format!("{} points", curve.len()),
             ProjectParamValue::Struct(param_struct) => {
                 format!("{} fields", param_struct.fields.len())
+            }
+            ProjectParamValue::Optional(optional) => {
+                if optional.enabled {
+                    format!("Some({})", optional.value.value_as_string())
+                } else {
+                    "None".to_string()
+                }
             }
         }
     }

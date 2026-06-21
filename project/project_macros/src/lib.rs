@@ -1,12 +1,32 @@
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::{quote, ToTokens};
-use syn::{self, punctuated::Punctuated, Expr, Field, Ident, Meta, PathArguments, Token};
+use syn::{
+    self, punctuated::Punctuated, Expr, Field, GenericArgument, Ident, Meta, PathArguments, Token,
+};
 
 #[proc_macro_derive(PlotteryParams, attributes(value, range))]
 pub fn plottery_params(input: TokenStream) -> TokenStream {
     let ast = syn::parse(input).expect("Failed to parse macro.");
     plottery_params_impl(&ast)
+}
+
+#[derive(Clone)]
+enum ParsedFieldType {
+    Leaf {
+        type_name: String,
+        ty: syn::Type,
+    },
+    Struct {
+        ty: syn::Type,
+    },
+    OptionLeaf {
+        inner_type_name: String,
+        inner_ty: syn::Type,
+    },
+    OptionStruct {
+        inner_ty: syn::Type,
+    },
 }
 
 fn perform_sanity_checks(data: &syn::DataStruct) {
@@ -20,15 +40,7 @@ fn perform_sanity_checks(data: &syn::DataStruct) {
             syn::Type::Macro(_) => panic!("Parameter fields cannot be of type macro."),
             syn::Type::Never(_) => panic!("Parameter fields cannot be of type never."),
             syn::Type::Paren(_) => panic!("Parameter fields cannot be of type paren."),
-            syn::Type::Path(path) => {
-                for segment in &path.path.segments {
-                    if !matches!(segment.arguments, PathArguments::None) {
-                        panic!(
-                            "Generic/wrapper field types are not supported for PlotteryParams (e.g. Option<T>, Vec<T>, Box<T>)."
-                        );
-                    }
-                }
-            }
+            syn::Type::Path(_) => {}
             syn::Type::Ptr(_) => panic!("Parameter fields cannot be of type pointer."),
             syn::Type::Reference(_) => panic!("Parameter fields cannot be of type reference."),
             syn::Type::Slice(_) => panic!("Parameter fields cannot be of type slice."),
@@ -42,8 +54,8 @@ fn perform_sanity_checks(data: &syn::DataStruct) {
     }
 }
 
-fn get_field_type_name(field: &Field) -> String {
-    match &field.ty {
+fn get_type_name_from_type(ty: &syn::Type) -> String {
+    match ty {
         syn::Type::Path(path) => path
             .path
             .segments
@@ -52,6 +64,76 @@ fn get_field_type_name(field: &Field) -> String {
             .ident
             .to_string(),
         _ => panic!("Parameter field type is invalid."),
+    }
+}
+
+fn ensure_non_generic_type_path(ty: &syn::Type) {
+    match ty {
+        syn::Type::Path(path) => {
+            for segment in &path.path.segments {
+                if !matches!(segment.arguments, PathArguments::None) {
+                    panic!(
+                        "Generic/wrapper field types are not supported for PlotteryParams (except Option<T>)."
+                    );
+                }
+            }
+        }
+        _ => panic!("Parameter field type is invalid."),
+    }
+}
+
+fn parse_field_type(field: &Field) -> ParsedFieldType {
+    let field_type = field.ty.clone();
+
+    let path = match &field_type {
+        syn::Type::Path(path) => path,
+        _ => panic!("Parameter field type is invalid."),
+    };
+
+    let last_segment = path.path.segments.last().expect("Invalid field type path.");
+
+    if last_segment.ident == "Option" {
+        let args = match &last_segment.arguments {
+            PathArguments::AngleBracketed(args) => args,
+            _ => panic!("Option fields must be of the form Option<T>."),
+        };
+
+        if args.args.len() != 1 {
+            panic!("Option fields must be of the form Option<T>.");
+        }
+
+        let inner_ty = match args.args.first().expect("Missing Option type argument") {
+            GenericArgument::Type(ty) => ty.clone(),
+            _ => panic!("Option fields must be of the form Option<T>."),
+        };
+
+        let inner_name = get_type_name_from_type(&inner_ty);
+
+        if inner_name == "Option" {
+            panic!("Nested Option<Option<T>> fields are not supported for PlotteryParams.");
+        }
+
+        if is_supported_leaf(inner_name.as_str()) {
+            ParsedFieldType::OptionLeaf {
+                inner_type_name: inner_name,
+                inner_ty,
+            }
+        } else {
+            ensure_non_generic_type_path(&inner_ty);
+            ParsedFieldType::OptionStruct { inner_ty }
+        }
+    } else {
+        ensure_non_generic_type_path(&field_type);
+
+        let field_type_name = get_type_name_from_type(&field_type);
+        if is_supported_leaf(field_type_name.as_str()) {
+            ParsedFieldType::Leaf {
+                type_name: field_type_name,
+                ty: field_type,
+            }
+        } else {
+            ParsedFieldType::Struct { ty: field_type }
+        }
     }
 }
 
@@ -64,14 +146,14 @@ fn is_supported_leaf(field_type_name: &str) -> bool {
 
 fn parse_field_attributes(
     field: &Field,
+    default_type: proc_macro2::TokenStream,
 ) -> (
     proc_macro2::TokenStream,
     Option<(proc_macro2::TokenStream, proc_macro2::TokenStream)>,
     bool,
     bool,
 ) {
-    let field_type = &field.ty;
-    let mut default_value: proc_macro2::TokenStream = quote!(#field_type::default());
+    let mut default_value: proc_macro2::TokenStream = quote!(#default_type::default());
     let mut range: Option<(proc_macro2::TokenStream, proc_macro2::TokenStream)> = None;
     let mut has_value = false;
     let mut has_range = false;
@@ -159,86 +241,145 @@ fn parse_field_attributes(
     (default_value, range, has_value, has_range)
 }
 
+fn make_leaf_value_tokens(
+    field_type_name: &str,
+    default_value: proc_macro2::TokenStream,
+    range: Option<(proc_macro2::TokenStream, proc_macro2::TokenStream)>,
+) -> proc_macro2::TokenStream {
+    match field_type_name {
+        "f32" => {
+            if let Some((min, max)) = range {
+                quote! { ProjectParamValue::FloatRanged{val: #default_value, min: #min, max: #max} }
+            } else {
+                quote! { ProjectParamValue::Float(#default_value) }
+            }
+        }
+        "i32" => {
+            if let Some((min, max)) = range {
+                quote! { ProjectParamValue::IntRanged{val: #default_value, min: #min, max: #max} }
+            } else {
+                quote! { ProjectParamValue::Int(#default_value) }
+            }
+        }
+        "bool" => quote! { ProjectParamValue::Bool(#default_value) },
+        "Graph2d" => quote! { ProjectParamValue::Graph2d(#default_value) },
+        "Curve2DNorm" => quote! { ProjectParamValue::Curve2DNorm(#default_value) },
+        "Curve2D" => quote! { ProjectParamValue::Curve2D(#default_value) },
+        _ => panic!(
+            "Invalid field type '{}': expected supported leaf or struct deriving PlotteryParams",
+            field_type_name
+        ),
+    }
+}
+
 fn get_parameters_vector_items(data: &syn::DataStruct) -> Vec<proc_macro2::TokenStream> {
     data.fields
         .iter()
         .map(|field| {
-            let field_type = &field.ty;
-            let field_type_name = get_field_type_name(field);
+            let parsed_type = parse_field_type(field);
             let field_name = field
                 .ident
                 .as_ref()
                 .expect("Failed to get struct field name.")
                 .to_string();
 
-            let (default_value, range, has_value, has_range) = parse_field_attributes(field);
+            match parsed_type {
+                ParsedFieldType::Leaf { type_name, ty } => {
+                    let (default_value, range, _, _) = parse_field_attributes(field, quote!(#ty));
+                    let leaf_value = make_leaf_value_tokens(type_name.as_str(), default_value, range);
+                    quote! {
+                        ProjectParam::new(#field_name, #leaf_value),
+                    }
+                }
+                ParsedFieldType::Struct { ty } => {
+                    let (_, _, has_value, has_range) = parse_field_attributes(field, quote!(#ty));
+                    if has_value || has_range {
+                        panic!(
+                            "Attributes #[value(...)] and #[range(...)] are only allowed on leaf parameter fields. Field '{}' must define defaults in its nested PlotteryParams type.",
+                            field_name
+                        );
+                    }
 
-            if !is_supported_leaf(field_type_name.as_str()) {
-                if has_value || has_range {
-                    panic!(
-                        "Attributes #[value(...)] and #[range(...)] are only allowed on leaf parameter fields. Field '{}' must define defaults in its nested PlotteryParams type.",
-                        field_name
-                    );
+                    quote! {
+                        ProjectParam::new(
+                            #field_name,
+                            ProjectParamValue::Struct(ProjectParamStruct::new(#ty::param_defaults_list())),
+                        ),
+                    }
                 }
+                ParsedFieldType::OptionLeaf {
+                    inner_type_name,
+                    inner_ty,
+                } => {
+                    let (default_value, range, _, _) =
+                        parse_field_attributes(field, quote!(#inner_ty));
+                    let inner_value =
+                        make_leaf_value_tokens(inner_type_name.as_str(), default_value, range);
 
-                return quote! {
-                    ProjectParam::new(
-                        #field_name,
-                        ProjectParamValue::Struct(ProjectParamStruct::new(#field_type::param_defaults_list())),
-                    ),
-                };
-            }
+                    quote! {
+                        ProjectParam::new(
+                            #field_name,
+                            ProjectParamValue::Optional(ProjectParamOptional::new(false, #inner_value)),
+                        ),
+                    }
+                }
+                ParsedFieldType::OptionStruct { inner_ty } => {
+                    let (_, _, has_value, has_range) =
+                        parse_field_attributes(field, quote!(#inner_ty));
+                    if has_value || has_range {
+                        panic!(
+                            "Attributes #[value(...)] and #[range(...)] are only allowed on leaf parameter fields. Field '{}' must define defaults in its nested PlotteryParams type.",
+                            field_name
+                        );
+                    }
 
-            match field_type_name.as_str() {
-                "f32" => {
-                    if let Some((min, max)) = range {
-                        quote! {
-                            ProjectParam::new(#field_name, ProjectParamValue::FloatRanged{val: #default_value, min: #min, max: #max}),
-                        }
-                    } else {
-                        quote! {
-                            ProjectParam::new(#field_name, ProjectParamValue::Float(#default_value)),
-                        }
-                    }
-                }
-                "i32" => {
-                    if let Some((min, max)) = range {
-                        quote! {
-                            ProjectParam::new(#field_name, ProjectParamValue::IntRanged{val: #default_value, min: #min, max: #max}),
-                        }
-                    } else {
-                        quote! {
-                            ProjectParam::new(#field_name, ProjectParamValue::Int(#default_value)),
-                        }
-                    }
-                }
-                "bool" => {
                     quote! {
-                        ProjectParam::new(#field_name, ProjectParamValue::Bool(#default_value)),
+                        ProjectParam::new(
+                            #field_name,
+                            ProjectParamValue::Optional(ProjectParamOptional::new(
+                                false,
+                                ProjectParamValue::Struct(ProjectParamStruct::new(#inner_ty::param_defaults_list())),
+                            )),
+                        ),
                     }
                 }
-                "Graph2d" => {
-                    quote! {
-                        ProjectParam::new(#field_name, ProjectParamValue::Graph2d(#default_value)),
-                    }
-                }
-                "Curve2DNorm" => {
-                    quote! {
-                        ProjectParam::new(#field_name, ProjectParamValue::Curve2DNorm(#default_value)),
-                    }
-                }
-                "Curve2D" => {
-                    quote! {
-                        ProjectParam::new(#field_name, ProjectParamValue::Curve2D(#default_value)),
-                    }
-                }
-                _ => panic!(
-                    "Invalid field type '{}': expected supported leaf or struct deriving PlotteryParams",
-                    field_type_name
-                ),
             }
         })
         .collect::<Vec<_>>()
+}
+
+fn make_leaf_constructor_expr(
+    field_type_name: &str,
+    field_name: &Ident,
+    value_expr: proc_macro2::TokenStream,
+) -> proc_macro2::TokenStream {
+    match field_type_name {
+        "Graph2d" => quote! {
+            match #value_expr {
+                ProjectParamValue::Graph2d(g) => g.clone(),
+                _ => panic!("Expected Graph2d for field '{}'", stringify!(#field_name)),
+            }
+        },
+        "Curve2DNorm" => quote! {
+            match #value_expr {
+                ProjectParamValue::Curve2DNorm(c) => c.clone(),
+                _ => panic!("Expected Curve2DNorm for field '{}'", stringify!(#field_name)),
+            }
+        },
+        "Curve2D" => quote! {
+            match #value_expr {
+                ProjectParamValue::Curve2D(c) => c.clone(),
+                _ => panic!("Expected Curve2D for field '{}'", stringify!(#field_name)),
+            }
+        },
+        _ => {
+            let accessor_function =
+                Ident::new(&format!("get_{}", field_type_name), Span::call_site());
+            quote! {
+                (#value_expr).#accessor_function().unwrap()
+            }
+        }
+    }
 }
 
 fn get_constructor_fields_items(data: &syn::DataStruct) -> Vec<proc_macro2::TokenStream> {
@@ -246,42 +387,67 @@ fn get_constructor_fields_items(data: &syn::DataStruct) -> Vec<proc_macro2::Toke
         .iter()
         .map(|field| {
             let field_name = field.ident.as_ref().expect("Failed to access field.");
-            let field_type = &field.ty;
-            let field_type_name = get_field_type_name(field);
+            let value_expr = quote! {
+                &params.get(stringify!(#field_name))
+                    .unwrap_or_else(|| panic!("Field '{}' is missing in params from stdin.", stringify!(#field_name)))
+                    .value
+            };
 
-            if !is_supported_leaf(field_type_name.as_str()) {
-                quote! {
-                    #field_name: match &params.get(stringify!(#field_name)).unwrap_or_else(|| panic!("Field '{}' is missing in params from stdin.", stringify!(#field_name))).value {
-                        ProjectParamValue::Struct(s) => #field_type::new_from_list(s.fields.clone()),
-                        _ => panic!("Expected struct for field '{}'", stringify!(#field_name)),
-                    },
+            match parse_field_type(field) {
+                ParsedFieldType::Leaf { type_name, .. } => {
+                    let constructor_expr =
+                        make_leaf_constructor_expr(type_name.as_str(), field_name, value_expr);
+                    quote! {
+                        #field_name: #constructor_expr,
+                    }
                 }
-            } else if field_type_name == "Graph2d" {
-                quote! {
-                    #field_name: match &params.get(stringify!(#field_name)).unwrap_or_else(|| panic!("Field '{}' is missing in params from stdin.", stringify!(#field_name))).value {
-                        ProjectParamValue::Graph2d(g) => g.clone(),
-                        _ => panic!("Expected Graph2d for field '{}'", stringify!(#field_name)),
-                    },
+                ParsedFieldType::Struct { ty } => {
+                    quote! {
+                        #field_name: match #value_expr {
+                            ProjectParamValue::Struct(s) => #ty::new_from_list(s.fields.clone()),
+                            _ => panic!("Expected struct for field '{}'", stringify!(#field_name)),
+                        },
+                    }
                 }
-            } else if field_type_name == "Curve2DNorm" {
-                quote! {
-                    #field_name: match &params.get(stringify!(#field_name)).unwrap_or_else(|| panic!("Field '{}' is missing in params from stdin.", stringify!(#field_name))).value {
-                        ProjectParamValue::Curve2DNorm(c) => c.clone(),
-                        _ => panic!("Expected Curve2DNorm for field '{}'", stringify!(#field_name)),
-                    },
+                ParsedFieldType::OptionLeaf {
+                    inner_type_name, ..
+                } => {
+                    let inner_value_expr = quote! { inner };
+                    let inner_constructor = make_leaf_constructor_expr(
+                        inner_type_name.as_str(),
+                        field_name,
+                        inner_value_expr,
+                    );
+                    quote! {
+                        #field_name: match #value_expr {
+                            ProjectParamValue::Optional(optional) => {
+                                if optional.enabled {
+                                    let inner = optional.value.as_ref();
+                                    Some(#inner_constructor)
+                                } else {
+                                    None
+                                }
+                            }
+                            _ => panic!("Expected Option<...> for field '{}'", stringify!(#field_name)),
+                        },
+                    }
                 }
-            } else if field_type_name == "Curve2D" {
-                quote! {
-                    #field_name: match &params.get(stringify!(#field_name)).unwrap_or_else(|| panic!("Field '{}' is missing in params from stdin.", stringify!(#field_name))).value {
-                        ProjectParamValue::Curve2D(c) => c.clone(),
-                        _ => panic!("Expected Curve2D for field '{}'", stringify!(#field_name)),
-                    },
-                }
-            } else {
-                let accessor_function =
-                    Ident::new(&format!("get_{}", field_type_name), Span::call_site());
-                quote! {
-                    #field_name: params.get(stringify!(#field_name)).unwrap_or_else(|| panic!("Field '{}' is missing in params from stdin.", stringify!(#field_name))).value.#accessor_function().unwrap(),
+                ParsedFieldType::OptionStruct { inner_ty } => {
+                    quote! {
+                        #field_name: match #value_expr {
+                            ProjectParamValue::Optional(optional) => {
+                                if optional.enabled {
+                                    Some(match optional.value.as_ref() {
+                                        ProjectParamValue::Struct(s) => #inner_ty::new_from_list(s.fields.clone()),
+                                        _ => panic!("Expected Option<struct> for field '{}'", stringify!(#field_name)),
+                                    })
+                                } else {
+                                    None
+                                }
+                            }
+                            _ => panic!("Expected Option<...> for field '{}'", stringify!(#field_name)),
+                        },
+                    }
                 }
             }
         })

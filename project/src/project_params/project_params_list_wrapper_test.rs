@@ -1,7 +1,8 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        project_param::ProjectParam, project_param_value::ProjectParamValue,
+        project_param::ProjectParam, project_param_optional::ProjectParamOptional,
+        project_param_value::ProjectParamValue,
         project_params_list_wrapper::ProjectParamsListWrapper,
     };
 
@@ -37,5 +38,95 @@ mod tests {
             assert_eq!(param, &expected.list[i]);
             assert_eq!(param.value, expected.list[i].value);
         }
+    }
+
+    #[test]
+    fn test_combine_optional_params() {
+        let old = ProjectParamsListWrapper::new(vec![
+            ProjectParam::new(
+                "opt_int",
+                ProjectParamValue::Optional(ProjectParamOptional::new(
+                    true,
+                    ProjectParamValue::Int(42),
+                )),
+            ),
+            ProjectParam::new(
+                "opt_ranged",
+                ProjectParamValue::Optional(ProjectParamOptional::new(
+                    false,
+                    ProjectParamValue::IntRanged {
+                        val: 6,
+                        min: 0,
+                        max: 10,
+                    },
+                )),
+            ),
+            ProjectParam::new(
+                "opt_changed",
+                ProjectParamValue::Optional(ProjectParamOptional::new(
+                    true,
+                    ProjectParamValue::Int(9),
+                )),
+            ),
+        ]);
+
+        let new = ProjectParamsListWrapper::new(vec![
+            ProjectParam::new(
+                "opt_int",
+                ProjectParamValue::Optional(ProjectParamOptional::new(
+                    false,
+                    ProjectParamValue::Int(0),
+                )),
+            ),
+            ProjectParam::new(
+                "opt_ranged",
+                ProjectParamValue::Optional(ProjectParamOptional::new(
+                    false,
+                    ProjectParamValue::IntRanged {
+                        val: 0,
+                        min: 0,
+                        max: 10,
+                    },
+                )),
+            ),
+            ProjectParam::new(
+                "opt_changed",
+                ProjectParamValue::Optional(ProjectParamOptional::new(
+                    false,
+                    ProjectParamValue::Float(1.0),
+                )),
+            ),
+        ]);
+
+        let expected = ProjectParamsListWrapper::new(vec![
+            ProjectParam::new(
+                "opt_int",
+                ProjectParamValue::Optional(ProjectParamOptional::new(
+                    true,
+                    ProjectParamValue::Int(42),
+                )),
+            ),
+            ProjectParam::new(
+                "opt_ranged",
+                ProjectParamValue::Optional(ProjectParamOptional::new(
+                    false,
+                    ProjectParamValue::IntRanged {
+                        val: 6,
+                        min: 0,
+                        max: 10,
+                    },
+                )),
+            ),
+            ProjectParam::new(
+                "opt_changed",
+                ProjectParamValue::Optional(ProjectParamOptional::new(
+                    false,
+                    ProjectParamValue::Float(1.0),
+                )),
+            ),
+        ]);
+
+        let combined = ProjectParamsListWrapper::new_combined(&old.list, &new.list);
+        assert_eq!(combined.list, expected.list);
     }
 }

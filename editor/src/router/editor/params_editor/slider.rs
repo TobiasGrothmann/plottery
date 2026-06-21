@@ -26,7 +26,7 @@ pub struct EditorSliderProps {
 
 #[component]
 pub fn Slider(mut props: EditorSliderProps) -> Element {
-    let slider_step = match props.param.value {
+    let slider_step = match &props.param.value {
         ProjectParamValue::FloatRanged { val: _, min, max } => {
             ((max - min) / 100_000_f32).to_string()
         }
@@ -35,20 +35,44 @@ pub fn Slider(mut props: EditorSliderProps) -> Element {
             min: _,
             max: _,
         } => "1".to_string(),
+        ProjectParamValue::Optional(optional) => match optional.value.as_ref() {
+            ProjectParamValue::FloatRanged { val: _, min, max } => {
+                ((max - min) / 100_000_f32).to_string()
+            }
+            ProjectParamValue::IntRanged {
+                val: _,
+                min: _,
+                max: _,
+            } => "1".to_string(),
+            _ => panic!("Unexpected Error"),
+        },
         _ => panic!("Unexpected Error"),
     };
 
-    let mut slider_value = use_signal(|| match props.param.value {
+    let mut slider_value = use_signal(|| match &props.param.value {
         ProjectParamValue::FloatRanged {
             val,
             min: _,
             max: _,
-        } => val,
+        } => *val,
         ProjectParamValue::IntRanged {
             val,
             min: _,
             max: _,
-        } => val as f32,
+        } => *val as f32,
+        ProjectParamValue::Optional(optional) => match optional.value.as_ref() {
+            ProjectParamValue::FloatRanged {
+                val,
+                min: _,
+                max: _,
+            } => *val,
+            ProjectParamValue::IntRanged {
+                val,
+                min: _,
+                max: _,
+            } => *val as f32,
+            _ => panic!("Unexpected Error"),
+        },
         _ => panic!("Unexpected Error"),
     });
     let slider_value_string = use_memo(move || {
@@ -70,14 +94,24 @@ pub fn Slider(mut props: EditorSliderProps) -> Element {
                 required: true,
                 r#type: "range",
                 step: slider_step,
-                min: match props.param.value {
+                min: match &props.param.value {
                     ProjectParamValue::FloatRanged { val: _, min, max: _ } => min.to_string(),
                     ProjectParamValue::IntRanged { val: _, min, max: _ } => min.to_string(),
+                    ProjectParamValue::Optional(optional) => match optional.value.as_ref() {
+                        ProjectParamValue::FloatRanged { val: _, min, max: _ } => min.to_string(),
+                        ProjectParamValue::IntRanged { val: _, min, max: _ } => min.to_string(),
+                        _ => panic!("Unexpected Error"),
+                    },
                     _ => panic!("Unexpected Error"),
                 },
-                max: match props.param.value {
+                max: match &props.param.value {
                     ProjectParamValue::FloatRanged { val: _, min: _, max } => max.to_string(),
                     ProjectParamValue::IntRanged { val: _, min: _, max } => max.to_string(),
+                    ProjectParamValue::Optional(optional) => match optional.value.as_ref() {
+                        ProjectParamValue::FloatRanged { val: _, min: _, max } => max.to_string(),
+                        ProjectParamValue::IntRanged { val: _, min: _, max } => max.to_string(),
+                        _ => panic!("Unexpected Error"),
+                    },
                     _ => panic!("Unexpected Error"),
                 },
                 value: slider_value.to_string(),
@@ -88,10 +122,28 @@ pub fn Slider(mut props: EditorSliderProps) -> Element {
                 onchange: move |event| {
                     let mut new_params = props.project_params.read().clone();
                     if let Some(param_field) = get_param_mut_by_path(&mut new_params.list, &props.path) {
-                        let new_val = event.value().parse().expect("Failed to parse slider value");
-                        match param_field.value {
-                            ProjectParamValue::FloatRanged { .. } => param_field.value.set_f32(new_val),
-                            ProjectParamValue::IntRanged { .. } => param_field.value.set_i32(new_val.round() as i32),
+                        let new_val = event
+                            .value()
+                            .parse::<f32>()
+                            .expect("Failed to parse slider value");
+                        match &mut param_field.value {
+                            ProjectParamValue::FloatRanged { val, min, max } => {
+                                *val = new_val.clamp(*min, *max)
+                            }
+                            ProjectParamValue::IntRanged { val, min, max } => {
+                                *val = (new_val.round() as i32).clamp(*min, *max)
+                            }
+                            ProjectParamValue::Optional(optional) => {
+                                match optional.value.as_mut() {
+                                    ProjectParamValue::FloatRanged { val, min, max } => {
+                                        *val = new_val.clamp(*min, *max)
+                                    }
+                                    ProjectParamValue::IntRanged { val, min, max } => {
+                                        *val = (new_val.round() as i32).clamp(*min, *max)
+                                    }
+                                    _ => panic!("Unexpected parameter value type in slider"),
+                                }
+                            }
                             _ => panic!("Unexpected parameter value type in slider"),
                         }
                     } else {
