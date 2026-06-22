@@ -2,29 +2,41 @@
 set -euo pipefail
 
 SERVICE_NAME="plottery.service"
-CARGO_BIN="/home/pi/.cargo/bin/cargo"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
 
 if [ "$(id -u)" -eq 0 ]; then
   echo "Error: Do not run this script as root." >&2
-  echo "Run it as user 'pi' so cargo installs to /home/pi/.cargo/bin." >&2
+  echo "Run it as the user that owns the local Rust toolchain." >&2
   exit 1
 fi
+
+CURRENT_USER="$(id -un)"
+CURRENT_HOME="${HOME:-}"
+
+if [ -z "$CURRENT_HOME" ]; then
+  CURRENT_HOME="$(getent passwd "$CURRENT_USER" | cut -d: -f6 || true)"
+fi
+
+if [ -z "$CURRENT_HOME" ]; then
+  echo "Error: Could not determine home directory for user '$CURRENT_USER'." >&2
+  exit 1
+fi
+
+CARGO_BIN="${CARGO_BIN:-$CURRENT_HOME/.cargo/bin/cargo}"
+SERVICE_FILE="/etc/systemd/system/$SERVICE_NAME"
 
 if [ ! -x "$CARGO_BIN" ]; then
   echo "Error: cargo not found at $CARGO_BIN" >&2
-  echo "Install rust for user pi or adjust CARGO_BIN in this script." >&2
+  echo "Install rust for user '$CURRENT_USER' or set CARGO_BIN=/path/to/cargo." >&2
   exit 1
 fi
 
-if [ ! -f "/etc/systemd/system/$SERVICE_NAME" ]; then
-  echo "Error: /etc/systemd/system/$SERVICE_NAME not found." >&2
-  echo "Install the service first, for example:" >&2
-  echo "  sudo cp $REPO_ROOT/server/plottery.service /etc/systemd/system/$SERVICE_NAME" >&2
-  echo "  sudo systemctl daemon-reload" >&2
-  echo "  sudo systemctl enable $SERVICE_NAME" >&2
+if [ ! -f "$SERVICE_FILE" ]; then
+  echo "Error: $SERVICE_FILE not found." >&2
+  echo "Install the service first by running:" >&2
+  echo "  $REPO_ROOT/scripts/raspi/install_service_from_local.sh" >&2
   exit 1
 fi
 

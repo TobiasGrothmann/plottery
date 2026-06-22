@@ -6,8 +6,8 @@ After=network.target
 Type=simple
 User=root
 Group=root
-ExecStart=/home/pi/.cargo/bin/plottery_server
-WorkingDirectory=/home/pi
+ExecStart=/home/{{USER_NAME}}/.cargo/bin/plottery_server
+WorkingDirectory=/home/{{USER_NAME}}
 Restart=no
 
 [Install]
