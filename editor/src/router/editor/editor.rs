@@ -159,19 +159,32 @@ pub fn Editor(project_path: Vec<String>) -> Element {
 
                 match read_result {
                     Ok(Ok(layer_from_file)) => {
-                        let change_counter = layer.read().change_counter;
-                        layer.set(LayerChangeWrapper {
-                            layer: layer_from_file,
-                            change_counter: change_counter + 1,
-                        });
+                        let change_counter = match layer.try_read() {
+                            Ok(layer_read) => layer_read.change_counter,
+                            Err(err) => {
+                                tracing::debug!("skipping layer update after drop: {:?}", err);
+                                return;
+                            }
+                        };
+
+                        if let Ok(mut layer_write) = layer.try_write() {
+                            *layer_write = LayerChangeWrapper {
+                                layer: layer_from_file,
+                                change_counter: change_counter + 1,
+                            };
+                        }
                     }
                     Ok(Err(err_msg)) => {
-                        console().error(err_msg.as_str());
+                        if let Ok(console_read) = console.try_read() {
+                            console_read.error(err_msg.as_str());
+                        }
                     }
                     Err(err) => {
-                        console().error(
-                            format!("failed to load layer in background: {:?}", err).as_str(),
-                        );
+                        if let Ok(console_read) = console.try_read() {
+                            console_read.error(
+                                format!("failed to load layer in background: {:?}", err).as_str(),
+                            );
+                        }
                     }
                 }
             });
@@ -221,7 +234,13 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                 })
                 .await
                 {
-                    Ok(duration) => estimated_plot_duration.set(Some(duration)),
+                    Ok(duration) => {
+                        if let Ok(mut estimated_plot_duration_write) =
+                            estimated_plot_duration.try_write()
+                        {
+                            *estimated_plot_duration_write = Some(duration);
+                        }
+                    }
                     Err(err) => {
                         tracing::error!("failed to estimate plot duration: {:?}", err);
                     }
@@ -262,7 +281,11 @@ pub fn Editor(project_path: Vec<String>) -> Element {
             let mut svg = svg;
             tokio::spawn(async move {
                 match tokio::task::spawn_blocking(move || layer.to_svg(1.0).to_string()).await {
-                    Ok(svg_str) => svg.set(Some(svg_str)),
+                    Ok(svg_str) => {
+                        if let Ok(mut svg_write) = svg.try_write() {
+                            *svg_write = Some(svg_str);
+                        }
+                    }
                     Err(err) => tracing::error!("failed to generate preview svg: {:?}", err),
                 }
             });
@@ -446,14 +469,19 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                                 Some(layer) => {
                                     let current_plot_settings = plot_settings();
                                     tokio::spawn(async move {
-                                        console().info("...sending plot");
+                                        if let Ok(console_read) = console.try_read() {
+                                            console_read.info("...sending plot");
+                                        }
+
                                         let plot_result = send_task(plottery_server_lib::task::Task::Plot {
                                             layer: layer.clone(),
                                             sample_settings: SampleSettings::default(),
                                             plot_settings: current_plot_settings
                                         }).await;
-                                        if plot_result.is_err() {
-                                            console().error(format!("failed to send plot: {:?}", plot_result.err().unwrap()).as_str());
+                                        if let Err(err) = plot_result {
+                                            if let Ok(console_read) = console.try_read() {
+                                                console_read.error(format!("failed to send plot: {:?}", err).as_str());
+                                            }
                                         }
                                     });
                                 },
