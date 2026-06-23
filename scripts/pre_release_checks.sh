@@ -14,17 +14,17 @@ echo "========================================="
 echo ""
 
 echo -e "${YELLOW}Running tests...${NC}"
-cargo test --workspace --all-features --exclude plottery_server
+cargo test --workspace
 echo -e "${GREEN}✓ Tests passed${NC}"
 echo ""
 
 echo -e "${YELLOW}Running clippy...${NC}"
-cargo clippy --workspace --all-features --exclude plottery_server -- -D warnings
+cargo clippy --workspace -- -D warnings
 echo -e "${GREEN}✓ Clippy passed${NC}"
 echo ""
 
 echo -e "${YELLOW}Checking documentation...${NC}"
-RUSTDOCFLAGS='-D warnings -D rustdoc::broken_intra_doc_links' cargo doc --workspace --no-deps --all-features --exclude plottery_server
+RUSTDOCFLAGS='-D warnings -D rustdoc::broken_intra_doc_links' cargo doc --workspace --no-deps
 echo -e "${GREEN}✓ Documentation valid${NC}"
 echo ""
 
