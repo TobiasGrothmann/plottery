@@ -44,7 +44,7 @@ pub fn travel_to<E: HardwareExecutor>(
 
     hardware.set_head(
         false,
-        plot_settings.head_pressure,
+        plot_settings.head_travel_beyond_paper_cm,
         plot_settings.speed_head_up.accelleration_distance,
         speed_head_up,
     );
@@ -92,7 +92,7 @@ pub fn plot_shape<E: HardwareExecutor>(
     // draw
     hardware.set_head(
         true,
-        plot_settings.head_pressure,
+        plot_settings.head_travel_beyond_paper_cm,
         plot_settings.speed_head_down.accelleration_distance,
         speed_head_down,
     );

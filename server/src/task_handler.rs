@@ -79,7 +79,7 @@ pub async fn start_server(
                     sync_server_state(&server_state, &hardware, false);
                     hardware.set_head(
                         head_down,
-                        settings.head_pressure,
+                        settings.head_travel_beyond_paper_cm,
                         speed_range.accelleration_distance,
                         SpeedDelayHandler::new_from_speed_range(
                             &speed_range,

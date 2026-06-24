@@ -137,7 +137,7 @@ impl<E: HardwareExecutor> Hardware<E> {
     pub fn set_head(
         &mut self,
         down: bool,
-        head_pressure: f32,
+        head_tracel_beyond_paper_cm: f32,
         accelleration_dist: f32,
         speed_handler: SpeedDelayHandler,
     ) {
@@ -147,8 +147,8 @@ impl<E: HardwareExecutor> Hardware<E> {
 
         self.executor.set_dir(Axis::Head, down);
 
-        let head_travel_cm = self.hardware_profile.head_travel_to_touch_cm
-            + self.hardware_profile.extra_head_travel_for_pressure_cm * head_pressure;
+        let head_travel_cm =
+            self.hardware_profile.head_travel_to_touch_cm + head_tracel_beyond_paper_cm;
         let head_travel_steps = self.hardware_profile.steps_for_cm_head(head_travel_cm);
 
         for i in 0..head_travel_steps {

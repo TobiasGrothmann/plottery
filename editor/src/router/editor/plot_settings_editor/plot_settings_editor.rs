@@ -35,13 +35,13 @@ pub fn PlotSettingsEditor(props: PlotSettingsEditorProps) -> Element {
                 }
             }
 
-            p { "head pressure" }
+            p { "head travel beyond paper (cm)" }
             input {
-                value: settings.head_pressure.to_string(),
+                value: settings.head_travel_beyond_paper_cm.to_string(),
                 onchange: move |event| {
                     if let Ok(value) = event.value().parse::<f32>() {
                         let mut new_settings = plot_settings.read().clone();
-                        new_settings.head_pressure = value;
+                        new_settings.head_travel_beyond_paper_cm = value;
                         plot_settings.set(new_settings);
                     }
                 }

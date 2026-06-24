@@ -10,7 +10,7 @@ pub struct SpeedRange {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlotSettings {
     pub corner_slowdown_power: f32, // the lower the slower
-    pub head_pressure: f32,
+    pub head_travel_beyond_paper_cm: f32,
 
     pub speed_draw: SpeedRange,
     pub speed_travel: SpeedRange,
@@ -22,7 +22,7 @@ impl Default for PlotSettings {
     fn default() -> Self {
         PlotSettings {
             corner_slowdown_power: 0.2,
-            head_pressure: 0.5,
+            head_travel_beyond_paper_cm: 0.3,
             speed_draw: SpeedRange {
                 min: 0.4,
                 max: 4.5,
