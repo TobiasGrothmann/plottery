@@ -22,28 +22,22 @@ pub trait Normalize: Scale + Translate + BoundingBox + Clone
 where
     Self: Sized,
 {
-    /// Backwards-compatible alias for `normalize_inside`.
-    fn normalize(&self, target: &Rect, alignment: Alignment) -> Result<Self> {
-        self.normalize_inside(target, alignment)
-    }
-
-    /// Backwards-compatible alias for `normalize_inside_mut`.
-    fn normalize_mut(&mut self, target: &Rect, alignment: Alignment) -> Result<()> {
-        self.normalize_inside_mut(target, alignment)
-    }
-
+    /// Normalize the shape to fit inside the target rectangle while preserving aspect ratio
     fn normalize_inside(&self, target: &Rect, alignment: Alignment) -> Result<Self> {
         self.normalize_with_mode(target, alignment, NormalizeMode::Inside)
     }
 
+    /// Normalize the shape to fit inside the target rectangle while preserving aspect ratio
     fn normalize_inside_mut(&mut self, target: &Rect, alignment: Alignment) -> Result<()> {
         self.normalize_mut_with_mode(target, alignment, NormalizeMode::Inside)
     }
 
+    /// Normalize the shape to cover the target rectangle while preserving aspect ratio
     fn normalize_around(&self, target: &Rect, alignment: Alignment) -> Result<Self> {
         self.normalize_with_mode(target, alignment, NormalizeMode::Around)
     }
 
+    /// Normalize the shape to cover the target rectangle while preserving aspect ratio
     fn normalize_around_mut(&mut self, target: &Rect, alignment: Alignment) -> Result<()> {
         self.normalize_mut_with_mode(target, alignment, NormalizeMode::Around)
     }
