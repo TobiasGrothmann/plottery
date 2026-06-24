@@ -548,7 +548,7 @@ impl V2 {
     /// # use plottery_lib::*;
     /// let v1 = V2::new(0.0, 0.0);
     /// let v2 = V2::new(2.0, 2.0);
-    /// assert_eq!(v1.towards(v2, 1.0), V2::xy(2.0.sqrt()));
+    /// assert_eq!(v1.towards(v2, 1.0), V2::xy(0.7071067812));
     /// ```
     pub fn towards(&self, other: Self, distance: f32) -> Self {
         let point_dist = self.dist(other);
