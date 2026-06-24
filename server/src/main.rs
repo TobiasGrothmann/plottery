@@ -43,9 +43,6 @@ async fn get_state(managed_state: &State<ManagedState>) -> Vec<u8> {
 
 #[rocket::main]
 async fn main() {
-    #[cfg(feature = "raspi")]
-    util::system::set_realtime_priority();
-
     let (task_sender, task_receiver) = channel::<Task>(32);
     let server_state = Arc::new(Mutex::new(ServerState::default()));
     let managed_state = ManagedState {
@@ -53,7 +50,7 @@ async fn main() {
         server_state: server_state.clone(),
     };
 
-    match start_server(task_receiver, server_state).await {
+    match start_server(task_receiver, server_state) {
         Ok(_) => {}
         Err(e) => {
             eprintln!("Failed to initialize hardware {:?}", e);

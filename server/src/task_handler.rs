@@ -5,12 +5,12 @@ use plottery_server_lib::{
     task::Task,
 };
 use std::sync::{Arc, Mutex};
+use std::thread;
 use tokio::sync::mpsc;
-use tokio::task;
 
 use crate::gpio_executor::GpioExecutor;
 
-pub async fn start_server(
+pub fn start_server(
     mut receiver: mpsc::Receiver<Task>,
     server_state: Arc<Mutex<ServerState>>,
 ) -> anyhow::Result<()> {
@@ -18,8 +18,11 @@ pub async fn start_server(
     let mut hardware = Hardware::new(HARDWARE_CONSTS.hardware_profile, executor);
     sync_server_state(&server_state, &hardware, false);
 
-    task::spawn(async move {
-        while let Some(task) = receiver.recv().await {
+    thread::spawn(move || {
+        #[cfg(feature = "raspi")]
+        crate::util::system::set_realtime_priority();
+
+        while let Some(task) = receiver.blocking_recv() {
             println!("...received task");
             match task {
                 Task::Plot {

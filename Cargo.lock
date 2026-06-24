@@ -5309,6 +5309,7 @@ version = "0.9.0"
 dependencies = [
  "anyhow",
  "ioprio",
+ "libc",
  "plottery_lib",
  "plottery_server_lib",
  "rayon",
