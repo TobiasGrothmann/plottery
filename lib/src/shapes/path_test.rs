@@ -3,7 +3,7 @@ mod test_path {
     use crate::{
         geometry::TransformMatrix,
         traits::{transform::Transform, ClosestPoint, Scale},
-        Circle, Path, Plottable, Rect, SampleSettings, Translate, LARGE_EPSILON, V2,
+        BoundingBox, Circle, Path, Plottable, Rect, SampleSettings, Translate, LARGE_EPSILON, V2,
     };
 
     #[test]
@@ -63,6 +63,23 @@ mod test_path {
         let p = Path::new_shape_from(r.get_points(SampleSettings::default()));
         assert!((r.length() - p.length()).abs() < LARGE_EPSILON);
         assert!(p.is_closed());
+    }
+
+    #[test]
+    fn bounding_box() {
+        let p = Path::new_from(vec![
+            V2::new(3.0, -1.0),
+            V2::new(-2.0, 5.0),
+            V2::new(1.0, 2.0),
+            V2::new(-1.0, -4.0),
+        ]);
+        assert_eq!(
+            p.bounding_box(),
+            Some(Rect::new(V2::new(-2.0, -4.0), V2::new(3.0, 5.0)))
+        );
+
+        let empty = Path::new_from(vec![]);
+        assert_eq!(empty.bounding_box(), None);
     }
 
     #[test]

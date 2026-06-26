@@ -1663,20 +1663,17 @@ impl BoundingBox for Layer {
         let mut min = None;
         let mut max = None;
         for shape in self.iter_flattened() {
-            let shape_box = shape.bounding_box();
-            if shape_box.is_none() {
-                continue;
-            }
-            let shape_box = shape_box.unwrap();
-            if min.is_none() {
-                min = Some(shape_box.bl());
-            } else {
-                min = Some(min.unwrap().min(shape_box.bl()));
-            }
-            if max.is_none() {
-                max = Some(shape_box.tr());
-            } else {
-                max = Some(max.unwrap().max(shape_box.tr()));
+            if let Some(bb) = shape.bounding_box() {
+                if min.is_none() {
+                    min = Some(bb.bl());
+                } else {
+                    min = Some(min.unwrap().min(bb.bl()));
+                }
+                if max.is_none() {
+                    max = Some(bb.tr());
+                } else {
+                    max = Some(max.unwrap().max(bb.tr()));
+                }
             }
         }
         if min.is_none() || max.is_none() {
