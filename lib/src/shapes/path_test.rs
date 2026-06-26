@@ -231,6 +231,26 @@ mod test_path {
     }
 
     #[test]
+    fn reduce_points_circle_path_stays_closed_and_on_radius() {
+        let center = V2::new(0.5, 2.0);
+        let radius = 5.0;
+
+        let circle = Circle::new(center, radius);
+        let original_points = circle.get_points(SampleSettings::default());
+        let path = Path::new_from(original_points.clone());
+
+        let reduced = path.reduce_points(0.25);
+        let reduced_points = reduced.get_points(SampleSettings::default());
+
+        assert!(reduced_points.len() < original_points.len());
+        assert_eq!(reduced_points.first(), reduced_points.last());
+
+        for point in reduced_points {
+            assert!((point.dist(center) - radius).abs() < LARGE_EPSILON);
+        }
+    }
+
+    #[test]
     fn contains_point() {
         let p = Path::new_from(vec![
             V2::new(0.0, 0.0),

@@ -49,7 +49,7 @@ impl MarchingSquares {
     }
 
     pub fn get_lines(&self, target_value: f32) -> Vec<Line> {
-        let mut lines = Vec::new();
+        let mut lines = Vec::with_capacity(self.rects.len() * 4);
         for rect in &self.rects {
             for triangle in &rect.triangles {
                 if let Some(line) = triangle.get_intersection_line(target_value) {

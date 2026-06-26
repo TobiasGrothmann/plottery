@@ -356,15 +356,26 @@ impl Rect {
             return Containment::Full;
         }
 
-        let other_closed = Path::new_from(other_points_closed.clone());
-        if self.intersects_path(&other_closed)
-            || other_points_closed
-                .iter()
-                .any(|point| self.contains_point(*point))
+        if other_points_closed
+            .iter()
+            .any(|point| self.contains_point(*point))
             || [self.bl(), self.tl(), self.tr(), self.br()]
                 .iter()
-                .any(|corner| other.contains_point_or_on_boundary_as_closed(*corner))
+                .any(|corner| {
+                    Path::contains_point_or_on_boundary_in_closed_points(
+                        other_points_closed.as_ref(),
+                        *corner,
+                    )
+                })
         {
+            return Containment::Partial;
+        }
+
+        let other_closed = match other_points_closed {
+            std::borrow::Cow::Owned(points) => Path::new_from(points),
+            std::borrow::Cow::Borrowed(points) => Path::from(points),
+        };
+        if self.intersects_path(&other_closed) {
             return Containment::Partial;
         }
 

@@ -278,20 +278,30 @@ impl Circle {
             return Containment::None;
         }
 
+        let radius_squared = self.radius.powi(2);
         if other_points_closed
             .iter()
-            .all(|point| point.dist_squared(self.center) <= self.radius.powi(2))
+            .all(|point| point.dist_squared(self.center) <= radius_squared)
         {
             return Containment::Full;
         }
 
-        let other_closed = Path::new_from(other_points_closed.clone());
-        if self.intersects_path(&other_closed)
-            || other_points_closed
-                .iter()
-                .any(|point| point.dist_squared(self.center) <= self.radius.powi(2))
-            || other.contains_point_or_on_boundary_as_closed(self.center)
+        if other_points_closed
+            .iter()
+            .any(|point| point.dist_squared(self.center) <= radius_squared)
+            || Path::contains_point_or_on_boundary_in_closed_points(
+                other_points_closed.as_ref(),
+                self.center,
+            )
         {
+            return Containment::Partial;
+        }
+
+        let other_closed = match other_points_closed {
+            std::borrow::Cow::Owned(points) => Path::new_from(points),
+            std::borrow::Cow::Borrowed(points) => Path::from(points),
+        };
+        if self.intersects_path(&other_closed) {
             return Containment::Partial;
         }
 

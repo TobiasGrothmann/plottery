@@ -4,7 +4,7 @@ use ramer_douglas_peucker::rdp;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashSet,
+    borrow::Cow,
     f32::consts::PI,
     slice::{Iter, IterMut},
 };
@@ -218,19 +218,20 @@ impl Path {
             })
     }
 
-    pub(crate) fn points_closed(&self) -> Vec<V2> {
-        let mut points = self.points.clone();
-        if !self.is_closed() && !points.is_empty() {
-            points.push(*points.first().unwrap());
+    pub(crate) fn points_closed(&self) -> Cow<'_, [V2]> {
+        if self.is_closed() || self.points.is_empty() {
+            return Cow::Borrowed(&self.points);
         }
-        points
+
+        let mut points = self.points.clone();
+        points.push(*points.first().unwrap());
+        Cow::Owned(points)
     }
 
-    pub(crate) fn contains_point_or_on_boundary_as_closed(&self, point: V2) -> bool {
-        Self::contains_point_or_on_boundary_in_closed_points(&self.points_closed(), point)
-    }
-
-    fn contains_point_or_on_boundary_in_closed_points(points_closed: &[V2], point: V2) -> bool {
+    pub(crate) fn contains_point_or_on_boundary_in_closed_points(
+        points_closed: &[V2],
+        point: V2,
+    ) -> bool {
         if points_closed.len() < 2 {
             return false;
         }
@@ -280,8 +281,10 @@ impl Path {
             return Containment::Partial;
         }
 
-        let center_inside =
-            Self::contains_point_or_on_boundary_in_closed_points(&self_points, other.center);
+        let center_inside = Self::contains_point_or_on_boundary_in_closed_points(
+            self_points.as_ref(),
+            other.center,
+        );
         let min_dist_to_boundary_squared = self_points
             .iter()
             .tuple_windows()
@@ -332,16 +335,15 @@ impl Path {
         }
 
         let all_rect_points_inside = rect_points.iter().all(|point| {
-            Self::contains_point_or_on_boundary_in_closed_points(&self_points, *point)
+            Self::contains_point_or_on_boundary_in_closed_points(self_points.as_ref(), *point)
         });
         if all_rect_points_inside {
             return Containment::Full;
         }
 
-        if rect_points
-            .iter()
-            .any(|point| Self::contains_point_or_on_boundary_in_closed_points(&self_points, *point))
-            || self_points.iter().any(|point| other.contains_point(*point))
+        if rect_points.iter().any(|point| {
+            Self::contains_point_or_on_boundary_in_closed_points(self_points.as_ref(), *point)
+        }) || self_points.iter().any(|point| other.contains_point(*point))
         {
             return Containment::Partial;
         }
@@ -373,19 +375,17 @@ impl Path {
         }
 
         let all_other_points_inside = other_points.iter().all(|point| {
-            Self::contains_point_or_on_boundary_in_closed_points(&self_points, *point)
+            Self::contains_point_or_on_boundary_in_closed_points(self_points.as_ref(), *point)
         });
         if all_other_points_inside {
             return Containment::Full;
         }
 
-        if other_points
-            .iter()
-            .any(|point| Self::contains_point_or_on_boundary_in_closed_points(&self_points, *point))
-            || self_points.iter().any(|point| {
-                Self::contains_point_or_on_boundary_in_closed_points(&other_points, *point)
-            })
-        {
+        if other_points.iter().any(|point| {
+            Self::contains_point_or_on_boundary_in_closed_points(self_points.as_ref(), *point)
+        }) || self_points.iter().any(|point| {
+            Self::contains_point_or_on_boundary_in_closed_points(other_points.as_ref(), *point)
+        }) {
             return Containment::Partial;
         }
 
@@ -480,14 +480,22 @@ impl Plottable for Path {
 
         let points: Vec<_> = self.points.iter().map(|v| v.into()).collect();
         let rdp_indices = rdp(points.as_slice(), epsilon as f64);
-        let rdp_indices: HashSet<usize> = rdp_indices.into_iter().collect();
-        Path::new_from_iter(self.points.iter().enumerate().filter_map(|(i, _)| {
-            if rdp_indices.contains(&i) {
-                Some(self.points[i])
-            } else {
-                None
+
+        let mut keep_mask = vec![false; self.points.len()];
+        for i in rdp_indices {
+            if i < keep_mask.len() {
+                keep_mask[i] = true;
             }
-        }))
+        }
+
+        let mut reduced = Vec::with_capacity(self.points.len());
+        for (i, point) in self.points.iter().enumerate() {
+            if keep_mask[i] {
+                reduced.push(*point);
+            }
+        }
+
+        Path::new_from(reduced)
     }
 }
 

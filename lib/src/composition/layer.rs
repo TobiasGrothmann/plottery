@@ -229,8 +229,18 @@ impl Layer {
     /// Add all the [`Shape`]s of the `sublayer` recursively to `self`.
     pub fn push_layer_flat<L: Into<Layer>>(&mut self, sublayer: L) {
         let layer = sublayer.into();
-        for shape in layer.iter_flattened() {
-            self.shapes.push(shape.clone());
+        self.shapes.reserve(layer.len_recursive());
+        Self::append_flattened_shapes_owned(layer, &mut self.shapes);
+    }
+
+    fn append_flattened_shapes_owned(layer: Layer, out: &mut Vec<Shape>) {
+        let Layer {
+            shapes, sublayers, ..
+        } = layer;
+
+        out.extend(shapes);
+        for sublayer in sublayers {
+            Self::append_flattened_shapes_owned(sublayer, out);
         }
     }
     pub fn push_many<I, S>(&mut self, shapes: I)
@@ -330,7 +340,7 @@ impl Layer {
         let stroke = props.color.unwrap().hex();
         let stroke_width = props.pen_width_cm.unwrap() * scale;
 
-        let mut nodes: Vec<Box<dyn Node>> = Vec::new();
+        let mut nodes: Vec<Box<dyn Node>> = Vec::with_capacity(self.shapes.len());
         for shape in self.iter() {
             match shape {
                 Shape::Circle(c) => nodes.push(Box::new(
@@ -503,18 +513,26 @@ impl Layer {
         value.to_string().parse::<f32>().ok()
     }
 
-    fn parse_svg_points_attr(points_attr: &svg::node::Value) -> Vec<V2> {
-        let point_tokens = points_attr
-            .to_string()
-            .replace(',', " ")
-            .split_whitespace()
-            .filter_map(|s| s.parse::<f32>().ok())
-            .collect::<Vec<_>>();
+    fn iter_svg_f32_tokens(input: &str) -> impl Iterator<Item = f32> + '_ {
+        input
+            .split(|c: char| c == ',' || c.is_ascii_whitespace())
+            .filter(|token| !token.is_empty())
+            .filter_map(|token| token.parse::<f32>().ok())
+    }
 
-        point_tokens
-            .chunks_exact(2)
-            .map(|pair| V2::new(pair[0], pair[1]))
-            .collect()
+    fn parse_svg_points_attr(points_attr: &svg::node::Value) -> Vec<V2> {
+        let points = points_attr.to_string();
+        let mut tokens = Self::iter_svg_f32_tokens(points.as_str());
+        let mut parsed_points = Vec::new();
+
+        while let Some(x) = tokens.next() {
+            let Some(y) = tokens.next() else {
+                break;
+            };
+            parsed_points.push(V2::new(x, y));
+        }
+
+        parsed_points
     }
 
     fn apply_svg_transform_to_path(path: &Path, transform: SvgTransform, scale_to_cm: f32) -> Path {
@@ -527,18 +545,11 @@ impl Layer {
 
     fn parse_svg_root_units_to_cm_scale(attributes: &Attributes) -> Option<f32> {
         let view_box = attributes.get("viewBox")?.to_string();
-        let view_box_values = view_box
-            .replace(',', " ")
-            .split_whitespace()
-            .filter_map(|s| s.parse::<f32>().ok())
-            .collect::<Vec<_>>();
-        if view_box_values.len() < 4 {
-            // TODO: Handle malformed viewBox values with explicit errors.
-            return None;
-        }
-
-        let view_box_w = view_box_values[2];
-        let view_box_h = view_box_values[3];
+        let mut view_box_values = Self::iter_svg_f32_tokens(view_box.as_str());
+        let _view_box_x = view_box_values.next()?;
+        let _view_box_y = view_box_values.next()?;
+        let view_box_w = view_box_values.next()?;
+        let view_box_h = view_box_values.next()?;
 
         let width_cm = attributes
             .get("width")
@@ -663,20 +674,23 @@ impl Layer {
 
             let name = rest[..open_idx].trim();
             let args_str = &rest[(open_idx + 1)..close_idx];
-            let args = args_str
-                .replace(',', " ")
-                .split_whitespace()
-                .filter_map(|s| s.parse::<f32>().ok())
-                .collect::<Vec<_>>();
+            let mut args = [0.0_f32; 6];
+            let mut args_len = 0usize;
+            for value in Self::iter_svg_f32_tokens(args_str) {
+                if args_len < args.len() {
+                    args[args_len] = value;
+                }
+                args_len += 1;
+            }
 
-            let next_transform = match name {
-                "matrix" if args.len() == 6 => Some(SvgTransform::matrix(
+            let next_transform = match (name, args_len) {
+                ("matrix", 6) => Some(SvgTransform::matrix(
                     args[0], args[1], args[2], args[3], args[4], args[5],
                 )),
-                "translate" if args.len() == 1 => Some(SvgTransform::translate(args[0], 0.0)),
-                "translate" if args.len() >= 2 => Some(SvgTransform::translate(args[0], args[1])),
-                "scale" if args.len() == 1 => Some(SvgTransform::scale(args[0], args[0])),
-                "scale" if args.len() >= 2 => Some(SvgTransform::scale(args[0], args[1])),
+                ("translate", 1) => Some(SvgTransform::translate(args[0], 0.0)),
+                ("translate", len) if len >= 2 => Some(SvgTransform::translate(args[0], args[1])),
+                ("scale", 1) => Some(SvgTransform::scale(args[0], args[0])),
+                ("scale", len) if len >= 2 => Some(SvgTransform::scale(args[0], args[1])),
                 _ => {
                     // TODO: Support rotate/skew transforms and malformed transform expressions.
                     None
@@ -1055,7 +1069,7 @@ impl Layer {
     /// `max_angle_delta` is the maximum angle difference between the start/end points of the two shapes that will still be combined. Set to `None` to ignore angles.
     pub fn combine_shapes_recursive(&self, max_angle_delta: Option<Angle>) -> Self {
         let (combineable, noncombineable) =
-            Layer::group_shapes_combineable_noncombineable(&self.iter().collect::<Vec<_>>());
+            Layer::group_shapes_combineable_noncombineable(self.iter());
 
         let shapes: Vec<Shape> = self
             .combine_shapes_flat_iterate_until_no_effect(combineable, &max_angle_delta)
@@ -1077,9 +1091,8 @@ impl Layer {
 
     /// Returns a new flattened `Layer` with [`Shape`]s that start/end at another [`Shape`]'s start/end combined into a single [`Path`]. see [`Layer::combine_shapes_recursive`].
     pub fn combine_shapes_flat(&self, max_angle_delta: Option<Angle>) -> Self {
-        let (combineable, noncombineable) = Layer::group_shapes_combineable_noncombineable(
-            &self.iter_flattened().collect::<Vec<_>>(),
-        );
+        let (combineable, noncombineable) =
+            Layer::group_shapes_combineable_noncombineable(self.iter_flattened());
 
         let shapes: Vec<Shape> = self
             .combine_shapes_flat_iterate_until_no_effect(combineable, &max_angle_delta)
@@ -1092,11 +1105,16 @@ impl Layer {
             .with_props_inheritable(self.props_inheritable.clone())
             .with_props(self.props.clone())
     }
-    fn group_shapes_combineable_noncombineable(shapes: &[&Shape]) -> (Vec<Path>, Vec<Shape>) {
-        let mut combineable = Vec::new();
-        let mut noncombineable = Vec::new();
+    fn group_shapes_combineable_noncombineable<'a, I>(shapes: I) -> (Vec<Path>, Vec<Shape>)
+    where
+        I: IntoIterator<Item = &'a Shape>,
+    {
+        let shape_iter = shapes.into_iter();
+        let (shape_count_lower_bound, _) = shape_iter.size_hint();
+        let mut combineable = Vec::with_capacity(shape_count_lower_bound);
+        let mut noncombineable = Vec::with_capacity(shape_count_lower_bound);
 
-        for shape in shapes {
+        for shape in shape_iter {
             match shape {
                 Shape::Path(path) => {
                     if path.get_points_ref().len() <= 1 {
@@ -1104,11 +1122,8 @@ impl Layer {
                     }
                     combineable.push(path.clone());
                 }
-                Shape::Circle(_) => {
-                    noncombineable.push((*shape).clone());
-                }
-                Shape::Rect(_) => {
-                    noncombineable.push((*shape).clone());
+                Shape::Circle(_) | Shape::Rect(_) => {
+                    noncombineable.push(shape.clone());
                 }
             }
         }
@@ -1128,6 +1143,22 @@ impl Layer {
             last_num_paths = paths.len();
         }
     }
+    fn prepend_paths(path_candidate: &Path, reverse_candidate: bool, current_path: &Path) -> Path {
+        let candidate_points = path_candidate.get_points_ref();
+        let current_points = current_path.get_points_ref();
+        let mut points =
+            Vec::with_capacity(candidate_points.len() + current_points.len().saturating_sub(1));
+
+        if reverse_candidate {
+            points.extend(candidate_points.iter().rev().copied());
+        } else {
+            points.extend(candidate_points.iter().copied());
+        }
+        points.extend(current_points.iter().skip(1).copied());
+
+        Path::new_from(points)
+    }
+
     fn combine_shapes_flat_iterate(
         &self,
         paths: &[Path],
@@ -1186,19 +1217,14 @@ impl Layer {
                 } else if current_path_start.is_compatible(&end, max_angle_delta) {
                     // regular prepend
                     // start -> end -> # -> current_start -> current_end
-                    let mut new_current_path = (*path_candidate).clone();
-                    new_current_path.push_iter_ref(current_path.get_points_ref().iter().skip(1));
-                    current_path = new_current_path;
+                    current_path = Self::prepend_paths(path_candidate, false, &current_path);
 
                     current_path_start = start;
                     mask[j] = true;
                 } else if current_path_start.is_compatible(&start.flipped(), max_angle_delta) {
                     // reverse candidate and prepend
                     // end -> start -> # -> current_start -> current_end
-                    let mut new_current_path = (*path_candidate).clone();
-                    new_current_path.reverse_mut();
-                    new_current_path.push_iter_ref(current_path.get_points_ref().iter().skip(1));
-                    current_path = new_current_path;
+                    current_path = Self::prepend_paths(path_candidate, true, &current_path);
 
                     current_path_start = end.flipped();
                     mask[j] = true;
@@ -1216,15 +1242,14 @@ impl Layer {
 
     /// Map a function recursively to all [`Shape`]s in the `Layer` and its sublayers.
     pub fn map_recursive_mut<F: Fn(&mut Shape)>(&mut self, f: F) {
-        let f = Arc::new(f);
-        self.map_recursive_mut_internal(f)
+        self.map_recursive_mut_internal(&f)
     }
-    fn map_recursive_mut_internal<F: Fn(&mut Shape)>(&mut self, f: Arc<F>) {
+    fn map_recursive_mut_internal<F: Fn(&mut Shape)>(&mut self, f: &F) {
         for shape in &mut self.shapes {
             f(shape);
         }
         for sublayer in &mut self.sublayers {
-            sublayer.map_recursive_mut_internal(f.clone());
+            sublayer.map_recursive_mut_internal(f);
         }
     }
 
@@ -1258,18 +1283,17 @@ impl Layer {
     /// Filter the [`Shape`]s in the `Layer` and its sublayers with a predicate function.
     pub fn filter_recursive_mut<F>(&mut self, predicate: F)
     where
-        F: Fn(&Shape) -> bool + Clone,
+        F: Fn(&Shape) -> bool,
     {
-        let predicate = Arc::new(predicate);
-        self.filter_recursive_mut_internal(predicate)
+        self.filter_recursive_mut_internal(&predicate)
     }
-    fn filter_recursive_mut_internal<F>(&mut self, predicate: Arc<F>)
+    fn filter_recursive_mut_internal<F>(&mut self, predicate: &F)
     where
         F: Fn(&Shape) -> bool,
     {
         self.shapes.retain(|shape| predicate(shape));
         for sublayer in &mut self.sublayers {
-            sublayer.filter_recursive_mut_internal(predicate.clone());
+            sublayer.filter_recursive_mut_internal(predicate);
         }
     }
 
@@ -1390,24 +1414,38 @@ impl Layer {
     /// This is done with a greedy algorithm that always chooses the closest shape to the current position.
     ///
     /// see also [`Layer::optimize_recursive`].
+    fn optimize_shape_start_end(shape: &Shape) -> (V2, V2) {
+        match shape {
+            Shape::Path(path) => {
+                let points = path.get_points_ref();
+                if let (Some(start), Some(end)) = (points.first(), points.last()) {
+                    (*start, *end)
+                } else {
+                    (V2::zero(), V2::zero())
+                }
+            }
+            Shape::Circle(circle) => {
+                let start = circle.center + V2::new(circle.radius, 0.0);
+                (start, start)
+            }
+            Shape::Rect(rect) => {
+                let start = rect.bl();
+                (start, start)
+            }
+        }
+    }
+
     pub fn optimize(&self) -> Self {
-        let sample_settings = SampleSettings::low_res();
         let starts_and_ends: Vec<_> = self
             .shapes
             .iter()
-            .map(|shape| {
-                let points = shape.get_points(sample_settings);
-                if points.is_empty() {
-                    return (V2::zero(), V2::zero());
-                }
-                (*points.first().unwrap(), *points.last().unwrap())
-            })
+            .map(Self::optimize_shape_start_end)
             .collect();
 
         let mut unused_items_indices: BTreeSet<usize> = (0..self.shapes.len()).collect();
 
         let mut pos = V2::zero();
-        let mut optimized = Layer::new()
+        let mut optimized = Layer::with_capacity(self.shapes.len())
             .with_props_inheritable(self.props_inheritable.clone())
             .with_props(self.props.clone());
 

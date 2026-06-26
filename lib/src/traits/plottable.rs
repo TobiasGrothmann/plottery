@@ -70,7 +70,7 @@ pub trait Plottable: Clone + Into<Shape> {
             return points;
         }
         let mut points_oversampled = vec![points[0]];
-        for (from, to) in self.get_points(sample_settings).iter().tuple_windows() {
+        for (from, to) in points.iter().tuple_windows() {
             let num_steps = sample_settings.get_num_points_for_length(from.dist(*to));
             if num_steps <= 1 {
                 points_oversampled.push(*to);
