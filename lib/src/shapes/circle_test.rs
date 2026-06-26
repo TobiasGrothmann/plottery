@@ -71,7 +71,7 @@ mod test_circle {
     fn normalize() {
         let c = Circle::new(V2::new(1.0, 2.0), 3.0);
         let target = crate::Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
-        let normalized = c.normalize(&target, Alignment::Center).unwrap();
+        let normalized = c.normalize_inside(&target, Alignment::Center).unwrap();
         let normalized_bounds = normalized.bounding_box().unwrap();
 
         assert_eq!(normalized_bounds.bl(), V2::new(0.0, 0.0));

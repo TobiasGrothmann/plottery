@@ -613,7 +613,7 @@ mod test_layer {
         )]));
 
         let l_normalized = l
-            .normalize(
+            .normalize_inside(
                 &Rect::new(V2::new(0.5, 0.5), V2::new(1.0, 1.0)),
                 Alignment::Center,
             )
