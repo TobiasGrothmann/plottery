@@ -45,10 +45,10 @@ echo -e "${BLUE}Version: $VERSION${NC}"
 echo "========================================="
 echo ""
 
-DMG_PATH="$REPO_ROOT/target/dx/PlotteryEditor/bundle/macos/bundle/dmg"
-if [ -d "$DMG_PATH" ]; then
+DMG_SEARCH_ROOT="$REPO_ROOT/target/dx/PlotteryEditor/bundle/macos"
+if [ -d "$DMG_SEARCH_ROOT" ]; then
   echo -e "${YELLOW}Cleaning up existing DMG files...${NC}"
-  find "$DMG_PATH" -name "*.dmg" -type f -delete
+  find "$DMG_SEARCH_ROOT" -name "*.dmg" -type f -delete
   echo -e "${GREEN}✓ Cleanup complete${NC}"
   echo ""
 fi
@@ -65,10 +65,10 @@ echo -e "${GREEN}✓ Build complete${NC}"
 echo ""
 
 echo -e "${YELLOW}Locating DMG file...${NC}"
-DMG_FILE=$(find "$DMG_PATH" -name "*.dmg" -type f | head -n 1)
+DMG_FILE=$(find "$DMG_SEARCH_ROOT" -name "*.dmg" -type f | head -n 1)
 
 if [ -z "$DMG_FILE" ]; then
-  echo -e "${RED}✗ Error: No DMG file found in $DMG_PATH${NC}"
+  echo -e "${RED}✗ Error: No DMG file found under $DMG_SEARCH_ROOT${NC}"
   exit 1
 fi
 
@@ -76,7 +76,7 @@ echo -e "${GREEN}✓ Found DMG file: $DMG_FILE${NC}"
 echo ""
 
 RENAMED_DMG_NAME="PlotteryEditor_v$VERSION.dmg"
-RENAMED_DMG="$DMG_PATH/$RENAMED_DMG_NAME"
+RENAMED_DMG="$(dirname "$DMG_FILE")/$RENAMED_DMG_NAME"
 echo -e "${YELLOW}Renaming DMG file...${NC}"
 cp "$DMG_FILE" "$RENAMED_DMG"
 echo -e "${GREEN}✓ Renamed to: $RENAMED_DMG_NAME${NC}"
