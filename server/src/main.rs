@@ -41,8 +41,22 @@ async fn get_state(managed_state: &State<ManagedState>) -> Vec<u8> {
         .expect("Failed to encode server state to binary format")
 }
 
-#[rocket::main]
-async fn main() {
+fn main() {
+    // Pin the entire process to a dedicated CPU core BEFORE tokio spawns
+    // worker threads, so they inherit the affinity mask. This keeps the
+    // busy-wait step loop from being periodically preempted by the runtime.
+    #[cfg(feature = "raspi")]
+    util::system::pin_process_to_plot_core();
+
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .expect("Failed to build tokio runtime");
+
+    runtime.block_on(async_main());
+}
+
+async fn async_main() {
     let (task_sender, task_receiver) = channel::<Task>(32);
     let server_state = Arc::new(Mutex::new(ServerState::default()));
     let managed_state = ManagedState {
