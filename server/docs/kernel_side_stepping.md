@@ -420,9 +420,17 @@ proves insufficient, and it was explicitly deferred.
 
 Run the 0.2 set after every change and keep the log lines in this file:
 
-| Date | Change | Square pen up | Square pen down | Head 50× | Half speed | Load | Log line |
-|------|--------|---------------|-----------------|----------|------------|------|----------|
-|      | baseline (0.1) |       |                 |          |            |      |          |
+| Date | Change | Pattern | Machine | Log line (key fields) |
+|------|--------|---------|---------|-----------------------|
+| 2026-09-15 | baseline (0.1), run 1 | square-down 20 cm, 2 laps | X motor unpowered during lap 1, then fine | steps=186556 span_s=48.2 pulse_mean_us=61.9 pulse_max_us=11676 stalls_over_500us=1 stalls_over_5ms=0 spin_preempts_over_500us=1 |
+| 2026-09-15 | baseline (0.1), run 2 | square-down 20 cm, 2 laps | all motors unpowered for seconds mid-plot, then resumed | steps=186556 span_s=48.1 pulse_mean_us=61.8 pulse_max_us=712 stalls_over_500us=0 stalls_over_5ms=0 spin_preempts_over_500us=0 |
+
+Reading of 2026-09-15: run 2 froze visibly with a clean log and the same
+48 s span as run 1, so the software stepped continuously while the motors
+had no power. That is the motor supply (protection trip or a bad
+connection), not timing. The 62 µs hidden sleep and the 3.3 cm/s actual
+speed match the predictions above. The 11.7 ms pulse outlier in run 1 is
+the `sleep(200 ns)` misbehaving and is what 0.3 removes.
 
 Then the full-page plot with load, then the two-hour benchmark.
 

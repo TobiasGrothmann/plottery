@@ -136,6 +136,11 @@ pub fn start_server(
                     sync_server_state(&server_state, &hardware, false);
                 }
             }
+
+            let stats = hardware.executor_mut().take_stats();
+            if stats.steps > 0 {
+                println!("{}", stats.summary());
+            }
         }
     });
 

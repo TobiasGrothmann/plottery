@@ -2,6 +2,7 @@
 extern crate rocket;
 
 mod gpio_executor;
+mod gpio_executor_test;
 mod task_handler;
 mod util;
 
