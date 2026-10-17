@@ -424,6 +424,9 @@ Run the 0.2 set after every change and keep the log lines in this file:
 |------|--------|---------|---------|-----------------------|
 | 2026-09-15 | baseline (0.1), run 1 | square-down 20 cm, 2 laps | X motor unpowered during lap 1, then fine | steps=186556 span_s=48.2 pulse_mean_us=61.9 pulse_max_us=11676 stalls_over_500us=1 stalls_over_5ms=0 spin_preempts_over_500us=1 |
 | 2026-09-15 | baseline (0.1), run 2 | square-down 20 cm, 2 laps | all motors unpowered for seconds mid-plot, then resumed | steps=186556 span_s=48.1 pulse_mean_us=61.8 pulse_max_us=712 stalls_over_500us=0 stalls_over_5ms=0 spin_preempts_over_500us=0 |
+| 2026-10-17 | ioprio call removed | square-up 20 cm, 2 laps (8 MoveTo) | smooth, back on the mark | per side steps=22870 span_s=4.8 pulse_mean_us=61.9; side 1: spin_preempts_over_500us=3 (Rocket still receiving tasks); sides 6-8 gap_max_us 63/167/1089, stalls_over_500us=1 total |
+| 2026-10-17 | ioprio call removed | square-down 20 cm, 2 laps | smooth, minute ticks audible, back on the mark, single line | steps=186556 span_s=48.2 pulse_mean_us=61.8 pulse_max_us=1044 gap_max_us=493 stalls_over_500us=0 stalls_over_5ms=0 spin_preempts_over_500us=1 |
+| 2026-10-17 | ioprio call removed | squares-down 10 cm ×20, shifted 0.25 cm | VMOT 8.27 V idle, 7.8 V motors holding (A4988 minimum is 8 V); run result see below | steps=1008552 span_s=260.9 pulse_mean_us=61.9 pulse_max_us=1314 gap_max_us=1180 stalls_over_500us=8 stalls_over_5ms=0 spin_preempts_over_500us=9 |
 
 Reading of 2026-09-15: run 2 froze visibly with a clean log and the same
 48 s span as run 1, so the software stepped continuously while the motors
@@ -431,6 +434,25 @@ had no power. That is the motor supply (protection trip or a bad
 connection), not timing. The 62 µs hidden sleep and the 3.3 cm/s actual
 speed match the predictions above. The 11.7 ms pulse outlier in run 1 is
 the `sleep(200 ns)` misbehaving and is what 0.3 removes.
+
+Reading of 2026-10-17: same patterns, same step counts, position held both
+times at full speed and the log is clean apart from sub-millisecond gaps on
+the shared core. The September power dropouts did not reproduce, so they
+are intermittent: still hardware, still unfound. The Pi was cool (52 °C)
+and idle; all server threads sat on core 2 as described above. Sense
+resistors on the A4988 modules read `R100`, so `I_limit = Vref × 1.25 A`.
+
+Motor supply measured 2026-10-17: the brick is rated **8 V 3 A**. VMOT reads
+8.27 V idle, 7.8 V with the motors holding, 7.82 to 7.9 V during the
+20-square plot; the plot itself was perfect. The A4988 is specified for
+8 to 35 V, so the drivers run below their minimum supply the whole time,
+and four drivers on 3 A leave no margin at this voltage. A switching
+supply in overload goes into hiccup mode (off for about a second, then
+retry), which is exactly run 2 of 2026-09-15. Fix: a 24 V supply with at
+least 4 A (12 V as a minimum); check the VMOT capacitor rating on the PCB
+first (needs 35 V or more for 24 V). The higher voltage also raises the
+torque available at speed, which the retune in 0.5 depends on; measure
+Vref and set the current limits afterwards.
 
 Then the full-page plot with load, then the two-hour benchmark.
 

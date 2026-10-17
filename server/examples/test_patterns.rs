@@ -5,6 +5,7 @@
 //! cargo run -p plottery_server --example test_patterns -- square-up 20 2
 //! cargo run -p plottery_server --example test_patterns -- square-down 20 2
 //! cargo run -p plottery_server --example test_patterns -- head 50
+//! cargo run -p plottery_server --example test_patterns -- squares-down 10 20 0.25   # 20 squares, each shifted +0.25 cm in x and y
 //! cargo run -p plottery_server --example test_patterns -- state     # what the server reports
 //! cargo run -p plottery_server --example test_patterns -- enable    # motors on (should lock/hum)
 //! cargo run -p plottery_server --example test_patterns -- disable
@@ -65,6 +66,30 @@ async fn run() -> anyhow::Result<()> {
             })
             .await?;
         }
+        Some("squares-down") => {
+            let (size, count) = size_and_laps(&args)?;
+            let offset: f32 = args
+                .get(3)
+                .map(|value| value.parse())
+                .transpose()?
+                .unwrap_or(0.25);
+            println!(
+                "squares, pen down: {count} squares of {size} cm, shifted by {offset} cm per square, speed factor {factor}"
+            );
+            let mut layer = Layer::new();
+            for i in 0..count {
+                let shift = V2::new(offset, offset) * i as f32;
+                let mut points = vec![shift];
+                points.extend(corners(size).map(|corner| corner + shift));
+                layer.push(Path::new_shape_from(points));
+            }
+            send_task(Task::Plot {
+                layer,
+                sample_settings: SampleSettings::default(),
+                plot_settings: settings,
+            })
+            .await?;
+        }
         Some("head") => {
             let cycles: u32 = args
                 .get(1)
@@ -85,7 +110,7 @@ async fn run() -> anyhow::Result<()> {
         Some("disable") => send_task(Task::SetEnabled(false)).await?,
         _ => {
             eprintln!(
-                "usage: test_patterns square-up <size_cm> <laps> | square-down <size_cm> <laps> | head <cycles> | state | enable | disable"
+                "usage: test_patterns square-up <size_cm> <laps> | square-down <size_cm> <laps> | squares-down <size_cm> <count> <offset_cm> | head <cycles> | state | enable | disable"
             );
             eprintln!("       PLOTTERY_SPEED_FACTOR=0.5 scales every max speed (min speeds stay)");
         }

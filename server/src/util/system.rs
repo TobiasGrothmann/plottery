@@ -1,24 +1,6 @@
 #[cfg(feature = "raspi")]
 const PLOT_CORE: usize = 2;
 
-#[cfg(feature = "raspi")]
-pub fn set_realtime_priority() {
-    use ioprio::{set_priority, Pid, Priority, RtPriorityLevel, Target};
-
-    if let Err(err) = set_priority(
-        Target::ProcessGroup(Pid::this()),
-        Priority::new(ioprio::Class::Realtime(RtPriorityLevel::highest())),
-    ) {
-        eprintln!("Failed to set IO realtime priority: {err}");
-        std::process::abort();
-    }
-
-    // NOTE: No SCHED_FIFO here. The plotting loop busy-waits, which would
-    // burn the RT runtime budget (sched_rt_runtime_us=950000 per 1s period)
-    // and get throttled for the remainder of each period — causing regular
-    // motor hiccups and lost steps.
-}
-
 /// Pin the whole process (all current and future threads) to a dedicated
 /// core. Equivalent to `taskset -c 2`. Prevents the tokio/Rocket runtime
 /// from being scheduled on other cores where periodic scheduler activity
