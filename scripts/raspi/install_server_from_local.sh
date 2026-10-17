@@ -40,9 +40,11 @@ if [ ! -f "$SERVICE_FILE" ]; then
   exit 1
 fi
 
-if ! systemctl list-unit-files --type=service --no-legend | grep -q "^$SERVICE_NAME"; then
+# A stale unit cache makes systemd forget the unit until the next reload.
+sudo systemctl daemon-reload
+if ! systemctl cat "$SERVICE_NAME" >/dev/null 2>&1; then
   echo "Error: $SERVICE_NAME is not registered with systemd." >&2
-  echo "Run: sudo systemctl daemon-reload" >&2
+  echo "Install it first: $REPO_ROOT/scripts/raspi/install_service_from_local.sh" >&2
   exit 1
 fi
 
