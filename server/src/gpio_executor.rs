@@ -2,14 +2,14 @@ use plottery_server_lib::{hardware::HardwareExecutor, pins::PinSettings, Axis};
 use std::time::{Duration, Instant};
 
 #[cfg(feature = "raspi")]
-use std::thread::sleep;
-
-#[cfg(feature = "raspi")]
 use rppal::gpio::{Gpio, OutputPin};
 
+/// Setup time for the A4988: STEP low for at least 1 µs before the rising
+/// edge it steps on, DIR stable at least 200 ns before that edge. Waited
+/// out with a busy-wait on purpose: `thread::sleep` here carried about
+/// 50 µs of timer slack and added 62 µs to every step.
 #[cfg(feature = "raspi")]
-const PIN_DELAY_NANOS: u32 = 200;
-
+const SETTLE: Duration = Duration::from_micros(2);
 /// A step whose *previous* step was commanded with a delay shorter than
 /// this counts as "at speed": a pause there stalls a running motor. Below
 /// that speed (`v_min` segments, shape boundaries while the next shape is
@@ -222,7 +222,10 @@ impl GpioExecutor {
     }
 
     fn maybe_report(&mut self, upcoming_delay: Duration) {
-        if upcoming_delay < REPORT_MIN_DELAY || self.last_report.elapsed() < REPORT_INTERVAL {
+        if self.stats.steps == 0
+            || upcoming_delay < REPORT_MIN_DELAY
+            || self.last_report.elapsed() < REPORT_INTERVAL
+        {
             return;
         }
         println!("{} (partial)", self.stats.summary());
@@ -241,6 +244,12 @@ impl GpioExecutor {
         self.last_step = Some((end, self.pending_delay[axis_i]));
         self.last_steps_timestamp[axis_i] = end;
     }
+}
+
+#[cfg(feature = "raspi")]
+fn settle() {
+    let start = Instant::now();
+    while start.elapsed() < SETTLE {}
 }
 
 impl HardwareExecutor for GpioExecutor {
@@ -274,7 +283,7 @@ impl HardwareExecutor for GpioExecutor {
                 }
             }
         }
-        sleep(Duration::new(0, PIN_DELAY_NANOS));
+        settle();
     }
 
     fn step(&mut self, axis: Axis) {
@@ -285,19 +294,19 @@ impl HardwareExecutor for GpioExecutor {
             match axis {
                 Axis::X => {
                     self.pins_step[2].set_low();
-                    sleep(Duration::new(0, PIN_DELAY_NANOS));
+                    settle();
                     self.pins_step[2].set_high();
                 }
                 Axis::Y => {
                     self.pins_step[0].set_low();
                     self.pins_step[1].set_low();
-                    sleep(Duration::new(0, PIN_DELAY_NANOS));
+                    settle();
                     self.pins_step[0].set_high();
                     self.pins_step[1].set_high();
                 }
                 Axis::Head => {
                     self.pins_step[3].set_low();
-                    sleep(Duration::new(0, PIN_DELAY_NANOS));
+                    settle();
                     self.pins_step[3].set_high();
                 }
             }

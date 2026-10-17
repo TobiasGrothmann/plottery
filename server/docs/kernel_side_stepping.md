@@ -427,6 +427,7 @@ Run the 0.2 set after every change and keep the log lines in this file:
 | 2026-10-17 | ioprio call removed | square-up 20 cm, 2 laps (8 MoveTo) | smooth, back on the mark | per side steps=22870 span_s=4.8 pulse_mean_us=61.9; side 1: spin_preempts_over_500us=3 (Rocket still receiving tasks); sides 6-8 gap_max_us 63/167/1089, stalls_over_500us=1 total |
 | 2026-10-17 | ioprio call removed | square-down 20 cm, 2 laps | smooth, minute ticks audible, back on the mark, single line | steps=186556 span_s=48.2 pulse_mean_us=61.8 pulse_max_us=1044 gap_max_us=493 stalls_over_500us=0 stalls_over_5ms=0 spin_preempts_over_500us=1 |
 | 2026-10-17 | ioprio call removed | squares-down 10 cm ×20, shifted 0.25 cm | VMOT 8.27 V idle, 7.8 V motors holding (A4988 minimum is 8 V); run result see below | steps=1008552 span_s=260.9 pulse_mean_us=61.9 pulse_max_us=1314 gap_max_us=1180 stalls_over_500us=8 stalls_over_5ms=0 spin_preempts_over_500us=9 |
+| 2026-10-17 | 0.3 (isolcpus, FIFO plot thread, busy-wait pulse, rescaled defaults) | square-up 20 cm, 2 laps | see text | per side steps=22870 span_s=4.9 pulse_mean_us=2.6 pulse_max_us≤11 gap_max_us≤11 stalls_over_500us=0 spin_preempt_max_us≤32 spin_preempts_over_500us=0 |
 
 Reading of 2026-09-15: run 2 froze visibly with a clean log and the same
 48 s span as run 1, so the software stepped continuously while the motors
@@ -453,6 +454,18 @@ least 4 A (12 V as a minimum); check the VMOT capacitor rating on the PCB
 first (needs 35 V or more for 24 V). The higher voltage also raises the
 torque available at speed, which the retune in 0.5 depends on; measure
 Vref and set the current limits afterwards.
+
+Done on the Pi 2026-10-17 (0.3 system side): `isolcpus=2 irqaffinity=0,1,3`
+appended to `/boot/firmware/cmdline.txt` (backup at
+`cmdline.txt.bak-2026-10-17`), `/etc/sysctl.d/99-plottery.conf` with
+`kernel.sched_rt_runtime_us = -1`, rebooted. The server sets the
+`performance` governor itself, pins only the plot thread to core 2, and
+switches it to `SCHED_FIFO 50` only when `/sys/devices/system/cpu/isolated`
+lists core 2 and the realtime budget is unlimited; otherwise it logs a
+warning and stays on the normal scheduler. The `sleep(200 ns)` calls are
+replaced by a 2 µs busy-wait, and `PlotSettings::default()` now holds the
+speeds the machine physically ran at before (draw 0.39-3.41, travel
+0.58-4.68, head down 0.47-2.68, head up 1.27-3.75 cm/s).
 
 Then the full-page plot with load, then the two-hour benchmark.
 

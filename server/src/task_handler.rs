@@ -19,6 +19,9 @@ pub fn start_server(
     sync_server_state(&server_state, &hardware, false);
 
     thread::spawn(move || {
+        #[cfg(feature = "raspi")]
+        crate::util::system::prepare_plot_thread();
+
         while let Some(task) = receiver.blocking_recv() {
             println!("...received task");
             match task {

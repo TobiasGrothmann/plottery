@@ -43,12 +43,6 @@ async fn get_state(managed_state: &State<ManagedState>) -> Vec<u8> {
 }
 
 fn main() {
-    // Pin the entire process to a dedicated CPU core BEFORE tokio spawns
-    // worker threads, so they inherit the affinity mask. This keeps the
-    // busy-wait step loop from being periodically preempted by the runtime.
-    #[cfg(feature = "raspi")]
-    util::system::pin_process_to_plot_core();
-
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
