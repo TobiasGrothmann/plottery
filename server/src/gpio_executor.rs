@@ -232,6 +232,16 @@ impl GpioExecutor {
         self.last_report = Instant::now();
     }
 
+    fn spin_until(&mut self, delay_until: Instant) {
+        let mut previous = Instant::now();
+        while delay_until >= previous {
+            let now = Instant::now();
+            self.stats
+                .record_spin_gap(now.saturating_duration_since(previous));
+            previous = now;
+        }
+    }
+
     fn record_step(&mut self, axis: Axis, start: Instant, end: Instant) {
         let axis_i = axis_to_index(axis);
         self.stats.record_pulse(start, end);
@@ -324,15 +334,17 @@ impl HardwareExecutor for GpioExecutor {
         let delay = Duration::new(0, delay_nanos);
         self.pending_delay[axis_i] = delay;
         self.maybe_report(delay);
-        let delay_until = self.last_steps_timestamp[axis_i] + delay;
+        self.spin_until(self.last_steps_timestamp[axis_i] + delay);
+    }
 
-        let mut previous = Instant::now();
-        while delay_until >= previous {
-            let now = Instant::now();
-            self.stats
-                .record_spin_gap(now.saturating_duration_since(previous));
-            previous = now;
-        }
+    fn wait_xy(&mut self, delay_nanos: u32) {
+        let delay = Duration::new(0, delay_nanos);
+        let (x, y) = (axis_to_index(Axis::X), axis_to_index(Axis::Y));
+        self.pending_delay[x] = delay;
+        self.pending_delay[y] = delay;
+        self.maybe_report(delay);
+        let last_xy = self.last_steps_timestamp[x].max(self.last_steps_timestamp[y]);
+        self.spin_until(last_xy + delay);
     }
 
     fn set_enabled(&mut self, enabled: bool) {

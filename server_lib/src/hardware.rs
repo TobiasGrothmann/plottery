@@ -8,7 +8,11 @@ use crate::{
 pub trait HardwareExecutor {
     fn set_dir(&mut self, axis: Axis, forward: bool);
     fn step(&mut self, axis: Axis);
+    /// Waits until `delay_nanos` have passed since the last step on `axis`.
     fn wait_axis(&mut self, axis: Axis, delay_nanos: u32);
+    /// Waits until `delay_nanos` have passed since the last step on either
+    /// X or Y, so interleaved X and Y steps are spaced uniformly in time.
+    fn wait_xy(&mut self, delay_nanos: u32);
     fn set_enabled(&mut self, enabled: bool);
 }
 
@@ -93,25 +97,32 @@ impl<E: HardwareExecutor> Hardware<E> {
             return;
         }
 
+        // The interleaved steps lie uniformly along the segment, the k-th of
+        // N at path distance L * k / N. Spacing them in time by delay * L / N
+        // makes the speed setting the pen speed along the path at every
+        // angle: factor 1 axis-aligned, 0.707 at 45°.
+        let path_factor =
+            (movement_abs.x as f64).hypot(movement_abs.y as f64) / total_steps as f64;
+
         while stepped_x < movement_abs.x || stepped_y < movement_abs.y {
             let moved_fraction = (stepped_x as f32 + stepped_y as f32) / total_steps as f32;
             let speed_fraction =
                 speed_fraction_start + (speed_fraction_end - speed_fraction_start) * moved_fraction;
 
-            let delay_nanos = speed_handler
-                .get_delay_nanos(speed_fraction.clamp(0.0, 1.0))
+            let delay_nanos = (speed_handler.get_delay_nanos(speed_fraction.clamp(0.0, 1.0))
+                * path_factor)
                 .round() as u32;
 
             if Line::new(V2::new(0.0, 0.0), movement_abs.abs().to_float())
                 .point_relation(V2::new(stepped_x as f32, stepped_y as f32))
                 == PointLineRelation::Left
             {
-                self.executor.wait_axis(Axis::X, delay_nanos);
+                self.executor.wait_xy(delay_nanos);
                 stepped_x += 1;
                 self.x += directions_signs.x;
                 self.executor.step(Axis::X);
             } else {
-                self.executor.wait_axis(Axis::Y, delay_nanos);
+                self.executor.wait_xy(delay_nanos);
                 stepped_y += 1;
                 self.y += directions_signs.y;
                 self.executor.step(Axis::Y);

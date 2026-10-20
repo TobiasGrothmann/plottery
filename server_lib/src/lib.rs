@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 pub mod accelleration;
 pub mod estimation;
 pub mod hardware;
+mod hardware_test;
 pub mod midi;
 pub mod pins;
 pub mod plot_execution;

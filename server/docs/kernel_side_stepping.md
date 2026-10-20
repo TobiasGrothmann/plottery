@@ -429,6 +429,8 @@ Run the 0.2 set after every change and keep the log lines in this file:
 | 2026-10-17 | ioprio call removed | squares-down 10 cm ×20, shifted 0.25 cm | VMOT 8.27 V idle, 7.8 V motors holding (A4988 minimum is 8 V); run result see below | steps=1008552 span_s=260.9 pulse_mean_us=61.9 pulse_max_us=1314 gap_max_us=1180 stalls_over_500us=8 stalls_over_5ms=0 spin_preempts_over_500us=9 |
 | 2026-10-17 | 0.3 (isolcpus, FIFO plot thread, busy-wait pulse, rescaled defaults) | square-up 20 cm, 2 laps | flawless, back on the mark | per side steps=22870 span_s=4.9 pulse_mean_us=2.6 pulse_max_us≤11 gap_max_us≤11 stalls_over_500us=0 spin_preempt_max_us≤32 spin_preempts_over_500us=0 |
 | 2026-10-17 | 0.3, load: 4× `yes > /dev/null` on the Pi, Remote page open | squares-down 10 cm ×20, shifted 0.25 cm | clean, no audible hiccups, Pi at 73.6 °C, not throttled | steps=1008552 span_s=266.0 pulse_mean_us=2.6 pulse_max_us=8.8 gap_max_us=94.8 at_speed_gap_max_us=14.8 stalls_over_500us=0 stalls_over_5ms=0 spin_preempt_max_us=27.8 spin_preempts_over_500us=0 |
+| 2026-10-17 | 0.4 path speed (`wait_xy`, delay × L/N) | diagonal-up 14.14 cm (20 cm legs at 45°), 2 laps | see text | per leg steps=32334 span_s=5.0 (axis-aligned 20 cm side: 4.9) pulse_mean_us=2.6 gap_max_us≤5.5 stalls_over_500us=0 spin_preempts_over_500us=0 |
+| 2026-10-17 | 0.4 path speed | angles-up 10 cm, 0° to 90° in 10° steps, out and back | see text | every leg span_s=2.8 (steps 11437 at 0°/90° up to 16109 at 40°/50°) stalls_over_500us=0 |
 
 Reading of 2026-09-15: run 2 froze visibly with a clean log and the same
 48 s span as run 1, so the software stepped continuously while the motors
@@ -469,6 +471,20 @@ speeds the machine physically ran at before (draw 0.39-3.41, travel
 0.58-4.68, head down 0.47-2.68, head up 1.27-3.75 cm/s).
 
 Then the full-page plot with load, then the two-hour benchmark.
+
+State after 2026-10-17: 0.1, 0.3 and 0.4 are done and verified on the
+machine (zero stalls under load, path speed equal at every angle, circles
+clean at 1.5× draw/travel). Open, in order:
+
+- Install the new build as the service on the Pi: the unit still starts
+  the September binary from `~/.cargo/bin`. Quick way without a 12-minute
+  `cargo install` rebuild: `cp ~/plottery/target/release/plottery_server
+  ~/.cargo/bin/plottery_server && sudo systemctl restart plottery.service`.
+  Stats lines then go to `journalctl -u plottery.service`.
+- 24 V ≥ 4 A motor supply (ordered 2026-10-17): check polarity with the
+  meter, plug in, measure Vref on each module (`I = Vref × 1.25 A`), then
+  0.5 retune.
+- 0.6 abort, 0.7 `ExecStopPost` motors-off, then the two-hour benchmark.
 
 ## References
 

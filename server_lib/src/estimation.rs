@@ -27,20 +27,20 @@ pub fn estimate_plot_layer_duration(
 }
 
 #[derive(Debug, Clone, Copy)]
-struct TimeEstimatorExecutor {
+pub(crate) struct TimeEstimatorExecutor {
     last_steps_timestamp_nanos: [u128; 3],
     now_nanos: u128,
 }
 
 impl TimeEstimatorExecutor {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             last_steps_timestamp_nanos: [0, 0, 0],
             now_nanos: 0,
         }
     }
 
-    fn duration(&self) -> Duration {
+    pub(crate) fn duration(&self) -> Duration {
         let nanos = u64::try_from(self.now_nanos).unwrap_or(u64::MAX);
         Duration::from_nanos(nanos)
     }
@@ -58,6 +58,11 @@ impl HardwareExecutor for TimeEstimatorExecutor {
         let delay_nanos = delay_nanos as u128;
         let delay_until = self.last_steps_timestamp_nanos[axis_i] + delay_nanos;
         self.now_nanos = self.now_nanos.max(delay_until);
+    }
+
+    fn wait_xy(&mut self, delay_nanos: u32) {
+        let last_xy = self.last_steps_timestamp_nanos[0].max(self.last_steps_timestamp_nanos[1]);
+        self.now_nanos = self.now_nanos.max(last_xy + delay_nanos as u128);
     }
 
     fn set_enabled(&mut self, _enabled: bool) {}

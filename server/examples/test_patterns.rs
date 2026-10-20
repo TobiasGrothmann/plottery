@@ -6,6 +6,9 @@
 //! cargo run -p plottery_server --example test_patterns -- square-down 20 2
 //! cargo run -p plottery_server --example test_patterns -- head 50
 //! cargo run -p plottery_server --example test_patterns -- squares-down 10 20 0.25   # 20 squares, each shifted +0.25 cm in x and y
+//! cargo run -p plottery_server --example test_patterns -- diagonal-up 14.14 2      # pen up to (14.14, 14.14) and back: 20 cm legs at 45°
+//! cargo run -p plottery_server --example test_patterns -- angles-up 10 10         # pen up, 10 cm out and back at 0°, 10°, ... 90°
+//! cargo run -p plottery_server --example test_patterns -- circles-down 5 1 6      # pen down, 5 circles, diameters 1 to 6 cm in a row
 //! cargo run -p plottery_server --example test_patterns -- state     # what the server reports
 //! cargo run -p plottery_server --example test_patterns -- enable    # motors on (should lock/hum)
 //! cargo run -p plottery_server --example test_patterns -- disable
@@ -20,7 +23,7 @@
 
 use std::time::Duration;
 
-use plottery_lib::{Layer, Path, SampleSettings, V2};
+use plottery_lib::{Circle, Layer, Path, SampleSettings, V2};
 use plottery_server_lib::{
     plot_setting::PlotSettings,
     server_state::request_server_state,
@@ -59,6 +62,45 @@ async fn run() -> anyhow::Result<()> {
             }
             let mut layer = Layer::new();
             layer.push(Path::new_shape_from(points));
+            send_task(Task::Plot {
+                layer,
+                sample_settings: SampleSettings::default(),
+                plot_settings: settings,
+            })
+            .await?;
+        }
+        Some("diagonal-up") => {
+            let (size, laps) = size_and_laps(&args)?;
+            println!("diagonal, pen up: to ({size}, {size}) and back, {laps} laps, speed factor {factor}");
+            for _ in 0..laps {
+                send_task(Task::MoveTo(V2::new(size, size), settings.clone())).await?;
+                send_task(Task::MoveTo(V2::zero(), settings.clone())).await?;
+            }
+        }
+        Some("angles-up") => {
+            let (length, step_deg) = size_and_laps(&args)?;
+            println!("angles, pen up: {length} cm out and back, 0° to 90° in {step_deg}° steps, speed factor {factor}");
+            for angle_deg in (0..=90).step_by(step_deg.max(1) as usize) {
+                let (sin, cos) = (angle_deg as f32).to_radians().sin_cos();
+                send_task(Task::MoveTo(V2::new(length * cos, length * sin), settings.clone())).await?;
+                send_task(Task::MoveTo(V2::zero(), settings.clone())).await?;
+            }
+        }
+        Some("circles-down") => {
+            let count = args.get(1).map(|v| v.parse::<u32>()).transpose()?.unwrap_or(5).max(1);
+            let min_d = args.get(2).map(|v| v.parse::<f32>()).transpose()?.unwrap_or(1.0);
+            let max_d = args.get(3).map(|v| v.parse::<f32>()).transpose()?.unwrap_or(6.0);
+            let gap = 0.5;
+            println!("circles, pen down: {count} circles, diameters {min_d} to {max_d} cm, {gap} cm apart, speed factor {factor}");
+            let mut layer = Layer::new();
+            let mut x = 0.0;
+            for i in 0..count {
+                let t = if count > 1 { i as f32 / (count - 1) as f32 } else { 0.0 };
+                let radius = (min_d + (max_d - min_d) * t) / 2.0;
+                layer.push(Circle::new(V2::new(x + radius, radius), radius));
+                x += 2.0 * radius + gap;
+            }
+            println!("needs {x:.1} cm in x and {max_d} cm in y");
             send_task(Task::Plot {
                 layer,
                 sample_settings: SampleSettings::default(),
@@ -110,9 +152,9 @@ async fn run() -> anyhow::Result<()> {
         Some("disable") => send_task(Task::SetEnabled(false)).await?,
         _ => {
             eprintln!(
-                "usage: test_patterns square-up <size_cm> <laps> | square-down <size_cm> <laps> | squares-down <size_cm> <count> <offset_cm> | head <cycles> | state | enable | disable"
+                "usage: test_patterns square-up <size_cm> <laps> | square-down <size_cm> <laps> | diagonal-up <size_cm> <laps> | angles-up <length_cm> <step_deg> | circles-down <count> <min_d_cm> <max_d_cm> | squares-down <size_cm> <count> <offset_cm> | head <cycles> | state | enable | disable"
             );
-            eprintln!("       PLOTTERY_SPEED_FACTOR=0.5 scales every max speed (min speeds stay)");
+            eprintln!("       PLOTTERY_SPEED_FACTOR=0.5 scales the max draw and travel speeds (min speeds and head stay)");
         }
     }
     Ok(())
@@ -127,12 +169,8 @@ fn speed_factor() -> anyhow::Result<f32> {
 
 fn scaled_settings(factor: f32) -> PlotSettings {
     let mut settings = PlotSettings::default();
-    for range in [
-        &mut settings.speed_draw,
-        &mut settings.speed_travel,
-        &mut settings.speed_head_down,
-        &mut settings.speed_head_up,
-    ] {
+    // XY only: the head is the axis closest to its torque limit.
+    for range in [&mut settings.speed_draw, &mut settings.speed_travel] {
         range.max = (range.max * factor).max(range.min);
     }
     settings
