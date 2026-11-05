@@ -56,6 +56,15 @@ impl ColorRgb {
         (self.r.clamp(0.0, 1.0) + self.g.clamp(0.0, 1.0) + self.b.clamp(0.0, 1.0)) / 3.0
     }
 
+    /// Linear interpolation towards `other`, `t` from 0 to 1.
+    pub fn lerp(&self, other: ColorRgb, t: f32) -> ColorRgb {
+        ColorRgb::new(
+            self.r + (other.r - self.r) * t,
+            self.g + (other.g - self.g) * t,
+            self.b + (other.b - self.b) * t,
+        )
+    }
+
     /// Returns the Euclidean distance between this color and another color.
     /// This measure is not a perfect representation of human perception of color difference.
     pub fn dist_euclidean(&self, other: ColorRgb) -> f32 {

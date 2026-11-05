@@ -5275,6 +5275,7 @@ dependencies = [
  "geo",
  "geo-types",
  "geometry-predicates",
+ "image",
  "itertools 0.13.0",
  "lazy_static",
  "mint",
