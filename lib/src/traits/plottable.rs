@@ -1,4 +1,4 @@
-use crate::{Angle, Layer, Line, LineIntersection, Path, Shape, V2};
+use crate::{Angle, Layer, Line, LineIntersection, Path, Shape, LARGE_EPSILON, V2};
 
 use geo::BooleanOps;
 use geo_types::{LineString, MultiLineString, Polygon};
@@ -92,6 +92,70 @@ pub trait Plottable: Clone + Into<Shape> {
             .into_iter()
             .map(f)
             .collect()
+    }
+
+    /// Splits the shape into dashes of `dash_length` with gaps of `gap_length` in between.
+    fn dash(&self, dash_length: f32, gap_length: f32, sample_settings: SampleSettings) -> Layer {
+        self.dash_fn(sample_settings, |_, is_gap, _, _| {
+            if is_gap {
+                gap_length
+            } else {
+                dash_length
+            }
+        })
+    }
+
+    /// Dashes the shape, `f(point, is_gap, dist_along, fraction_along)` returns the length of the next dash or gap.
+    fn dash_fn<F: Fn(V2, bool, f32, f32) -> f32>(
+        &self,
+        sample_settings: SampleSettings,
+        f: F,
+    ) -> Layer {
+        let segments = self.get_line_segments(sample_settings);
+        let total_length: f32 = segments.iter().map(|line| line.from.dist(line.to)).sum();
+        let mut layer = Layer::new();
+        if total_length <= 0.0 {
+            return layer;
+        }
+
+        let mut dist_along = 0.0;
+        let mut is_gap = false;
+        let mut remaining = f(segments[0].from, false, 0.0, 0.0).max(LARGE_EPSILON);
+        let mut current = Path::new();
+
+        for line in segments {
+            let length = line.from.dist(line.to);
+            if length <= 0.0 {
+                continue;
+            }
+            let mut pos = 0.0;
+            while pos < length {
+                let step = remaining.min(length - pos);
+                let end = line.from + (line.to - line.from) * ((pos + step) / length);
+                if !is_gap {
+                    if current.is_empty() {
+                        current.push(line.from + (line.to - line.from) * (pos / length));
+                    }
+                    current.push(end);
+                }
+                pos += step;
+                dist_along += step;
+                remaining -= step;
+
+                if remaining <= LARGE_EPSILON {
+                    if !is_gap {
+                        layer.push(std::mem::take(&mut current));
+                    }
+                    is_gap = !is_gap;
+                    remaining =
+                        f(end, is_gap, dist_along, dist_along / total_length).max(LARGE_EPSILON);
+                }
+            }
+        }
+        if current.get_points_ref().len() > 1 {
+            layer.push(current);
+        }
+        layer
     }
 
     /// Like [`get_points_oversampled`](Plottable::get_points_oversampled), paired with the distance along the shape.
