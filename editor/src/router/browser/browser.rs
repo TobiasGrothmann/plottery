@@ -1,6 +1,9 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, rc::Rc};
 
-use dioxus::prelude::*;
+use dioxus::{
+    html::{geometry::PixelsVector2D, MountedData, ScrollBehavior},
+    prelude::*,
+};
 use dioxus_logger::tracing;
 use dioxus_router::hooks::use_navigator;
 use plottery_project::{scan_roots, Project, ScanOptions, ScanResult};
@@ -15,6 +18,9 @@ use crate::{
     routes::Route,
     util::{editor_route, format_svg},
 };
+
+/// Scroll offset of the project grid, kept across navigation so going back lands where you left.
+static SCROLL_TOP: GlobalSignal<f64> = Signal::global(|| 0.0);
 
 fn pick_root_folder() -> Option<PathBuf> {
     rfd::FileDialog::new()
@@ -77,6 +83,28 @@ pub fn Browser() -> Element {
         }
     });
     use_effect(move || app_state.read().save());
+
+    // Restore the previous scroll position once the first scan has rendered the cards.
+    let mut main_element: Signal<Option<Rc<MountedData>>> = use_signal(|| None);
+    let mut scroll_restored = use_signal(|| false);
+    use_effect(move || {
+        let scanned = scan.read().is_some();
+        let Some(element) = main_element() else {
+            return;
+        };
+        if !scanned || scroll_restored() {
+            return;
+        }
+        scroll_restored.set(true);
+        let top = *SCROLL_TOP.peek();
+        if top > 0.0 {
+            spawn(async move {
+                let _ = element
+                    .scroll(PixelsVector2D::new(0.0, top), ScrollBehavior::Instant)
+                    .await;
+            });
+        }
+    });
 
     let nav = use_navigator();
     let mut add_root = move || {
@@ -173,6 +201,8 @@ pub fn Browser() -> Element {
                 }
             }
             div { class: "browser_main",
+                onmounted: move |event| main_element.set(Some(event.data())),
+                onscroll: move |event| *SCROLL_TOP.write() = event.data().scroll_top(),
                 if roots_now.is_empty() {
                     div { class: "browser_empty",
                         p { "Add a folder to watch for Plottery projects." }
