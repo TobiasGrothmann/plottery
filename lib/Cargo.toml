@@ -10,7 +10,7 @@ repository.workspace = true
 keywords.workspace = true
 
 [dependencies]
-geo = "0.28.0"
+geo = "0.33.1"
 geo-types = "0.7.12"
 geometry-predicates = "0.3.0"
 itertools = "0.13.0"
