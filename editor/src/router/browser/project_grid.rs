@@ -6,6 +6,7 @@ use crate::{model::folder_tree::FolderNode, router::browser::project_card::Proje
 #[derive(PartialEq, Props, Clone)]
 pub struct ProjectGridProps {
     pub node: FolderNode,
+    pub thumbnail_generation: u32,
     pub on_open: EventHandler<Project>,
 }
 
@@ -34,6 +35,7 @@ pub fn ProjectGrid(props: ProjectGridProps) -> Element {
                         for project in section.projects {
                             ProjectCard {
                                 project: project.clone(),
+                                thumbnail_generation: props.thumbnail_generation,
                                 on_open: props.on_open,
                             }
                         }

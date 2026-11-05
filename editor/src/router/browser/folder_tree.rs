@@ -1,12 +1,8 @@
 use std::{collections::BTreeSet, path::PathBuf};
 
 use dioxus::prelude::*;
-use path_absolutize::Absolutize;
 
-use crate::{
-    model::folder_tree::FolderNode, router::browser::preview_mosaic::PreviewMosaic,
-    util::format_svg,
-};
+use crate::{model::folder_tree::FolderNode, util::format_svg};
 
 #[derive(PartialEq, Props, Clone)]
 pub struct FolderTreeProps {
@@ -55,16 +51,6 @@ struct FolderTreeNodeProps {
     on_remove_root: EventHandler<PathBuf>,
 }
 
-fn preview_paths(node: &FolderNode) -> Vec<String> {
-    node.recent_projects(8)
-        .into_iter()
-        .map(|p| p.get_editor_preview_image_path())
-        .filter(|p| p.exists())
-        .filter_map(|p| p.absolutize().ok().map(|p| p.to_string_lossy().to_string()))
-        .take(4)
-        .collect()
-}
-
 #[component]
 fn FolderTreeNode(props: FolderTreeNodeProps) -> Element {
     let path = props.node.path.clone();
@@ -77,7 +63,6 @@ fn FolderTreeNode(props: FolderTreeNodeProps) -> Element {
         "folder_node_row"
     };
     let arrow = if is_expanded { "▾" } else { "▸" };
-    let previews = preview_paths(&props.node);
     let count = props.node.project_count();
 
     let select_path = path.clone();
@@ -99,7 +84,6 @@ fn FolderTreeNode(props: FolderTreeNodeProps) -> Element {
                     },
                     if has_children { "{arrow}" }
                 }
-                PreviewMosaic { previews }
                 p { class: "folder_node_label", "{props.node.label}" }
                 p { class: "folder_node_count", "({count})" }
                 if props.node.is_root {

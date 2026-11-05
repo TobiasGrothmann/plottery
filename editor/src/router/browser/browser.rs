@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use dioxus::prelude::*;
+use dioxus_logger::tracing;
 use dioxus_router::hooks::use_navigator;
 use plottery_project::{scan_roots, Project, ScanOptions, ScanResult};
 
@@ -35,6 +36,44 @@ pub fn Browser() -> Element {
                     projects: vec![],
                     errors: vec![(PathBuf::new(), format!("Scan failed: {err}"))],
                 })
+        }
+    });
+    // Render missing or outdated thumbnails after each scan, then refresh the cards.
+    let mut thumbnail_generation = use_signal(|| 0u32);
+    let _thumbnails = use_resource(move || {
+        let projects: Vec<Project> = scan
+            .read()
+            .as_ref()
+            .map(|r| r.projects.clone())
+            .unwrap_or_default();
+        async move {
+            let stale: Vec<Project> = projects
+                .into_iter()
+                .filter(Project::editor_thumbnail_is_stale)
+                .collect();
+            if stale.is_empty() {
+                return;
+            }
+            let rendered = tokio::task::spawn_blocking(move || {
+                stale
+                    .iter()
+                    .filter(|p| match p.update_editor_thumbnail() {
+                        Ok(()) => true,
+                        Err(err) => {
+                            tracing::error!(
+                                "Failed to render thumbnail for {}: {err}",
+                                p.dir.display()
+                            );
+                            false
+                        }
+                    })
+                    .count()
+            })
+            .await
+            .unwrap_or(0);
+            if rendered > 0 {
+                thumbnail_generation += 1;
+            }
         }
     });
     use_effect(move || app_state.read().save());
@@ -146,6 +185,7 @@ pub fn Browser() -> Element {
                 } else if let Some(node) = selected_node {
                     ProjectGrid {
                         node,
+                        thumbnail_generation: thumbnail_generation(),
                         on_open: move |project: Project| {
                             nav.push(editor_route(&project));
                         },

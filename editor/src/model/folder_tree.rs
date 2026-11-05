@@ -63,26 +63,6 @@ impl FolderNode {
                 .sum::<usize>()
     }
 
-    pub fn all_projects(&self) -> Vec<&Project> {
-        let mut projects: Vec<&Project> = self.projects.iter().collect();
-        for child in &self.children {
-            projects.extend(child.all_projects());
-        }
-        projects
-    }
-
-    /// The `n` most recently modified projects in this subtree.
-    pub fn recent_projects(&self, n: usize) -> Vec<&Project> {
-        let mut projects = self.all_projects();
-        projects.sort_by(|a, b| {
-            b.config
-                .last_modified_date
-                .cmp(&a.config.last_modified_date)
-        });
-        projects.truncate(n);
-        projects
-    }
-
     #[allow(dead_code)]
     pub fn find(&self, path: &Path) -> Option<&FolderNode> {
         if self.path == path {

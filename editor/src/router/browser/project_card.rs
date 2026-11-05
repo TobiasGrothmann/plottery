@@ -2,15 +2,13 @@ use dioxus::prelude::*;
 use path_absolutize::Absolutize;
 use plottery_project::Project;
 
-use crate::{
-    components::image::Image,
-    util::format_datetime_to_relative,
-};
-
+use crate::{components::image::Image, util::format_datetime_to_relative};
 
 #[derive(Props, Clone)]
 pub struct ProjectCardProps {
     pub project: Project,
+    /// Bumped when thumbnails were (re)generated so the card re-checks the file.
+    pub thumbnail_generation: u32,
     pub on_open: EventHandler<Project>,
 }
 
@@ -18,12 +16,13 @@ impl PartialEq for ProjectCardProps {
     fn eq(&self, other: &Self) -> bool {
         self.project.get_project_config_path() == other.project.get_project_config_path()
             && self.project.config.last_modified_date == other.project.config.last_modified_date
+            && self.thumbnail_generation == other.thumbnail_generation
     }
 }
 
 #[component]
 pub fn ProjectCard(props: ProjectCardProps) -> Element {
-    let preview_image = props.project.get_editor_preview_image_path();
+    let preview_image = props.project.get_editor_thumbnail_path();
     let preview_path = preview_image
         .absolutize()
         .map(|p| p.to_string_lossy().to_string())
@@ -44,7 +43,7 @@ pub fn ProjectCard(props: ProjectCardProps) -> Element {
                 if preview_exists {
                     Image { img_path: preview_path, class: "card_image" }
                 } else {
-                    div { class: "err_box card_no_preview", p { "no preview" } }
+                    div { class: "card_no_preview", p { "no preview yet" } }
                 }
             }
             div { class: "card_body",

@@ -33,6 +33,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  color: var(--col-bg-3);
 }
 
 .card_body {
