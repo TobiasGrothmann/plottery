@@ -1,0 +1,88 @@
+.FolderTree {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--gap-0) 0;
+}
+
+.FolderTreeNode {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.folder_node_row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--gap-0);
+  padding: 3px var(--gap-0);
+  cursor: pointer;
+  min-width: 0;
+}
+.folder_node_row:hover {
+  background-color: var(--col-bg-2);
+}
+.folder_node_row_selected,
+.folder_node_row_selected:hover {
+  background-color: var(--col-selected);
+}
+
+.folder_node_arrow {
+  width: 14px;
+  flex-shrink: 0;
+  text-align: center;
+  color: var(--col-fg-2);
+  font-size: 14px;
+}
+
+.folder_node_label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+}
+
+.folder_node_count {
+  color: var(--col-fg-2);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.folder_node_remove {
+  min-height: 0;
+  padding: 2px;
+  background-color: transparent;
+  opacity: 0;
+  display: flex;
+  align-items: center;
+}
+.folder_node_row:hover .folder_node_remove {
+  opacity: 0.7;
+}
+.folder_node_remove:hover {
+  opacity: 1 !important;
+}
+.folder_node_remove img {
+  width: 16px;
+  height: 16px;
+  filter: invert(1);
+}
+
+.folder_tree_add_root {
+  margin: var(--gap-0);
+  gap: var(--gap-0);
+  min-height: 36px;
+  background-color: var(--col-bg-3);
+  color: var(--col-fg-0);
+}
+.folder_tree_add_root img {
+  width: 20px;
+  height: 20px;
+  filter: invert(1);
+}
+.folder_tree_add_root p {
+  font-size: 14px;
+}

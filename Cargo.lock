@@ -5241,6 +5241,7 @@ dependencies = [
 name = "plottery_editor"
 version = "0.10.0"
 dependencies = [
+ "anyhow",
  "base64 0.22.1",
  "bincode",
  "chrono",
@@ -5314,6 +5315,7 @@ dependencies = [
  "tokio",
  "toml",
  "vfs",
+ "walkdir",
 ]
 
 [[package]]

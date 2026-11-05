@@ -303,10 +303,16 @@ pub fn Editor(project_path: Vec<String>) -> Element {
 
         let svg_path = project().get_editor_preview_image_path();
         if let Some(svg) = svg() {
-            match std::fs::write(svg_path, svg) {
+            match std::fs::write(svg_path, &svg) {
                 Ok(_) => (),
                 Err(e) => tracing::error!("Failed to write .svg to file: {:?}", e),
             }
+            let project = project();
+            tokio::task::spawn_blocking(move || {
+                if let Err(e) = project.write_editor_thumbnail(svg.as_bytes()) {
+                    tracing::error!("Failed to write thumbnail: {:?}", e);
+                }
+            });
         }
     });
 

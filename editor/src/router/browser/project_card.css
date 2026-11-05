@@ -1,0 +1,65 @@
+.ProjectCard {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--col-bg-1);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  overflow: hidden;
+}
+.ProjectCard:hover {
+  background-color: var(--col-bg-2);
+}
+
+.card_preview {
+  aspect-ratio: 1 / 1;
+  background-color: var(--col-fg-0);
+  padding: var(--gap-0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.card_preview .Image {
+  width: 100%;
+}
+.card_preview .Image img {
+  width: 100%;
+  object-fit: contain;
+  display: block;
+}
+.card_no_preview {
+  align-self: stretch;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--col-bg-3);
+}
+
+.card_body {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--gap-0);
+  padding: var(--gap-0) var(--gap-1);
+}
+.card_text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.card_name {
+  font-size: 17px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card_meta {
+  font-size: 13px;
+}
+.card_meta_dim {
+  color: var(--col-fg-2);
+}
+

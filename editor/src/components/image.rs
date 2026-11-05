@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::UNIX_EPOCH;
 
 use crate::util::format_svg;
 
@@ -27,23 +27,38 @@ pub fn SVGImage(props: SVGImageProps) -> Element {
 #[derive(PartialEq, Props, Clone)]
 pub struct ImageProps {
     pub img_path: String,
+    #[props(default)]
     pub redraw_counter: u32,
+    #[props(default)]
+    pub class: String,
+}
+
+/// Modification time of the file in milliseconds, used as a cache-busting key.
+fn file_mtime_millis(path: &str) -> u128 {
+    std::fs::metadata(path)
+        .and_then(|m| m.modified())
+        .ok()
+        .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+        .map(|d| d.as_millis())
+        .unwrap_or(0)
 }
 
 #[component]
 pub fn Image(props: ImageProps) -> Element {
-    let ms = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_millis();
+    let cache_key = format!(
+        "{}-{}",
+        file_mtime_millis(&props.img_path),
+        props.redraw_counter
+    );
 
     rsx!(
-        div { class: "Image",
+        div { class: "Image {props.class}",
             style: "height: 100%",
 
             img {
-                src: "{props.img_path.as_str()}?{ms}",
+                src: "{props.img_path.as_str()}?{cache_key}",
                 style: "height: 100%",
+                loading: "lazy",
             }
         }
     )

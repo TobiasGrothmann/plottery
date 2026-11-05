@@ -1,6 +1,0 @@
-.ProjectList {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  row-gap: var(--gap-1);
-}

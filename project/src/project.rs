@@ -16,6 +16,53 @@ use std::path::PathBuf;
 use tempfile::NamedTempFile;
 use usvg::{fontdb, TreeParsing, TreeTextToPath};
 
+/// Longest side of the browser thumbnail in pixels.
+pub const EDITOR_THUMBNAIL_SIZE: u32 = 1024;
+
+/// Rasterizes SVG data to a PNG, scaled so the longest side is `max_size` when given.
+fn render_svg_to_png(svg_data: &[u8], path: &std::path::Path, max_size: Option<u32>) -> Result<()> {
+    let rtree = {
+        let opt = usvg::Options::default();
+        let mut fontdb = fontdb::Database::new();
+        fontdb.load_system_fonts();
+        let mut tree = usvg::Tree::from_data(svg_data, &opt)?;
+        tree.convert_text(&fontdb);
+        resvg::Tree::from_usvg(&tree)
+    };
+
+    let size = rtree.size;
+    let scale = match max_size {
+        Some(max) => max as f32 / size.width().max(size.height()),
+        None => 1.0,
+    };
+    let width = ((size.width() * scale).ceil() as u32).max(1);
+    let height = ((size.height() * scale).ceil() as u32).max(1);
+    let mut pixmap = tiny_skia::Pixmap::new(width, height)
+        .ok_or_else(|| Error::msg("Failed to create pixmap"))?;
+    rtree.render(
+        tiny_skia::Transform::from_scale(scale, scale),
+        &mut pixmap.as_mut(),
+    );
+    pixmap.save_png(path)?;
+    Ok(())
+}
+
+/// Reads the longest side from a PNG header without decoding the image.
+fn png_longest_side(path: &std::path::Path) -> Option<u32> {
+    use std::io::Read;
+    let mut header = [0u8; 24];
+    std::fs::File::open(path)
+        .ok()?
+        .read_exact(&mut header)
+        .ok()?;
+    if &header[12..16] != b"IHDR" {
+        return None;
+    }
+    let width = u32::from_be_bytes(header[16..20].try_into().ok()?);
+    let height = u32::from_be_bytes(header[20..24].try_into().ok()?);
+    Some(width.max(height))
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Project {
     pub config: ProjectConfig,
@@ -74,7 +121,12 @@ impl Project {
             config: project_config_file,
             dir: project_config_dir,
         };
-        assert!(loaded_project.exists());
+        if !loaded_project.exists() {
+            return Err(Error::msg(format!(
+                "Project '{}' is incomplete: missing config file or cargo package",
+                loaded_project.dir.display()
+            )));
+        }
         Ok(loaded_project)
     }
 
@@ -103,6 +155,10 @@ impl Project {
     pub fn get_editor_preview_image_path(&self) -> PathBuf {
         self.get_resource_dir_asset_path("latest_editor.svg")
     }
+    /// Rasterized version of the editor preview, used by the project browser.
+    pub fn get_editor_thumbnail_path(&self) -> PathBuf {
+        self.get_resource_dir_asset_path("latest_editor_thumb.png")
+    }
     pub fn get_editor_layer_path(&self) -> PathBuf {
         self.get_resource_dir_asset_path("latest_editor.plotl")
     }
@@ -123,8 +179,8 @@ impl Project {
         if !self.dir.exists() {
             return Err(Error::msg("Project dir does not exist"));
         }
-        for entry in std::fs::read_dir(&self.dir).unwrap() {
-            let path = entry.unwrap().path();
+        for entry in std::fs::read_dir(&self.dir)?.flatten() {
+            let path = entry.path();
             if path.is_dir() {
                 let mut cargo_toml_path = path.clone();
                 cargo_toml_path.push("Cargo.toml");
@@ -309,27 +365,38 @@ impl Project {
         params: &ProjectParamsListWrapper,
     ) -> Result<()> {
         let layer = self.run(release, params)?;
-        let temp_dir = tempfile::tempdir()?;
-        let temp_svg_path = temp_dir.path().join("test.svg");
-        layer.write_svg(temp_svg_path.clone(), 10.0)?;
+        let svg_data = layer.to_svg(10.0).to_string();
+        render_svg_to_png(svg_data.as_bytes(), &path, None)
+    }
 
-        let rtree = {
-            let opt = usvg::Options::default();
-            let mut fontdb = fontdb::Database::new();
-            fontdb.load_system_fonts();
+    pub fn write_editor_thumbnail(&self, svg_data: &[u8]) -> Result<()> {
+        render_svg_to_png(
+            svg_data,
+            &self.get_editor_thumbnail_path(),
+            Some(EDITOR_THUMBNAIL_SIZE),
+        )
+    }
 
-            let svg_data = std::fs::read(&temp_svg_path).expect("Failed to read svg file");
-            let mut tree = usvg::Tree::from_data(&svg_data, &opt)?;
-            tree.convert_text(&fontdb);
-            resvg::Tree::from_usvg(&tree)
-        };
+    /// True when the editor preview exists but the thumbnail is missing, older than it, or
+    /// smaller than [`EDITOR_THUMBNAIL_SIZE`].
+    pub fn editor_thumbnail_is_stale(&self) -> bool {
+        let svg_modified =
+            std::fs::metadata(self.get_editor_preview_image_path()).and_then(|m| m.modified());
+        let png_path = self.get_editor_thumbnail_path();
+        let png_modified = std::fs::metadata(&png_path).and_then(|m| m.modified());
+        match (svg_modified, png_modified) {
+            (core::result::Result::Ok(svg), core::result::Result::Ok(png)) => {
+                png < svg
+                    || png_longest_side(&png_path).is_none_or(|side| side < EDITOR_THUMBNAIL_SIZE)
+            }
+            (core::result::Result::Ok(_), Err(_)) => true,
+            (Err(_), _) => false,
+        }
+    }
 
-        let pixmap_size = rtree.size.to_int_size();
-        let mut pixmap = tiny_skia::Pixmap::new(pixmap_size.width(), pixmap_size.height())
-            .expect("Failed to create pixmap");
-        rtree.render(tiny_skia::Transform::default(), &mut pixmap.as_mut());
-        pixmap.save_png(path)?;
-
-        Ok(())
+    /// Renders the thumbnail from the editor preview file on disk.
+    pub fn update_editor_thumbnail(&self) -> Result<()> {
+        let svg_data = std::fs::read(self.get_editor_preview_image_path())?;
+        self.write_editor_thumbnail(&svg_data)
     }
 }
