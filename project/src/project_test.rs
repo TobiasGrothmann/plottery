@@ -115,6 +115,49 @@ mod tests {
         Ok(())
     }
 
+    /// All projects build into one shared target directory. Two projects with the same package
+    /// name must still each run their own code there.
+    #[test]
+    fn same_package_name_in_shared_target_dir() -> Result<()> {
+        let project_name: &str = "test_proj_same_name";
+        let temp_dir_a = tempfile::tempdir()?;
+        let temp_dir_b = tempfile::tempdir()?;
+        let project_a = genrate_temp_project(temp_dir_a.path().to_path_buf(), project_name)?;
+        let project_b = genrate_temp_project(temp_dir_b.path().to_path_buf(), project_name)?;
+        assert_eq!(
+            project_a.get_cargo_toml_name()?,
+            project_b.get_cargo_toml_name()?
+        );
+
+        // project b draws one extra shape
+        let generate_path = project_b.get_cargo_path()?.join("src/generate.rs");
+        let generate_source = std::fs::read_to_string(&generate_path)?;
+        let marker = "l.with_name(\"root\")";
+        assert!(generate_source.contains(marker));
+        std::fs::write(
+            &generate_path,
+            generate_source.replace(
+                marker,
+                "l.push(Circle::new_shape(V2::zero(), 1.0)); l.with_name(\"root\")",
+            ),
+        )?;
+
+        let release = true;
+        project_a.build(release)?;
+        let params = project_a.run_get_params(release)?;
+        let layer_a = project_a.run(release, &params)?;
+
+        project_b.build(release)?;
+        let layer_b = project_b.run(release, &params)?;
+        assert_eq!(layer_b.len_recursive(), layer_a.len_recursive() + 1);
+
+        // switching back must run a's code again, not b's
+        project_a.build(release)?;
+        let layer_a_again = project_a.run(release, &params)?;
+        assert_eq!(layer_a_again.len_recursive(), layer_a.len_recursive());
+        Ok(())
+    }
+
     #[test]
     fn test_embed_project_template_generation() -> Result<()> {
         let temp_dir = tempfile::tempdir().unwrap();

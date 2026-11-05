@@ -5,7 +5,11 @@ use futures_lite::io::{AsyncRead, BufReader};
 use futures_lite::prelude::*;
 use futures_lite::{AsyncReadExt, AsyncWriteExt};
 use serde::de::DeserializeOwned;
-use std::{path::PathBuf, process::ExitStatus};
+use std::hash::{DefaultHasher, Hash, Hasher};
+use std::{
+    path::{Path, PathBuf},
+    process::ExitStatus,
+};
 
 use crate::project_params_list_wrapper::ProjectParamsListWrapper;
 
@@ -40,6 +44,14 @@ fn find_cargo_executable() -> Result<PathBuf> {
     ))
 }
 
+/// Builds the cargo project in `project_dir` into `target_dir`.
+///
+/// Many projects share one target directory. Cargo tells a project's own crate apart from others
+/// only by package name and version, so two projects with the same package name would overwrite
+/// each other's build and silently run the wrong one. `cargo rustc` can pass extra flags to the
+/// compiler for the project's crate alone, and cargo mixes those flags into the crate's build
+/// hash. Passing a `-C metadata` value derived from the project's path therefore gives every
+/// project its own build, while the dependencies underneath stay shared.
 pub async fn build_cargo_project_async(
     project_dir: PathBuf,
     target_dir: PathBuf,
@@ -47,12 +59,15 @@ pub async fn build_cargo_project_async(
 ) -> Result<Child> {
     let cargo_executable = find_cargo_executable()?;
 
-    let mut args = vec!["build".to_string()];
+    let mut args = vec!["rustc".to_string()];
     if release {
         args.push("--release".to_string());
     }
     args.push("--target-dir".to_string());
     args.push(target_dir.to_string_lossy().to_string());
+    args.push("--".to_string());
+    args.push("-C".to_string());
+    args.push(format!("metadata={}", project_build_id(&project_dir)));
 
     let child_process = Command::new(cargo_executable)
         .args(args)
@@ -60,6 +75,17 @@ pub async fn build_cargo_project_async(
         .stderr(Stdio::piped())
         .spawn()?;
     anyhow::Ok(child_process)
+}
+
+/// Identifies a project's build within the shared target directory, see
+/// [`build_cargo_project_async`].
+fn project_build_id(project_dir: &Path) -> String {
+    let project_dir = project_dir
+        .canonicalize()
+        .unwrap_or_else(|_| project_dir.to_path_buf());
+    let mut hasher = DefaultHasher::new();
+    project_dir.hash(&mut hasher);
+    format!("plottery_project_{:016x}", hasher.finish())
 }
 
 pub async fn run_project_executable_async(

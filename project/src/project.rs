@@ -137,17 +137,19 @@ impl Project {
     }
 
     pub fn get_cargo_toml_name(&self) -> Result<String> {
-        let caro_path = self.get_cargo_path()?;
-        let mut cargo_toml_path = caro_path.clone();
-        cargo_toml_path.push("Cargo.toml");
-
-        let toml_str = std::fs::read_to_string(cargo_toml_path)?;
+        let cargo_toml_path = self.get_cargo_path()?.join("Cargo.toml");
+        let toml_str = std::fs::read_to_string(&cargo_toml_path)?;
         let toml: toml::Value = toml::from_str(&toml_str)?;
-
-        let package = toml.get("package").unwrap();
-        let name = package.get("name").unwrap();
-        let name = name.as_str().unwrap();
-        Ok(name.to_string())
+        toml.get("package")
+            .and_then(|package| package.get("name"))
+            .and_then(|name| name.as_str())
+            .map(str::to_string)
+            .ok_or_else(|| {
+                Error::msg(format!(
+                    "No package name in '{}'",
+                    cargo_toml_path.display()
+                ))
+            })
     }
 
     pub fn generate_to_disk(&self, lib_source: LibSource, init_git: bool) -> Result<()> {
@@ -179,11 +181,13 @@ impl Project {
         Ok(())
     }
 
+    /// The cargo target directory all projects build into, so that dependencies are compiled
+    /// once and shared: `plottery/target` in the user's cache directory (`~/Library/Caches` on
+    /// macOS). See [`build_cargo_project_async`] for how projects stay apart in there.
     pub fn get_plottery_target_dir(&self) -> Result<PathBuf> {
-        let mut target_dir = self.get_cargo_path()?;
-        target_dir.push("target/plottery");
-        target_dir = target_dir.absolutize()?.to_path_buf();
-        Ok(target_dir)
+        let project_dirs = directories::ProjectDirs::from("de", "tobiasgrothmann", "plottery")
+            .ok_or_else(|| Error::msg("Could not determine the user's cache directory"))?;
+        Ok(project_dirs.cache_dir().join("target"))
     }
 
     pub fn get_plottery_binary_path(&self, release: bool) -> Result<PathBuf> {

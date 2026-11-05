@@ -5246,6 +5246,7 @@ dependencies = [
  "bincode",
  "chrono",
  "clap",
+ "directories",
  "futures-lite",
  "open",
  "path-absolutize",
