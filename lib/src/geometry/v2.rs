@@ -721,6 +721,12 @@ impl Sum for V2 {
     }
 }
 
+impl<'a> Sum<&'a V2> for V2 {
+    fn sum<I: Iterator<Item = &'a V2>>(iter: I) -> Self {
+        iter.fold(V2::zero(), |a, b| a + b)
+    }
+}
+
 impl From<Point2<f32>> for V2 {
     fn from(point: Point2<f32>) -> Self {
         Self::new(point.x, point.y)

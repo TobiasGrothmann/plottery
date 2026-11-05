@@ -135,3 +135,17 @@ impl PartialEq<Angle> for &Angle {
         (self.to_rad() - rhs.to_rad()).abs() < LARGE_EPSILON
     }
 }
+
+// negation
+impl ops::Neg for Angle {
+    type Output = Angle;
+    fn neg(self) -> Angle {
+        Angle::from_rad(-self.to_rad())
+    }
+}
+impl ops::Neg for &Angle {
+    type Output = Angle;
+    fn neg(self) -> Angle {
+        Angle::from_rad(-self.to_rad())
+    }
+}

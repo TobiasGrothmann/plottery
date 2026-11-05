@@ -64,6 +64,7 @@ pub trait Plottable: Clone + Into<Shape> {
 
     fn reduce_points(&self, aggression_factor: f32) -> Self;
 
+    /// Points of the shape with extra points inserted along segments longer than `1 / points_per_unit`.
     fn get_points_oversampled(&self, sample_settings: SampleSettings) -> Vec<V2> {
         let points = self.get_points(sample_settings);
         if points.is_empty() {
@@ -84,6 +85,16 @@ pub trait Plottable: Clone + Into<Shape> {
         points_oversampled
     }
 
+    /// Oversamples the shape and maps every point through `f`.
+    /// Consider [`reduce_points`](Plottable::reduce_points) on the result.
+    fn distort<F: Fn(V2) -> V2>(&self, sample_settings: SampleSettings, f: F) -> Path {
+        self.get_points_oversampled(sample_settings)
+            .into_iter()
+            .map(f)
+            .collect()
+    }
+
+    /// Like [`get_points_oversampled`](Plottable::get_points_oversampled), paired with the distance along the shape.
     fn get_points_and_dist_oversampled(&self, sample_settings: SampleSettings) -> Vec<(V2, f32)> {
         let points = self.get_points(sample_settings);
         let mut dist_along_path = 0.0;

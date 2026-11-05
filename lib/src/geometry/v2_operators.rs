@@ -261,3 +261,18 @@ impl PartialEq<V2> for &V2 {
         self.dist_manhattan(*_rhs) < LARGE_EPSILON
     }
 }
+
+// #################### NEGATION ####################
+
+impl ops::Neg for V2 {
+    type Output = V2;
+    fn neg(self) -> V2 {
+        V2::new(-self.x, -self.y)
+    }
+}
+impl ops::Neg for &V2 {
+    type Output = V2;
+    fn neg(self) -> V2 {
+        V2::new(-self.x, -self.y)
+    }
+}

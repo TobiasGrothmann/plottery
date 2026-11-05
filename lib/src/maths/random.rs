@@ -1,6 +1,7 @@
 //! Contains functions for generating random numbers.
 //! see also [`crate::maths::seed`]
 
+use rand::seq::SliceRandom;
 use rand::Rng;
 use rand_distr::{Distribution, Normal, SkewNormal};
 
@@ -18,6 +19,25 @@ pub fn rand_range_i(from: i32, to: i32) -> i32 {
     RNG.lock()
         .expect("Failed to acquire RNG lock")
         .gen_range(from..to)
+}
+
+/// uniform random integer between `from` and `to`, both inclusive
+///
+/// unlike [`rand_range_i`], which excludes `to`
+pub fn rand_range_i_inclusive(from: i32, to: i32) -> i32 {
+    RNG.lock()
+        .expect("Failed to acquire RNG lock")
+        .gen_range(from..=to)
+}
+
+/// uniform random element of `items`
+///
+/// panics if `items` is empty
+pub fn rand_choice<T>(items: &[T]) -> &T {
+    assert!(!items.is_empty(), "rand_choice called with an empty slice");
+    items
+        .choose(&mut *RNG.lock().expect("Failed to acquire RNG lock"))
+        .expect("slice is not empty")
 }
 
 /// random boolean with given `chance` of being true
