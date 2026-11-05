@@ -1,0 +1,36 @@
+.PreviewMosaic {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: 1fr;
+  gap: 1px;
+  background-color: var(--col-fg-0);
+  overflow: hidden;
+}
+.PreviewMosaic.mosaic_empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--col-bg-3);
+}
+.PreviewMosaic.mosaic_empty img {
+  width: 20px;
+  height: 20px;
+  opacity: 0.8;
+}
+.mosaic_cell {
+  background-color: var(--col-fg-0);
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+}
+.mosaic_cell .Image {
+  width: 100%;
+}
+.mosaic_cell .Image img {
+  width: 100%;
+  object-fit: contain;
+  display: block;
+}

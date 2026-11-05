@@ -62,7 +62,14 @@ fn validate_form(
 
 #[component]
 pub fn ProjectCreate() -> Element {
-    let mut target_folder = use_signal(|| "".to_string());
+    let mut target_folder = use_signal(|| {
+        let state = AppState::load_or_default();
+        state
+            .selected_folder
+            .or_else(|| state.roots.first().cloned())
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_default()
+    });
     let mut project_name = use_signal(|| "".to_string());
     let mut lib_source = use_signal(|| LibSource::CratesIO);
     let mut custom_path = use_signal(|| "".to_string());
@@ -177,17 +184,11 @@ pub fn ProjectCreate() -> Element {
                         return;
                     }
 
-                    let app_state = AppState::load();
-                    if app_state.is_none() {
-                        error.set("Failed to load app state.".to_string());
-                        return;
-                    }
-                    let mut app_state = app_state.unwrap();
-
-                    // no error
                     error.set("".to_string());
 
-                    app_state.projects.push(project);
+                    let mut app_state = AppState::load_or_default();
+                    app_state.ensure_root_covers(&project.dir);
+                    app_state.selected_folder = project.dir.parent().map(|p| p.to_path_buf());
                     app_state.save();
 
                     let nav = use_navigator();

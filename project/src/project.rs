@@ -74,7 +74,12 @@ impl Project {
             config: project_config_file,
             dir: project_config_dir,
         };
-        assert!(loaded_project.exists());
+        if !loaded_project.exists() {
+            return Err(Error::msg(format!(
+                "Project '{}' is incomplete: missing config file or cargo package",
+                loaded_project.dir.display()
+            )));
+        }
         Ok(loaded_project)
     }
 
@@ -123,8 +128,8 @@ impl Project {
         if !self.dir.exists() {
             return Err(Error::msg("Project dir does not exist"));
         }
-        for entry in std::fs::read_dir(&self.dir).unwrap() {
-            let path = entry.unwrap().path();
+        for entry in std::fs::read_dir(&self.dir)?.flatten() {
+            let path = entry.path();
             if path.is_dir() {
                 let mut cargo_toml_path = path.clone();
                 cargo_toml_path.push("Cargo.toml");

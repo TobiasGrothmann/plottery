@@ -1,19 +1,66 @@
 .Browser {
-  flex: 1;
   display: flex;
-  min-height: 100% !important;
-  flex-direction: column;
-  row-gap: var(--gap-1);
-  padding: var(--gap-1) 0;
-  justify-items: right;
+  flex-direction: row;
+  height: calc(100vh - var(--header-height));
+  overflow: hidden;
 }
 
-.add_button {
-  align-self: flex-end;
-  margin-right: var(--gap-1);
-  position: sticky;
-  bottom: var(--gap-1);
-  width: 200px;
+.browser_sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: var(--col-bg-1);
+  display: flex;
+  flex-direction: column;
+}
 
-  box-shadow: 2px 2px 4px rgba(0, 0, 0, 1);
+.browser_main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: var(--gap-1);
+}
+
+.browser_scanning {
+  padding: var(--gap-0) var(--gap-1);
+  color: var(--col-fg-2);
+  font-size: 13px;
+}
+
+.browser_scan_errors {
+  margin: var(--gap-0);
+  font-size: 13px;
+}
+.browser_scan_errors summary {
+  cursor: pointer;
+  color: var(--col-fg-2);
+  padding: var(--gap-small);
+}
+.browser_scan_error {
+  margin-top: var(--gap-small);
+  overflow-wrap: anywhere;
+}
+.browser_scan_error p {
+  font-size: 13px;
+}
+.browser_scan_error_path {
+  font-weight: bold;
+}
+
+.browser_empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-2);
+  color: var(--col-fg-2);
+}
+.browser_empty button {
+  gap: var(--gap-0);
+}
+.browser_empty button img {
+  width: 24px;
+  height: 24px;
 }
