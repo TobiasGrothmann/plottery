@@ -1,8 +1,7 @@
 use plottery_lib::*;
 
-use crate::{plot_setting::PlotSettings, Axis, HOST_NAME, HOST_PORT};
+use crate::{plot_setting::PlotSettings, Axis};
 
-use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -45,10 +44,10 @@ impl Task {
 }
 
 pub async fn send_task(task: Task) -> anyhow::Result<()> {
-    let client = Client::new();
+    let client = reqwest::Client::new();
     let body = task.to_binary().unwrap();
     client
-        .post(format!("http://{}:{}/task", HOST_NAME, HOST_PORT))
+        .post(format!("{}/task", crate::server_url()))
         .body(body)
         .send()
         .await?;

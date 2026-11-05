@@ -1,10 +1,8 @@
 use std::time::Duration;
 
 use plottery_lib::V2;
-use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
-use crate::{HOST_NAME, HOST_PORT};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy, Default)]
 pub struct ServerState {
@@ -25,8 +23,8 @@ impl ServerState {
 }
 
 pub async fn request_server_state(timeout: Option<Duration>) -> anyhow::Result<ServerState> {
-    let client = Client::new();
-    let mut request = client.get(format!("http://{}:{}/state", HOST_NAME, HOST_PORT));
+    let client = reqwest::Client::new();
+    let mut request = client.get(format!("{}/state", crate::server_url()));
 
     if let Some(timeout_duration) = timeout {
         request = request.timeout(timeout_duration)
