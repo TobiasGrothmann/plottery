@@ -149,12 +149,12 @@ mod tests {
 
         project_b.build(release)?;
         let layer_b = project_b.run(release, &params)?;
-        assert_eq!(layer_b.len_recursive(), layer_a.len_recursive() + 1);
+        assert_eq!(layer_b.len(), layer_a.len() + 1);
 
         // switching back must run a's code again, not b's
         project_a.build(release)?;
         let layer_a_again = project_a.run(release, &params)?;
-        assert_eq!(layer_a_again.len_recursive(), layer_a.len_recursive());
+        assert_eq!(layer_a_again.len(), layer_a.len());
         Ok(())
     }
 

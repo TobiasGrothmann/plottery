@@ -3,7 +3,6 @@ use std::time::Duration;
 use plottery_lib::V2;
 use serde::{Deserialize, Serialize};
 
-
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy, Default)]
 pub struct ServerState {
     pub location: V2,
