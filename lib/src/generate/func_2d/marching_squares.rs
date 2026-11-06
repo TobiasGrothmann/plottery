@@ -67,6 +67,7 @@ impl MarchingSquares {
     }
 
     /// Iso-lines at `target_value` joined into continuous paths.
+    #[must_use]
     pub fn paths(&self, target_value: f32) -> Layer {
         Layer::new_from(self.lines(target_value)).combine_shapes_flat(None)
     }

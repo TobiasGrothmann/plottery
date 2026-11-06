@@ -16,6 +16,7 @@ pub struct VoronoiCell {
 }
 
 impl VoronoiCell {
+    #[must_use]
     pub fn outline(&self) -> Path {
         Path::new_from(self.vertices.clone()).closed()
     }
@@ -156,10 +157,12 @@ impl Voronoi {
         self.cells.iter().map(|cell| cell.site).collect()
     }
 
+    #[must_use]
     pub fn edges_layer(&self) -> Layer {
         self.edges.iter().copied().collect()
     }
 
+    #[must_use]
     pub fn cells_layer(&self) -> Layer {
         self.cells
             .iter()
@@ -168,6 +171,7 @@ impl Voronoi {
     }
 
     /// Lloyd relaxation, moves every site to the centroid of its cell.
+    #[must_use]
     pub fn relax(&self, iterations: usize) -> Self {
         self.relax_by(iterations, |cell| cell.centroid())
     }

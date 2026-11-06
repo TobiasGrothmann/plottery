@@ -99,6 +99,7 @@ impl Frame {
         self.outer_rect().center()
     }
 
+    #[must_use]
     pub fn cut_guide(&self, edge: CutGuideEdge, start_from_edge: f32) -> Layer {
         let o = self.outer_rect();
         let mut guides = vec![];
@@ -136,10 +137,12 @@ impl Frame {
         Layer::new_from(guides)
     }
 
+    #[must_use]
     pub fn cut_guide_left_right(&self, start_from_edge: f32) -> Layer {
         self.cut_guide(CutGuideEdge::LeftRight, start_from_edge)
     }
 
+    #[must_use]
     pub fn cut_guide_top_bot(&self, start_from_edge: f32) -> Layer {
         self.cut_guide(CutGuideEdge::TopBot, start_from_edge)
     }

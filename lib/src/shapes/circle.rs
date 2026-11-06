@@ -78,11 +78,13 @@ impl Circle {
     }
 
     /// Arc on the circle from `from` to `to`.
+    #[must_use]
     pub fn arc(&self, from: Angle, to: Angle, sample_settings: SampleSettings) -> Path {
         Path::arc(from, to, self.center, self.radius, sample_settings)
     }
 
     /// Closed wedge between the center and the arc from `from` to `to`.
+    #[must_use]
     pub fn sector(&self, from: Angle, to: Angle, sample_settings: SampleSettings) -> Path {
         std::iter::once(self.center)
             .chain(self.arc(from, to, sample_settings))

@@ -74,16 +74,20 @@ impl Rect {
     }
 
     /// Grows the rect by `by` on every side. Negative values shrink it.
+    #[must_use]
     pub fn expand(&self, by: f32) -> Self {
         self.expand_2d(V2::xy(by))
     }
     /// Grows the rect by `by.x` on the left and right and `by.y` on the top and bottom.
+    #[must_use]
     pub fn expand_2d(&self, by: V2) -> Self {
         Self::new(self.bot_left - by, self.top_right + by)
     }
+    #[must_use]
     pub fn shrink(&self, by: f32) -> Self {
         self.expand(-by)
     }
+    #[must_use]
     pub fn shrink_2d(&self, by: V2) -> Self {
         self.expand_2d(-by)
     }
@@ -93,10 +97,12 @@ impl Rect {
     }
 
     /// The outline rotated around the rect's center; a rotated rect is a [`Path`].
+    #[must_use]
     pub fn rotated(&self, angle: Angle) -> Path {
         self.rotated_around(self.center(), angle)
     }
     /// The outline rotated around `pivot`; a rotated rect is a [`Path`].
+    #[must_use]
     pub fn rotated_around(&self, pivot: V2, angle: Angle) -> Path {
         self.to_path(SampleSettings::default())
             .rotate_around(pivot, angle)

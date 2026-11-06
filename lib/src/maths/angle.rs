@@ -142,10 +142,12 @@ impl Angle {
     }
 
     /// Returns a new angle modulo 2π (360°). The sign is kept, see [`Angle::positive`] for a result in 0..2π.
+    #[must_use]
     pub fn mod_one_rotation(&self) -> Self {
         Angle::from_rad(self.rad % (2.0 * PI))
     }
     /// Returns a new angle modulo `other`. The sign is kept.
+    #[must_use]
     pub fn modulo(&self, other: Angle) -> Self {
         Angle::from_rad(self.rad % other.rad)
     }
@@ -156,6 +158,7 @@ impl Angle {
     /// let angle = Angle::from_degrees(-90.0);
     /// assert_eq!(angle.positive().to_degree(), 270.0);
     /// ```
+    #[must_use]
     pub fn positive(&self) -> Self {
         let rad = self.rad % (2.0 * PI);
         if rad < 0.0 {
@@ -166,16 +169,19 @@ impl Angle {
     }
 
     /// Returns the absolute value of the angle.
+    #[must_use]
     pub fn abs(&self) -> Self {
         Angle::from_rad(self.rad.abs())
     }
 
     /// Returns a new angle with flipped sign: `self * -1.0`.
+    #[must_use]
     pub fn flip_sign(&self) -> Self {
         Angle::from_rad(-self.rad)
     }
 
     /// Returns a new angle orthogonal to this one (to the right). Equivalent to `self + Angle::quarter_rotation()`.
+    #[must_use]
     pub fn normal_right(&self) -> Self {
         self + Angle::quarter_rotation()
     }

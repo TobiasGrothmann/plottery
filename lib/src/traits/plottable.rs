@@ -55,6 +55,7 @@ pub trait Plottable: Clone + Into<Shape> {
     ) -> Vec<V2>;
 
     /// The shape sampled into a single [`Path`].
+    #[must_use]
     fn to_path(&self, sample_settings: SampleSettings) -> Path {
         Path::new_from(self.get_points(sample_settings))
     }
@@ -106,6 +107,7 @@ pub trait Plottable: Clone + Into<Shape> {
     }
 
     /// Splits the shape into dashes of `dash_length` with gaps of `gap_length` in between.
+    #[must_use]
     fn dash(&self, dash_length: f32, gap_length: f32, sample_settings: SampleSettings) -> Layer {
         self.dash_fn(sample_settings, |_, is_gap, _, _| {
             if is_gap {
@@ -372,6 +374,7 @@ pub trait Plottable: Clone + Into<Shape> {
         Masked { inside, outside }
     }
 
+    #[must_use]
     fn to_layer(&self) -> Layer {
         Layer::new_from(vec![self.clone().into()])
     }

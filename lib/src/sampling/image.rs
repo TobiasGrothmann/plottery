@@ -50,12 +50,14 @@ impl Image {
     }
 
     /// Places the image exactly on `bounds`, ignoring the aspect ratio.
+    #[must_use]
     pub fn with_bounds(mut self, bounds: Rect) -> Self {
         self.bounds = bounds;
         self
     }
 
     /// Scales the image to fit inside `target`, keeping the aspect ratio.
+    #[must_use]
     pub fn fit_inside(mut self, target: Rect, alignment: Alignment) -> Self {
         self.bounds = self
             .bounds
@@ -65,6 +67,7 @@ impl Image {
     }
 
     /// Scales the image to cover `target`, keeping the aspect ratio.
+    #[must_use]
     pub fn fit_around(mut self, target: Rect, alignment: Alignment) -> Self {
         self.bounds = self
             .bounds
@@ -73,6 +76,7 @@ impl Image {
         self
     }
 
+    #[must_use]
     pub fn out_of_bounds(mut self, out_of_bounds: OutOfBounds) -> Self {
         self.out_of_bounds = out_of_bounds;
         self

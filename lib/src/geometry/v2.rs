@@ -224,6 +224,7 @@ impl V2 {
     }
 
     /// Returns a new V2 with x and y values swapped.
+    #[must_use]
     pub fn swap_axes(&self) -> Self {
         Self {
             x: self.y,
@@ -239,6 +240,7 @@ impl V2 {
     /// let v = V2::new(1.0, 2.0);
     /// assert_eq!(v.only_x(), V2::new(1.0, 0.0));
     /// ```
+    #[must_use]
     pub fn only_x(&self) -> Self {
         Self { x: self.x, y: 0.0 }
     }
@@ -251,6 +253,7 @@ impl V2 {
     /// let v = V2::new(1.0, 2.0);
     /// assert_eq!(v.only_y(), V2::new(0.0, 2.0));
     /// ```
+    #[must_use]
     pub fn only_y(&self) -> Self {
         Self { x: 0.0, y: self.y }
     }
@@ -277,6 +280,7 @@ impl V2 {
     }
 
     /// Returns a new V2 with rounded x and y values.
+    #[must_use]
     pub fn round(&self) -> Self {
         Self {
             x: self.x.round(),
@@ -289,6 +293,7 @@ impl V2 {
     }
 
     /// Returns a new V2 with ceiling of x and y values.
+    #[must_use]
     pub fn ceil(&self) -> Self {
         Self {
             x: self.x.ceil(),
@@ -301,6 +306,7 @@ impl V2 {
     }
 
     /// Returns a new V2 with floor of x and y values.
+    #[must_use]
     pub fn floor(&self) -> Self {
         Self {
             x: self.x.floor(),
@@ -333,6 +339,7 @@ impl V2 {
     /// let v2 = V2::new(2.0, 1.0);
     /// assert_eq!(v1.min(v2), V2::new(1.0, 1.0));
     /// ```
+    #[must_use]
     pub fn min(&self, other: Self) -> Self {
         V2::new(self.x.min(other.x), self.y.min(other.y))
     }
@@ -345,6 +352,7 @@ impl V2 {
     /// let v2 = V2::new(2.0, 1.0);
     /// assert_eq!(v1.max(v2), V2::new(2.0, 2.0));
     /// ```
+    #[must_use]
     pub fn max(&self, other: Self) -> Self {
         V2::new(self.x.max(other.x), self.y.max(other.y))
     }
@@ -359,6 +367,7 @@ impl V2 {
     }
 
     /// Maps a value from one linear range to another. (see [`crate::maths::FloatInterpolation::linlin`])
+    #[must_use]
     pub fn linlin(&self, from_start: Self, from_end: Self, to_start: Self, to_end: Self) -> Self {
         let normalized = (self - from_start) / (from_end - from_start);
         to_start + normalized * (to_end - to_start)
@@ -410,6 +419,7 @@ impl V2 {
     }
 
     /// Returns this vector normalized to a length of 1.0.
+    #[must_use]
     pub fn normalize(&self) -> Self {
         let len = self.length();
         if len == 0.0 {
@@ -419,11 +429,13 @@ impl V2 {
         }
     }
     /// Returns this vector with the same direction but a specified length.
+    #[must_use]
     pub fn normalize_to(&self, len: f32) -> Self {
         *self * len / self.length()
     }
 
     /// Projects this vector onto another vector.
+    #[must_use]
     pub fn project_onto(&self, other: Self) -> Self {
         let length_squared = other.length_squared();
         let dot_product = self.dot(other);
@@ -434,6 +446,7 @@ impl V2 {
     }
 
     /// Returns a vector with the same direction but length clamped between min_len and max_len.
+    #[must_use]
     pub fn clamp_len(&self, min_len: f32, max_len: f32) -> Self {
         let len = self.length();
         if len < min_len {
@@ -447,6 +460,7 @@ impl V2 {
 
     /// Clamps the vector's components inside the given range. This is equivalent to clamping
     /// it inside a rectangle defined by the corners `min` and `max`.
+    #[must_use]
     pub fn clamp(&self, min: V2, max: V2) -> Self {
         V2::new(self.x.clamp(min.x, max.x), self.y.clamp(min.y, max.y))
     }
@@ -457,6 +471,7 @@ impl V2 {
     }
 
     /// Returns a new V2 with square root applied to both components.
+    #[must_use]
     pub fn sqrt(&self) -> Self {
         V2::new(self.x.sqrt(), self.y.sqrt())
     }
@@ -474,6 +489,7 @@ impl V2 {
     /// let v2 = V2::new(2.0, 2.0);
     /// assert_eq!(v1.lerp(v2, 0.5), V2::new(1.0, 1.0));
     /// ```
+    #[must_use]
     pub fn lerp(&self, other: Self, t: f32) -> Self {
         V2::new(
             self.x + t * (other.x - self.x),
@@ -531,6 +547,7 @@ impl V2 {
     /// let power = 3.0;
     /// assert_eq!(v.distort_pow(around, power), V2::new(2.0_f32.powf(power), 0.0));
     /// ```
+    #[must_use]
     pub fn distort_pow(&self, around: V2, distance_power: f32) -> Self {
         let distance = self.dist(around);
         let angle = around.angle_to(*self);
@@ -550,6 +567,7 @@ impl V2 {
     /// let v2 = V2::new(2.0, 2.0);
     /// assert_eq!(v1.towards(v2, 1.0), V2::xy(0.7071067812));
     /// ```
+    #[must_use]
     pub fn towards(&self, other: Self, distance: f32) -> Self {
         let point_dist = self.dist(other);
         let t = if point_dist <= LARGE_EPSILON {
@@ -604,9 +622,6 @@ impl Rotate for V2 {
             self.x * angle_sin + self.y * angle_cos,
         )
     }
-    fn rotate_mut(&mut self, angle: Angle) {
-        *self = self.rotate(angle);
-    }
 
     fn rotate_around(&self, pivot: V2, angle: Angle) -> Self {
         let angle = angle.to_rad();
@@ -621,52 +636,31 @@ impl Rotate for V2 {
             (x_offset * angle_sin + y_offset * angle_cos) + pivot.y,
         )
     }
-    fn rotate_around_mut(&mut self, pivot: V2, angle: Angle) {
-        *self = self.rotate_around(pivot, angle);
-    }
 }
 
 impl Rotate90 for V2 {
     fn rotate_90(&self) -> Self {
         Self::new(-self.y, self.x)
     }
-    fn rotate_90_mut(&mut self) {
-        *self = self.rotate_90();
-    }
 
     fn rotate_180(&self) -> Self {
         Self::new(-self.x, -self.y)
-    }
-    fn rotate_180_mut(&mut self) {
-        *self = self.rotate_180();
     }
 
     fn rotate_270(&self) -> Self {
         Self::new(self.y, -self.x)
     }
-    fn rotate_270_mut(&mut self) {
-        *self = self.rotate_270();
-    }
 
     fn rotate_90_around(&self, pivot: V2) -> Self {
         Self::new(-self.y + pivot.y + pivot.x, self.x - pivot.x + pivot.y)
-    }
-    fn rotate_90_around_mut(&mut self, pivot: V2) {
-        *self = self.rotate_90_around(pivot);
     }
 
     fn rotate_180_around(&self, pivot: V2) -> Self {
         Self::new(pivot.x * 2.0 - self.x, pivot.y * 2.0 - self.y)
     }
-    fn rotate_180_around_mut(&mut self, pivot: V2) {
-        *self = self.rotate_180_around(pivot);
-    }
 
     fn rotate_270_around(&self, pivot: V2) -> Self {
         Self::new(self.y - pivot.y + pivot.x, -self.x + pivot.x + pivot.y)
-    }
-    fn rotate_270_around_mut(&mut self, pivot: V2) {
-        *self = self.rotate_270_around(pivot);
     }
 }
 
@@ -674,15 +668,9 @@ impl Mirror for V2 {
     fn mirror_x(&self) -> Self {
         Self::new(-self.x, self.y)
     }
-    fn mirror_x_mut(&mut self) {
-        *self = self.mirror_x();
-    }
 
     fn mirror_y(&self) -> Self {
         Self::new(self.x, -self.y)
-    }
-    fn mirror_y_mut(&mut self) {
-        *self = self.mirror_y();
     }
 }
 

@@ -43,6 +43,7 @@ impl PathEnd {
         }
     }
 
+    #[must_use]
     pub fn flipped(&self) -> Self {
         PathEnd {
             point: self.point,

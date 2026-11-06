@@ -15,6 +15,7 @@ impl<T> Inheritable<T>
 where
     T: Clone,
 {
+    #[must_use]
     pub fn overwrite_with(&self, child: &Self) -> Self {
         match child {
             Inheritable::Inherit => self.clone(),
@@ -44,12 +45,14 @@ impl LayerPropsInheritable {
         }
     }
 
+    #[must_use]
     pub fn with_color(&self, color: ColorRgb) -> Self {
         Self {
             color: Inheritable::Specified(color),
             pen_width_cm: self.pen_width_cm,
         }
     }
+    #[must_use]
     pub fn with_pen_width_cm(&self, pen_width_cm: f32) -> Self {
         Self {
             color: self.color,
@@ -59,6 +62,7 @@ impl LayerPropsInheritable {
 }
 
 impl LayerPropsInheritable {
+    #[must_use]
     pub fn overwrite_with(&self, child: &Inheritable<Self>) -> Self {
         match child {
             Inheritable::Inherit => self.clone(),
@@ -85,6 +89,7 @@ pub struct LayerProps {
 }
 
 impl LayerProps {
+    #[must_use]
     pub fn with_name(&self, name: &str) -> Self {
         Self {
             name: Some(name.to_string()),

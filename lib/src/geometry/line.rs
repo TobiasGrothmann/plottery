@@ -85,11 +85,13 @@ impl Line {
     }
 
     /// Returns a new line offset to the right of its direction by the given distance.
+    #[must_use]
     pub fn offset_right(&self, distance: f32) -> Self {
         self.translate(self.normal_right() * distance)
     }
 
     /// Returns a new line offset to the left by the given distance.
+    #[must_use]
     pub fn offset_left(&self, distance: f32) -> Self {
         self.offset_right(-distance)
     }
@@ -250,23 +252,14 @@ impl Translate for Line {
     fn translate(&self, dist: V2) -> Self {
         self.map_points(|p| p + dist)
     }
-    fn translate_mut(&mut self, dist: V2) {
-        *self = self.translate(dist);
-    }
 }
 
 impl Rotate for Line {
     fn rotate(&self, angle: Angle) -> Self {
         self.map_points(|p| p.rotate(angle))
     }
-    fn rotate_mut(&mut self, angle: Angle) {
-        *self = self.rotate(angle);
-    }
     fn rotate_around(&self, pivot: V2, angle: Angle) -> Self {
         self.map_points(|p| p.rotate_around(pivot, angle))
-    }
-    fn rotate_around_mut(&mut self, pivot: V2, angle: Angle) {
-        *self = self.rotate_around(pivot, angle);
     }
 }
 
@@ -274,38 +267,20 @@ impl Rotate90 for Line {
     fn rotate_90(&self) -> Self {
         self.map_points(|p| p.rotate_90())
     }
-    fn rotate_90_mut(&mut self) {
-        *self = self.rotate_90();
-    }
     fn rotate_180(&self) -> Self {
         self.map_points(|p| p.rotate_180())
-    }
-    fn rotate_180_mut(&mut self) {
-        *self = self.rotate_180();
     }
     fn rotate_270(&self) -> Self {
         self.map_points(|p| p.rotate_270())
     }
-    fn rotate_270_mut(&mut self) {
-        *self = self.rotate_270();
-    }
     fn rotate_90_around(&self, pivot: V2) -> Self {
         self.map_points(|p| p.rotate_90_around(pivot))
-    }
-    fn rotate_90_around_mut(&mut self, pivot: V2) {
-        *self = self.rotate_90_around(pivot);
     }
     fn rotate_180_around(&self, pivot: V2) -> Self {
         self.map_points(|p| p.rotate_180_around(pivot))
     }
-    fn rotate_180_around_mut(&mut self, pivot: V2) {
-        *self = self.rotate_180_around(pivot);
-    }
     fn rotate_270_around(&self, pivot: V2) -> Self {
         self.map_points(|p| p.rotate_270_around(pivot))
-    }
-    fn rotate_270_around_mut(&mut self, pivot: V2) {
-        *self = self.rotate_270_around(pivot);
     }
 }
 
@@ -313,32 +288,20 @@ impl Scale for Line {
     fn scale(&self, factor: f32) -> Self {
         self.map_points(|p| p * factor)
     }
-    fn scale_mut(&mut self, factor: f32) {
-        *self = self.scale(factor);
-    }
 }
 
 impl Mirror for Line {
     fn mirror_x(&self) -> Self {
         self.map_points(|p| p.mirror_x())
     }
-    fn mirror_x_mut(&mut self) {
-        *self = self.mirror_x();
-    }
     fn mirror_y(&self) -> Self {
         self.map_points(|p| p.mirror_y())
-    }
-    fn mirror_y_mut(&mut self) {
-        *self = self.mirror_y();
     }
 }
 
 impl Transform for Line {
     fn transform(&self, matrix: &TransformMatrix) -> Self {
         self.map_points(|p| p.transform(matrix))
-    }
-    fn transform_mut(&mut self, matrix: &TransformMatrix) {
-        *self = self.transform(matrix);
     }
 }
 

@@ -83,6 +83,7 @@ impl Path {
         }
     }
     /// Consuming variant of [`Path::close`].
+    #[must_use]
     pub fn closed(mut self) -> Self {
         self.close();
         self
@@ -90,6 +91,7 @@ impl Path {
     pub fn reverse_mut(&mut self) {
         self.points.reverse();
     }
+    #[must_use]
     pub fn reverse(&self) -> Self {
         let mut points = self.points.clone();
         points.reverse();
@@ -126,6 +128,7 @@ impl Path {
         self.points.last()
     }
 
+    #[must_use]
     pub fn rounded_chaikins(&self, iterations: i32) -> Self {
         let mut new_points = self.points.clone();
         for _ in 0..iterations {

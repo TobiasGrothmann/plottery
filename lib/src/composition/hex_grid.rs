@@ -25,6 +25,7 @@ impl HexCell {
     }
 
     /// Closed hexagon outline.
+    #[must_use]
     pub fn outline(&self) -> Path {
         Path::new_from(self.corners().to_vec()).closed()
     }
@@ -106,6 +107,7 @@ impl HexGrid {
     }
 
     /// Outlines of all cells overlapping `bounds`, every edge drawn once.
+    #[must_use]
     pub fn outlines(&self) -> Layer {
         let axials: HashSet<(i32, i32)> = self.axials_overlapping(self.bounds).collect();
         let mut layer = Layer::new();

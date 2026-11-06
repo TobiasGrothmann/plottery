@@ -184,6 +184,7 @@ impl Layer {
         self.props_inheritable = props;
     }
     /// set the inheritable properties of the layer
+    #[must_use]
     pub fn with_props_inheritable(mut self, props: Inheritable<LayerPropsInheritable>) -> Self {
         self.set_props_inheritable(props);
         self
@@ -193,12 +194,14 @@ impl Layer {
         self.props = props;
     }
     /// set the non-inheritable properties of the layer
+    #[must_use]
     pub fn with_props(mut self, props: LayerProps) -> Self {
         self.set_props(props);
         self
     }
 
     /// Helper to set the color of the layer. see [`Layer::with_props_inheritable`].
+    #[must_use]
     pub fn with_color(mut self, color: ColorRgb) -> Self {
         self.props_inheritable = self
             .props_inheritable
@@ -208,6 +211,7 @@ impl Layer {
         self
     }
     /// Helper to set the pen width of the layer. see [`Layer::with_props_inheritable`].
+    #[must_use]
     pub fn with_pen_width_cm(mut self, pen_width_cm: f32) -> Self {
         self.props_inheritable = self
             .props_inheritable
@@ -217,6 +221,7 @@ impl Layer {
         self
     }
     /// Helper to set the name of the layer. see [`Layer::with_props`].
+    #[must_use]
     pub fn with_name(mut self, name: &str) -> Self {
         self.props = self.props.with_name(name);
         self
@@ -1061,6 +1066,7 @@ impl Layer {
     /// This is done until no more shapes can be combined, recursively for all sublayers individually.
     ///
     /// `max_angle_delta` is the maximum angle difference between the start/end points of the two shapes that will still be combined. Set to `None` to ignore angles.
+    #[must_use]
     pub fn combine_shapes_recursive(&self, max_angle_delta: Option<Angle>) -> Self {
         let (combineable, noncombineable) =
             Layer::group_shapes_combineable_noncombineable(self.shapes.iter());
@@ -1084,6 +1090,7 @@ impl Layer {
     }
 
     /// Returns a new flattened `Layer` with [`Shape`]s that start/end at another [`Shape`]'s start/end combined into a single [`Path`]. see [`Layer::combine_shapes_recursive`].
+    #[must_use]
     pub fn combine_shapes_flat(&self, max_angle_delta: Option<Angle>) -> Self {
         let (combineable, noncombineable) =
             Layer::group_shapes_combineable_noncombineable(self.iter());
@@ -1247,6 +1254,7 @@ impl Layer {
     }
 
     /// Create a new [`Layer`] with a function mapped recursively to all [`Shape`]s in the `Layer` and its sublayers.
+    #[must_use]
     pub fn map_recursive<F>(&self, f: F) -> Self
     where
         F: Fn(&Shape) -> Shape + Send + Sync,
@@ -1291,6 +1299,7 @@ impl Layer {
     }
 
     /// Like [`Layer::map_recursive`], but `f` may return any number of shapes (or a whole [`Layer`]) per shape.
+    #[must_use]
     pub fn flat_map_recursive<F, I>(&self, f: F) -> Self
     where
         F: Fn(&Shape) -> I + Send + Sync,
@@ -1323,6 +1332,7 @@ impl Layer {
     }
 
     /// Oversamples every shape and moves each point with `f`, recursively. see [`Shape::distort`].
+    #[must_use]
     pub fn distort<F>(&self, sample_settings: SampleSettings, f: F) -> Self
     where
         F: Fn(V2) -> V2 + Send + Sync,
@@ -1331,11 +1341,13 @@ impl Layer {
     }
 
     /// Dashes every shape, recursively. see [`Shape::dash`].
+    #[must_use]
     pub fn dash(&self, dash_length: f32, gap_length: f32, sample_settings: SampleSettings) -> Self {
         self.flat_map_recursive(|shape| shape.dash(dash_length, gap_length, sample_settings))
     }
 
     /// Dashes every shape with a custom dash function, recursively. see [`Shape::dash_fn`].
+    #[must_use]
     pub fn dash_fn<F>(&self, sample_settings: SampleSettings, f: F) -> Self
     where
         F: Fn(V2, bool, f32, f32) -> f32 + Send + Sync,
@@ -1344,6 +1356,7 @@ impl Layer {
     }
 
     /// Create a new [`Layer`] with the [`Shape`]s in the `Layer` and its sublayers filtered with a predicate function.
+    #[must_use]
     pub fn filter_recursive<F>(&self, f: F) -> Self
     where
         F: Fn(&Shape) -> bool + Send + Sync,
@@ -1431,6 +1444,7 @@ impl Layer {
     }
 
     /// Reduces the number of points for all [`Shape`]s in this `Layer` and its sublayers. see [`Shape::reduce_points`].
+    #[must_use]
     pub fn reduce_points_recursive(&self, aggression_factor: f32) -> Self {
         self.map_recursive(|shape| shape.reduce_points(aggression_factor))
     }
@@ -1489,6 +1503,7 @@ impl Layer {
         }
     }
 
+    #[must_use]
     pub fn optimize(&self) -> Self {
         let starts_and_ends: Vec<_> = self
             .shapes
@@ -1537,6 +1552,7 @@ impl Layer {
     }
 
     /// Applies the same optimization like [`Layer::optimize`], recursively for all sublayers.
+    #[must_use]
     pub fn optimize_recursive(&self) -> Self {
         let mut optimized = self.optimize();
         for sublayer in &self.sublayers {
@@ -1548,6 +1564,7 @@ impl Layer {
     /// Returns a new `Layer` without any sublayers direclty containing all [`Shape`]s of this `Layer` and its sublayers.
     ///
     /// see also [`Layer::iter_flattened`].
+    #[must_use]
     pub fn flatten(&self) -> Self {
         Layer::new_from_shapes_and_layers(self.iter().cloned().collect(), Vec::new())
             .with_props_inheritable(self.props_inheritable.clone())

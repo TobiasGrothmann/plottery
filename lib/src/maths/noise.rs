@@ -69,13 +69,16 @@ impl Noise {
         Self::new(NoiseType::Worley)
     }
 
+    #[must_use]
     pub fn seed(self, seed: i32) -> Self {
         Self::build(self.noise_type, seed, self.frequency, self.octaves)
     }
+    #[must_use]
     pub fn frequency(self, frequency: f32) -> Self {
         Self::build(self.noise_type, self.seed, frequency, self.octaves)
     }
     /// Number of fractal (FBm) octaves, 1 disables the fractal.
+    #[must_use]
     pub fn octaves(self, octaves: u32) -> Self {
         Self::build(self.noise_type, self.seed, self.frequency, octaves)
     }
