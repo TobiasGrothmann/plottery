@@ -278,6 +278,24 @@ mod test_path {
     }
 
     #[test]
+    fn slice_like_access() {
+        let mut path = Path::line(V2::new(0.0, 0.0), V2::new(1.0, 0.0));
+        path.extend([V2::new(1.0, 1.0)]);
+        path.extend(&[V2::new(0.0, 1.0)]);
+
+        assert_eq!(path.len(), 4);
+        assert_eq!(path[1], V2::new(1.0, 0.0));
+        assert_eq!(path.last(), Some(&V2::new(0.0, 1.0)));
+        assert_eq!(path.windows(2).count(), 3);
+        assert_eq!((&path).into_iter().count(), 4);
+
+        let closed = path.closed();
+        assert_eq!(closed.len(), 5);
+        assert_eq!(closed.first(), closed.last());
+        assert!(closed.is_closed());
+    }
+
+    #[test]
     fn contains_point() {
         let p = Path::new_from(vec![
             V2::new(0.0, 0.0),

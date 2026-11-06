@@ -5,6 +5,7 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
     borrow::Cow,
+    ops::Deref,
     slice::{Iter, IterMut},
 };
 
@@ -15,6 +16,8 @@ use crate::{
     PointLineRelation, Rect, Rotate, Rotate90, SampleSettings, Shape, V2,
 };
 
+/// A polyline. Derefs to its points, so slice methods like `len`, `first`, `last` and `windows` are available.
+/// Note that `len()` is the number of points while [`Plottable::length`] is the geometric length.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct Path {
     points: Vec<V2>,
@@ -32,6 +35,13 @@ impl Path {
             points: iter.into_iter().collect(),
         }
     }
+    /// Path with the two points `from` and `to`.
+    pub fn line(from: V2, to: V2) -> Self {
+        Self {
+            points: vec![from, to],
+        }
+    }
+
     pub fn new_shape() -> Shape {
         Shape::Path(Self { points: vec![] })
     }
@@ -63,9 +73,14 @@ impl Path {
     }
 
     pub fn close(&mut self) {
-        if !self.points.is_empty() {
-            self.points.push(*self.points.first().unwrap());
+        if let Some(first) = self.points.first() {
+            self.points.push(*first);
         }
+    }
+    /// Consuming variant of [`Path::close`].
+    pub fn closed(mut self) -> Self {
+        self.close();
+        self
     }
     pub fn reverse_mut(&mut self) {
         self.points.reverse();
@@ -84,6 +99,9 @@ impl Path {
     }
 
     pub fn get_points_ref(&self) -> &[V2] {
+        &self.points
+    }
+    pub fn points(&self) -> &[V2] {
         &self.points
     }
     pub fn is_empty(&self) -> bool {
@@ -624,6 +642,35 @@ impl IntoIterator for Path {
 
     fn into_iter(self) -> Self::IntoIter {
         self.points.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a Path {
+    type Item = &'a V2;
+    type IntoIter = Iter<'a, V2>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.points.iter()
+    }
+}
+
+impl Deref for Path {
+    type Target = [V2];
+
+    fn deref(&self) -> &[V2] {
+        &self.points
+    }
+}
+
+impl Extend<V2> for Path {
+    fn extend<I: IntoIterator<Item = V2>>(&mut self, iter: I) {
+        self.points.extend(iter);
+    }
+}
+
+impl<'a> Extend<&'a V2> for Path {
+    fn extend<I: IntoIterator<Item = &'a V2>>(&mut self, iter: I) {
+        self.points.extend(iter);
     }
 }
 
