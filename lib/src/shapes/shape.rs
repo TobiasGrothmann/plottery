@@ -5,7 +5,8 @@ pub use crate::shapes::rect::Rect;
 use crate::{
     geometry::TransformMatrix,
     traits::{ClosestPoint, Normalize, Scale, Scale2D, Transform, Translate},
-    Angle, BoundingBox, Containment, Line, Mirror, Plottable, Rotate, Rotate90, SampleSettings, V2,
+    Angle, BoundingBox, Containment, Line, Mirror, Plottable, Rotate, Rotate90, SampleSettings,
+    LARGE_EPSILON, V2,
 };
 use serde::{Deserialize, Serialize};
 
@@ -17,6 +18,15 @@ pub enum Shape {
 }
 
 impl Shape {
+    /// True if the shape draws nothing, e.g. a [`Path`] with fewer than two distinct points.
+    pub fn is_degenerate(&self) -> bool {
+        match self {
+            Shape::Circle(c) => c.radius <= LARGE_EPSILON,
+            Shape::Rect(r) => r.width() <= LARGE_EPSILON && r.height() <= LARGE_EPSILON,
+            Shape::Path(p) => p.is_degenerate(),
+        }
+    }
+
     pub fn intersects_circle(&self, other: &Circle) -> bool {
         match self {
             Shape::Circle(c) => c.intersects_circle(other),

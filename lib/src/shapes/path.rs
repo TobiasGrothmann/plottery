@@ -121,6 +121,10 @@ impl Path {
     pub fn is_empty(&self) -> bool {
         self.points.is_empty()
     }
+    /// True if the path draws nothing: fewer than two distinct points.
+    pub fn is_degenerate(&self) -> bool {
+        self.points.windows(2).all(|pair| pair[0] == pair[1])
+    }
     pub fn get_start(&self) -> Option<&V2> {
         self.points.first()
     }
