@@ -30,7 +30,7 @@ impl Circle {
 
     pub fn get_intersections(&self, other: &Circle) -> Vec<V2> {
         let delta = other.center - self.center;
-        let dist = delta.len();
+        let dist = delta.length();
         let radius_sum = self.radius + other.radius;
         let radius_difference = (self.radius - other.radius).abs();
 
@@ -72,19 +72,33 @@ impl Circle {
         vec![V2::new(x2 + rx, y2 + ry), V2::new(x2 - rx, y2 - ry)]
     }
 
+    /// Point on the circle at `angle`.
+    pub fn point_at(&self, angle: Angle) -> V2 {
+        self.center + V2::polar(angle, self.radius)
+    }
+
+    /// Arc on the circle from `from` to `to`.
+    #[must_use]
+    pub fn arc(&self, from: Angle, to: Angle, sample_settings: SampleSettings) -> Path {
+        Path::arc(from, to, self.center, self.radius, sample_settings)
+    }
+
+    /// Closed wedge between the center and the arc from `from` to `to`.
+    #[must_use]
+    pub fn sector(&self, from: Angle, to: Angle, sample_settings: SampleSettings) -> Path {
+        std::iter::once(self.center)
+            .chain(self.arc(from, to, sample_settings))
+            .chain(std::iter::once(self.center))
+            .collect()
+    }
+
     fn get_points(&self, start_angle: Angle, sample_settings: SampleSettings) -> Vec<V2> {
         let num_samples = sample_settings
             .get_num_points_for_length(self.circumference())
             .max(8);
         let angle_per_step = 2.0 * PI / num_samples as f32;
         (0..num_samples + 1)
-            .map(|i| {
-                self.center
-                    + V2::polar(
-                        Angle::from_rad(i as f32 * angle_per_step) + start_angle,
-                        self.radius,
-                    )
-            })
+            .map(|i| self.point_at(Angle::from_rad(i as f32 * angle_per_step) + start_angle))
             .collect()
     }
 
@@ -104,7 +118,7 @@ impl Circle {
         let outside = (0..resolution + 1).map(|i| {
             let rot = i as f32 / resolution as f32;
             let angle = Angle::from_rotations(rot);
-            self.center + V2::polar(angle, self.radius)
+            self.point_at(angle)
         });
 
         let mut last_angle = Angle::zero();
@@ -144,7 +158,7 @@ impl Circle {
         let outside = (0..resolution + 1).map(|i| {
             let rot = i as f32 / resolution as f32;
             let angle = Angle::from_rotations(rot);
-            self.center + V2::polar(angle, self.radius)
+            self.point_at(angle)
         });
 
         outside
@@ -172,7 +186,7 @@ impl Circle {
         let smaller_inner = Circle::new(self.center, self.radius - pen_width);
         let filling = smaller_inner.criss_cross_filling(pen_width);
 
-        Path::new_from_iter(
+        Path::new_from(
             self.get_points(Angle::down_cw(), sample_settings)
                 .into_iter()
                 .chain(filling),

@@ -4,7 +4,8 @@ mod test_noise {
 
     use crate::{
         maths::thread_local::{seed, seed_random},
-        perlin_2d, perlin_3d, simplex_2d, simplex_3d, worley_2d, worley_3d, V2,
+        perlin_2d, perlin_3d, simplex_2d, simplex_3d, worley_2d, worley_3d, MarchingSquares, Noise,
+        Rect, SampleSettings, V2,
     };
 
     #[test]
@@ -25,6 +26,20 @@ mod test_noise {
             let noise = noise(location);
             assert!((0.0..=1.0).contains(&noise));
         }
+    }
+
+    #[test]
+    fn as_fn_matches_get() {
+        let noise = Noise::perlin().seed(3);
+        let field = noise.as_fn();
+        let p = V2::new(0.3, 0.7);
+        assert_eq!(field(p), noise.get(p));
+        let squares = MarchingSquares::new(
+            Rect::new(V2::zero(), V2::xy(1.0)),
+            SampleSettings::new(4.0),
+            noise.as_fn(),
+        );
+        let _ = squares.lines(0.5);
     }
 
     #[test]

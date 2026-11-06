@@ -5,7 +5,8 @@ pub use crate::shapes::rect::Rect;
 use crate::{
     geometry::TransformMatrix,
     traits::{ClosestPoint, Normalize, Scale, Scale2D, Transform, Translate},
-    Angle, BoundingBox, Containment, Mirror, Plottable, Rotate, Rotate90, SampleSettings, V2,
+    Angle, BoundingBox, Containment, Line, Mirror, Plottable, Rotate, Rotate90, SampleSettings,
+    LARGE_EPSILON, V2,
 };
 use serde::{Deserialize, Serialize};
 
@@ -17,6 +18,15 @@ pub enum Shape {
 }
 
 impl Shape {
+    /// True if the shape draws nothing, e.g. a [`Path`] with fewer than two distinct points.
+    pub fn is_degenerate(&self) -> bool {
+        match self {
+            Shape::Circle(c) => c.radius <= LARGE_EPSILON,
+            Shape::Rect(r) => r.width() <= LARGE_EPSILON && r.height() <= LARGE_EPSILON,
+            Shape::Path(p) => p.is_degenerate(),
+        }
+    }
+
     pub fn intersects_circle(&self, other: &Circle) -> bool {
         match self {
             Shape::Circle(c) => c.intersects_circle(other),
@@ -139,9 +149,7 @@ impl Rotate for Shape {
     fn rotate(&self, angle: Angle) -> Self {
         match self {
             Shape::Circle(c) => Shape::Circle(c.rotate(angle)),
-            Shape::Rect(r) => {
-                Path::new_shape_from(vec![r.bl(), r.tl(), r.tr(), r.br(), r.bl()]).rotate(angle)
-            }
+            Shape::Rect(r) => Shape::Path(r.to_path(SampleSettings::default()).rotate(angle)),
             Shape::Path(p) => Shape::Path(p.rotate(angle)),
         }
     }
@@ -149,8 +157,7 @@ impl Rotate for Shape {
         match self {
             Shape::Circle(c) => c.rotate_mut(angle),
             Shape::Rect(r) => {
-                *self =
-                    Path::new_shape_from(vec![r.bl(), r.tl(), r.tr(), r.br(), r.bl()]).rotate(angle)
+                *self = Shape::Path(r.to_path(SampleSettings::default()).rotate(angle))
             }
             Shape::Path(p) => p.rotate_mut(angle),
         }
@@ -159,8 +166,10 @@ impl Rotate for Shape {
     fn rotate_around(&self, pivot: V2, angle: Angle) -> Self {
         match self {
             Shape::Circle(c) => Shape::Circle(c.rotate_around(pivot, angle)),
-            Shape::Rect(r) => Path::new_shape_from(vec![r.bl(), r.tl(), r.tr(), r.br(), r.bl()])
-                .rotate_around(pivot, angle),
+            Shape::Rect(r) => Shape::Path(
+                r.to_path(SampleSettings::default())
+                    .rotate_around(pivot, angle),
+            ),
             Shape::Path(p) => Shape::Path(p.rotate_around(pivot, angle)),
         }
     }
@@ -168,8 +177,10 @@ impl Rotate for Shape {
         match self {
             Shape::Circle(c) => c.rotate_around_mut(pivot, angle),
             Shape::Rect(r) => {
-                *self = Path::new_shape_from(vec![r.bl(), r.tl(), r.tr(), r.br(), r.bl()])
-                    .rotate_around(pivot, angle)
+                *self = Shape::Path(
+                    r.to_path(SampleSettings::default())
+                        .rotate_around(pivot, angle),
+                )
             }
             Shape::Path(p) => p.rotate_around_mut(pivot, angle),
         }
@@ -484,5 +495,11 @@ impl From<&Path> for Shape {
 impl From<&Shape> for Shape {
     fn from(shape: &Shape) -> Self {
         shape.clone()
+    }
+}
+
+impl From<Line> for Shape {
+    fn from(line: Line) -> Self {
+        Shape::Path(line.into())
     }
 }

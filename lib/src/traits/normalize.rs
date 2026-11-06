@@ -23,28 +23,28 @@ where
     Self: Sized,
 {
     /// Normalize the shape to fit inside the target rectangle while preserving aspect ratio
-    fn normalize_inside(&self, target: &Rect, alignment: Alignment) -> Result<Self> {
+    fn normalize_inside(&self, target: Rect, alignment: Alignment) -> Result<Self> {
         self.normalize_with_mode(target, alignment, NormalizeMode::Inside)
     }
 
     /// Normalize the shape to fit inside the target rectangle while preserving aspect ratio
-    fn normalize_inside_mut(&mut self, target: &Rect, alignment: Alignment) -> Result<()> {
+    fn normalize_inside_mut(&mut self, target: Rect, alignment: Alignment) -> Result<()> {
         self.normalize_mut_with_mode(target, alignment, NormalizeMode::Inside)
     }
 
     /// Normalize the shape to cover the target rectangle while preserving aspect ratio
-    fn normalize_around(&self, target: &Rect, alignment: Alignment) -> Result<Self> {
+    fn normalize_around(&self, target: Rect, alignment: Alignment) -> Result<Self> {
         self.normalize_with_mode(target, alignment, NormalizeMode::Around)
     }
 
     /// Normalize the shape to cover the target rectangle while preserving aspect ratio
-    fn normalize_around_mut(&mut self, target: &Rect, alignment: Alignment) -> Result<()> {
+    fn normalize_around_mut(&mut self, target: Rect, alignment: Alignment) -> Result<()> {
         self.normalize_mut_with_mode(target, alignment, NormalizeMode::Around)
     }
 
     fn normalize_with_mode(
         &self,
-        target: &Rect,
+        target: Rect,
         alignment: Alignment,
         mode: NormalizeMode,
     ) -> Result<Self> {
@@ -55,7 +55,7 @@ where
 
     fn normalize_mut_with_mode(
         &mut self,
-        target: &Rect,
+        target: Rect,
         alignment: Alignment,
         mode: NormalizeMode,
     ) -> Result<()> {

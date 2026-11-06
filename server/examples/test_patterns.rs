@@ -82,20 +82,41 @@ async fn run() -> anyhow::Result<()> {
             println!("angles, pen up: {length} cm out and back, 0° to 90° in {step_deg}° steps, speed factor {factor}");
             for angle_deg in (0..=90).step_by(step_deg.max(1) as usize) {
                 let (sin, cos) = (angle_deg as f32).to_radians().sin_cos();
-                send_task(Task::MoveTo(V2::new(length * cos, length * sin), settings.clone())).await?;
+                send_task(Task::MoveTo(
+                    V2::new(length * cos, length * sin),
+                    settings.clone(),
+                ))
+                .await?;
                 send_task(Task::MoveTo(V2::zero(), settings.clone())).await?;
             }
         }
         Some("circles-down") => {
-            let count = args.get(1).map(|v| v.parse::<u32>()).transpose()?.unwrap_or(5).max(1);
-            let min_d = args.get(2).map(|v| v.parse::<f32>()).transpose()?.unwrap_or(1.0);
-            let max_d = args.get(3).map(|v| v.parse::<f32>()).transpose()?.unwrap_or(6.0);
+            let count = args
+                .get(1)
+                .map(|v| v.parse::<u32>())
+                .transpose()?
+                .unwrap_or(5)
+                .max(1);
+            let min_d = args
+                .get(2)
+                .map(|v| v.parse::<f32>())
+                .transpose()?
+                .unwrap_or(1.0);
+            let max_d = args
+                .get(3)
+                .map(|v| v.parse::<f32>())
+                .transpose()?
+                .unwrap_or(6.0);
             let gap = 0.5;
             println!("circles, pen down: {count} circles, diameters {min_d} to {max_d} cm, {gap} cm apart, speed factor {factor}");
             let mut layer = Layer::new();
             let mut x = 0.0;
             for i in 0..count {
-                let t = if count > 1 { i as f32 / (count - 1) as f32 } else { 0.0 };
+                let t = if count > 1 {
+                    i as f32 / (count - 1) as f32
+                } else {
+                    0.0
+                };
                 let radius = (min_d + (max_d - min_d) * t) / 2.0;
                 layer.push(Circle::new(V2::new(x + radius, radius), radius));
                 x += 2.0 * radius + gap;

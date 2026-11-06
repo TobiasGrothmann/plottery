@@ -118,7 +118,7 @@ pub fn generate(params: Params) -> Layer {
         .translate(frame.center()); // translate spiral to center of frame
 
     // mask path to the inner rect of the frame (outer frame without the margin)
-    let masked_path = path.mask_brute_force(&frame.inner_rect().into(), SampleSettings::default());
+    let masked_path = path.mask_brute_force(frame.inner_rect(), SampleSettings::default());
 
     // push all elements of inside the inner frame to `l` flat
     l.push_layer_flat(masked_path.inside);

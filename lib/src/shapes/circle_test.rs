@@ -4,7 +4,7 @@ mod test_circle {
 
     use crate::{
         traits::{normalize::Alignment, ClosestPoint, Normalize, Scale, Scale2D},
-        BoundingBox, Circle, Path, Plottable, SampleSettings, LARGE_EPSILON, V2,
+        Angle, BoundingBox, Circle, Path, Plottable, SampleSettings, LARGE_EPSILON, V2,
     };
 
     #[test]
@@ -71,7 +71,7 @@ mod test_circle {
     fn normalize() {
         let c = Circle::new(V2::new(1.0, 2.0), 3.0);
         let target = crate::Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
-        let normalized = c.normalize_inside(&target, Alignment::Center).unwrap();
+        let normalized = c.normalize_inside(target, Alignment::Center).unwrap();
         let normalized_bounds = normalized.bounding_box().unwrap();
 
         assert_eq!(normalized_bounds.bl(), V2::new(0.0, 0.0));
@@ -164,5 +164,29 @@ mod test_circle {
         assert_eq!(points.first().unwrap(), V2::new(2.0, 1.0));
         assert_eq!(points_from.first().unwrap(), V2::new(1.0, 2.0));
         assert_ne!(points, points_from)
+    }
+
+    #[test]
+    fn point_at_arc_sector() {
+        let c = Circle::new(V2::new(1.0, 1.0), 2.0);
+        assert_eq!(c.point_at(Angle::quarter_rotation()), V2::new(1.0, 3.0));
+
+        let arc = c.arc(
+            Angle::zero(),
+            Angle::quarter_rotation(),
+            SampleSettings::new(10.0),
+        );
+        assert_eq!(*arc.first().unwrap(), V2::new(3.0, 1.0));
+        assert!(arc.last().unwrap().dist(V2::new(1.0, 3.0)) < LARGE_EPSILON);
+
+        let sector = c.sector(
+            Angle::zero(),
+            Angle::quarter_rotation(),
+            SampleSettings::new(10.0),
+        );
+        assert!(sector.is_closed());
+        assert_eq!(*sector.first().unwrap(), c.center);
+        assert!(sector.contains_point(V2::new(1.5, 1.5)));
+        assert!(!sector.contains_point(V2::new(0.5, 0.5)));
     }
 }

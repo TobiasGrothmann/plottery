@@ -25,19 +25,15 @@ impl HexCell {
     }
 
     /// Closed hexagon outline.
+    #[must_use]
     pub fn outline(&self) -> Path {
-        let mut path = Path::new_from(self.corners().to_vec());
-        path.close();
-        path
+        Path::new_from(self.corners().to_vec()).closed()
     }
 
     /// Six closed triangles between the center and adjacent corners.
     pub fn triangles(&self) -> [Path; 6] {
         std::array::from_fn(|i| {
-            let mut path =
-                Path::new_from(vec![self.center, self.corner(i), self.corner((i + 1) % 6)]);
-            path.close();
-            path
+            Path::new_from(vec![self.center, self.corner(i), self.corner((i + 1) % 6)]).closed()
         })
     }
 }
@@ -72,13 +68,13 @@ impl HexGrid {
     }
 
     pub fn neighbors(&self, axial: V2i) -> [V2i; 6] {
-        NEIGHBOR_DIRECTIONS.map(|(dq, dr)| V2i::new(axial.x + dq, axial.y + dr))
+        NEIGHBOR_DIRECTIONS.map(|direction| axial + direction)
     }
 
     /// All cells overlapping `bounds`, row by row.
     pub fn cells(&self) -> impl Iterator<Item = HexCell> + '_ {
         self.axials_overlapping(self.bounds)
-            .map(|(q, r)| self.cell(V2i::new(q, r)))
+            .map(|axial| self.cell(axial))
     }
 
     /// Cell centers inside `bounds`.
@@ -96,10 +92,22 @@ impl HexGrid {
         let expanded = Rect::new(self.bounds.bl() - V2::xy(r), self.bounds.tr() + V2::xy(r));
         let bounds = self.bounds_inclusive();
         self.axials_overlapping(expanded)
-            .map(|(q, r)| self.cell(V2i::new(q, r)))
+            .map(|axial| self.cell(axial))
             .flat_map(|cell| [cell.corner(1), cell.corner(4)])
             .filter(|p| bounds.contains_point(*p))
             .collect()
+    }
+
+    /// Vertices and centers together: the triangular lattice underlying the grid.
+    pub fn lattice_points(&self) -> Vec<V2> {
+        let mut points = self.vertices();
+        points.extend(self.centers());
+        points
+    }
+
+    /// The triangles of that lattice, six per cell, see [`HexCell::triangles`].
+    pub fn triangles(&self) -> impl Iterator<Item = Path> + '_ {
+        self.cells().flat_map(|cell| cell.triangles())
     }
 
     /// `bounds` grown by an epsilon, so that points on the boundary count as inside.
@@ -111,11 +119,12 @@ impl HexGrid {
     }
 
     /// Outlines of all cells overlapping `bounds`, every edge drawn once.
+    #[must_use]
     pub fn outlines(&self) -> Layer {
-        let axials: HashSet<(i32, i32)> = self.axials_overlapping(self.bounds).collect();
+        let axials: HashSet<V2i> = self.axials_overlapping(self.bounds).collect();
         let mut layer = Layer::new();
-        for &(q, r) in &axials {
-            let cell = self.cell(V2i::new(q, r));
+        for &axial in &axials {
+            let cell = self.cell(axial);
             // own edges: towards the right, upper right and upper left neighbor
             layer.push(Path::new_from(vec![
                 cell.corner(0),
@@ -125,9 +134,9 @@ impl HexGrid {
             ]));
             // remaining edges, only where the neighbor is not part of the grid
             let mut path = Path::new();
-            for (i, (dq, dr)) in NEIGHBOR_DIRECTIONS.into_iter().enumerate().skip(3) {
-                if axials.contains(&(q + dq, r + dr)) {
-                    if path.get_points_ref().len() > 1 {
+            for (i, direction) in NEIGHBOR_DIRECTIONS.into_iter().enumerate().skip(3) {
+                if axials.contains(&(axial + direction)) {
+                    if path.len() > 1 {
                         layer.push(path);
                     }
                     path = Path::new();
@@ -138,14 +147,14 @@ impl HexGrid {
                     path.push(cell.corner((i + 1) % 6));
                 }
             }
-            if path.get_points_ref().len() > 1 {
+            if path.len() > 1 {
                 layer.push(path);
             }
         }
         layer
     }
 
-    fn axials_overlapping(&self, bounds: Rect) -> impl Iterator<Item = (i32, i32)> + '_ {
+    fn axials_overlapping(&self, bounds: Rect) -> impl Iterator<Item = V2i> + '_ {
         let r = self.radius();
         let origin = self.bounds.bl();
         let row_height = r * 1.5;
@@ -158,10 +167,17 @@ impl HexGrid {
                 ((bounds.bl().x - origin.x - row_offset - half) / self.line_dist).ceil() as i32;
             let q_max =
                 ((bounds.tr().x - origin.x - row_offset + half) / self.line_dist).floor() as i32;
-            (q_min..=q_max).map(move |q| (q, row))
+            (q_min..=q_max).map(move |q| V2i::new(q, row))
         })
     }
 }
 
 /// Axial directions in the order of [`HexCell::corners`] edges: right, upper right, upper left, left, lower left, lower right.
-const NEIGHBOR_DIRECTIONS: [(i32, i32); 6] = [(1, 0), (0, 1), (-1, 1), (-1, 0), (0, -1), (1, -1)];
+const NEIGHBOR_DIRECTIONS: [V2i; 6] = [
+    V2i::new(1, 0),
+    V2i::new(0, 1),
+    V2i::new(-1, 1),
+    V2i::new(-1, 0),
+    V2i::new(0, -1),
+    V2i::new(1, -1),
+];

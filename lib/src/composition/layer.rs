@@ -3,9 +3,7 @@ use bincode::{deserialize_from, serialize};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use std::{
-    collections::BTreeSet, fs::File, io::Write, iter::FromIterator, path::PathBuf, slice::Iter, vec,
-};
+use std::{collections::BTreeSet, fs::File, io::Write, iter::FromIterator, path::PathBuf, vec};
 use svg::{
     node::{
         element::{path::Data, tag::Type as SvgTagType, Group},
@@ -16,9 +14,10 @@ use svg::{
 };
 
 use crate::{
-    traits::{Normalize, Scale, Scale2D, Translate},
-    Angle, BoundingBox, Circle, Masked, Mirror, Path, Plottable, Rect, Rotate, SampleSettings,
-    Shape, V2,
+    geometry::TransformMatrix,
+    traits::{Normalize, Scale, Scale2D, Transform, Translate},
+    Angle, BoundingBox, Circle, Masked, Mirror, Path, Plottable, Rect, Rotate, Rotate90,
+    SampleSettings, Shape, V2,
 };
 
 use super::{path_end::PathEnd, ColorRgb, Inheritable, LayerProps, LayerPropsInheritable};
@@ -136,10 +135,14 @@ impl Layer {
             props: LayerProps::default(),
         }
     }
-    /// Creates a new `Layer` from a list of shapes.
-    pub fn new_from(shapes: Vec<Shape>) -> Self {
+    /// Creates a new `Layer` from anything that yields shapes.
+    pub fn new_from<I>(shapes: I) -> Self
+    where
+        I: IntoIterator,
+        I::Item: Into<Shape>,
+    {
         Self {
-            shapes,
+            shapes: shapes.into_iter().map(Into::into).collect(),
             sublayers: Vec::new(),
             props_inheritable: Inheritable::Inherit,
             props: LayerProps::default(),
@@ -181,6 +184,7 @@ impl Layer {
         self.props_inheritable = props;
     }
     /// set the inheritable properties of the layer
+    #[must_use]
     pub fn with_props_inheritable(mut self, props: Inheritable<LayerPropsInheritable>) -> Self {
         self.set_props_inheritable(props);
         self
@@ -190,12 +194,14 @@ impl Layer {
         self.props = props;
     }
     /// set the non-inheritable properties of the layer
+    #[must_use]
     pub fn with_props(mut self, props: LayerProps) -> Self {
         self.set_props(props);
         self
     }
 
     /// Helper to set the color of the layer. see [`Layer::with_props_inheritable`].
+    #[must_use]
     pub fn with_color(mut self, color: ColorRgb) -> Self {
         self.props_inheritable = self
             .props_inheritable
@@ -205,6 +211,7 @@ impl Layer {
         self
     }
     /// Helper to set the pen width of the layer. see [`Layer::with_props_inheritable`].
+    #[must_use]
     pub fn with_pen_width_cm(mut self, pen_width_cm: f32) -> Self {
         self.props_inheritable = self
             .props_inheritable
@@ -214,6 +221,7 @@ impl Layer {
         self
     }
     /// Helper to set the name of the layer. see [`Layer::with_props`].
+    #[must_use]
     pub fn with_name(mut self, name: &str) -> Self {
         self.props = self.props.with_name(name);
         self
@@ -229,7 +237,7 @@ impl Layer {
     /// Add all the [`Shape`]s of the `sublayer` recursively to `self`.
     pub fn push_layer_flat<L: Into<Layer>>(&mut self, sublayer: L) {
         let layer = sublayer.into();
-        self.shapes.reserve(layer.len_recursive());
+        self.shapes.reserve(layer.len());
         Self::append_flattened_shapes_owned(layer, &mut self.shapes);
     }
 
@@ -251,36 +259,27 @@ impl Layer {
         self.shapes.extend(shapes.into_iter().map(Into::into));
     }
 
-    /// Returns an iterator over the shapes of the layer, excluding sublayers.
-    pub fn iter(&self) -> Iter<'_, Shape> {
-        self.shapes.iter()
-    }
-    /// Returns an iterator over the Sublayers of the layer, non recursively.
-    pub fn iter_sublayers(&self) -> Iter<'_, Layer> {
-        self.sublayers.iter()
-    }
-    /// Returns an iterator over all the shapes of the layer, recursively also iterating all sublayers.
-    pub fn iter_flattened(&self) -> LayerFlattenedIterator<'_> {
+    /// Iterates all shapes, recursively through all sublayers. Use `.shapes.iter()` for this layer only.
+    pub fn iter(&self) -> LayerFlattenedIterator<'_> {
         LayerFlattenedIterator::new(self)
     }
+    /// Iterates all [`Path`]s, recursively through all sublayers, skipping other shapes.
+    pub fn paths(&self) -> impl Iterator<Item = &Path> {
+        self.iter().filter_map(|shape| match shape {
+            Shape::Path(path) => Some(path),
+            _ => None,
+        })
+    }
 
-    /// Returns the number of shapes in the layer, excluding sublayers.
+    /// Number of shapes, recursively through all sublayers. Use `.shapes.len()` for this layer only.
     pub fn len(&self) -> usize {
-        self.shapes.len()
+        self.sublayers
+            .iter()
+            .fold(self.shapes.len(), |acc, sublayer| acc + sublayer.len())
     }
     /// Returns true if the layer has no [`Shape]s and no sublayers.
     pub fn is_empty(&self) -> bool {
         self.shapes.is_empty() && self.sublayers.is_empty()
-    }
-    /// Returns the number of shapes in the layer, recursively also counting all sublayers.
-    pub fn len_recursive(&self) -> usize {
-        self.sublayers
-            .iter()
-            .fold(self.len(), |acc, sublayer| acc + sublayer.len_recursive())
-    }
-    /// Returns the number of sublayers in the layer, non recursively.
-    pub fn len_sublayers(&self) -> usize {
-        self.sublayers.len()
     }
 
     /// Return the layer converted into a [`svg::Document`].
@@ -341,7 +340,7 @@ impl Layer {
         let stroke_width = props.pen_width_cm.unwrap() * scale;
 
         let mut nodes: Vec<Box<dyn Node>> = Vec::with_capacity(self.shapes.len());
-        for shape in self.iter() {
+        for shape in &self.shapes {
             match shape {
                 Shape::Circle(c) => nodes.push(Box::new(
                     svg::node::element::Circle::new()
@@ -536,7 +535,7 @@ impl Layer {
     }
 
     fn apply_svg_transform_to_path(path: &Path, transform: SvgTransform, scale_to_cm: f32) -> Path {
-        Path::new_from_iter(
+        Path::new_from(
             path.get_points_ref()
                 .iter()
                 .map(|point| transform.apply(*point) * scale_to_cm),
@@ -1067,9 +1066,10 @@ impl Layer {
     /// This is done until no more shapes can be combined, recursively for all sublayers individually.
     ///
     /// `max_angle_delta` is the maximum angle difference between the start/end points of the two shapes that will still be combined. Set to `None` to ignore angles.
+    #[must_use]
     pub fn combine_shapes_recursive(&self, max_angle_delta: Option<Angle>) -> Self {
         let (combineable, noncombineable) =
-            Layer::group_shapes_combineable_noncombineable(self.iter());
+            Layer::group_shapes_combineable_noncombineable(self.shapes.iter());
 
         let shapes: Vec<Shape> = self
             .combine_shapes_flat_iterate_until_no_effect(combineable, &max_angle_delta)
@@ -1090,9 +1090,10 @@ impl Layer {
     }
 
     /// Returns a new flattened `Layer` with [`Shape`]s that start/end at another [`Shape`]'s start/end combined into a single [`Path`]. see [`Layer::combine_shapes_recursive`].
+    #[must_use]
     pub fn combine_shapes_flat(&self, max_angle_delta: Option<Angle>) -> Self {
         let (combineable, noncombineable) =
-            Layer::group_shapes_combineable_noncombineable(self.iter_flattened());
+            Layer::group_shapes_combineable_noncombineable(self.iter());
 
         let shapes: Vec<Shape> = self
             .combine_shapes_flat_iterate_until_no_effect(combineable, &max_angle_delta)
@@ -1202,15 +1203,14 @@ impl Layer {
                 if current_path_end.is_compatible(&start, max_angle_delta) {
                     // regular append
                     // current_start -> current_end -> # -> start -> end
-                    current_path.push_iter_ref(path_candidate.get_points_ref().iter().skip(1));
+                    current_path.push_many(path_candidate.get_points_ref().iter().skip(1));
 
                     current_path_end = end;
                     mask[j] = true;
                 } else if current_path_end.is_compatible(&end.flipped(), max_angle_delta) {
                     // reverse candidate and append
                     // current_start -> current_end -> # -> end -> start
-                    current_path
-                        .push_iter_ref(path_candidate.get_points_ref().iter().rev().skip(1));
+                    current_path.push_many(path_candidate.get_points_ref().iter().rev().skip(1));
 
                     current_path_end = start.flipped();
                     mask[j] = true;
@@ -1254,6 +1254,7 @@ impl Layer {
     }
 
     /// Create a new [`Layer`] with a function mapped recursively to all [`Shape`]s in the `Layer` and its sublayers.
+    #[must_use]
     pub fn map_recursive<F>(&self, f: F) -> Self
     where
         F: Fn(&Shape) -> Shape + Send + Sync,
@@ -1297,10 +1298,68 @@ impl Layer {
         }
     }
 
+    /// Like [`Layer::map_recursive`], but `f` may return any number of shapes (or a whole [`Layer`]) per shape.
+    #[must_use]
+    pub fn flat_map_recursive<F, I>(&self, f: F) -> Self
+    where
+        F: Fn(&Shape) -> I + Send + Sync,
+        I: IntoIterator,
+        I::Item: Into<Shape>,
+    {
+        let f = Arc::new(f);
+        self.flat_map_recursive_internal(f)
+    }
+    fn flat_map_recursive_internal<F, I>(&self, f: Arc<F>) -> Self
+    where
+        F: Fn(&Shape) -> I + Send + Sync,
+        I: IntoIterator,
+        I::Item: Into<Shape>,
+    {
+        let shapes: Vec<Shape> = self
+            .shapes
+            .iter()
+            .flat_map(|shape| f(shape).into_iter().map(Into::into))
+            .collect();
+        let sublayers = self
+            .sublayers
+            .par_iter()
+            .map(|layer| layer.flat_map_recursive_internal(f.clone()))
+            .collect();
+
+        Layer::new_from_shapes_and_layers(shapes, sublayers)
+            .with_props_inheritable(self.props_inheritable.clone())
+            .with_props(self.props.clone())
+    }
+
+    /// Oversamples every shape and moves each point with `f`, recursively. see [`Shape::distort`].
+    #[must_use]
+    pub fn distort<F>(&self, sample_settings: SampleSettings, f: F) -> Self
+    where
+        F: Fn(V2) -> V2 + Send + Sync,
+    {
+        self.map_recursive(|shape| shape.distort(sample_settings, &f).into())
+    }
+
+    /// Dashes every shape, recursively. see [`Shape::dash`].
+    #[must_use]
+    pub fn dash(&self, dash_length: f32, gap_length: f32, sample_settings: SampleSettings) -> Self {
+        self.flat_map_recursive(|shape| shape.dash(dash_length, gap_length, sample_settings))
+    }
+
+    /// Dashes every shape with a custom dash function, recursively. see [`Shape::dash_fn`].
+    #[must_use]
+    pub fn dash_fn<F>(&self, sample_settings: SampleSettings, f: F) -> Self
+    where
+        F: Fn(V2, bool, f32, f32) -> f32 + Send + Sync,
+    {
+        self.flat_map_recursive(|shape| shape.dash_fn(sample_settings, &f))
+    }
+
     /// Create a new [`Layer`] with the [`Shape`]s in the `Layer` and its sublayers filtered with a predicate function.
+    #[must_use]
     pub fn filter_recursive<F>(&self, f: F) -> Self
     where
-        F: Fn(&Shape) -> bool + Clone + Send + Sync,
+        F: Fn(&Shape) -> bool + Send + Sync,
     {
         let f = Arc::new(f);
         self.filter_recursive_internal(f)
@@ -1337,11 +1396,16 @@ impl Layer {
     ///
     /// There can be unexpected outputs for example with shapes that self-intersect.
     /// See also [`Layer::mask_flattened_brute_force`] for a different and more stable masking.
-    pub fn mask_geo_flattened(&self, mask: &Shape, sample_settings: SampleSettings) -> Masked {
-        let shapes: Vec<_> = self.iter_flattened().collect();
+    pub fn mask_geo_flattened<M: Into<Shape>>(
+        &self,
+        mask: M,
+        sample_settings: SampleSettings,
+    ) -> Masked {
+        let mask: Shape = mask.into();
+        let shapes: Vec<_> = self.iter().collect();
         let masked_shapes: Vec<_> = shapes
             .par_iter()
-            .map(|shape| shape.mask_geo(mask, sample_settings))
+            .map(|shape| shape.mask_geo(&mask, sample_settings))
             .collect();
 
         let mut inside = Layer::with_capacity(masked_shapes.len() * 2);
@@ -1356,28 +1420,31 @@ impl Layer {
     }
 
     /// see [`Layer::mask_geo_flattened`].
-    pub fn mask_geo_flattened_inside(
+    pub fn mask_geo_flattened_inside<M: Into<Shape>>(
         &self,
-        mask: &Shape,
+        mask: M,
         sample_settings: SampleSettings,
     ) -> Layer {
-        self.iter_flattened()
-            .map(|shape| shape.mask_geo_inside(mask, sample_settings))
+        let mask: Shape = mask.into();
+        self.iter()
+            .map(|shape| shape.mask_geo_inside(&mask, sample_settings))
             .collect()
     }
 
     /// see [`Layer::mask_geo_flattened`].
-    pub fn mask_geo_flattened_outside(
+    pub fn mask_geo_flattened_outside<M: Into<Shape>>(
         &self,
-        mask: &Shape,
+        mask: M,
         sample_settings: SampleSettings,
     ) -> Layer {
-        self.iter_flattened()
-            .map(|shape| shape.mask_geo_outside(mask, sample_settings))
+        let mask: Shape = mask.into();
+        self.iter()
+            .map(|shape| shape.mask_geo_outside(&mask, sample_settings))
             .collect()
     }
 
     /// Reduces the number of points for all [`Shape`]s in this `Layer` and its sublayers. see [`Shape::reduce_points`].
+    #[must_use]
     pub fn reduce_points_recursive(&self, aggression_factor: f32) -> Self {
         self.map_recursive(|shape| shape.reduce_points(aggression_factor))
     }
@@ -1389,11 +1456,12 @@ impl Layer {
     /// see [`Shape::mask_brute_force`].
     ///
     /// see also [`Layer::mask_geo_flattened`].
-    pub fn mask_flattened_brute_force(
+    pub fn mask_flattened_brute_force<M: Into<Shape>>(
         &self,
-        mask: &Shape,
+        mask: M,
         sample_settings: SampleSettings,
     ) -> Masked {
+        let mask: Shape = mask.into();
         let mut inside = Layer::new()
             .with_props(self.props.clone())
             .with_props_inheritable(self.props_inheritable.clone());
@@ -1401,8 +1469,8 @@ impl Layer {
             .with_props(self.props.clone())
             .with_props_inheritable(self.props_inheritable.clone());
 
-        for shape in self.iter_flattened() {
-            let masked = shape.mask_brute_force(mask, sample_settings);
+        for shape in self.iter() {
+            let masked = shape.mask_brute_force(&mask, sample_settings);
             inside.push_layer_flat(masked.inside);
             outside.push_layer_flat(masked.outside);
         }
@@ -1435,6 +1503,7 @@ impl Layer {
         }
     }
 
+    #[must_use]
     pub fn optimize(&self) -> Self {
         let starts_and_ends: Vec<_> = self
             .shapes
@@ -1483,6 +1552,7 @@ impl Layer {
     }
 
     /// Applies the same optimization like [`Layer::optimize`], recursively for all sublayers.
+    #[must_use]
     pub fn optimize_recursive(&self) -> Self {
         let mut optimized = self.optimize();
         for sublayer in &self.sublayers {
@@ -1494,8 +1564,9 @@ impl Layer {
     /// Returns a new `Layer` without any sublayers direclty containing all [`Shape`]s of this `Layer` and its sublayers.
     ///
     /// see also [`Layer::iter_flattened`].
+    #[must_use]
     pub fn flatten(&self) -> Self {
-        Layer::new_from_shapes_and_layers(self.iter_flattened().cloned().collect(), Vec::new())
+        Layer::new_from_shapes_and_layers(self.iter().cloned().collect(), Vec::new())
             .with_props_inheritable(self.props_inheritable.clone())
             .with_props(self.props.clone())
     }
@@ -1515,19 +1586,19 @@ impl From<Vec<Shape>> for Layer {
 
 impl From<Vec<&Shape>> for Layer {
     fn from(shapes: Vec<&Shape>) -> Self {
-        Layer::new_from(shapes.into_iter().map(Into::into).collect())
+        Layer::new_from(shapes)
     }
 }
 
 impl From<Vec<Path>> for Layer {
     fn from(paths: Vec<Path>) -> Self {
-        Layer::new_from(paths.into_iter().map(Into::into).collect())
+        Layer::new_from(paths)
     }
 }
 
 impl From<Vec<&Path>> for Layer {
     fn from(paths: Vec<&Path>) -> Self {
-        Layer::new_from(paths.into_iter().map(Into::into).collect())
+        Layer::new_from(paths)
     }
 }
 
@@ -1539,25 +1610,25 @@ impl From<Vec<Vec<V2>>> for Layer {
 
 impl From<Vec<Circle>> for Layer {
     fn from(circles: Vec<Circle>) -> Self {
-        Layer::new_from(circles.into_iter().map(Into::into).collect())
+        Layer::new_from(circles)
     }
 }
 
 impl From<Vec<&Circle>> for Layer {
     fn from(circles: Vec<&Circle>) -> Self {
-        Layer::new_from(circles.into_iter().map(Into::into).collect())
+        Layer::new_from(circles)
     }
 }
 
 impl From<Vec<Rect>> for Layer {
     fn from(rects: Vec<Rect>) -> Self {
-        Layer::new_from(rects.into_iter().map(Into::into).collect())
+        Layer::new_from(rects)
     }
 }
 
 impl From<Vec<&Rect>> for Layer {
     fn from(rects: Vec<&Rect>) -> Self {
-        Layer::new_from(rects.into_iter().map(Into::into).collect())
+        Layer::new_from(rects)
     }
 }
 
@@ -1700,7 +1771,7 @@ impl BoundingBox for Layer {
     fn bounding_box(&self) -> Option<Rect> {
         let mut min = None;
         let mut max = None;
-        for shape in self.iter_flattened() {
+        for shape in self.iter() {
             if let Some(bb) = shape.bounding_box() {
                 if min.is_none() {
                     min = Some(bb.bl());
@@ -1718,5 +1789,86 @@ impl BoundingBox for Layer {
             return None;
         }
         Some(Rect::new(min.unwrap(), max.unwrap()))
+    }
+}
+
+impl<'a> IntoIterator for &'a Layer {
+    type Item = &'a Shape;
+    type IntoIter = LayerFlattenedIterator<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl IntoIterator for Layer {
+    type Item = Shape;
+    type IntoIter = std::vec::IntoIter<Shape>;
+
+    /// Iterates all shapes, recursively through all sublayers.
+    fn into_iter(self) -> Self::IntoIter {
+        let mut shapes = Vec::with_capacity(self.len());
+        Layer::append_flattened_shapes_owned(self, &mut shapes);
+        shapes.into_iter()
+    }
+}
+
+impl<S: Into<Shape>> Extend<S> for Layer {
+    fn extend<I: IntoIterator<Item = S>>(&mut self, iter: I) {
+        self.push_many(iter);
+    }
+}
+
+impl Extend<Layer> for Layer {
+    fn extend<I: IntoIterator<Item = Layer>>(&mut self, iter: I) {
+        self.sublayers.extend(iter);
+    }
+}
+
+impl Rotate90 for Layer {
+    fn rotate_90(&self) -> Self {
+        self.map_recursive(|shape| shape.rotate_90())
+    }
+    fn rotate_90_mut(&mut self) {
+        self.map_recursive_mut(|shape| shape.rotate_90_mut());
+    }
+    fn rotate_180(&self) -> Self {
+        self.map_recursive(|shape| shape.rotate_180())
+    }
+    fn rotate_180_mut(&mut self) {
+        self.map_recursive_mut(|shape| shape.rotate_180_mut());
+    }
+    fn rotate_270(&self) -> Self {
+        self.map_recursive(|shape| shape.rotate_270())
+    }
+    fn rotate_270_mut(&mut self) {
+        self.map_recursive_mut(|shape| shape.rotate_270_mut());
+    }
+    fn rotate_90_around(&self, pivot: V2) -> Self {
+        self.map_recursive(|shape| shape.rotate_90_around(pivot))
+    }
+    fn rotate_90_around_mut(&mut self, pivot: V2) {
+        self.map_recursive_mut(|shape| shape.rotate_90_around_mut(pivot));
+    }
+    fn rotate_180_around(&self, pivot: V2) -> Self {
+        self.map_recursive(|shape| shape.rotate_180_around(pivot))
+    }
+    fn rotate_180_around_mut(&mut self, pivot: V2) {
+        self.map_recursive_mut(|shape| shape.rotate_180_around_mut(pivot));
+    }
+    fn rotate_270_around(&self, pivot: V2) -> Self {
+        self.map_recursive(|shape| shape.rotate_270_around(pivot))
+    }
+    fn rotate_270_around_mut(&mut self, pivot: V2) {
+        self.map_recursive_mut(|shape| shape.rotate_270_around_mut(pivot));
+    }
+}
+
+impl Transform for Layer {
+    fn transform(&self, matrix: &TransformMatrix) -> Self {
+        self.map_recursive(|shape| shape.transform(matrix))
+    }
+    fn transform_mut(&mut self, matrix: &TransformMatrix) {
+        self.map_recursive_mut(|shape| shape.transform_mut(matrix));
     }
 }

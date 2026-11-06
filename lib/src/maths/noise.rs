@@ -69,13 +69,16 @@ impl Noise {
         Self::new(NoiseType::Worley)
     }
 
+    #[must_use]
     pub fn seed(self, seed: i32) -> Self {
         Self::build(self.noise_type, seed, self.frequency, self.octaves)
     }
+    #[must_use]
     pub fn frequency(self, frequency: f32) -> Self {
         Self::build(self.noise_type, self.seed, frequency, self.octaves)
     }
     /// Number of fractal (FBm) octaves, 1 disables the fractal.
+    #[must_use]
     pub fn octaves(self, octaves: u32) -> Self {
         Self::build(self.noise_type, self.seed, self.frequency, octaves)
     }
@@ -84,6 +87,11 @@ impl Noise {
     pub fn get(&self, location: V2) -> f32 {
         (self.inner.get_noise_2d(location.x, location.y) + 1.0) / 2.0
     }
+    /// The noise as a scalar field, e.g. for [`crate::MarchingSquares`] or weighted relaxation.
+    pub fn as_fn(&self) -> impl Fn(V2) -> f32 + '_ {
+        move |location| self.get(location)
+    }
+
     /// Noise value in `0..=1`
     pub fn get_3d(&self, location: V2, z: f32) -> f32 {
         (self.inner.get_noise_3d(location.x, location.y, z) + 1.0) / 2.0

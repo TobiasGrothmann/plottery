@@ -6,6 +6,13 @@ mod test_v2 {
     use crate::{Angle, Rotate, Rotate90, LARGE_EPSILON, V2};
 
     #[test]
+    fn scalar_on_the_left() {
+        let v = V2::new(1.0, -2.0);
+        assert_eq!(2.0 * v, V2::new(2.0, -4.0));
+        assert_eq!(2.0 * &v, v * 2.0);
+    }
+
+    #[test]
     fn polar() {
         assert_eq!(V2::polar(Angle::from_rad(0.0), 1.0), V2::new(1.0, 0.0));
         assert_eq!(
@@ -192,19 +199,19 @@ mod test_v2 {
     #[test]
     fn len() {
         let v = V2::new(1.0, 0.0);
-        assert_eq!(v.len(), 1.0);
+        assert_eq!(v.length(), 1.0);
 
         let v = V2::new(1.0, 1.0);
-        assert_eq!(v.len(), 2.0_f32.sqrt());
+        assert_eq!(v.length(), 2.0_f32.sqrt());
     }
 
     #[test]
     fn len_squared() {
         let v = V2::new(1.0, 0.0);
-        assert_eq!(v.len_squared(), 1.0);
+        assert_eq!(v.length_squared(), 1.0);
 
         let v = V2::new(1.0, 1.0);
-        assert_eq!(v.len_squared(), 2.0_f32);
+        assert_eq!(v.length_squared(), 2.0_f32);
     }
 
     #[test]
@@ -224,7 +231,7 @@ mod test_v2 {
         ];
 
         for (i, (size, size_next)) in sizes.iter().tuple_windows().enumerate() {
-            assert!(size.len() > size_next.len());
+            assert!(size.length() > size_next.length());
             assert_eq!(size.x, size_next.y);
 
             let area_target = (100.0 * 100.0) / 2.0_f32.powi(i as i32); // Din a0 is 1m^2 - area gets halved every step
@@ -239,10 +246,10 @@ mod test_v2 {
         assert_eq!(v, V2::new(1.0, 0.0));
 
         let v = V2::new(1.0, 1.0).normalize();
-        assert!((v.len() - 1.0).abs() < LARGE_EPSILON);
+        assert!((v.length() - 1.0).abs() < LARGE_EPSILON);
 
         let v = V2::new(-1.0, 5.0).normalize_to(5.0);
-        assert_eq!(v.len(), 5.0);
+        assert_eq!(v.length(), 5.0);
     }
 
     #[test]

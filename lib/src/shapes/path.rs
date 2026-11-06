@@ -4,8 +4,8 @@ use ramer_douglas_peucker::rdp;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
-    borrow::Cow,
-    f32::consts::PI,
+    borrow::{Borrow, Cow},
+    ops::Deref,
     slice::{Iter, IterMut},
 };
 
@@ -16,6 +16,8 @@ use crate::{
     PointLineRelation, Rect, Rotate, Rotate90, SampleSettings, Shape, V2,
 };
 
+/// A polyline. Derefs to its points, so slice methods like `len`, `first`, `last` and `windows` are available.
+/// Note that `len()` is the number of points while [`Plottable::length`] is the geometric length.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct Path {
     points: Vec<V2>,
@@ -25,19 +27,32 @@ impl Path {
     pub fn new() -> Self {
         Self { points: Vec::new() }
     }
-    pub fn new_from(points: Vec<V2>) -> Self {
-        Self { points }
-    }
-    pub fn new_from_iter<I: IntoIterator<Item = V2>>(iter: I) -> Self {
+    /// Path from anything that yields points, owned or borrowed.
+    pub fn new_from<I>(points: I) -> Self
+    where
+        I: IntoIterator,
+        I::Item: Borrow<V2>,
+    {
         Self {
-            points: iter.into_iter().collect(),
+            points: points.into_iter().map(|p| *p.borrow()).collect(),
         }
     }
+    /// Path with the two points `from` and `to`.
+    pub fn line(from: V2, to: V2) -> Self {
+        Self {
+            points: vec![from, to],
+        }
+    }
+
     pub fn new_shape() -> Shape {
         Shape::Path(Self { points: vec![] })
     }
-    pub fn new_shape_from(points: Vec<V2>) -> Shape {
-        Shape::Path(Self { points })
+    pub fn new_shape_from<I>(points: I) -> Shape
+    where
+        I: IntoIterator,
+        I::Item: Borrow<V2>,
+    {
+        Shape::Path(Self::new_from(points))
     }
     pub fn new_shape_from_geo_polygon(geo_polygon: Polygon<f32>) -> Shape {
         Shape::Path(Self::from_iter(
@@ -53,24 +68,30 @@ impl Path {
     pub fn push(&mut self, point: V2) {
         self.points.push(point);
     }
-    pub fn push_many(&mut self, points: &[V2]) {
-        self.points.extend(points);
-    }
-    pub fn push_iter<I: IntoIterator<Item = V2>>(&mut self, points: I) {
-        self.points.extend(points);
-    }
-    pub fn push_iter_ref<'a, I: IntoIterator<Item = &'a V2>>(&mut self, points: I) {
-        self.points.extend(points);
+    /// Appends points, owned or borrowed.
+    pub fn push_many<I>(&mut self, points: I)
+    where
+        I: IntoIterator,
+        I::Item: Borrow<V2>,
+    {
+        self.points.extend(points.into_iter().map(|p| *p.borrow()));
     }
 
     pub fn close(&mut self) {
-        if !self.points.is_empty() {
-            self.points.push(*self.points.first().unwrap());
+        if let Some(first) = self.points.first() {
+            self.points.push(*first);
         }
+    }
+    /// Consuming variant of [`Path::close`].
+    #[must_use]
+    pub fn closed(mut self) -> Self {
+        self.close();
+        self
     }
     pub fn reverse_mut(&mut self) {
         self.points.reverse();
     }
+    #[must_use]
     pub fn reverse(&self) -> Self {
         let mut points = self.points.clone();
         points.reverse();
@@ -80,6 +101,13 @@ impl Path {
     pub fn iter(&self) -> Iter<'_, V2> {
         self.points.iter()
     }
+    /// The segments between consecutive points.
+    pub fn segments(&self) -> impl Iterator<Item = Line> + '_ {
+        self.points
+            .iter()
+            .tuple_windows()
+            .map(|(from, to)| Line::new(*from, *to))
+    }
     pub fn iter_mut(&mut self) -> IterMut<'_, V2> {
         self.points.iter_mut()
     }
@@ -87,8 +115,15 @@ impl Path {
     pub fn get_points_ref(&self) -> &[V2] {
         &self.points
     }
+    pub fn points(&self) -> &[V2] {
+        &self.points
+    }
     pub fn is_empty(&self) -> bool {
         self.points.is_empty()
+    }
+    /// True if the path draws nothing: fewer than two distinct points.
+    pub fn is_degenerate(&self) -> bool {
+        self.points.windows(2).all(|pair| pair[0] == pair[1])
     }
     pub fn get_start(&self) -> Option<&V2> {
         self.points.first()
@@ -97,6 +132,7 @@ impl Path {
         self.points.last()
     }
 
+    #[must_use]
     pub fn rounded_chaikins(&self, iterations: i32) -> Self {
         let mut new_points = self.points.clone();
         for _ in 0..iterations {
@@ -145,7 +181,7 @@ impl Path {
         radius: f32,
         sample_settings: SampleSettings,
     ) -> Self {
-        let arc_length = (to.to_rad() - from.to_rad()).abs() * radius * 2.0 * PI;
+        let arc_length = (to.to_rad() - from.to_rad()).abs() * radius;
         let num_points = sample_settings.get_num_points_for_length(arc_length);
 
         (0..=num_points)
@@ -154,6 +190,22 @@ impl Path {
                 center + V2::polar(rot, radius)
             })
             .collect()
+    }
+
+    /// Arc around `center` from `a` to `b`, taking the shorter way round.
+    pub fn arc_between(
+        center: V2,
+        radius: f32,
+        a: V2,
+        b: V2,
+        sample_settings: SampleSettings,
+    ) -> Self {
+        let from = (a - center).angle();
+        let mut sweep = ((b - center).angle() - from).positive();
+        if sweep > Angle::half_rotation() {
+            sweep -= Angle::full_rotation();
+        }
+        Path::arc(from, from + sweep, center, radius, sample_settings)
     }
 
     pub fn intersects_circle(&self, other: &Circle) -> bool {
@@ -628,6 +680,35 @@ impl IntoIterator for Path {
     }
 }
 
+impl<'a> IntoIterator for &'a Path {
+    type Item = &'a V2;
+    type IntoIter = Iter<'a, V2>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.points.iter()
+    }
+}
+
+impl Deref for Path {
+    type Target = [V2];
+
+    fn deref(&self) -> &[V2] {
+        &self.points
+    }
+}
+
+impl Extend<V2> for Path {
+    fn extend<I: IntoIterator<Item = V2>>(&mut self, iter: I) {
+        self.points.extend(iter);
+    }
+}
+
+impl<'a> Extend<&'a V2> for Path {
+    fn extend<I: IntoIterator<Item = &'a V2>>(&mut self, iter: I) {
+        self.points.extend(iter);
+    }
+}
+
 impl Translate for Path {
     fn translate(&self, dist: V2) -> Self {
         Path {
@@ -759,5 +840,11 @@ impl From<Vec<&V2>> for Path {
         Self {
             points: points.into_iter().cloned().collect(),
         }
+    }
+}
+
+impl From<Line> for Path {
+    fn from(line: Line) -> Self {
+        Path::line(line.from, line.to)
     }
 }

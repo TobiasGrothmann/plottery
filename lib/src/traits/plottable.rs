@@ -26,6 +26,12 @@ impl SampleSettings {
     }
 }
 
+impl From<f32> for SampleSettings {
+    fn from(points_per_unit: f32) -> Self {
+        Self::new(points_per_unit)
+    }
+}
+
 impl Default for SampleSettings {
     fn default() -> Self {
         Self {
@@ -34,7 +40,7 @@ impl Default for SampleSettings {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Masked {
     pub inside: Layer,
     pub outside: Layer,
@@ -47,6 +53,12 @@ pub trait Plottable: Clone + Into<Shape> {
         current_drawing_head_pos: V2,
         sample_settings: SampleSettings,
     ) -> Vec<V2>;
+
+    /// The shape sampled into a single [`Path`].
+    #[must_use]
+    fn to_path(&self, sample_settings: SampleSettings) -> Path {
+        Path::new_from(self.get_points(sample_settings))
+    }
 
     fn get_line_segments(&self, sample_settings: SampleSettings) -> Vec<Line> {
         self.get_points(sample_settings)
@@ -95,6 +107,7 @@ pub trait Plottable: Clone + Into<Shape> {
     }
 
     /// Splits the shape into dashes of `dash_length` with gaps of `gap_length` in between.
+    #[must_use]
     fn dash(&self, dash_length: f32, gap_length: f32, sample_settings: SampleSettings) -> Layer {
         self.dash_fn(sample_settings, |_, is_gap, _, _| {
             if is_gap {
@@ -207,7 +220,8 @@ pub trait Plottable: Clone + Into<Shape> {
         MultiLineString(vec![self.as_geo_line_string(sample_settings)])
     }
 
-    fn mask_geo(&self, mask: &Shape, sample_settings: SampleSettings) -> Masked {
+    fn mask_geo<M: Into<Shape>>(&self, mask: M, sample_settings: SampleSettings) -> Masked {
+        let mask: Shape = mask.into();
         let shape_geo = self.as_geo_multi_line_string(sample_settings);
         let mask_geo = mask.as_geo_polygon(sample_settings);
 
@@ -231,7 +245,8 @@ pub trait Plottable: Clone + Into<Shape> {
         }
     }
 
-    fn mask_geo_inside(&self, mask: &Shape, sample_settings: SampleSettings) -> Layer {
+    fn mask_geo_inside<M: Into<Shape>>(&self, mask: M, sample_settings: SampleSettings) -> Layer {
+        let mask: Shape = mask.into();
         let shape_geo = self.as_geo_multi_line_string(sample_settings);
         let mask_geo = mask.as_geo_polygon(sample_settings);
 
@@ -242,7 +257,8 @@ pub trait Plottable: Clone + Into<Shape> {
             .collect()
     }
 
-    fn mask_geo_outside(&self, mask: &Shape, sample_settings: SampleSettings) -> Layer {
+    fn mask_geo_outside<M: Into<Shape>>(&self, mask: M, sample_settings: SampleSettings) -> Layer {
+        let mask: Shape = mask.into();
         let shape_geo = self.as_geo_multi_line_string(sample_settings);
         let mask_geo = mask.as_geo_polygon(sample_settings);
 
@@ -253,14 +269,18 @@ pub trait Plottable: Clone + Into<Shape> {
             .collect()
     }
 
-    fn mask_brute_force(&self, mask: &Shape, sample_settings: SampleSettings) -> Masked {
+    fn mask_brute_force<M: Into<Shape>>(&self, mask: M, sample_settings: SampleSettings) -> Masked {
+        let mask: Shape = mask.into();
         let points_shape = self.get_points_oversampled(sample_settings);
 
         let mut inside = Layer::new();
         let mut outside = Layer::new();
 
-        let mut current_part = Path::new_from(vec![*points_shape.first().unwrap()]);
-        let mut is_inside = mask.contains_point(*current_part.get_start().unwrap());
+        let Some(&first) = points_shape.first() else {
+            return Masked::default();
+        };
+        let mut current_part = Path::new_from([first]);
+        let mut is_inside = mask.contains_point(first);
 
         for point in points_shape {
             let new_inside = mask.contains_point(point);
@@ -299,7 +319,12 @@ pub trait Plottable: Clone + Into<Shape> {
         Masked { inside, outside }
     }
 
-    fn mask_by_intersections(&self, mask: &Shape, sample_settings: SampleSettings) -> Masked {
+    fn mask_by_intersections<M: Into<Shape>>(
+        &self,
+        mask: M,
+        sample_settings: SampleSettings,
+    ) -> Masked {
+        let mask: Shape = mask.into();
         let segments_mask = mask.get_line_segments(sample_settings);
 
         // perturb the path to avoid points on the mask lines
@@ -322,7 +347,10 @@ pub trait Plottable: Clone + Into<Shape> {
         let segments_shape: Vec<_> = perturbed_path.get_line_segments(sample_settings);
         let mut inside = Layer::new();
         let mut outside = Layer::new();
-        let mut current_part = Path::new_from(vec![segments_shape.first().unwrap().from]);
+        let Some(first_segment) = segments_shape.first() else {
+            return Masked::default();
+        };
+        let mut current_part = Path::new_from([first_segment.from]);
         let mut currently_inside = mask.contains_point(*current_part.get_start().unwrap());
 
         // switch inside to outside on each intersection
@@ -352,6 +380,7 @@ pub trait Plottable: Clone + Into<Shape> {
         Masked { inside, outside }
     }
 
+    #[must_use]
     fn to_layer(&self) -> Layer {
         Layer::new_from(vec![self.clone().into()])
     }

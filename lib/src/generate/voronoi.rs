@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use itertools::Itertools;
+use std::borrow::Borrow;
 use voronoice::{BoundingBox, ClipBehavior, Point, VoronoiBuilder};
 
 use crate::{Layer, Line, Path, Rect, Shape, V2};
@@ -15,10 +16,9 @@ pub struct VoronoiCell {
 }
 
 impl VoronoiCell {
+    #[must_use]
     pub fn outline(&self) -> Path {
-        let mut path = Path::new_from(self.vertices.clone());
-        path.close();
-        path
+        Path::new_from(self.vertices.clone()).closed()
     }
 
     pub fn area(&self) -> f32 {
@@ -103,10 +103,14 @@ pub struct Voronoi {
 }
 
 impl Voronoi {
-    pub fn new(sites: &[V2], bounds: Rect) -> Self {
+    pub fn new<I>(sites: I, bounds: Rect) -> Self
+    where
+        I: IntoIterator,
+        I::Item: Borrow<V2>,
+    {
         let center = bounds.center();
         let built = VoronoiBuilder::default()
-            .set_sites(sites.iter().map(to_point).collect())
+            .set_sites(sites.into_iter().map(|s| to_point(s.borrow())).collect())
             .set_bounding_box(BoundingBox::new(
                 to_point(&center),
                 bounds.width() as f64,
@@ -153,13 +157,12 @@ impl Voronoi {
         self.cells.iter().map(|cell| cell.site).collect()
     }
 
+    #[must_use]
     pub fn edges_layer(&self) -> Layer {
-        self.edges
-            .iter()
-            .map(|line| Path::new_shape_from(vec![line.from, line.to]))
-            .collect()
+        self.edges.iter().copied().collect()
     }
 
+    #[must_use]
     pub fn cells_layer(&self) -> Layer {
         self.cells
             .iter()
@@ -168,6 +171,7 @@ impl Voronoi {
     }
 
     /// Lloyd relaxation, moves every site to the centroid of its cell.
+    #[must_use]
     pub fn relax(&self, iterations: usize) -> Self {
         self.relax_by(iterations, |cell| cell.centroid())
     }

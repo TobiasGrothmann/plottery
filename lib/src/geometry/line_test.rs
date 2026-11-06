@@ -204,4 +204,56 @@ mod test_line {
             }
         }
     }
+
+    mod traits {
+        use crate::{
+            Angle, BoundingBox, Layer, Line, Path, Plottable, Rect, Rotate, SampleSettings,
+            Translate, LARGE_EPSILON, V2,
+        };
+
+        #[test]
+        fn helpers() {
+            let line = Line::new(V2::new(0.0, 0.0), V2::new(4.0, 0.0));
+            assert_eq!(line.length(), 4.0);
+            assert_eq!(line.point_at(0.25), V2::new(1.0, 0.0));
+            assert_eq!(line.normal_right(), V2::new(0.0, -1.0));
+            assert_eq!(line.offset_left(2.0).from, V2::new(0.0, 2.0));
+        }
+
+        #[test]
+        fn transforms() {
+            let line = Line::new(V2::new(1.0, 0.0), V2::new(2.0, 0.0));
+            assert_eq!(line.translate(V2::new(0.0, 1.0)).to, V2::new(2.0, 1.0));
+
+            let rotated = line.rotate_around(V2::new(1.0, 0.0), Angle::quarter_rotation());
+            assert!(rotated.to.dist(V2::new(1.0, 1.0)) < LARGE_EPSILON);
+
+            let bb = Line::new(V2::new(3.0, 1.0), V2::new(0.0, 2.0)).bounding_box();
+            assert_eq!(bb, Some(Rect::new(V2::new(0.0, 1.0), V2::new(3.0, 2.0))));
+        }
+
+        #[test]
+        fn into_path_shape_layer() {
+            let lines = vec![
+                Line::new(V2::new(0.0, 0.0), V2::new(1.0, 0.0)),
+                Line::new(V2::new(1.0, 0.0), V2::new(1.0, 1.0)),
+            ];
+            let layer: Layer = lines.iter().copied().collect();
+            assert_eq!(layer.len(), 2);
+
+            let path: Path = lines[0].into();
+            assert_eq!(path.len(), 2);
+            assert_eq!(path.length(), 1.0);
+
+            let segments: Vec<Line> = Path::new_from(vec![
+                V2::new(0.0, 0.0),
+                V2::new(1.0, 0.0),
+                V2::new(1.0, 1.0),
+            ])
+            .segments()
+            .collect();
+            assert_eq!(segments, lines);
+            let _ = SampleSettings::default();
+        }
+    }
 }

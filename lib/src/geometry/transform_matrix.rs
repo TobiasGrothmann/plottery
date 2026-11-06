@@ -236,6 +236,7 @@ impl TransformMatrix {
     /// assert!((result.x - 5.0).abs() < 0.001);
     /// assert!((result.y - 1.0).abs() < 0.001);
     /// ```
+    #[must_use]
     pub fn mul_matrix(&self, other: &TransformMatrix) -> Self {
         Self {
             tl: self.tl * other.tl + self.tr * other.bl,

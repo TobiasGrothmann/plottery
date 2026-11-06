@@ -1,13 +1,18 @@
-use crate::{Line, Rect, SampleSettings, V2};
+use crate::{Layer, Line, Rect, SampleSettings, V2};
 
 use super::sample_triangle::{SamplePoint, SampleRect};
 
+/// Iso-lines of a scalar field sampled over `bounds`. The field is sampled once in [`MarchingSquares::new`].
 pub struct MarchingSquares {
     rects: Vec<SampleRect>,
 }
 
 impl MarchingSquares {
-    pub fn new(bounds: Rect, sample_settings: SampleSettings, function: fn(V2) -> f32) -> Self {
+    pub fn new<F: Fn(V2) -> f32>(
+        bounds: Rect,
+        sample_settings: SampleSettings,
+        function: F,
+    ) -> Self {
         let num = (bounds.size() * sample_settings.points_per_unit).ceil_to_int();
         let mut rects: Vec<SampleRect> =
             Vec::with_capacity((num.x as usize + 1) * (num.y as usize + 1));
@@ -48,7 +53,8 @@ impl MarchingSquares {
         Self { rects }
     }
 
-    pub fn get_lines(&self, target_value: f32) -> Vec<Line> {
+    /// Line segments where the field crosses `target_value`, unordered.
+    pub fn lines(&self, target_value: f32) -> Vec<Line> {
         let mut lines = Vec::with_capacity(self.rects.len() * 4);
         for rect in &self.rects {
             for triangle in &rect.triangles {
@@ -58,5 +64,11 @@ impl MarchingSquares {
             }
         }
         lines
+    }
+
+    /// Iso-lines at `target_value` joined into continuous paths.
+    #[must_use]
+    pub fn paths(&self, target_value: f32) -> Layer {
+        Layer::new_from(self.lines(target_value)).combine_shapes_flat(None)
     }
 }

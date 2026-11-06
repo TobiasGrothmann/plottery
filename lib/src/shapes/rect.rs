@@ -1,7 +1,7 @@
 use crate::{
     traits::{ClosestPoint, Normalize, Scale, Scale2D, Translate},
     Angle, BoundingBox, Circle, Containment, Line, LineIntersection, Mirror, Path, Plottable,
-    PointLineRelation, Rotate90, SampleSettings, Shape, LARGE_EPSILON, V2,
+    PointLineRelation, Rotate, Rotate90, SampleSettings, Shape, LARGE_EPSILON, V2,
 };
 use serde::{Deserialize, Serialize};
 
@@ -53,6 +53,61 @@ impl Rect {
         V2::new(self.top_right.x, self.bot_left.y)
     }
 
+    /// Corners in drawing order: bottom left, top left, top right, bottom right.
+    pub fn corners(&self) -> [V2; 4] {
+        [self.bl(), self.tl(), self.tr(), self.br()]
+    }
+    /// Edges in drawing order, see [`Rect::corners`].
+    pub fn edges(&self) -> [Line; 4] {
+        let [a, b, c, d] = self.corners();
+        [
+            Line::new(a, b),
+            Line::new(b, c),
+            Line::new(c, d),
+            Line::new(d, a),
+        ]
+    }
+
+    /// Square with the given center and half side length.
+    pub fn square_around(center: V2, half_size: f32) -> Self {
+        Self::new(center - V2::xy(half_size), center + V2::xy(half_size))
+    }
+
+    /// Grows the rect by `by` on every side. Negative values shrink it.
+    #[must_use]
+    pub fn expand(&self, by: f32) -> Self {
+        self.expand_2d(V2::xy(by))
+    }
+    /// Grows the rect by `by.x` on the left and right and `by.y` on the top and bottom.
+    #[must_use]
+    pub fn expand_2d(&self, by: V2) -> Self {
+        Self::new(self.bot_left - by, self.top_right + by)
+    }
+    #[must_use]
+    pub fn shrink(&self, by: f32) -> Self {
+        self.expand(-by)
+    }
+    #[must_use]
+    pub fn shrink_2d(&self, by: V2) -> Self {
+        self.expand_2d(-by)
+    }
+
+    pub fn random_point(&self) -> V2 {
+        V2::random_in_rect(*self)
+    }
+
+    /// The outline rotated around the rect's center; a rotated rect is a [`Path`].
+    #[must_use]
+    pub fn rotated(&self, angle: Angle) -> Path {
+        self.rotated_around(self.center(), angle)
+    }
+    /// The outline rotated around `pivot`; a rotated rect is a [`Path`].
+    #[must_use]
+    pub fn rotated_around(&self, pivot: V2, angle: Angle) -> Path {
+        self.to_path(SampleSettings::default())
+            .rotate_around(pivot, angle)
+    }
+
     pub fn top_center(&self) -> V2 {
         V2::new(self.bot_left.x + self.width() * 0.5, self.top_right.y)
     }
@@ -101,19 +156,6 @@ impl Rect {
         (self.width() - self.height()).abs() < LARGE_EPSILON
     }
 
-    pub fn left_mid(&self) -> V2 {
-        V2::new(self.bot_left.x, self.bot_left.y + self.height() * 0.5)
-    }
-    pub fn right_mid(&self) -> V2 {
-        V2::new(self.top_right.x, self.top_right.y - self.height() * 0.5)
-    }
-    pub fn top_mid(&self) -> V2 {
-        V2::new(self.top_right.x - self.width() * 0.5, self.top_right.y)
-    }
-    pub fn bot_mid(&self) -> V2 {
-        V2::new(self.bot_left.x + self.width() * 0.5, self.bot_left.y)
-    }
-
     pub fn area(&self) -> f32 {
         self.width() * self.height()
     }
@@ -156,7 +198,7 @@ impl Rect {
     }
 
     fn spiral_fill_with_steps(&self, max_steps: usize, step_x: f32, step_y: f32) -> super::Path {
-        let border = vec![self.bl(), self.tl(), self.tr(), self.br(), self.bl()];
+        let border = self.get_points(SampleSettings::default());
 
         if max_steps == 0 || step_x <= LARGE_EPSILON || step_y <= LARGE_EPSILON {
             return Path::new_from(border);
@@ -208,16 +250,16 @@ impl Rect {
 
     /// Path to draw a rect's outer border and criss cross filling
     pub fn filled_criss_cross(&self, pen_width: f32) -> super::Path {
-        let outer_border = [self.bl(), self.tl(), self.tr(), self.br(), self.bl()];
+        let outer_border = self.get_points(SampleSettings::default());
 
         if self.height() <= pen_width * 0.5 || self.width() <= pen_width * 0.5 {
-            return Path::new_from_iter(outer_border);
+            return Path::new_from(outer_border);
         }
 
         // If we cannot inset by `pen_width` on all sides, skip filling.
         // Otherwise `Rect::new` would normalize inverted corners into a bigger rect.
         if self.width() <= pen_width * 2.0 || self.height() <= pen_width * 2.0 {
-            return Path::new_from_iter(outer_border);
+            return Path::new_from(outer_border);
         }
 
         let smaller_inner = Rect::new(
@@ -226,7 +268,7 @@ impl Rect {
         );
         let filling = smaller_inner.criss_cross_filling(pen_width);
 
-        Path::new_from_iter(outer_border.into_iter().chain(filling))
+        Path::new_from(outer_border.into_iter().chain(filling))
     }
 
     fn criss_cross_filling(&self, pen_width: f32) -> Vec<V2> {
@@ -316,7 +358,8 @@ impl Rect {
 
         if self.intersects_circle(other)
             || self.contains_point(other.center)
-            || [self.bl(), self.tl(), self.tr(), self.br()]
+            || self
+                .corners()
                 .iter()
                 .any(|corner| corner.dist_squared(other.center) <= other.radius.powi(2))
         {
@@ -359,14 +402,12 @@ impl Rect {
         if other_points_closed
             .iter()
             .any(|point| self.contains_point(*point))
-            || [self.bl(), self.tl(), self.tr(), self.br()]
-                .iter()
-                .any(|corner| {
-                    Path::contains_point_or_on_boundary_in_closed_points(
-                        other_points_closed.as_ref(),
-                        *corner,
-                    )
-                })
+            || self.corners().iter().any(|corner| {
+                Path::contains_point_or_on_boundary_in_closed_points(
+                    other_points_closed.as_ref(),
+                    *corner,
+                )
+            })
         {
             return Containment::Partial;
         }
@@ -631,7 +672,7 @@ impl BoundingBox for Rect {
 
 impl ClosestPoint for Rect {
     fn closest_point(&self, _: SampleSettings, point: V2) -> Option<V2> {
-        Path::new_from(vec![self.bl(), self.tl(), self.tr(), self.br(), self.bl()])
+        self.to_path(SampleSettings::default())
             .closest_point(SampleSettings::default(), point)
     }
 }

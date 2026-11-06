@@ -2,7 +2,12 @@ use geometry_predicates::orient2d;
 use itertools::Itertools;
 use rayon::prelude::*;
 
-use crate::{Angle, LARGE_EPSILON, V2};
+use crate::{
+    geometry::TransformMatrix,
+    traits::{ClosestPoint, Transform},
+    Angle, BoundingBox, Mirror, Rect, Rotate, Rotate90, SampleSettings, Scale, Translate,
+    LARGE_EPSILON, V2,
+};
 
 /// A line defined by two points. Can represent both finite line segments and infinite lines.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -49,17 +54,46 @@ impl Line {
         (self.from + self.to) * 0.5
     }
 
+    /// Length of the segment.
+    pub fn length(&self) -> f32 {
+        self.vector().length()
+    }
+
+    /// Point at fraction `t` along the segment, `0.0` is `from` and `1.0` is `to`.
+    pub fn point_at(&self, t: f32) -> V2 {
+        self.from.lerp(self.to, t)
+    }
+
+    /// Unit vector orthogonal to the right of the line's direction (clockwise from it).
+    pub fn normal_right(&self) -> V2 {
+        let dir = self.vector().normalize();
+        V2::new(dir.y, -dir.x)
+    }
+
+    /// Unit vector orthogonal to the left of the line's direction.
+    pub fn normal_left(&self) -> V2 {
+        -self.normal_right()
+    }
+
+    fn map_points<F: Fn(V2) -> V2>(&self, f: F) -> Self {
+        Self::new(f(self.from), f(self.to))
+    }
+
     /// Returns the angle of the line (from `from` to `to`).
     pub fn angle(&self) -> Angle {
         (self.to - self.from).angle()
     }
 
-    /// Returns a new line offset to the right by the given distance.
-    ///
-    /// "Right" is determined by the orthogonal vector to the right of the line's direction.
+    /// Returns a new line offset to the right of its direction by the given distance.
+    #[must_use]
     pub fn offset_right(&self, distance: f32) -> Self {
-        let normal_scaled = V2::polar(self.angle().normal_right(), distance);
-        Line::new(self.from + normal_scaled, self.to + normal_scaled)
+        self.translate(self.normal_right() * distance)
+    }
+
+    /// Returns a new line offset to the left by the given distance.
+    #[must_use]
+    pub fn offset_left(&self, distance: f32) -> Self {
+        self.offset_right(-distance)
     }
 
     /// Projects a point onto the infinite line defined by this line segment.
@@ -176,7 +210,7 @@ impl Line {
             return self.from;
         }
         let l = self.to - self.from;
-        let t = (point - self.from).dot(l) / l.len_squared();
+        let t = (point - self.from).dot(l) / l.length_squared();
         self.from + l * t
     }
 
@@ -188,7 +222,7 @@ impl Line {
             return self.from;
         }
         let l = self.to - self.from;
-        let t = (point - self.from).dot(l) / l.len_squared();
+        let t = (point - self.from).dot(l) / l.length_squared();
         if t < 0.0 {
             return self.from;
         }
@@ -211,5 +245,75 @@ impl Line {
             .into_iter()
             .sorted_by_cached_key(|point| point.dist_squared(self.from).to_bits())
             .collect()
+    }
+}
+
+impl Translate for Line {
+    fn translate(&self, dist: V2) -> Self {
+        self.map_points(|p| p + dist)
+    }
+}
+
+impl Rotate for Line {
+    fn rotate(&self, angle: Angle) -> Self {
+        self.map_points(|p| p.rotate(angle))
+    }
+    fn rotate_around(&self, pivot: V2, angle: Angle) -> Self {
+        self.map_points(|p| p.rotate_around(pivot, angle))
+    }
+}
+
+impl Rotate90 for Line {
+    fn rotate_90(&self) -> Self {
+        self.map_points(|p| p.rotate_90())
+    }
+    fn rotate_180(&self) -> Self {
+        self.map_points(|p| p.rotate_180())
+    }
+    fn rotate_270(&self) -> Self {
+        self.map_points(|p| p.rotate_270())
+    }
+    fn rotate_90_around(&self, pivot: V2) -> Self {
+        self.map_points(|p| p.rotate_90_around(pivot))
+    }
+    fn rotate_180_around(&self, pivot: V2) -> Self {
+        self.map_points(|p| p.rotate_180_around(pivot))
+    }
+    fn rotate_270_around(&self, pivot: V2) -> Self {
+        self.map_points(|p| p.rotate_270_around(pivot))
+    }
+}
+
+impl Scale for Line {
+    fn scale(&self, factor: f32) -> Self {
+        self.map_points(|p| p * factor)
+    }
+}
+
+impl Mirror for Line {
+    fn mirror_x(&self) -> Self {
+        self.map_points(|p| p.mirror_x())
+    }
+    fn mirror_y(&self) -> Self {
+        self.map_points(|p| p.mirror_y())
+    }
+}
+
+impl Transform for Line {
+    fn transform(&self, matrix: &TransformMatrix) -> Self {
+        self.map_points(|p| p.transform(matrix))
+    }
+}
+
+impl BoundingBox for Line {
+    fn bounding_box(&self) -> Option<Rect> {
+        Some(Rect::new(self.from, self.to))
+    }
+}
+
+/// Note: the inherent [`Line::closest_point`] takes only the point; use `ClosestPoint::closest_point(&line, ..)` for the trait form.
+impl ClosestPoint for Line {
+    fn closest_point(&self, _: SampleSettings, point: V2) -> Option<V2> {
+        Some(Line::closest_point(self, point))
     }
 }

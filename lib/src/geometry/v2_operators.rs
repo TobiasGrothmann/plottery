@@ -276,3 +276,16 @@ impl ops::Neg for &V2 {
         V2::new(-self.x, -self.y)
     }
 }
+
+impl ops::Mul<V2> for f32 {
+    type Output = V2;
+    fn mul(self, rhs: V2) -> V2 {
+        rhs * self
+    }
+}
+impl ops::Mul<&V2> for f32 {
+    type Output = V2;
+    fn mul(self, rhs: &V2) -> V2 {
+        *rhs * self
+    }
+}

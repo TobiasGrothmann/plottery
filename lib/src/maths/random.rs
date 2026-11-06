@@ -30,6 +30,25 @@ pub fn rand_range_i_inclusive(from: i32, to: i32) -> i32 {
         .gen_range(from..=to)
 }
 
+/// randomly `1.0` or `-1.0`
+pub fn rand_sign() -> f32 {
+    if coin(0.5) {
+        1.0
+    } else {
+        -1.0
+    }
+}
+
+/// uniform random index for a collection of `len` elements
+///
+/// panics if `len` is 0
+pub fn rand_index(len: usize) -> usize {
+    assert!(len > 0, "rand_index called with len 0");
+    RNG.lock()
+        .expect("Failed to acquire RNG lock")
+        .gen_range(0..len)
+}
+
 /// uniform random element of `items`
 ///
 /// panics if `items` is empty

@@ -31,12 +31,14 @@ impl TransformMatrixBuilder {
     }
 
     /// Adds a non-uniform scale transformation using different scale factors for x and y.
+    #[must_use]
     pub fn scale_2d(mut self, scale: V2) -> Self {
         self.transforms.push(TransformMatrix::scale_2d(scale));
         self
     }
 
     /// Adds a uniform scale transformation using the same scale factor for both x and y.
+    #[must_use]
     pub fn scale(mut self, scalar: f32) -> Self {
         self.transforms
             .push(TransformMatrix::scale_2d(V2::xy(scalar)));
@@ -44,30 +46,35 @@ impl TransformMatrixBuilder {
     }
 
     /// Adds a rotation transformation by the specified angle.
+    #[must_use]
     pub fn rotate(mut self, angle: Angle) -> Self {
         self.transforms.push(TransformMatrix::rotate(angle));
         self
     }
 
     /// Adds a shear transformation, where `dist.x` controls horizontal shearing and `dist.y` controls vertical shearing.
+    #[must_use]
     pub fn shear(mut self, dist: V2) -> Self {
         self.transforms.push(TransformMatrix::shear(dist));
         self
     }
 
     /// Adds a transformation that mirrors across the x-axis.
+    #[must_use]
     pub fn mirror_x(mut self) -> Self {
         self.transforms.push(TransformMatrix::mirror_x());
         self
     }
 
     /// Adds a transformation that mirrors across the y-axis.
+    #[must_use]
     pub fn mirror_y(mut self) -> Self {
         self.transforms.push(TransformMatrix::mirror_y());
         self
     }
 
     /// Adds a translation transformation that moves points by the specified offset.
+    #[must_use]
     pub fn translate(mut self, offset: V2) -> Self {
         self.transforms.push(TransformMatrix::translate(offset));
         self

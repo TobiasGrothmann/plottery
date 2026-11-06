@@ -28,7 +28,7 @@ mod test_layer {
         }
 
         let l2: Layer = l.clone();
-        assert_eq!(l.iter().len(), l2.iter().len());
+        assert_eq!(l.shapes.len(), l2.shapes.len());
     }
 
     #[test]
@@ -190,9 +190,9 @@ mod test_layer {
 
         let merged: Layer = vec![l1, l2].into();
 
-        assert_eq!(merged.len(), 0);
-        assert_eq!(merged.len_sublayers(), 2);
-        assert_eq!(merged.len_recursive(), 2);
+        assert_eq!(merged.shapes.len(), 0);
+        assert_eq!(merged.sublayers.len(), 2);
+        assert_eq!(merged.len(), 2);
     }
 
     #[test]
@@ -205,9 +205,9 @@ mod test_layer {
 
         let merged: Layer = vec![&l1, &l2].into();
 
-        assert_eq!(merged.len(), 0);
-        assert_eq!(merged.len_sublayers(), 2);
-        assert_eq!(merged.len_recursive(), 2);
+        assert_eq!(merged.shapes.len(), 0);
+        assert_eq!(merged.sublayers.len(), 2);
+        assert_eq!(merged.len(), 2);
     }
 
     #[test]
@@ -229,44 +229,44 @@ mod test_layer {
 
         let mut l = Layer::new();
         l.push(shape.clone());
-        assert_eq!(l.iter().len(), 1);
+        assert_eq!(l.shapes.len(), 1);
 
         let mut l2 = Layer::new();
         l2.push(shape.clone());
         l2.push(shape.clone());
-        assert_eq!(l2.iter().len(), 2);
+        assert_eq!(l2.shapes.len(), 2);
 
         let mut l2_2 = Layer::new();
         l2_2.push(shape.clone());
         l2_2.push(shape.clone());
-        assert_eq!(l2_2.iter().len(), 2);
-        assert_eq!(l2_2.iter_sublayers().len(), 0);
-        assert_eq!(l2_2.iter_flattened().collect_vec().len(), 2);
+        assert_eq!(l2_2.shapes.len(), 2);
+        assert_eq!(l2_2.sublayers.len(), 0);
+        assert_eq!(l2_2.iter().collect_vec().len(), 2);
 
         let mut l3 = Layer::new();
         l3.push(shape.clone());
         l3.push(shape.clone());
         l3.push(shape.clone());
-        assert_eq!(l3.iter().len(), 3);
+        assert_eq!(l3.shapes.len(), 3);
         l2_2.push_layer(l3);
-        assert_eq!(l2_2.iter().len(), 2);
-        assert_eq!(l2_2.iter_flattened().collect_vec().len(), 5);
+        assert_eq!(l2_2.shapes.len(), 2);
+        assert_eq!(l2_2.iter().collect_vec().len(), 5);
 
         l.push_layer(l2.clone());
         l.push_layer(l2_2.clone());
-        assert_eq!(l.iter().len(), 1);
-        assert_eq!(l.iter_sublayers().len(), 2);
-        assert_eq!(l.iter_flattened().collect_vec().len(), 8);
+        assert_eq!(l.shapes.len(), 1);
+        assert_eq!(l.sublayers.len(), 2);
+        assert_eq!(l.iter().collect_vec().len(), 8);
 
         let l_clone = l.clone();
-        assert_eq!(l_clone.iter().len(), 1);
-        assert_eq!(l_clone.iter_sublayers().len(), 2);
-        assert_eq!(l_clone.iter_flattened().collect_vec().len(), 8);
+        assert_eq!(l_clone.shapes.len(), 1);
+        assert_eq!(l_clone.sublayers.len(), 2);
+        assert_eq!(l_clone.iter().collect_vec().len(), 8);
 
         // check len methods
-        assert_eq!(l_clone.len(), 1);
-        assert_eq!(l_clone.len_sublayers(), 2);
-        assert_eq!(l_clone.len_recursive(), 8);
+        assert_eq!(l_clone.shapes.len(), 1);
+        assert_eq!(l_clone.sublayers.len(), 2);
+        assert_eq!(l_clone.len(), 8);
     }
 
     #[test]
@@ -288,7 +288,7 @@ mod test_layer {
         root.push_layer(b);
 
         let order_x: Vec<f32> = root
-            .iter_flattened()
+            .iter()
             .map(|shape| match shape {
                 Shape::Circle(c) => c.center.x,
                 _ => panic!("expected circle"),
@@ -555,7 +555,7 @@ mod test_layer {
         let translate_dist = V2::new(2.0, 1.0);
 
         let l2 = l.translate(translate_dist);
-        assert_eq!(l2.iter().len() + 1, l2.iter_flattened().collect_vec().len());
+        assert_eq!(l2.shapes.len() + 1, l2.len());
 
         let l_box = l.bounding_box().unwrap();
         let l2_box = l2.bounding_box().unwrap();
@@ -614,7 +614,7 @@ mod test_layer {
 
         let l_normalized = l
             .normalize_inside(
-                &Rect::new(V2::new(0.5, 0.5), V2::new(1.0, 1.0)),
+                Rect::new(V2::new(0.5, 0.5), V2::new(1.0, 1.0)),
                 Alignment::Center,
             )
             .unwrap();
@@ -826,7 +826,7 @@ mod test_layer {
             assert_eq!(combined.len(), 2);
 
             let shapes: Vec<_> = combined
-                .iter_flattened()
+                .iter()
                 .sorted_by_key(|a| a.length().round() as i32) // sort by length ascending
                 .collect();
 
@@ -862,7 +862,6 @@ mod test_layer {
             .map(|i| Path::new_from(vec![V2::new(i as f32, 0.0), V2::new((i + 1) as f32, 0.0)]))
             .enumerate()
             .map(|(i, path)| if i % 3 == 0 { path.reverse() } else { path })
-            .map(|path| path.into())
             .collect_vec();
 
         // create a new rng with a fixed seed
@@ -872,6 +871,32 @@ mod test_layer {
         let a = Layer::new_from(segments);
         let b = a.combine_shapes_flat(None);
         assert_eq!(b.len(), 1);
+    }
+
+    #[test]
+    fn recursive_iteration_extend_and_flat_map() {
+        let mut inner = Layer::new();
+        inner.push(Path::new_from([V2::new(0.0, 0.0), V2::new(4.0, 0.0)]));
+        let mut l = Layer::new();
+        l.extend([Circle::new(V2::zero(), 1.0), Circle::new(V2::zero(), 2.0)]);
+        l.extend([inner]);
+
+        assert_eq!(l.len(), 3);
+        assert_eq!(l.shapes.len(), 2);
+        assert_eq!((&l).into_iter().count(), 3);
+        assert_eq!(l.paths().count(), 1);
+
+        let dashed = l.dash(1.0, 1.0, SampleSettings::default());
+        assert_eq!(dashed.sublayers.len(), 1);
+        assert_eq!(dashed.sublayers[0].len(), 2);
+        assert!(dashed.len() > 3);
+
+        let doubled = l.flat_map_recursive(|shape| [shape.clone(), shape.clone()]);
+        assert_eq!(doubled.len(), 6);
+        assert_eq!(doubled.sublayers.len(), 1);
+
+        let owned: Vec<Shape> = l.into_iter().collect();
+        assert_eq!(owned.len(), 3);
     }
 
     #[test]
@@ -889,9 +914,9 @@ mod test_layer {
         a.push_layer(b);
 
         let comb = a.combine_shapes_recursive(None);
-        assert_eq!(comb.len(), 1);
-        assert_eq!(comb.len_sublayers(), 1);
-        assert_eq!(comb.len_recursive(), 2);
+        assert_eq!(comb.shapes.len(), 1);
+        assert_eq!(comb.sublayers.len(), 1);
+        assert_eq!(comb.len(), 2);
     }
 
     #[test]
@@ -905,13 +930,13 @@ mod test_layer {
         let o2 = l.optimize_recursive();
 
         assert_eq!(o.len(), l.len());
-        assert_eq!(o.len_recursive(), l.len_recursive());
+        assert_eq!(o.len(), l.len());
         assert_eq!(l.shapes[0], o.shapes[0]);
         assert_eq!(l.shapes[1], o.shapes[2]);
         assert_eq!(l.shapes[2], o.shapes[1]);
 
         assert_eq!(o2.len(), l.len());
-        assert_eq!(o2.len_recursive(), l.len_recursive());
+        assert_eq!(o2.len(), l.len());
         assert_eq!(l.shapes[0], o2.shapes[0]);
         assert_eq!(l.shapes[1], o2.shapes[2]);
         assert_eq!(l.shapes[2], o2.shapes[1]);

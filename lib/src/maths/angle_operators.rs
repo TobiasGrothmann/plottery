@@ -149,3 +149,27 @@ impl ops::Neg for &Angle {
         Angle::from_rad(-self.to_rad())
     }
 }
+
+impl ops::Mul<Angle> for f32 {
+    type Output = Angle;
+    fn mul(self, rhs: Angle) -> Angle {
+        rhs * self
+    }
+}
+impl ops::Mul<&Angle> for f32 {
+    type Output = Angle;
+    fn mul(self, rhs: &Angle) -> Angle {
+        *rhs * self
+    }
+}
+
+impl std::iter::Sum for Angle {
+    fn sum<I: Iterator<Item = Angle>>(iter: I) -> Self {
+        iter.fold(Angle::zero(), |acc, a| acc + a)
+    }
+}
+impl<'a> std::iter::Sum<&'a Angle> for Angle {
+    fn sum<I: Iterator<Item = &'a Angle>>(iter: I) -> Self {
+        iter.fold(Angle::zero(), |acc, a| acc + a)
+    }
+}

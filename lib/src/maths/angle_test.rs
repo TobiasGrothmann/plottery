@@ -56,6 +56,16 @@ mod test_angle {
     }
 
     #[test]
+    fn sum_default_scalar_left() {
+        let angles = [Angle::from_degrees(10.0), Angle::from_degrees(20.0)];
+        assert_eq!(angles.iter().sum::<Angle>(), Angle::from_degrees(30.0));
+        assert_eq!(angles.into_iter().sum::<Angle>(), Angle::from_degrees(30.0));
+        assert_eq!(Angle::default(), Angle::zero());
+        assert_eq!(2.0 * Angle::from_degrees(45.0), Angle::from_degrees(90.0));
+        assert!((Angle::golden_angle().to_degree() - 137.5).abs() < 0.01);
+    }
+
+    #[test]
     fn operators() {
         let a = Angle::from_degrees(180.0) + Angle::from_degrees(180.0);
         assert_eq!(a.to_degree(), 360.0);

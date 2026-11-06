@@ -3,8 +3,10 @@ mod test_path {
     use crate::{
         geometry::TransformMatrix,
         traits::{transform::Transform, ClosestPoint, Scale},
-        BoundingBox, Circle, Path, Plottable, Rect, SampleSettings, Translate, LARGE_EPSILON, V2,
+        Angle, BoundingBox, Circle, Path, Plottable, Rect, SampleSettings, Translate,
+        LARGE_EPSILON, V2,
     };
+    use std::f32::consts::PI;
 
     #[test]
     fn path() {
@@ -78,7 +80,7 @@ mod test_path {
             Some(Rect::new(V2::new(-2.0, -4.0), V2::new(3.0, 5.0)))
         );
 
-        let empty = Path::new_from(vec![]);
+        let empty = Path::new();
         assert_eq!(empty.bounding_box(), None);
     }
 
@@ -248,6 +250,68 @@ mod test_path {
         for point in reduced_points {
             assert!((point.dist(center) - radius).abs() < LARGE_EPSILON);
         }
+    }
+
+    #[test]
+    fn arc_point_density_follows_sample_settings() {
+        let center = V2::new(1.0, -2.0);
+        let radius = 2.0;
+        let sample = SampleSettings::new(10.0);
+        let arc = Path::arc(
+            Angle::zero(),
+            Angle::quarter_rotation(),
+            center,
+            radius,
+            sample,
+        );
+
+        // quarter circle: length = PI / 2 * radius = PI, so about 32 segments
+        let expected = sample.get_num_points_for_length(PI * radius / 2.0) as usize + 1;
+        assert_eq!(arc.get_points_ref().len(), expected);
+        assert!(expected < 40);
+
+        assert_eq!(*arc.get_start().unwrap(), center + V2::new(radius, 0.0));
+        assert_eq!(*arc.get_end().unwrap(), center + V2::new(0.0, radius));
+        for p in arc.iter() {
+            assert!((p.dist(center) - radius).abs() < LARGE_EPSILON);
+        }
+    }
+
+    #[test]
+    fn slice_like_access() {
+        let mut path = Path::line(V2::new(0.0, 0.0), V2::new(1.0, 0.0));
+        path.extend([V2::new(1.0, 1.0)]);
+        path.extend(&[V2::new(0.0, 1.0)]);
+
+        assert_eq!(path.len(), 4);
+        assert_eq!(path[1], V2::new(1.0, 0.0));
+        assert_eq!(path.last(), Some(&V2::new(0.0, 1.0)));
+        assert_eq!(path.windows(2).count(), 3);
+        assert_eq!((&path).into_iter().count(), 4);
+
+        let closed = path.closed();
+        assert_eq!(closed.len(), 5);
+        assert_eq!(closed.first(), closed.last());
+        assert!(closed.is_closed());
+    }
+
+    #[test]
+    fn arc_between_takes_the_shorter_way() {
+        let center = V2::zero();
+        let a = V2::new(1.0, 0.0);
+        let b = V2::new(0.0, -1.0);
+        let arc = Path::arc_between(center, 1.0, a, b, SampleSettings::new(10.0));
+        assert_eq!(*arc.first().unwrap(), a);
+        assert!(arc.last().unwrap().dist(b) < LARGE_EPSILON);
+        assert!((arc.length() - PI / 2.0).abs() < 0.01);
+        // never passes through the far side
+        assert!(arc
+            .iter()
+            .all(|p| p.x >= -LARGE_EPSILON && p.y <= LARGE_EPSILON));
+
+        let rect_path = Rect::new(V2::zero(), V2::xy(1.0)).to_path(SampleSettings::default());
+        assert_eq!(rect_path.len(), 5);
+        assert!(rect_path.is_closed());
     }
 
     #[test]

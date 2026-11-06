@@ -52,6 +52,19 @@ pub trait FloatInterpolation: Float + FromPrimitive {
         FloatInterpolator::new(self, end, steps)
     }
 
+    /// `sin` mapped from -1..1 to 0..1.
+    fn sin01(self) -> Self {
+        (self.sin() + Self::one()) / (Self::one() + Self::one())
+    }
+    /// `cos` mapped from -1..1 to 0..1.
+    fn cos01(self) -> Self {
+        (self.cos() + Self::one()) / (Self::one() + Self::one())
+    }
+    /// Clamps to 0..1.
+    fn clamp01(self) -> Self {
+        self.max(Self::zero()).min(Self::one())
+    }
+
     /// Maps a value from one linear range to another.
     ///
     /// # Example
@@ -70,3 +83,18 @@ pub trait FloatInterpolation: Float + FromPrimitive {
 impl FloatInterpolation for f32 {}
 
 impl FloatInterpolation for f64 {}
+
+/// `steps + 1` evenly spaced values from 0.0 to 1.0, both inclusive.
+pub fn fractions(steps: usize) -> FloatInterpolator<f32> {
+    0.0.lerp_iter_fixed(1.0, steps)
+}
+
+/// `steps` evenly spaced values from 0.0 up to but excluding 1.0, e.g. for closed loops.
+pub fn fractions_exclusive(steps: usize) -> impl Iterator<Item = f32> {
+    (0..steps).map(move |i| i as f32 / steps as f32)
+}
+
+/// `count` evenly spaced values from `start` to `end`, both inclusive.
+pub fn linspace(start: f32, end: f32, count: usize) -> FloatInterpolator<f32> {
+    start.lerp_iter_fixed(end, count.saturating_sub(1))
+}

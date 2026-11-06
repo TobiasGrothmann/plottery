@@ -15,7 +15,7 @@ pub fn plot_layer<E: HardwareExecutor>(
     sample_settings: SampleSettings,
     plot_settings: &PlotSettings,
 ) {
-    for shape in layer.iter_flattened() {
+    for shape in layer.iter() {
         plot_shape(hardware, shape, sample_settings, plot_settings);
     }
 }

@@ -8,7 +8,7 @@ use crate::{Layer, Path, Rect, V2};
 /// ```
 /// # use plottery_lib::*;
 /// let size = V2::a4(); // A4 paper size
-/// let frame = Frame::new_xy(size, size.min_axis() * 0.1); // 10% margin of the smallest axis
+/// let frame = Frame::new_relative(size, 0.1); // 10% margin of the smaller side
 /// let frame_inner = frame.inner_rect();
 /// let frame_outer = frame.outer_rect();
 /// ```
@@ -53,6 +53,11 @@ impl Frame {
         }
     }
 
+    /// Creates a new `Frame` with a symmetric margin of `fraction` of the smaller side of `size`.
+    pub fn new_relative(size: V2, fraction: f32) -> Self {
+        Self::new_xy(size, size.min_axis() * fraction)
+    }
+
     /// Creates a new `Frame` with a symmetric margin.
     pub fn new_xy(size: V2, margin: f32) -> Self {
         Self {
@@ -94,6 +99,7 @@ impl Frame {
         self.outer_rect().center()
     }
 
+    #[must_use]
     pub fn cut_guide(&self, edge: CutGuideEdge, start_from_edge: f32) -> Layer {
         let o = self.outer_rect();
         let mut guides = vec![];
@@ -131,10 +137,12 @@ impl Frame {
         Layer::new_from(guides)
     }
 
+    #[must_use]
     pub fn cut_guide_left_right(&self, start_from_edge: f32) -> Layer {
         self.cut_guide(CutGuideEdge::LeftRight, start_from_edge)
     }
 
+    #[must_use]
     pub fn cut_guide_top_bot(&self, start_from_edge: f32) -> Layer {
         self.cut_guide(CutGuideEdge::TopBot, start_from_edge)
     }
