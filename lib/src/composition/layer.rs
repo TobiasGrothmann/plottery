@@ -1300,7 +1300,7 @@ impl Layer {
     /// Create a new [`Layer`] with the [`Shape`]s in the `Layer` and its sublayers filtered with a predicate function.
     pub fn filter_recursive<F>(&self, f: F) -> Self
     where
-        F: Fn(&Shape) -> bool + Clone + Send + Sync,
+        F: Fn(&Shape) -> bool + Send + Sync,
     {
         let f = Arc::new(f);
         self.filter_recursive_internal(f)
