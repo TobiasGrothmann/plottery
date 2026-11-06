@@ -40,7 +40,7 @@ impl Default for SampleSettings {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Masked {
     pub inside: Layer,
     pub outside: Layer,
@@ -276,8 +276,11 @@ pub trait Plottable: Clone + Into<Shape> {
         let mut inside = Layer::new();
         let mut outside = Layer::new();
 
-        let mut current_part = Path::new_from(vec![*points_shape.first().unwrap()]);
-        let mut is_inside = mask.contains_point(*current_part.get_start().unwrap());
+        let Some(&first) = points_shape.first() else {
+            return Masked::default();
+        };
+        let mut current_part = Path::new_from([first]);
+        let mut is_inside = mask.contains_point(first);
 
         for point in points_shape {
             let new_inside = mask.contains_point(point);
@@ -344,7 +347,10 @@ pub trait Plottable: Clone + Into<Shape> {
         let segments_shape: Vec<_> = perturbed_path.get_line_segments(sample_settings);
         let mut inside = Layer::new();
         let mut outside = Layer::new();
-        let mut current_part = Path::new_from(vec![segments_shape.first().unwrap().from]);
+        let Some(first_segment) = segments_shape.first() else {
+            return Masked::default();
+        };
+        let mut current_part = Path::new_from([first_segment.from]);
         let mut currently_inside = mask.contains_point(*current_part.get_start().unwrap());
 
         // switch inside to outside on each intersection
