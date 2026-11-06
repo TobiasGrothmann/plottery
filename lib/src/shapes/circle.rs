@@ -172,7 +172,7 @@ impl Circle {
         let smaller_inner = Circle::new(self.center, self.radius - pen_width);
         let filling = smaller_inner.criss_cross_filling(pen_width);
 
-        Path::new_from_iter(
+        Path::new_from(
             self.get_points(Angle::down_cw(), sample_settings)
                 .into_iter()
                 .chain(filling),

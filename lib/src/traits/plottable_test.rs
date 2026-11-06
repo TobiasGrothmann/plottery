@@ -151,7 +151,7 @@ mod test_shape {
             );
         }
 
-        let masked = p.mask_geo(&mask.clone(), SampleSettings::default());
+        let masked = p.mask_geo(&mask, SampleSettings::default());
 
         for shape_inside in masked.inside.shapes {
             for point in shape_inside.get_points(SampleSettings::default()) {

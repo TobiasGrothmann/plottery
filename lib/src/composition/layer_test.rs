@@ -614,7 +614,7 @@ mod test_layer {
 
         let l_normalized = l
             .normalize_inside(
-                &Rect::new(V2::new(0.5, 0.5), V2::new(1.0, 1.0)),
+                Rect::new(V2::new(0.5, 0.5), V2::new(1.0, 1.0)),
                 Alignment::Center,
             )
             .unwrap();
@@ -862,7 +862,6 @@ mod test_layer {
             .map(|i| Path::new_from(vec![V2::new(i as f32, 0.0), V2::new((i + 1) as f32, 0.0)]))
             .enumerate()
             .map(|(i, path)| if i % 3 == 0 { path.reverse() } else { path })
-            .map(|path| path.into())
             .collect_vec();
 
         // create a new rng with a fixed seed

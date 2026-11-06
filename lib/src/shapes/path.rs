@@ -4,7 +4,7 @@ use ramer_douglas_peucker::rdp;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
-    borrow::Cow,
+    borrow::{Borrow, Cow},
     ops::Deref,
     slice::{Iter, IterMut},
 };
@@ -27,12 +27,14 @@ impl Path {
     pub fn new() -> Self {
         Self { points: Vec::new() }
     }
-    pub fn new_from(points: Vec<V2>) -> Self {
-        Self { points }
-    }
-    pub fn new_from_iter<I: IntoIterator<Item = V2>>(iter: I) -> Self {
+    /// Path from anything that yields points, owned or borrowed.
+    pub fn new_from<I>(points: I) -> Self
+    where
+        I: IntoIterator,
+        I::Item: Borrow<V2>,
+    {
         Self {
-            points: iter.into_iter().collect(),
+            points: points.into_iter().map(|p| *p.borrow()).collect(),
         }
     }
     /// Path with the two points `from` and `to`.
@@ -45,8 +47,12 @@ impl Path {
     pub fn new_shape() -> Shape {
         Shape::Path(Self { points: vec![] })
     }
-    pub fn new_shape_from(points: Vec<V2>) -> Shape {
-        Shape::Path(Self { points })
+    pub fn new_shape_from<I>(points: I) -> Shape
+    where
+        I: IntoIterator,
+        I::Item: Borrow<V2>,
+    {
+        Shape::Path(Self::new_from(points))
     }
     pub fn new_shape_from_geo_polygon(geo_polygon: Polygon<f32>) -> Shape {
         Shape::Path(Self::from_iter(
@@ -62,14 +68,13 @@ impl Path {
     pub fn push(&mut self, point: V2) {
         self.points.push(point);
     }
-    pub fn push_many(&mut self, points: &[V2]) {
-        self.points.extend(points);
-    }
-    pub fn push_iter<I: IntoIterator<Item = V2>>(&mut self, points: I) {
-        self.points.extend(points);
-    }
-    pub fn push_iter_ref<'a, I: IntoIterator<Item = &'a V2>>(&mut self, points: I) {
-        self.points.extend(points);
+    /// Appends points, owned or borrowed.
+    pub fn push_many<I>(&mut self, points: I)
+    where
+        I: IntoIterator,
+        I::Item: Borrow<V2>,
+    {
+        self.points.extend(points.into_iter().map(|p| *p.borrow()));
     }
 
     pub fn close(&mut self) {

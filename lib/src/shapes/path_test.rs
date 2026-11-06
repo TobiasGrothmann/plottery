@@ -80,7 +80,7 @@ mod test_path {
             Some(Rect::new(V2::new(-2.0, -4.0), V2::new(3.0, 5.0)))
         );
 
-        let empty = Path::new_from(vec![]);
+        let empty = Path::new();
         assert_eq!(empty.bounding_box(), None);
     }
 

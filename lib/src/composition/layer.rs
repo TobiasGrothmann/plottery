@@ -136,10 +136,14 @@ impl Layer {
             props: LayerProps::default(),
         }
     }
-    /// Creates a new `Layer` from a list of shapes.
-    pub fn new_from(shapes: Vec<Shape>) -> Self {
+    /// Creates a new `Layer` from anything that yields shapes.
+    pub fn new_from<I>(shapes: I) -> Self
+    where
+        I: IntoIterator,
+        I::Item: Into<Shape>,
+    {
         Self {
-            shapes,
+            shapes: shapes.into_iter().map(Into::into).collect(),
             sublayers: Vec::new(),
             props_inheritable: Inheritable::Inherit,
             props: LayerProps::default(),
@@ -536,7 +540,7 @@ impl Layer {
     }
 
     fn apply_svg_transform_to_path(path: &Path, transform: SvgTransform, scale_to_cm: f32) -> Path {
-        Path::new_from_iter(
+        Path::new_from(
             path.get_points_ref()
                 .iter()
                 .map(|point| transform.apply(*point) * scale_to_cm),
@@ -1202,15 +1206,14 @@ impl Layer {
                 if current_path_end.is_compatible(&start, max_angle_delta) {
                     // regular append
                     // current_start -> current_end -> # -> start -> end
-                    current_path.push_iter_ref(path_candidate.get_points_ref().iter().skip(1));
+                    current_path.push_many(path_candidate.get_points_ref().iter().skip(1));
 
                     current_path_end = end;
                     mask[j] = true;
                 } else if current_path_end.is_compatible(&end.flipped(), max_angle_delta) {
                     // reverse candidate and append
                     // current_start -> current_end -> # -> end -> start
-                    current_path
-                        .push_iter_ref(path_candidate.get_points_ref().iter().rev().skip(1));
+                    current_path.push_many(path_candidate.get_points_ref().iter().rev().skip(1));
 
                     current_path_end = start.flipped();
                     mask[j] = true;
@@ -1337,11 +1340,16 @@ impl Layer {
     ///
     /// There can be unexpected outputs for example with shapes that self-intersect.
     /// See also [`Layer::mask_flattened_brute_force`] for a different and more stable masking.
-    pub fn mask_geo_flattened(&self, mask: &Shape, sample_settings: SampleSettings) -> Masked {
+    pub fn mask_geo_flattened<M: Into<Shape>>(
+        &self,
+        mask: M,
+        sample_settings: SampleSettings,
+    ) -> Masked {
+        let mask: Shape = mask.into();
         let shapes: Vec<_> = self.iter_flattened().collect();
         let masked_shapes: Vec<_> = shapes
             .par_iter()
-            .map(|shape| shape.mask_geo(mask, sample_settings))
+            .map(|shape| shape.mask_geo(&mask, sample_settings))
             .collect();
 
         let mut inside = Layer::with_capacity(masked_shapes.len() * 2);
@@ -1356,24 +1364,26 @@ impl Layer {
     }
 
     /// see [`Layer::mask_geo_flattened`].
-    pub fn mask_geo_flattened_inside(
+    pub fn mask_geo_flattened_inside<M: Into<Shape>>(
         &self,
-        mask: &Shape,
+        mask: M,
         sample_settings: SampleSettings,
     ) -> Layer {
+        let mask: Shape = mask.into();
         self.iter_flattened()
-            .map(|shape| shape.mask_geo_inside(mask, sample_settings))
+            .map(|shape| shape.mask_geo_inside(&mask, sample_settings))
             .collect()
     }
 
     /// see [`Layer::mask_geo_flattened`].
-    pub fn mask_geo_flattened_outside(
+    pub fn mask_geo_flattened_outside<M: Into<Shape>>(
         &self,
-        mask: &Shape,
+        mask: M,
         sample_settings: SampleSettings,
     ) -> Layer {
+        let mask: Shape = mask.into();
         self.iter_flattened()
-            .map(|shape| shape.mask_geo_outside(mask, sample_settings))
+            .map(|shape| shape.mask_geo_outside(&mask, sample_settings))
             .collect()
     }
 
@@ -1389,11 +1399,12 @@ impl Layer {
     /// see [`Shape::mask_brute_force`].
     ///
     /// see also [`Layer::mask_geo_flattened`].
-    pub fn mask_flattened_brute_force(
+    pub fn mask_flattened_brute_force<M: Into<Shape>>(
         &self,
-        mask: &Shape,
+        mask: M,
         sample_settings: SampleSettings,
     ) -> Masked {
+        let mask: Shape = mask.into();
         let mut inside = Layer::new()
             .with_props(self.props.clone())
             .with_props_inheritable(self.props_inheritable.clone());
@@ -1402,7 +1413,7 @@ impl Layer {
             .with_props_inheritable(self.props_inheritable.clone());
 
         for shape in self.iter_flattened() {
-            let masked = shape.mask_brute_force(mask, sample_settings);
+            let masked = shape.mask_brute_force(&mask, sample_settings);
             inside.push_layer_flat(masked.inside);
             outside.push_layer_flat(masked.outside);
         }
@@ -1515,19 +1526,19 @@ impl From<Vec<Shape>> for Layer {
 
 impl From<Vec<&Shape>> for Layer {
     fn from(shapes: Vec<&Shape>) -> Self {
-        Layer::new_from(shapes.into_iter().map(Into::into).collect())
+        Layer::new_from(shapes)
     }
 }
 
 impl From<Vec<Path>> for Layer {
     fn from(paths: Vec<Path>) -> Self {
-        Layer::new_from(paths.into_iter().map(Into::into).collect())
+        Layer::new_from(paths)
     }
 }
 
 impl From<Vec<&Path>> for Layer {
     fn from(paths: Vec<&Path>) -> Self {
-        Layer::new_from(paths.into_iter().map(Into::into).collect())
+        Layer::new_from(paths)
     }
 }
 
@@ -1539,25 +1550,25 @@ impl From<Vec<Vec<V2>>> for Layer {
 
 impl From<Vec<Circle>> for Layer {
     fn from(circles: Vec<Circle>) -> Self {
-        Layer::new_from(circles.into_iter().map(Into::into).collect())
+        Layer::new_from(circles)
     }
 }
 
 impl From<Vec<&Circle>> for Layer {
     fn from(circles: Vec<&Circle>) -> Self {
-        Layer::new_from(circles.into_iter().map(Into::into).collect())
+        Layer::new_from(circles)
     }
 }
 
 impl From<Vec<Rect>> for Layer {
     fn from(rects: Vec<Rect>) -> Self {
-        Layer::new_from(rects.into_iter().map(Into::into).collect())
+        Layer::new_from(rects)
     }
 }
 
 impl From<Vec<&Rect>> for Layer {
     fn from(rects: Vec<&Rect>) -> Self {
-        Layer::new_from(rects.into_iter().map(Into::into).collect())
+        Layer::new_from(rects)
     }
 }
 

@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use itertools::Itertools;
+use std::borrow::Borrow;
 use voronoice::{BoundingBox, ClipBehavior, Point, VoronoiBuilder};
 
 use crate::{Layer, Line, Path, Rect, Shape, V2};
@@ -101,10 +102,14 @@ pub struct Voronoi {
 }
 
 impl Voronoi {
-    pub fn new(sites: &[V2], bounds: Rect) -> Self {
+    pub fn new<I>(sites: I, bounds: Rect) -> Self
+    where
+        I: IntoIterator,
+        I::Item: Borrow<V2>,
+    {
         let center = bounds.center();
         let built = VoronoiBuilder::default()
-            .set_sites(sites.iter().map(to_point).collect())
+            .set_sites(sites.into_iter().map(|s| to_point(s.borrow())).collect())
             .set_bounding_box(BoundingBox::new(
                 to_point(&center),
                 bounds.width() as f64,

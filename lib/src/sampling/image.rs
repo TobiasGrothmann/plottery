@@ -56,7 +56,7 @@ impl Image {
     }
 
     /// Scales the image to fit inside `target`, keeping the aspect ratio.
-    pub fn fit_inside(mut self, target: &Rect, alignment: Alignment) -> Self {
+    pub fn fit_inside(mut self, target: Rect, alignment: Alignment) -> Self {
         self.bounds = self
             .bounds
             .normalize_inside(target, alignment)
@@ -65,7 +65,7 @@ impl Image {
     }
 
     /// Scales the image to cover `target`, keeping the aspect ratio.
-    pub fn fit_around(mut self, target: &Rect, alignment: Alignment) -> Self {
+    pub fn fit_around(mut self, target: Rect, alignment: Alignment) -> Self {
         self.bounds = self
             .bounds
             .normalize_around(target, alignment)

@@ -207,7 +207,8 @@ pub trait Plottable: Clone + Into<Shape> {
         MultiLineString(vec![self.as_geo_line_string(sample_settings)])
     }
 
-    fn mask_geo(&self, mask: &Shape, sample_settings: SampleSettings) -> Masked {
+    fn mask_geo<M: Into<Shape>>(&self, mask: M, sample_settings: SampleSettings) -> Masked {
+        let mask: Shape = mask.into();
         let shape_geo = self.as_geo_multi_line_string(sample_settings);
         let mask_geo = mask.as_geo_polygon(sample_settings);
 
@@ -231,7 +232,8 @@ pub trait Plottable: Clone + Into<Shape> {
         }
     }
 
-    fn mask_geo_inside(&self, mask: &Shape, sample_settings: SampleSettings) -> Layer {
+    fn mask_geo_inside<M: Into<Shape>>(&self, mask: M, sample_settings: SampleSettings) -> Layer {
+        let mask: Shape = mask.into();
         let shape_geo = self.as_geo_multi_line_string(sample_settings);
         let mask_geo = mask.as_geo_polygon(sample_settings);
 
@@ -242,7 +244,8 @@ pub trait Plottable: Clone + Into<Shape> {
             .collect()
     }
 
-    fn mask_geo_outside(&self, mask: &Shape, sample_settings: SampleSettings) -> Layer {
+    fn mask_geo_outside<M: Into<Shape>>(&self, mask: M, sample_settings: SampleSettings) -> Layer {
+        let mask: Shape = mask.into();
         let shape_geo = self.as_geo_multi_line_string(sample_settings);
         let mask_geo = mask.as_geo_polygon(sample_settings);
 
@@ -253,7 +256,8 @@ pub trait Plottable: Clone + Into<Shape> {
             .collect()
     }
 
-    fn mask_brute_force(&self, mask: &Shape, sample_settings: SampleSettings) -> Masked {
+    fn mask_brute_force<M: Into<Shape>>(&self, mask: M, sample_settings: SampleSettings) -> Masked {
+        let mask: Shape = mask.into();
         let points_shape = self.get_points_oversampled(sample_settings);
 
         let mut inside = Layer::new();
@@ -299,7 +303,12 @@ pub trait Plottable: Clone + Into<Shape> {
         Masked { inside, outside }
     }
 
-    fn mask_by_intersections(&self, mask: &Shape, sample_settings: SampleSettings) -> Masked {
+    fn mask_by_intersections<M: Into<Shape>>(
+        &self,
+        mask: M,
+        sample_settings: SampleSettings,
+    ) -> Masked {
+        let mask: Shape = mask.into();
         let segments_mask = mask.get_line_segments(sample_settings);
 
         // perturb the path to avoid points on the mask lines

@@ -88,7 +88,7 @@ impl V2 {
         Self::polar(angle, radius)
     }
     /// Returns a random vector inside or on the given rectangle.
-    pub fn random_in_rect(rect: &Rect) -> Self {
+    pub fn random_in_rect(rect: Rect) -> Self {
         Self::new(
             rand_range(rect.bl().x, rect.tr().x),
             rand_range(rect.bl().y, rect.tr().y),
