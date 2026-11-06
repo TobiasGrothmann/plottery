@@ -331,6 +331,20 @@ pub fn Editor(project_path: Vec<String>) -> Element {
             project_params,
         )))
     });
+    let mut trigger_run = move || {
+        running_state.set(RunningState::Preparing {
+            msg: "preparing".to_string(),
+        });
+        match project_runner().try_lock() {
+            Ok(mut runner) => runner.trigger_run_project(release, running_state, console),
+            Err(e) => {
+                tracing::error!("Error preparing to run: {:?}", e);
+                running_state.set(RunningState::RunFailed {
+                    msg: format!("Error preparing to run: {}", e),
+                });
+            }
+        }
+    };
 
     // hot reload
     let mut hot_reload_watcher = use_signal_sync(|| None as Option<FsEventWatcher>);
@@ -429,14 +443,7 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                     if !hot_reload_is_enabled() {
                         button { class: "img_button",
                             onclick: move |event| {
-                                running_state.set(RunningState::Preparing { msg: "preparing".to_string() });
-                                match project_runner().try_lock() {
-                                    Ok(mut runner) => runner.trigger_run_project(release, running_state, console),
-                                    Err(e) => {
-                                        tracing::error!("Error preparing to run: {:?}", e);
-                                        running_state.set(RunningState::RunFailed { msg: format!("Error preparing to run: {}", e) });
-                                    },
-                                }
+                                trigger_run();
                                 event.stop_propagation();
                             },
                             img { src: "{format_svg(include_bytes!(\"../../../public/icons/play.svg\"))}" }
@@ -459,6 +466,7 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                                 );
                                 hot_reload_join_handle.set(Some(handle));
                                 hot_reload_watcher.set(Some(watcher));
+                                trigger_run();
                             }
                             event.stop_propagation();
                         },
