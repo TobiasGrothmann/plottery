@@ -214,7 +214,7 @@ mod test_line {
         #[test]
         fn helpers() {
             let line = Line::new(V2::new(0.0, 0.0), V2::new(4.0, 0.0));
-            assert_eq!(line.len(), 4.0);
+            assert_eq!(line.length(), 4.0);
             assert_eq!(line.point_at(0.25), V2::new(1.0, 0.0));
             assert_eq!(line.normal_right(), V2::new(0.0, -1.0));
             assert_eq!(line.offset_left(2.0).from, V2::new(0.0, 2.0));

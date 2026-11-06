@@ -388,11 +388,11 @@ impl V2 {
     }
 
     /// Returns the length (magnitude) of this vector.
-    pub fn len(&self) -> f32 {
-        (self.x * self.x + self.y * self.y).sqrt()
+    pub fn length(&self) -> f32 {
+        self.length_squared().sqrt()
     }
     /// Returns the squared length of this vector.
-    pub fn len_squared(&self) -> f32 {
+    pub fn length_squared(&self) -> f32 {
         self.x * self.x + self.y * self.y
     }
 
@@ -411,7 +411,7 @@ impl V2 {
 
     /// Returns this vector normalized to a length of 1.0.
     pub fn normalize(&self) -> Self {
-        let len = self.len();
+        let len = self.length();
         if len == 0.0 {
             *self
         } else {
@@ -420,12 +420,12 @@ impl V2 {
     }
     /// Returns this vector with the same direction but a specified length.
     pub fn normalize_to(&self, len: f32) -> Self {
-        *self * len / self.len()
+        *self * len / self.length()
     }
 
     /// Projects this vector onto another vector.
     pub fn project_onto(&self, other: Self) -> Self {
-        let length_squared = other.len_squared();
+        let length_squared = other.length_squared();
         let dot_product = self.dot(other);
         V2::new(
             (dot_product / length_squared) * other.x,
@@ -435,7 +435,7 @@ impl V2 {
 
     /// Returns a vector with the same direction but length clamped between min_len and max_len.
     pub fn clamp_len(&self, min_len: f32, max_len: f32) -> Self {
-        let len = self.len();
+        let len = self.length();
         if len < min_len {
             *self * (min_len / len)
         } else if len > max_len {

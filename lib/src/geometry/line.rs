@@ -55,8 +55,8 @@ impl Line {
     }
 
     /// Length of the segment.
-    pub fn len(&self) -> f32 {
-        self.vector().len()
+    pub fn length(&self) -> f32 {
+        self.vector().length()
     }
 
     /// Point at fraction `t` along the segment, `0.0` is `from` and `1.0` is `to`.
@@ -208,7 +208,7 @@ impl Line {
             return self.from;
         }
         let l = self.to - self.from;
-        let t = (point - self.from).dot(l) / l.len_squared();
+        let t = (point - self.from).dot(l) / l.length_squared();
         self.from + l * t
     }
 
@@ -220,7 +220,7 @@ impl Line {
             return self.from;
         }
         let l = self.to - self.from;
-        let t = (point - self.from).dot(l) / l.len_squared();
+        let t = (point - self.from).dot(l) / l.length_squared();
         if t < 0.0 {
             return self.from;
         }

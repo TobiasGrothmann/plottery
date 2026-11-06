@@ -30,7 +30,7 @@ impl Circle {
 
     pub fn get_intersections(&self, other: &Circle) -> Vec<V2> {
         let delta = other.center - self.center;
-        let dist = delta.len();
+        let dist = delta.length();
         let radius_sum = self.radius + other.radius;
         let radius_difference = (self.radius - other.radius).abs();
 
