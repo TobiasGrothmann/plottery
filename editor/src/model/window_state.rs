@@ -18,6 +18,9 @@ pub struct WindowState {
     pub y: f64,
     pub width: f64,
     pub height: f64,
+    /// Route shown when the window was closed, reopened on the next start.
+    #[serde(default)]
+    pub route: Option<String>,
 }
 
 impl WindowState {
@@ -51,6 +54,7 @@ impl WindowState {
             y: position.y,
             width: size.width,
             height: size.height - TITLE_BAR_HEIGHT,
+            route: None,
         })
     }
 

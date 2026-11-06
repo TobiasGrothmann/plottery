@@ -1,8 +1,10 @@
+use crate::routes::Route;
+use crate::util::project_from_segments;
 use bincode::{deserialize, serialize};
 use dioxus::prelude::*;
-use plottery_project::Project;
+use dioxus_logger::tracing;
+use dioxus_router::hooks::use_navigator;
 use plottery_server_lib::PlotSettings;
-use std::path::PathBuf;
 
 use crate::{
     components::navigation::Navigation,
@@ -11,11 +13,17 @@ use crate::{
 
 #[component]
 pub fn ProjectPlotSettings(project_path: Vec<String>) -> Element {
-    let project = use_signal(|| {
-        let path_str = format!("/{}", project_path.join("/"));
-        let p = PathBuf::from(path_str);
-        Project::load_from_file(p).expect("Failed to load project from file")
-    });
+    let loaded = use_hook(|| project_from_segments(&project_path).map_err(|e| e.to_string()));
+    let nav = use_navigator();
+    let Ok(loaded) = loaded else {
+        tracing::error!(
+            "Cannot open project, returning home: {}",
+            loaded.unwrap_err()
+        );
+        nav.replace(Route::Browser {});
+        return rsx! {};
+    };
+    let project = use_signal(move || loaded);
 
     let plot_settings = use_signal_sync(|| {
         let plot_settings_file_path = project().get_editor_plot_settings_path();

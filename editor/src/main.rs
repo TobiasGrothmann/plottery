@@ -18,12 +18,18 @@ mod util;
 
 fn app() -> Element {
     let window = use_window();
+    let history = dioxus::history::history();
     use_hook(|| {
+        let Some(state) = WindowState::load() else {
+            return;
+        };
         // The builder position is taken as the content origin; set the frame position properly.
-        if let Some(state) = WindowState::load() {
-            window.set_outer_position(state.position());
+        window.set_outer_position(state.position());
+        if let Some(route) = state.route {
+            history.push(route);
         }
     });
+    let history = dioxus::history::history();
     use_wry_event_handler(move |event, _| {
         let closing = matches!(
             event,
@@ -33,7 +39,8 @@ fn app() -> Element {
             } | Event::LoopDestroyed
         );
         if closing {
-            if let Some(state) = WindowState::capture(&window.window) {
+            if let Some(mut state) = WindowState::capture(&window.window) {
+                state.route = Some(history.current_route());
                 state.save();
             }
         }
