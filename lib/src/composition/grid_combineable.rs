@@ -32,7 +32,7 @@ pub enum CellState {
 /// combineable_grid.set_size(0, 0, 2, 2).unwrap();
 ///
 /// // Get the rectangle for the combined cell
-/// let rect = combineable_grid.get_cell(0, 0);
+/// let rect = combineable_grid.cell(0, 0);
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct GridCombineable {
@@ -120,7 +120,7 @@ impl GridCombineable {
     }
 
     /// Gets the rectangle for a cell, taking into account cell combinations
-    pub fn get_cell(&self, x: usize, y: usize) -> Rect {
+    pub fn cell(&self, x: usize, y: usize) -> Rect {
         // Get the bottom-left cell of the combined area
         let (bl_x, bl_y, width, height) = match self.cell_states[y][x] {
             CellState::Cell { width, height } => (x, y, width, height),
@@ -134,10 +134,10 @@ impl GridCombineable {
         };
 
         // Get the bottom-left cell rect
-        let bl_rect = self.grid.get_cell(bl_y, bl_x);
+        let bl_rect = self.grid.cell(bl_x, bl_y);
 
         // Calculate the top-right cell rect
-        let tr_rect = self.grid.get_cell(bl_y + height - 1, bl_x + width - 1);
+        let tr_rect = self.grid.cell(bl_x + width - 1, bl_y + height - 1);
 
         // Create a rect that spans from bl to tr
         Rect::new(bl_rect.bl(), tr_rect.tr())
@@ -149,7 +149,7 @@ impl GridCombineable {
     }
 
     /// Get the cell state at a specific position
-    pub fn get_cell_state(&self, x: usize, y: usize) -> Option<&CellState> {
+    pub fn cell_state(&self, x: usize, y: usize) -> Option<&CellState> {
         self.cell_states.get(y)?.get(x)
     }
 
@@ -207,8 +207,8 @@ impl GridCombineable {
         }
     }
 
-    pub fn get_num_cells(&self) -> V2i {
-        self.grid.get_num_cells()
+    pub fn num_cells(&self) -> V2i {
+        self.grid.num_cells()
     }
 }
 
@@ -271,7 +271,7 @@ impl Iterator for GridCombineableIterator<'_> {
                 }
             };
 
-            let rect = self.grid_combineable.get_cell(main_x, main_y);
+            let rect = self.grid_combineable.cell(main_x, main_y);
             let result = CellInfo {
                 cell: rect,
                 position: V2i::new(main_x as i32, main_y as i32),

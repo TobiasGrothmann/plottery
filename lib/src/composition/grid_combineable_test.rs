@@ -3,7 +3,7 @@ mod test_grid_combineable {
     use crate::{
         composition::{
             grid::Grid,
-            grid_comineable::{CellState, GridCombineable},
+            grid_combineable::{CellState, GridCombineable},
         },
         Rect, V2,
     };
@@ -24,7 +24,7 @@ mod test_grid_combineable {
 
         for y in 0..5 {
             for x in 0..5 {
-                match combineable.get_cell_state(x, y).unwrap() {
+                match combineable.cell_state(x, y).unwrap() {
                     CellState::Cell { width, height } => {
                         assert_eq!(*width, 1);
                         assert_eq!(*height, 1);
@@ -64,7 +64,7 @@ mod test_grid_combineable {
         assert!(combineable.set_size(0, 0, 2, 2).is_ok());
 
         // Check states after combination
-        match combineable.get_cell_state(0, 0).unwrap() {
+        match combineable.cell_state(0, 0).unwrap() {
             CellState::Cell { width, height } => {
                 assert_eq!(*width, 2);
                 assert_eq!(*height, 2);
@@ -72,7 +72,7 @@ mod test_grid_combineable {
             _ => panic!("Expected (0,0) to be a Cell"),
         }
 
-        match combineable.get_cell_state(1, 0).unwrap() {
+        match combineable.cell_state(1, 0).unwrap() {
             CellState::PartOf { x, y } => {
                 assert_eq!(*x, 0);
                 assert_eq!(*y, 0);
@@ -80,7 +80,7 @@ mod test_grid_combineable {
             _ => panic!("Expected (1,0) to be PartOf (0,0)"),
         }
 
-        match combineable.get_cell_state(0, 1).unwrap() {
+        match combineable.cell_state(0, 1).unwrap() {
             CellState::PartOf { x, y } => {
                 assert_eq!(*x, 0);
                 assert_eq!(*y, 0);
@@ -88,7 +88,7 @@ mod test_grid_combineable {
             _ => panic!("Expected (0,1) to be PartOf (0,0)"),
         }
 
-        match combineable.get_cell_state(1, 1).unwrap() {
+        match combineable.cell_state(1, 1).unwrap() {
             CellState::PartOf { x, y } => {
                 assert_eq!(*x, 0);
                 assert_eq!(*y, 0);
@@ -96,7 +96,7 @@ mod test_grid_combineable {
             _ => panic!("Expected (1,1) to be PartOf (0,0)"),
         }
 
-        match combineable.get_cell_state(2, 2).unwrap() {
+        match combineable.cell_state(2, 2).unwrap() {
             CellState::Cell { width, height } => {
                 assert_eq!(*width, 1);
                 assert_eq!(*height, 1);
@@ -114,13 +114,13 @@ mod test_grid_combineable {
         let mut combineable = GridCombineable::new_from_grid(grid);
 
         // Get original single cell
-        let single_cell = combineable.get_cell(2, 2);
+        let single_cell = combineable.cell(2, 2);
         let original_size = single_cell.tr() - single_cell.bl();
 
         // Combine a 2x2 cell and check its dimensions
         assert!(combineable.set_size(0, 0, 2, 2).is_ok());
 
-        let combined_cell = combineable.get_cell(0, 0);
+        let combined_cell = combineable.cell(0, 0);
         let combined_size = combined_cell.tr() - combined_cell.bl();
 
         // The width and height should be approximately double the original cell
@@ -132,7 +132,7 @@ mod test_grid_combineable {
         assert!((combined_size.y - expected_height).abs() < 0.001);
 
         // Get cell using coordinates of a part cell
-        let from_part = combineable.get_cell(1, 1);
+        let from_part = combineable.cell(1, 1);
         assert_eq!(from_part.bl(), combined_cell.bl());
         assert_eq!(from_part.tr(), combined_cell.tr());
     }
@@ -151,7 +151,7 @@ mod test_grid_combineable {
         // Check that all cells are individual now
         for y in 0..2 {
             for x in 0..2 {
-                match combineable.get_cell_state(x, y).unwrap() {
+                match combineable.cell_state(x, y).unwrap() {
                     CellState::Cell { width, height } => {
                         assert_eq!(*width, 1);
                         assert_eq!(*height, 1);
@@ -168,7 +168,7 @@ mod test_grid_combineable {
         // Check all cells are individual
         for y in 2..4 {
             for x in 2..4 {
-                match combineable.get_cell_state(x, y).unwrap() {
+                match combineable.cell_state(x, y).unwrap() {
                     CellState::Cell { width, height } => {
                         assert_eq!(*width, 1);
                         assert_eq!(*height, 1);
@@ -217,16 +217,16 @@ mod test_grid_combineable {
 
         // Check if all combinations were properly set
         assert_eq!(
-            combineable.get_cell(0, 0).width(),
-            combineable.get_cell(1, 1).width()
+            combineable.cell(0, 0).width(),
+            combineable.cell(1, 1).width()
         );
         assert_eq!(
-            combineable.get_cell(2, 0).width(),
-            combineable.get_cell(4, 0).width()
+            combineable.cell(2, 0).width(),
+            combineable.cell(4, 0).width()
         );
         assert_eq!(
-            combineable.get_cell(0, 2).height(),
-            combineable.get_cell(0, 4).height()
+            combineable.cell(0, 2).height(),
+            combineable.cell(0, 4).height()
         );
 
         // Check that cells outside combinations remain individual
@@ -294,8 +294,8 @@ mod test_grid_combineable {
         for cell_info in combineable.iter() {
             // For combined cells, verify the rectangle spans the correct area
             if cell_info.size.x > 1 || cell_info.size.y > 1 {
-                let expected_rect = combineable
-                    .get_cell(cell_info.position.x as usize, cell_info.position.y as usize);
+                let expected_rect =
+                    combineable.cell(cell_info.position.x as usize, cell_info.position.y as usize);
                 assert_eq!(cell_info.cell, expected_rect);
             }
         }
