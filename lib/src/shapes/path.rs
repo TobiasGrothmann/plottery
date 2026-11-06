@@ -185,6 +185,22 @@ impl Path {
             .collect()
     }
 
+    /// Arc around `center` from `a` to `b`, taking the shorter way round.
+    pub fn arc_between(
+        center: V2,
+        radius: f32,
+        a: V2,
+        b: V2,
+        sample_settings: SampleSettings,
+    ) -> Self {
+        let from = (a - center).angle();
+        let mut sweep = ((b - center).angle() - from).positive();
+        if sweep > Angle::half_rotation() {
+            sweep -= Angle::full_rotation();
+        }
+        Path::arc(from, from + sweep, center, radius, sample_settings)
+    }
+
     pub fn intersects_circle(&self, other: &Circle) -> bool {
         if self.points.is_empty() {
             return false;

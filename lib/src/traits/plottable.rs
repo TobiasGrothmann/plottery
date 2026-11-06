@@ -48,6 +48,11 @@ pub trait Plottable: Clone + Into<Shape> {
         sample_settings: SampleSettings,
     ) -> Vec<V2>;
 
+    /// The shape sampled into a single [`Path`].
+    fn to_path(&self, sample_settings: SampleSettings) -> Path {
+        Path::new_from(self.get_points(sample_settings))
+    }
+
     fn get_line_segments(&self, sample_settings: SampleSettings) -> Vec<Line> {
         self.get_points(sample_settings)
             .iter()

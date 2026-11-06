@@ -296,6 +296,25 @@ mod test_path {
     }
 
     #[test]
+    fn arc_between_takes_the_shorter_way() {
+        let center = V2::zero();
+        let a = V2::new(1.0, 0.0);
+        let b = V2::new(0.0, -1.0);
+        let arc = Path::arc_between(center, 1.0, a, b, SampleSettings::new(10.0));
+        assert_eq!(*arc.first().unwrap(), a);
+        assert!(arc.last().unwrap().dist(b) < LARGE_EPSILON);
+        assert!((arc.length() - PI / 2.0).abs() < 0.01);
+        // never passes through the far side
+        assert!(arc
+            .iter()
+            .all(|p| p.x >= -LARGE_EPSILON && p.y <= LARGE_EPSILON));
+
+        let rect_path = Rect::new(V2::zero(), V2::xy(1.0)).to_path(SampleSettings::default());
+        assert_eq!(rect_path.len(), 5);
+        assert!(rect_path.is_closed());
+    }
+
+    #[test]
     fn contains_point() {
         let p = Path::new_from(vec![
             V2::new(0.0, 0.0),

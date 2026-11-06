@@ -139,9 +139,7 @@ impl Rotate for Shape {
     fn rotate(&self, angle: Angle) -> Self {
         match self {
             Shape::Circle(c) => Shape::Circle(c.rotate(angle)),
-            Shape::Rect(r) => {
-                Path::new_shape_from(vec![r.bl(), r.tl(), r.tr(), r.br(), r.bl()]).rotate(angle)
-            }
+            Shape::Rect(r) => Shape::Path(r.to_path(SampleSettings::default()).rotate(angle)),
             Shape::Path(p) => Shape::Path(p.rotate(angle)),
         }
     }
@@ -149,8 +147,7 @@ impl Rotate for Shape {
         match self {
             Shape::Circle(c) => c.rotate_mut(angle),
             Shape::Rect(r) => {
-                *self =
-                    Path::new_shape_from(vec![r.bl(), r.tl(), r.tr(), r.br(), r.bl()]).rotate(angle)
+                *self = Shape::Path(r.to_path(SampleSettings::default()).rotate(angle))
             }
             Shape::Path(p) => p.rotate_mut(angle),
         }
@@ -159,8 +156,10 @@ impl Rotate for Shape {
     fn rotate_around(&self, pivot: V2, angle: Angle) -> Self {
         match self {
             Shape::Circle(c) => Shape::Circle(c.rotate_around(pivot, angle)),
-            Shape::Rect(r) => Path::new_shape_from(vec![r.bl(), r.tl(), r.tr(), r.br(), r.bl()])
-                .rotate_around(pivot, angle),
+            Shape::Rect(r) => Shape::Path(
+                r.to_path(SampleSettings::default())
+                    .rotate_around(pivot, angle),
+            ),
             Shape::Path(p) => Shape::Path(p.rotate_around(pivot, angle)),
         }
     }
@@ -168,8 +167,10 @@ impl Rotate for Shape {
         match self {
             Shape::Circle(c) => c.rotate_around_mut(pivot, angle),
             Shape::Rect(r) => {
-                *self = Path::new_shape_from(vec![r.bl(), r.tl(), r.tr(), r.br(), r.bl()])
-                    .rotate_around(pivot, angle)
+                *self = Shape::Path(
+                    r.to_path(SampleSettings::default())
+                        .rotate_around(pivot, angle),
+                )
             }
             Shape::Path(p) => p.rotate_around_mut(pivot, angle),
         }

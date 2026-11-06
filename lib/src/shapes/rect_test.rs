@@ -2,7 +2,7 @@
 mod test_rect {
     use crate::{
         traits::{ClosestPoint, Scale},
-        Plottable, Rect, Rotate90, SampleSettings, V2,
+        Angle, Plottable, Rect, Rotate90, SampleSettings, LARGE_EPSILON, V2,
     };
 
     #[test]
@@ -20,10 +20,10 @@ mod test_rect {
         assert_eq!(r.height(), 2.0);
         assert_eq!(r.area(), 6.0);
 
-        assert_eq!(r.left_mid(), V2::new(1.0, 3.0));
-        assert_eq!(r.right_mid(), V2::new(4.0, 3.0));
-        assert_eq!(r.top_mid(), V2::new(2.5, 4.0));
-        assert_eq!(r.bot_mid(), V2::new(2.5, 2.0));
+        assert_eq!(r.left_center(), V2::new(1.0, 3.0));
+        assert_eq!(r.right_center(), V2::new(4.0, 3.0));
+        assert_eq!(r.top_center(), V2::new(2.5, 4.0));
+        assert_eq!(r.bottom_center(), V2::new(2.5, 2.0));
     }
 
     #[test]
@@ -114,5 +114,26 @@ mod test_rect {
             assert!(point.x >= rect.bl().x && point.x <= rect.tr().x);
             assert!(point.y >= rect.bl().y && point.y <= rect.tr().y);
         }
+    }
+
+    #[test]
+    fn helpers() {
+        let r = Rect::new(V2::new(1.0, 2.0), V2::new(4.0, 4.0));
+        assert_eq!(r.corners(), [r.bl(), r.tl(), r.tr(), r.br()]);
+        assert_eq!(r.edges()[3].to, r.bl());
+        assert_eq!(
+            r.expand(1.0),
+            Rect::new(V2::new(0.0, 1.0), V2::new(5.0, 5.0))
+        );
+        assert_eq!(r.expand(1.0).shrink(1.0), r);
+        assert_eq!(
+            Rect::square_around(V2::xy(1.0), 0.5),
+            Rect::new(V2::xy(0.5), V2::xy(1.5))
+        );
+        assert!(r.contains_point(r.random_point()));
+
+        let rotated = r.rotated(Angle::half_rotation());
+        assert!(rotated[0].dist(r.tr()) < LARGE_EPSILON);
+        assert_eq!(rotated.len(), 5);
     }
 }
