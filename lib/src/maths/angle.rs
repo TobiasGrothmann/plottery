@@ -137,11 +137,11 @@ impl Angle {
         (self.rad.sin(), self.rad.cos())
     }
 
-    /// Returns a new angle modulo 2π (360°), resulting in a positive angle between 0 and 2π.
+    /// Returns a new angle modulo 2π (360°). The sign is kept, see [`Angle::positive`] for a result in 0..2π.
     pub fn mod_one_rotation(&self) -> Self {
         Angle::from_rad(self.rad % (2.0 * PI))
     }
-    /// Returns a new angle modulo `other`, resulting in a positive angle between [`Angle::zero`] and `other`.
+    /// Returns a new angle modulo `other`. The sign is kept.
     pub fn modulo(&self, other: Angle) -> Self {
         Angle::from_rad(self.rad % other.rad)
     }
