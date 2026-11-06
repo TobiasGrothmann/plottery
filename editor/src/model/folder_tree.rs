@@ -63,7 +63,7 @@ impl FolderNode {
                 .sum::<usize>()
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn find(&self, path: &Path) -> Option<&FolderNode> {
         if self.path == path {
             return Some(self);
@@ -198,7 +198,7 @@ pub fn build_tree(roots: &[PathBuf], projects: &[Project]) -> Vec<FolderNode> {
         .collect()
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 pub fn find_in_forest<'a>(forest: &'a [FolderNode], path: &Path) -> Option<&'a FolderNode> {
     forest.iter().find_map(|n| n.find(path))
 }

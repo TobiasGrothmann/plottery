@@ -1,10 +1,6 @@
-use std::{path::PathBuf, rc::Rc};
+use std::path::PathBuf;
 
-use dioxus::{
-    html::{geometry::PixelsVector2D, MountedData, ScrollBehavior},
-    prelude::*,
-};
-use dioxus_logger::tracing;
+use dioxus::prelude::*;
 use dioxus_router::hooks::use_navigator;
 use plottery_project::{scan_roots, Project, ScanOptions, ScanResult};
 
@@ -14,18 +10,27 @@ use crate::{
         app_state::AppState,
         folder_tree::{build_tree, find_closest_in_forest},
     },
-    router::browser::{folder_tree::FolderTree, project_grid::ProjectGrid},
+    router::browser::{
+        bottom_bar::BottomBar,
+        browser_hooks::{use_scroll_restore, use_thumbnail_generation},
+        folder_tree::FolderTree,
+        project_grid::ProjectGrid,
+    },
     routes::Route,
     util::{editor_route, format_svg},
 };
-
-/// Scroll offset of the project grid, kept across navigation so going back lands where you left.
-static SCROLL_TOP: GlobalSignal<f64> = Signal::global(|| 0.0);
 
 fn pick_root_folder() -> Option<PathBuf> {
     rfd::FileDialog::new()
         .set_title("Pick a folder to watch for Plottery projects")
         .pick_folder()
+}
+
+fn project_count_label(count: usize) -> String {
+    match count {
+        1 => "1 project".to_string(),
+        n => format!("{n} projects"),
+    }
 }
 
 #[component]
@@ -44,67 +49,10 @@ pub fn Browser() -> Element {
                 })
         }
     });
-    // Render missing or outdated thumbnails after each scan, then refresh the cards.
-    let mut thumbnail_generation = use_signal(|| 0u32);
-    let _thumbnails = use_resource(move || {
-        let projects: Vec<Project> = scan
-            .read()
-            .as_ref()
-            .map(|r| r.projects.clone())
-            .unwrap_or_default();
-        async move {
-            let stale: Vec<Project> = projects
-                .into_iter()
-                .filter(Project::editor_thumbnail_is_stale)
-                .collect();
-            if stale.is_empty() {
-                return;
-            }
-            let rendered = tokio::task::spawn_blocking(move || {
-                stale
-                    .iter()
-                    .filter(|p| match p.update_editor_thumbnail() {
-                        Ok(()) => true,
-                        Err(err) => {
-                            tracing::error!(
-                                "Failed to render thumbnail for {}: {err}",
-                                p.dir.display()
-                            );
-                            false
-                        }
-                    })
-                    .count()
-            })
-            .await
-            .unwrap_or(0);
-            if rendered > 0 {
-                thumbnail_generation += 1;
-            }
-        }
-    });
+    let thumbnail_generation = use_thumbnail_generation(scan);
+    let scanned = use_memo(move || scan.read().is_some());
+    let scroll = use_scroll_restore(scanned);
     use_effect(move || app_state.read().save());
-
-    // Restore the previous scroll position once the first scan has rendered the cards.
-    let mut main_element: Signal<Option<Rc<MountedData>>> = use_signal(|| None);
-    let mut scroll_restored = use_signal(|| false);
-    use_effect(move || {
-        let scanned = scan.read().is_some();
-        let Some(element) = main_element() else {
-            return;
-        };
-        if !scanned || scroll_restored() {
-            return;
-        }
-        scroll_restored.set(true);
-        let top = *SCROLL_TOP.peek();
-        if top > 0.0 {
-            spawn(async move {
-                let _ = element
-                    .scroll(PixelsVector2D::new(0.0, top), ScrollBehavior::Instant)
-                    .await;
-            });
-        }
-    });
 
     let nav = use_navigator();
     let mut add_root = move || {
@@ -113,6 +61,10 @@ pub fn Browser() -> Element {
             state.add_root(folder.clone());
             state.selected_folder = Some(folder);
         }
+    };
+    let mut select_folder = move |path: PathBuf| {
+        app_state.write().selected_folder = Some(path);
+        scroll.scroll_to_top();
     };
 
     let roots_now = roots();
@@ -127,14 +79,29 @@ pub fn Browser() -> Element {
         None => (vec![], vec![]),
     };
 
-    let selected_folder = app_state.read().selected_folder.clone();
-    let selected_node = selected_folder
+    let state = app_state.read();
+    let selected_node = state
+        .selected_folder
         .as_deref()
         .and_then(|p| find_closest_in_forest(&tree, p))
         .or(tree.first())
         .cloned();
     let selected_path = selected_node.as_ref().map(|n| n.path.clone());
-    let expanded = app_state.read().expanded_folders.clone();
+    let expanded = state.expanded_folders.clone();
+    let tile_size = state.tile_size;
+    drop(state);
+
+    let status = if is_scanning {
+        "scanning…".to_string()
+    } else {
+        selected_node
+            .as_ref()
+            .map(|n| project_count_label(n.project_count()))
+            .unwrap_or_default()
+    };
+    let detail = selected_node
+        .as_ref()
+        .map(|n| n.path.to_string_lossy().to_string());
 
     rsx! {
         style { { include_str!("./browser.css") } }
@@ -166,61 +133,66 @@ pub fn Browser() -> Element {
             if first_load {
                 Loading {}
             }
-            div { class: "browser_sidebar",
-                FolderTree {
-                    nodes: tree.clone(),
-                    selected: selected_path.clone(),
-                    expanded,
-                    on_select: move |path: PathBuf| {
-                        app_state.write().selected_folder = Some(path);
-                    },
-                    on_toggle_expand: move |path: PathBuf| {
-                        let mut state = app_state.write();
-                        if !state.expanded_folders.remove(&path) {
-                            state.expanded_folders.insert(path);
-                        }
-                    },
-                    on_add_root: move |_| add_root(),
-                    on_remove_root: move |path: PathBuf| {
-                        app_state.write().remove_root(&path);
-                    },
-                }
-                if is_scanning && !first_load {
-                    p { class: "browser_scanning", "scanning…" }
-                }
-                if !errors.is_empty() {
-                    details { class: "browser_scan_errors",
-                        summary { "{errors.len()} scan problems" }
-                        for (path, message) in errors.iter() {
-                            div { class: "err_box browser_scan_error",
-                                p { class: "browser_scan_error_path", "{path.to_string_lossy()}" }
-                                p { "{message}" }
+            div { class: "browser_content",
+                div { class: "browser_sidebar",
+                    FolderTree {
+                        nodes: tree.clone(),
+                        selected: selected_path.clone(),
+                        expanded,
+                        on_select: move |path: PathBuf| select_folder(path),
+                        on_toggle_expand: move |path: PathBuf| {
+                            let mut state = app_state.write();
+                            if !state.expanded_folders.remove(&path) {
+                                state.expanded_folders.insert(path);
+                            }
+                        },
+                        on_add_root: move |_| add_root(),
+                        on_remove_root: move |path: PathBuf| {
+                            app_state.write().remove_root(&path);
+                        },
+                    }
+                    if !errors.is_empty() {
+                        details { class: "browser_scan_errors",
+                            summary { "{errors.len()} scan problems" }
+                            for (path, message) in errors.iter() {
+                                div { class: "err_box browser_scan_error",
+                                    p { class: "browser_scan_error_path", "{path.to_string_lossy()}" }
+                                    p { "{message}" }
+                                }
                             }
                         }
                     }
                 }
-            }
-            div { class: "browser_main",
-                onmounted: move |event| main_element.set(Some(event.data())),
-                onscroll: move |event| *SCROLL_TOP.write() = event.data().scroll_top(),
-                if roots_now.is_empty() {
-                    div { class: "browser_empty",
-                        p { "Add a folder to watch for Plottery projects." }
-                        button { class: "img_button",
-                            onclick: move |_| add_root(),
-                            img { src: "{format_svg(include_bytes!(\"../../../public/icons/folder_open.svg\"))}" }
-                            p { "Add folder" }
+                div { class: "browser_main",
+                    style: "--tile-size: {tile_size}px;",
+                    onmounted: move |event| scroll.on_mounted(event),
+                    onscroll: move |event| scroll.on_scroll(event),
+                    if roots_now.is_empty() {
+                        div { class: "browser_empty",
+                            p { "Add a folder to watch for Plottery projects." }
+                            button { class: "img_button",
+                                onclick: move |_| add_root(),
+                                img { src: "{format_svg(include_bytes!(\"../../../public/icons/folder_open.svg\"))}" }
+                                p { "Add folder" }
+                            }
+                        }
+                    } else if let Some(node) = selected_node {
+                        ProjectGrid {
+                            node,
+                            thumbnail_generation: thumbnail_generation(),
+                            on_open: move |project: Project| {
+                                nav.push(editor_route(&project));
+                            },
+                            on_select_folder: move |path: PathBuf| select_folder(path),
                         }
                     }
-                } else if let Some(node) = selected_node {
-                    ProjectGrid {
-                        node,
-                        thumbnail_generation: thumbnail_generation(),
-                        on_open: move |project: Project| {
-                            nav.push(editor_route(&project));
-                        },
-                    }
                 }
+            }
+            BottomBar {
+                status,
+                detail,
+                tile_size,
+                on_tile_size: move |size: u32| app_state.write().set_tile_size(size),
             }
         }
     }

@@ -1,13 +1,14 @@
 .ProjectCard {
   display: flex;
   flex-direction: column;
-  background-color: var(--col-bg-1);
+  background-color: var(--col-bg-3);
   border-radius: var(--border-radius);
   cursor: pointer;
   overflow: hidden;
+  container-type: inline-size;
 }
 .ProjectCard:hover {
-  background-color: var(--col-bg-2);
+  filter: brightness(1.15);
 }
 
 .card_preview {
@@ -35,6 +36,9 @@
   justify-content: center;
   color: var(--col-bg-3);
 }
+.card_no_preview p {
+  font-size: clamp(11px, 6cqw, 16px);
+}
 
 .card_body {
   display: flex;
@@ -51,7 +55,7 @@
   gap: 2px;
 }
 .card_name {
-  font-size: 17px;
+  font-size: clamp(13px, 6cqw, 17px);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -63,3 +67,12 @@
   color: var(--col-fg-2);
 }
 
+/* Narrow tiles: drop the date and tighten the body. */
+@container (max-width: 190px) {
+  .card_meta {
+    display: none;
+  }
+  .card_body {
+    padding: var(--gap-small) var(--gap-0);
+  }
+}
