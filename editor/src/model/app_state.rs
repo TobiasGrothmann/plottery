@@ -8,7 +8,11 @@ use std::{
     path::{Path, PathBuf},
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub const TILE_SIZE_MIN: u32 = 140;
+pub const TILE_SIZE_MAX: u32 = 600;
+pub const TILE_SIZE_DEFAULT: u32 = 320;
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AppState {
     /// Folders scanned for projects, absolutized and deduplicated.
     #[serde(default)]
@@ -17,9 +21,28 @@ pub struct AppState {
     pub selected_folder: Option<PathBuf>,
     #[serde(default)]
     pub expanded_folders: BTreeSet<PathBuf>,
+    /// Minimum width of a project tile in the browser grid, in pixels.
+    #[serde(default = "default_tile_size")]
+    pub tile_size: u32,
     /// v1 project list, only read to migrate it into `roots`.
     #[serde(rename = "projects", default, skip_serializing)]
     legacy_projects: Vec<Project>,
+}
+
+fn default_tile_size() -> u32 {
+    TILE_SIZE_DEFAULT
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        Self {
+            roots: Vec::new(),
+            selected_folder: None,
+            expanded_folders: BTreeSet::new(),
+            tile_size: TILE_SIZE_DEFAULT,
+            legacy_projects: Vec::new(),
+        }
+    }
 }
 
 fn absolutize(path: &Path) -> PathBuf {
@@ -125,6 +148,10 @@ impl AppState {
             self.selected_folder = None;
         }
         self.expanded_folders.retain(|f| !f.starts_with(&root));
+    }
+
+    pub fn set_tile_size(&mut self, size: u32) {
+        self.tile_size = size.clamp(TILE_SIZE_MIN, TILE_SIZE_MAX);
     }
 
     /// Adds `dir`'s parent as a root unless some root already contains `dir`.
