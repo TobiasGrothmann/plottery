@@ -1,8 +1,15 @@
 .Browser {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   height: calc(100vh - var(--header-height));
   overflow: hidden;
+}
+
+.browser_content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
 }
 
 .browser_sidebar {
@@ -20,12 +27,6 @@
   min-width: 0;
   overflow-y: auto;
   padding: var(--gap-1);
-}
-
-.browser_scanning {
-  padding: var(--gap-0) var(--gap-1);
-  color: var(--col-fg-2);
-  font-size: 13px;
 }
 
 .browser_scan_errors {

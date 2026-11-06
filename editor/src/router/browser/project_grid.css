@@ -1,26 +1,59 @@
 .ProjectGrid {
   display: flex;
   flex-direction: column;
-  gap: var(--gap-2);
+  gap: var(--gap-4);
 }
 
 .grid_section {
   display: flex;
   flex-direction: column;
-  gap: var(--gap-0);
+  gap: var(--gap-1);
+  padding: var(--gap-1);
+  background-color: var(--col-bg-2);
+  border-radius: var(--border-radius);
 }
 
 .grid_section_header {
-  font-size: 16px;
-  font-weight: normal;
-  color: var(--col-fg-2);
-  padding-bottom: var(--gap-small);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--gap-0);
+  min-width: 0;
+  padding-bottom: var(--gap-0);
   border-bottom: 1px solid var(--col-bg-3);
+}
+.grid_section_header_link {
+  cursor: pointer;
+}
+.grid_section_header_link:hover .grid_section_title {
+  text-decoration: underline;
+}
+
+.grid_section_icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  filter: invert(1);
+  opacity: 0.7;
+}
+
+.grid_section_title {
+  font-size: 20px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grid_section_count {
+  font-size: 14px;
+  color: var(--col-fg-2);
+  flex-shrink: 0;
 }
 
 .grid_cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(var(--tile-size, 320px), 100%), 1fr));
   gap: var(--gap-1);
 }
 

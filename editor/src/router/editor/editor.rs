@@ -1,3 +1,4 @@
+use crate::util::project_from_segments;
 use crate::{
     components::{image::*, loading_spinner::Loading, navigation::Navigation},
     router::editor::{
@@ -19,11 +20,11 @@ use dioxus_logger::tracing;
 use dioxus_router::hooks::use_navigator;
 use notify::FsEventWatcher;
 use plottery_lib::{Layer, LayerPropsInheritable, SampleSettings};
-use plottery_project::{project_params_list_wrapper::ProjectParamsListWrapper, Project};
+use plottery_project::project_params_list_wrapper::ProjectParamsListWrapper;
 use plottery_server_lib::{
     estimation::estimate_plot_layer_duration, plot_setting::PlotSettings, task::send_task,
 };
-use std::{path::PathBuf, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 use tokio::{sync::Mutex, task::JoinHandle};
 
 fn is_gitkraken_installed() -> bool {
@@ -81,14 +82,19 @@ impl PartialEq for LayerChangeWrapper {
 #[component]
 pub fn Editor(project_path: Vec<String>) -> Element {
     let project_path_for_settings = project_path.clone();
-    let project = use_signal(|| {
-        let path_str = format!("/{}", project_path.join("/"));
-        let p = PathBuf::from(path_str);
-        Project::load_from_file(p).expect("Failed to load project from file")
-    });
+    let loaded = use_hook(|| project_from_segments(&project_path).map_err(|e| e.to_string()));
+    let nav = use_navigator();
+    let Ok(loaded) = loaded else {
+        tracing::error!(
+            "Cannot open project, returning home: {}",
+            loaded.unwrap_err()
+        );
+        nav.replace(Route::Browser {});
+        return rsx! {};
+    };
+    let project = use_signal(move || loaded);
 
     let release = true;
-    let nav = use_navigator();
 
     let gitkraken_installed = use_signal(is_gitkraken_installed);
     let vscode_installed = use_signal(is_vscode_installed);

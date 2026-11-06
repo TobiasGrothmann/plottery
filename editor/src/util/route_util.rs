@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use path_absolutize::Absolutize;
 use plottery_project::Project;
 
@@ -21,4 +23,9 @@ pub fn editor_route(project: &Project) -> Route {
     Route::Editor {
         project_path: project_path_segments(project),
     }
+}
+
+/// Loads the project behind a route's path segments (inverse of [`project_path_segments`]).
+pub fn project_from_segments(segments: &[String]) -> anyhow::Result<Project> {
+    Project::load_from_file(PathBuf::from("/").join(segments.join("/")))
 }
