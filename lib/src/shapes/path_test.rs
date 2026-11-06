@@ -3,8 +3,10 @@ mod test_path {
     use crate::{
         geometry::TransformMatrix,
         traits::{transform::Transform, ClosestPoint, Scale},
-        BoundingBox, Circle, Path, Plottable, Rect, SampleSettings, Translate, LARGE_EPSILON, V2,
+        Angle, BoundingBox, Circle, Path, Plottable, Rect, SampleSettings, Translate,
+        LARGE_EPSILON, V2,
     };
+    use std::f32::consts::PI;
 
     #[test]
     fn path() {
@@ -247,6 +249,31 @@ mod test_path {
 
         for point in reduced_points {
             assert!((point.dist(center) - radius).abs() < LARGE_EPSILON);
+        }
+    }
+
+    #[test]
+    fn arc_point_density_follows_sample_settings() {
+        let center = V2::new(1.0, -2.0);
+        let radius = 2.0;
+        let sample = SampleSettings::new(10.0);
+        let arc = Path::arc(
+            Angle::zero(),
+            Angle::quarter_rotation(),
+            center,
+            radius,
+            sample,
+        );
+
+        // quarter circle: length = PI / 2 * radius = PI, so about 32 segments
+        let expected = sample.get_num_points_for_length(PI * radius / 2.0) as usize + 1;
+        assert_eq!(arc.get_points_ref().len(), expected);
+        assert!(expected < 40);
+
+        assert_eq!(*arc.get_start().unwrap(), center + V2::new(radius, 0.0));
+        assert_eq!(*arc.get_end().unwrap(), center + V2::new(0.0, radius));
+        for p in arc.iter() {
+            assert!((p.dist(center) - radius).abs() < LARGE_EPSILON);
         }
     }
 

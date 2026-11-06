@@ -5,7 +5,6 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
     borrow::Cow,
-    f32::consts::PI,
     slice::{Iter, IterMut},
 };
 
@@ -145,7 +144,7 @@ impl Path {
         radius: f32,
         sample_settings: SampleSettings,
     ) -> Self {
-        let arc_length = (to.to_rad() - from.to_rad()).abs() * radius * 2.0 * PI;
+        let arc_length = (to.to_rad() - from.to_rad()).abs() * radius;
         let num_points = sample_settings.get_num_points_for_length(arc_length);
 
         (0..=num_points)
