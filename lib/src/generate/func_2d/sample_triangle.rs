@@ -28,35 +28,38 @@ impl SampleTriangle {
         }
     }
 
+    /// Segment of the iso-line at `target_value` through this triangle, if it crosses it.
     pub fn get_intersection_line(&self, target_value: f32) -> Option<Line> {
         if target_value < self.min_value || target_value > self.max_value {
             return None;
         }
 
-        let num_above = [self.a, self.b, self.c]
-            .iter()
-            .fold(0, |acc, point: &SamplePoint| {
-                acc + if point.value > target_value { 1 } else { 0 }
-            });
+        // A value exactly on the threshold counts as above, so it never yields a degenerate crossing.
+        let corners = [self.a, self.b, self.c];
+        let above = |point: &SamplePoint| point.value >= target_value;
+        let num_above = corners.iter().filter(|point| above(point)).count();
         if num_above == 0 || num_above == 3 {
             return None;
         }
 
         let mut points = Vec::with_capacity(2);
         for i in 0..3 {
-            let a = [self.a, self.b, self.c][i];
-            let b = [self.a, self.b, self.c][(i + 1) % 3];
-            if a.value > target_value && b.value > target_value
-                || a.value < target_value && b.value < target_value
-            {
+            let (mut a, mut b) = (corners[i], corners[(i + 1) % 3]);
+            if above(&a) == above(&b) {
                 continue;
             }
-            let err_a = (target_value - a.value).abs();
-            let err_b = (target_value - b.value).abs();
-            let t = err_a / (err_a + err_b);
+            // Interpolate from the lower value so neighbouring triangles get the identical point.
+            if a.value > b.value {
+                std::mem::swap(&mut a, &mut b);
+            }
+            let t = (target_value - a.value) / (b.value - a.value);
             points.push(a.pos.lerp(b.pos, t));
         }
 
+        if points[0] == points[1] {
+            // the iso-line only touches a corner
+            return None;
+        }
         Some(Line::new(points[0], points[1]))
     }
 }

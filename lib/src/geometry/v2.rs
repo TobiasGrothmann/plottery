@@ -452,7 +452,7 @@ impl V2 {
     }
 
     /// Returns a new V2 with a function applied to both x and y components.
-    pub fn map(&self, f: fn(f32) -> f32) -> Self {
+    pub fn map<F: Fn(f32) -> f32>(&self, f: F) -> Self {
         V2::new(f(self.x), f(self.y))
     }
 
