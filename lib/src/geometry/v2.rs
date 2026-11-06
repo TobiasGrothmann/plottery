@@ -180,7 +180,7 @@ impl V2 {
 
     /// Returns dimensions for B0 paper size (100.0 × 141.4 cm).
     pub fn b0() -> Self {
-        Self { x: 84.1, y: 118.9 }
+        Self { x: 100.0, y: 141.4 }
     }
     /// Returns dimensions for B1 paper size (70.7 × 100.0 cm).
     pub fn b1() -> Self {
