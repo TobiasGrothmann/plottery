@@ -94,6 +94,13 @@ impl Path {
     pub fn iter(&self) -> Iter<'_, V2> {
         self.points.iter()
     }
+    /// The segments between consecutive points.
+    pub fn segments(&self) -> impl Iterator<Item = Line> + '_ {
+        self.points
+            .iter()
+            .tuple_windows()
+            .map(|(from, to)| Line::new(*from, *to))
+    }
     pub fn iter_mut(&mut self) -> IterMut<'_, V2> {
         self.points.iter_mut()
     }
@@ -805,5 +812,11 @@ impl From<Vec<&V2>> for Path {
         Self {
             points: points.into_iter().cloned().collect(),
         }
+    }
+}
+
+impl From<Line> for Path {
+    fn from(line: Line) -> Self {
+        Path::line(line.from, line.to)
     }
 }

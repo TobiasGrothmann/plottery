@@ -5,7 +5,7 @@ pub use crate::shapes::rect::Rect;
 use crate::{
     geometry::TransformMatrix,
     traits::{ClosestPoint, Normalize, Scale, Scale2D, Transform, Translate},
-    Angle, BoundingBox, Containment, Mirror, Plottable, Rotate, Rotate90, SampleSettings, V2,
+    Angle, BoundingBox, Containment, Line, Mirror, Plottable, Rotate, Rotate90, SampleSettings, V2,
 };
 use serde::{Deserialize, Serialize};
 
@@ -484,5 +484,11 @@ impl From<&Path> for Shape {
 impl From<&Shape> for Shape {
     fn from(shape: &Shape) -> Self {
         shape.clone()
+    }
+}
+
+impl From<Line> for Shape {
+    fn from(line: Line) -> Self {
+        Shape::Path(line.into())
     }
 }

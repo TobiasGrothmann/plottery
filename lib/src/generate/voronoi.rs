@@ -152,10 +152,7 @@ impl Voronoi {
     }
 
     pub fn edges_layer(&self) -> Layer {
-        self.edges
-            .iter()
-            .map(|line| Path::new_shape_from(vec![line.from, line.to]))
-            .collect()
+        self.edges.iter().copied().collect()
     }
 
     pub fn cells_layer(&self) -> Layer {
