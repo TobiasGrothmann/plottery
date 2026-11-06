@@ -8,7 +8,7 @@ use crate::{Layer, Path, Rect, V2};
 /// ```
 /// # use plottery_lib::*;
 /// let size = V2::a4(); // A4 paper size
-/// let frame = Frame::new_xy(size, size.min_axis() * 0.1); // 10% margin of the smallest axis
+/// let frame = Frame::new_relative(size, 0.1); // 10% margin of the smaller side
 /// let frame_inner = frame.inner_rect();
 /// let frame_outer = frame.outer_rect();
 /// ```
@@ -51,6 +51,11 @@ impl Frame {
             size: rect.size(),
             margin,
         }
+    }
+
+    /// Creates a new `Frame` with a symmetric margin of `fraction` of the smaller side of `size`.
+    pub fn new_relative(size: V2, fraction: f32) -> Self {
+        Self::new_xy(size, size.min_axis() * fraction)
     }
 
     /// Creates a new `Frame` with a symmetric margin.

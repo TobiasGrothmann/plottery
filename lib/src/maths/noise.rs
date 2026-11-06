@@ -84,6 +84,11 @@ impl Noise {
     pub fn get(&self, location: V2) -> f32 {
         (self.inner.get_noise_2d(location.x, location.y) + 1.0) / 2.0
     }
+    /// The noise as a scalar field, e.g. for [`crate::MarchingSquares`] or weighted relaxation.
+    pub fn as_fn(&self) -> impl Fn(V2) -> f32 + '_ {
+        move |location| self.get(location)
+    }
+
     /// Noise value in `0..=1`
     pub fn get_3d(&self, location: V2, z: f32) -> f32 {
         (self.inner.get_noise_3d(location.x, location.y, z) + 1.0) / 2.0

@@ -99,6 +99,23 @@ impl Image {
     }
 
     /// Bilinearly interpolated color at a location in plotter space.
+    /// Brightness 0..1 at `location`, see [`Image::color_at`].
+    pub fn brightness_at(&self, location: V2) -> f32 {
+        self.color_at(location).brightness()
+    }
+    /// `1 - brightness` at `location`, dark areas give high values.
+    pub fn darkness_at(&self, location: V2) -> f32 {
+        1.0 - self.brightness_at(location)
+    }
+    /// The brightness as a scalar field, e.g. for [`crate::MarchingSquares`] or weighted relaxation.
+    pub fn brightness_fn(&self) -> impl Fn(V2) -> f32 + '_ {
+        move |location| self.brightness_at(location)
+    }
+    /// The darkness as a scalar field, see [`Image::brightness_fn`].
+    pub fn darkness_fn(&self) -> impl Fn(V2) -> f32 + '_ {
+        move |location| self.darkness_at(location)
+    }
+
     pub fn color_at(&self, location: V2) -> ColorRgb {
         let mut u = (location.x - self.bounds.bl().x) / self.bounds.width();
         let mut v = (self.bounds.tr().y - location.y) / self.bounds.height();
