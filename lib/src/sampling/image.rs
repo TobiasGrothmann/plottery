@@ -3,7 +3,7 @@ use std::path::Path as FilePath;
 use ::image::RgbImage;
 use anyhow::{Context, Result};
 
-use crate::{Alignment, ColorRgb, Normalize, Rect, V2i, V2};
+use crate::{Alignment, ColorRgb, Histogram, Normalize, Rect, V2i, V2};
 
 /// What [`Image::color_at`] returns outside of the image bounds.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
@@ -37,7 +37,7 @@ impl Image {
         Ok(Self::from_rgb(image.to_rgb8()))
     }
 
-    fn from_rgb(pixels: RgbImage) -> Self {
+    pub(crate) fn from_rgb(pixels: RgbImage) -> Self {
         let bounds = Rect::new(
             V2::zero(),
             V2::new(pixels.width() as f32, pixels.height() as f32),
@@ -102,10 +102,13 @@ impl Image {
         }
     }
 
-    /// Bilinearly interpolated color at a location in plotter space.
     /// Brightness 0..1 at `location`, see [`Image::color_at`].
     pub fn brightness_at(&self, location: V2) -> f32 {
         self.color_at(location).brightness()
+    }
+    /// Perceived lightness 0..1 at `location`, see [`ColorRgb::lightness`].
+    pub fn lightness_at(&self, location: V2) -> f32 {
+        self.color_at(location).lightness()
     }
     /// `1 - brightness` at `location`, dark areas give high values.
     pub fn darkness_at(&self, location: V2) -> f32 {
@@ -119,7 +122,39 @@ impl Image {
     pub fn darkness_fn(&self) -> impl Fn(V2) -> f32 + '_ {
         move |location| self.darkness_at(location)
     }
+    /// The perceived lightness as a scalar field, see [`Image::brightness_fn`].
+    pub fn lightness_fn(&self) -> impl Fn(V2) -> f32 + '_ {
+        move |location| self.lightness_at(location)
+    }
+    /// Any color metric as a scalar field, e.g. `image.field_fn(ColorRgb::luminance)`.
+    pub fn field_fn<'a, F: Fn(&ColorRgb) -> f32 + 'a>(
+        &'a self,
+        metric: F,
+    ) -> impl Fn(V2) -> f32 + 'a {
+        move |location| metric(&self.color_at(location))
+    }
 
+    /// All pixels, row-major starting at the top left.
+    pub fn pixels(&self) -> impl Iterator<Item = ColorRgb> + '_ {
+        self.pixels.pixels().map(|pixel| to_color(pixel.0))
+    }
+
+    /// Histogram of `metric` over every pixel, e.g. `image.histogram(ColorRgb::lightness)`.
+    pub fn histogram<F: Fn(&ColorRgb) -> f32>(&self, metric: F) -> Histogram {
+        Histogram::from_values(self.pixels().map(|pixel| metric(&pixel)))
+    }
+    /// Histogram of `metric` sampled on a grid inside `region` (plotter space),
+    /// e.g. only the part of the image that is inside the frame.
+    pub fn histogram_in<F: Fn(&ColorRgb) -> f32>(
+        &self,
+        region: Rect,
+        max_samples_per_side: usize,
+        metric: F,
+    ) -> Histogram {
+        Histogram::sample_field(region, max_samples_per_side, self.field_fn(metric))
+    }
+
+    /// Bilinearly interpolated color at a location in plotter space.
     pub fn color_at(&self, location: V2) -> ColorRgb {
         let mut u = (location.x - self.bounds.bl().x) / self.bounds.width();
         let mut v = (self.bounds.tr().y - location.y) / self.bounds.height();
@@ -157,7 +192,10 @@ impl Image {
         } else {
             (x.clamp(0, w - 1), y.clamp(0, h - 1))
         };
-        let [r, g, b] = self.pixels.get_pixel(x as u32, y as u32).0;
-        ColorRgb::new(r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0)
+        to_color(self.pixels.get_pixel(x as u32, y as u32).0)
     }
+}
+
+fn to_color([r, g, b]: [u8; 3]) -> ColorRgb {
+    ColorRgb::new(r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0)
 }

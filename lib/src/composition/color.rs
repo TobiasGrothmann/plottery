@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::LARGE_EPSILON;
+use crate::{Angle, LARGE_EPSILON};
 
 use super::color_names::{ColorName, COLOR_NAMES};
 
@@ -33,6 +33,10 @@ impl ColorRgb {
     pub fn hsv(&self) -> ColorHsv {
         (*self).into()
     }
+    /// Converts this RGB color to the perceptual Oklab format.
+    pub fn oklab(&self) -> ColorOklab {
+        (*self).into()
+    }
     /// Returns the hexadecimal representation of this color.
     /// ```
     /// # use plottery_lib::*;
@@ -51,9 +55,29 @@ impl ColorRgb {
         )
     }
 
-    /// Returns the average value of the red, green, and blue components.
+    /// Plain channel average of the encoded values. For perceived lightness use [`ColorRgb::lightness`].
     pub fn brightness(&self) -> f32 {
         (self.r.clamp(0.0, 1.0) + self.g.clamp(0.0, 1.0) + self.b.clamp(0.0, 1.0)) / 3.0
+    }
+
+    /// Perceived lightness 0..=1, see [`ColorOklab`].
+    pub fn lightness(&self) -> f32 {
+        ColorOklab::from(*self).l
+    }
+
+    /// Physical luminance Y 0..=1 (Rec. 709 weights on linearized sRGB).
+    pub fn luminance(&self) -> f32 {
+        let (r, g, b) = self.linear();
+        0.2126 * r + 0.7152 * g + 0.0722 * b
+    }
+
+    /// Clamped channels converted from sRGB to linear light.
+    fn linear(&self) -> (f32, f32, f32) {
+        (
+            srgb_to_linear(self.r.clamp(0.0, 1.0)),
+            srgb_to_linear(self.g.clamp(0.0, 1.0)),
+            srgb_to_linear(self.b.clamp(0.0, 1.0)),
+        )
     }
 
     /// Linear interpolation towards `other`, `t` from 0 to 1.
@@ -173,10 +197,123 @@ impl From<ColorHsv> for ColorRgb {
     }
 }
 
+fn srgb_to_linear(c: f32) -> f32 {
+    if c <= 0.04045 {
+        c / 12.92
+    } else {
+        ((c + 0.055) / 1.055).powf(2.4)
+    }
+}
+
+fn linear_to_srgb(c: f32) -> f32 {
+    if c <= 0.0031308 {
+        c * 12.92
+    } else {
+        1.055 * c.powf(1.0 / 2.4) - 0.055
+    }
+}
+
+/// Perceptual color: `l` lightness 0..=1, `a` green-red, `b` blue-yellow (roughly -0.4..=0.4).
+///
+/// Distances and interpolation in this space match how different the colors look.
+///
+/// ### Example
+/// ```
+/// # use plottery_lib::*;
+/// let lab = ColorRgb::red().oklab();
+/// let half_way = lab.lerp(ColorRgb::blue().oklab(), 0.5).rgb();
+/// ```
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default)]
+pub struct ColorOklab {
+    pub l: f32,
+    pub a: f32,
+    pub b: f32,
+}
+
+impl ColorOklab {
+    pub fn new(l: f32, a: f32, b: f32) -> Self {
+        Self { l, a, b }
+    }
+
+    /// Converts this Oklab color to RGB format.
+    pub fn rgb(&self) -> ColorRgb {
+        (*self).into()
+    }
+
+    /// Colorfulness, 0 for grays.
+    pub fn chroma(&self) -> f32 {
+        (self.a * self.a + self.b * self.b).sqrt()
+    }
+
+    pub fn hue(&self) -> Angle {
+        Angle::from_rad(self.b.atan2(self.a))
+    }
+
+    /// Perceptual distance (ΔE in Oklab), unlike [`ColorRgb::dist_euclidean`].
+    pub fn dist(&self, other: ColorOklab) -> f32 {
+        let dl = self.l - other.l;
+        let da = self.a - other.a;
+        let db = self.b - other.b;
+        (dl * dl + da * da + db * db).sqrt()
+    }
+
+    /// Perceptually even interpolation, `t` from 0 to 1.
+    #[must_use]
+    pub fn lerp(&self, other: ColorOklab, t: f32) -> ColorOklab {
+        ColorOklab::new(
+            self.l + (other.l - self.l) * t,
+            self.a + (other.a - self.a) * t,
+            self.b + (other.b - self.b) * t,
+        )
+    }
+}
+
+impl From<ColorRgb> for ColorOklab {
+    fn from(rgb: ColorRgb) -> Self {
+        let (r, g, b) = rgb.linear();
+        let l = (0.412_221_46 * r + 0.536_332_55 * g + 0.051_445_995 * b).cbrt();
+        let m = (0.211_903_5 * r + 0.680_699_5 * g + 0.107_396_96 * b).cbrt();
+        let s = (0.088_302_46 * r + 0.281_718_85 * g + 0.629_978_7 * b).cbrt();
+        Self {
+            l: 0.210_454_26 * l + 0.793_617_8 * m - 0.004_072_047 * s,
+            a: 1.977_998_5 * l - 2.428_592_2 * m + 0.450_593_7 * s,
+            b: 0.025_904_037 * l + 0.782_771_77 * m - 0.808_675_77 * s,
+        }
+    }
+}
+impl From<&ColorRgb> for ColorOklab {
+    fn from(rgb: &ColorRgb) -> Self {
+        ColorOklab::from(*rgb)
+    }
+}
+
+impl From<ColorOklab> for ColorRgb {
+    fn from(lab: ColorOklab) -> Self {
+        let l = lab.l + 0.396_337_78 * lab.a + 0.215_803_76 * lab.b;
+        let m = lab.l - 0.105_561_346 * lab.a - 0.063_854_17 * lab.b;
+        let s = lab.l - 0.089_484_18 * lab.a - 1.291_485_5 * lab.b;
+        let (l, m, s) = (l * l * l, m * m * m, s * s * s);
+        let to_channel = |linear: f32| linear_to_srgb(linear.clamp(0.0, 1.0)).clamp(0.0, 1.0);
+        Self {
+            r: to_channel(4.076_741_7 * l - 3.307_711_6 * m + 0.230_969_94 * s),
+            g: to_channel(-1.268_438 * l + 2.609_757_4 * m - 0.341_319_38 * s),
+            b: to_channel(-0.0041960863 * l - 0.703_418_6 * m + 1.707_614_7 * s),
+        }
+    }
+}
+
 impl PartialEq for ColorRgb {
     fn eq(&self, other: &Self) -> bool {
         (self.r - other.r).abs() < LARGE_EPSILON
             && (self.g - other.g).abs() < LARGE_EPSILON
+            && (self.b - other.b).abs() < LARGE_EPSILON
+    }
+}
+
+impl PartialEq for ColorOklab {
+    fn eq(&self, other: &Self) -> bool {
+        (self.l - other.l).abs() < LARGE_EPSILON
+            && (self.a - other.a).abs() < LARGE_EPSILON
             && (self.b - other.b).abs() < LARGE_EPSILON
     }
 }
