@@ -1,6 +1,26 @@
 #[cfg(test)]
 mod test_float {
-    use crate::FloatInterpolation;
+    use crate::{fractions, fractions_exclusive, linspace, FloatInterpolation};
+    use std::f32::consts::PI;
+
+    #[test]
+    fn helpers() {
+        assert!((0.0_f32.sin01() - 0.5).abs() < 1e-6);
+        assert!(((PI / 2.0).sin01() - 1.0).abs() < 1e-6);
+        assert!((0.0_f32.cos01() - 1.0).abs() < 1e-6);
+        assert_eq!(1.5_f32.clamp01(), 1.0);
+        assert_eq!((-0.5_f32).clamp01(), 0.0);
+
+        assert_eq!(
+            fractions(4).collect::<Vec<_>>(),
+            [0.0, 0.25, 0.5, 0.75, 1.0]
+        );
+        assert_eq!(
+            fractions_exclusive(4).collect::<Vec<_>>(),
+            [0.0, 0.25, 0.5, 0.75]
+        );
+        assert_eq!(linspace(1.0, 3.0, 3).collect::<Vec<_>>(), [1.0, 2.0, 3.0]);
+    }
 
     #[test]
     fn lerp() {

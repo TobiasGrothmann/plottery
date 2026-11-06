@@ -7,6 +7,7 @@ mod float_test;
 pub mod noise;
 mod noise_test;
 pub mod random;
+mod random_test;
 mod thread_local;
 
 pub use angle::*;

@@ -26,6 +26,12 @@ impl SampleSettings {
     }
 }
 
+impl From<f32> for SampleSettings {
+    fn from(points_per_unit: f32) -> Self {
+        Self::new(points_per_unit)
+    }
+}
+
 impl Default for SampleSettings {
     fn default() -> Self {
         Self {

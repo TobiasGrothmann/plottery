@@ -6,6 +6,13 @@ mod test_v2 {
     use crate::{Angle, Rotate, Rotate90, LARGE_EPSILON, V2};
 
     #[test]
+    fn scalar_on_the_left() {
+        let v = V2::new(1.0, -2.0);
+        assert_eq!(2.0 * v, V2::new(2.0, -4.0));
+        assert_eq!(2.0 * &v, v * 2.0);
+    }
+
+    #[test]
     fn polar() {
         assert_eq!(V2::polar(Angle::from_rad(0.0), 1.0), V2::new(1.0, 0.0));
         assert_eq!(

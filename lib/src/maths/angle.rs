@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::f32::consts::PI;
 
-use crate::{SampleSettings, GR};
+use crate::{SampleSettings, GOLDEN_RATIO};
 
 /// A struct for working with angles in different units (radians, degrees, or rotations).
 ///
@@ -14,7 +14,7 @@ use crate::{SampleSettings, GR};
 /// assert_eq!(angle_deg, angle_rad);
 /// assert_eq!(angle_deg, angle_rot);
 /// ```
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialOrd)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialOrd)]
 pub struct Angle {
     rad: f32,
 }
@@ -102,13 +102,17 @@ impl Angle {
         Self::from_degrees(-90.0)
     }
 
-    /// Creates an angle with the golden ratio number of rotations. See [`GR`].
+    /// Creates an angle with the golden ratio number of rotations. See [`GOLDEN_RATIO`].
     pub fn golden_ratio() -> Self {
-        Self::from_rotations(GR)
+        Self::from_rotations(GOLDEN_RATIO)
     }
-    /// Creates an angle with 1.0 / golden ratio number of rotations. See [`GR`].
+    /// Creates an angle with 1.0 / golden ratio number of rotations. See [`GOLDEN_RATIO`].
     pub fn golden_ratio_inverse() -> Self {
-        Self::from_rotations(1.0 / GR)
+        Self::from_rotations(1.0 / GOLDEN_RATIO)
+    }
+    /// The golden angle, ≈ 137.5°: the circle split in the golden ratio.
+    pub fn golden_angle() -> Self {
+        Self::from_rotations(1.0 - 1.0 / GOLDEN_RATIO)
     }
     /// Creates an angle with √2 number of rotations.
     pub fn root_two() -> Self {
