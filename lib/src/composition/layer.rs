@@ -289,17 +289,17 @@ impl Layer {
     pub fn to_svg(&self, scale: f32) -> Document {
         let prepared = self.get_prepared_for_svg();
 
-        let bounding_box = prepared.bounding_box();
-        if bounding_box.is_none() {
+        let Some(bounding_box) = prepared.bounding_box() else {
             return Document::new();
-        }
-        let bounding_box = bounding_box.unwrap();
-        let svg_max_coords: V2 = bounding_box.tr() * scale;
+        };
+        // The view box follows the content so shapes below or left of the origin stay visible.
+        let origin: V2 = bounding_box.bl() * scale;
+        let size: V2 = bounding_box.size() * scale;
 
         Document::new()
-            .set("viewBox", (0, 0, svg_max_coords.x, svg_max_coords.y))
-            .set("width", svg_max_coords.x)
-            .set("height", svg_max_coords.y)
+            .set("viewBox", (origin.x, origin.y, size.x, size.y))
+            .set("width", size.x)
+            .set("height", size.y)
             .add(prepared.get_svg_group(scale, &LayerPropsInheritable::default()))
     }
     fn get_prepared_for_svg(&self) -> Layer {
