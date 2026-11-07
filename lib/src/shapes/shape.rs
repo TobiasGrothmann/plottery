@@ -4,7 +4,7 @@ pub use crate::shapes::rect::Rect;
 
 use crate::{
     geometry::TransformMatrix,
-    traits::{ClosestPoint, Normalize, Scale, Scale2D, Transform, Translate},
+    traits::{ClosestPoint, Fit, Scale, Scale2D, Transform, Translate},
     Angle, BoundingBox, Containment, Line, Mirror, Plottable, Rotate, Rotate90, SampleSettings,
     LARGE_EPSILON, V2,
 };
@@ -346,7 +346,7 @@ impl Scale2D for Shape {
     }
 }
 
-impl Normalize for Shape {}
+impl Fit for Shape {}
 
 impl Mirror for Shape {
     fn mirror_x(&self) -> Self {

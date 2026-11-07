@@ -1,35 +1,52 @@
 #[cfg(test)]
 mod test_layout {
     use crate::{
-        text::layout::{block_y_offset, break_lines, line_x_offset},
+        text::layout::{
+            block_y_offset, break_lines, break_lines_balanced, line_width, line_x_offset,
+        },
         FontMetrics, TextAlign, VerticalAlign,
     };
 
     #[test]
     fn breaks_greedily_at_spaces() {
-        assert_eq!(
-            break_lines(&[3.0, 3.0, 3.0], 1.0, Some(7.5)),
-            vec![0..2, 2..3]
-        );
+        let tokens = [(3.0, 1.0), (3.0, 1.0), (3.0, 1.0)];
+        assert_eq!(break_lines(&tokens, Some(7.5)), vec![0..2, 2..3]);
     }
 
     #[test]
     fn over_long_word_gets_its_own_line() {
-        assert_eq!(
-            break_lines(&[1.0, 9.0, 1.0], 1.0, Some(5.0)),
-            vec![0..1, 1..2, 2..3]
-        );
+        let tokens = [(1.0, 1.0), (9.0, 1.0), (1.0, 1.0)];
+        assert_eq!(break_lines(&tokens, Some(5.0)), vec![0..1, 1..2, 2..3]);
     }
 
     #[test]
     fn no_max_width_is_one_line() {
-        assert_eq!(break_lines(&[3.0, 3.0, 3.0], 1.0, None), vec![0..3]);
-        assert!(break_lines(&[], 1.0, Some(1.0)).is_empty());
+        let tokens = [(3.0, 1.0), (3.0, 1.0), (3.0, 1.0)];
+        assert_eq!(break_lines(&tokens, None), vec![0..3]);
+        assert!(break_lines(&[], Some(1.0)).is_empty());
+    }
+
+    #[test]
+    fn zero_glue_after_a_hyphen_lets_the_part_fit() {
+        let hyphenated = [(3.0, 0.0), (3.0, 1.0), (3.0, 1.0)];
+        assert_eq!(break_lines(&hyphenated, Some(6.5)), vec![0..2, 2..3]);
+        let spaced = [(3.0, 1.0), (3.0, 1.0), (3.0, 1.0)];
+        assert_eq!(break_lines(&spaced, Some(6.5)), vec![0..1, 1..2, 2..3]);
+        assert!((line_width(&hyphenated, 0..2) - 6.0).abs() < 1e-6);
+        assert!((line_width(&spaced, 0..3) - 11.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn balanced_breaks_are_less_ragged_than_greedy() {
+        let tokens = [(2.0, 1.0), (2.0, 1.0), (2.0, 1.0), (2.0, 1.0), (1.0, 1.0)];
+        assert_eq!(break_lines(&tokens, Some(8.0)), vec![0..3, 3..5]);
+        assert_eq!(break_lines_balanced(&tokens, 8.0), vec![0..2, 2..5]);
     }
 
     #[test]
     fn x_offsets() {
         assert_eq!(line_x_offset(TextAlign::Left, 4.0), 0.0);
+        assert_eq!(line_x_offset(TextAlign::Justify, 4.0), 0.0);
         assert_eq!(line_x_offset(TextAlign::Center, 4.0), -2.0);
         assert_eq!(line_x_offset(TextAlign::Right, 4.0), -4.0);
     }

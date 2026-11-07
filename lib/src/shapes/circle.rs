@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::f32::consts::PI;
 
 use crate::{
-    traits::{ClosestPoint, Mirror, Normalize, Scale, Translate},
+    traits::{ClosestPoint, Fit, Mirror, Scale, Translate},
     Angle, BoundingBox, Containment, Path, Plottable, Rect, Rotate, Rotate90, SampleSettings,
     Shape, LARGE_EPSILON, V2,
 };
@@ -496,7 +496,7 @@ impl Mirror for Circle {
     }
 }
 
-impl Normalize for Circle {}
+impl Fit for Circle {}
 
 impl BoundingBox for Circle {
     fn bounding_box(&self) -> Option<Rect> {

@@ -15,7 +15,7 @@ use svg::{
 
 use crate::{
     geometry::TransformMatrix,
-    traits::{Normalize, Scale, Scale2D, Transform, Translate},
+    traits::{Fit, Scale, Scale2D, Transform, Translate},
     Angle, BoundingBox, Circle, Masked, Mirror, Path, Plottable, Rect, Rotate, Rotate90,
     SampleSettings, Shape, V2,
 };
@@ -1272,7 +1272,7 @@ impl Scale2D for Layer {
     }
 }
 
-impl Normalize for Layer {}
+impl Fit for Layer {}
 
 impl Mirror for Layer {
     fn mirror_x(&self) -> Self {

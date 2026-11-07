@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    geometry::TransformMatrix, Angle, BoundingBox, ClosestPoint, Line, Mirror, Normalize, Path,
-    Rect, Rotate, Rotate90, SampleSettings, Scale, Scale2D, Segment, Transform, Translate, V2,
+    geometry::TransformMatrix, Angle, BoundingBox, ClosestPoint, Fit, Line, Mirror, Path, Rect,
+    Rotate, Rotate90, SampleSettings, Scale, Scale2D, Segment, Transform, Translate, V2,
 };
 
 /// Chain of connected segments, optionally closed. Build with [`Spline::start`] or the `through*` constructors.
@@ -209,7 +209,7 @@ impl BoundingBox for Spline {
     }
 }
 
-impl Normalize for Spline {}
+impl Fit for Spline {}
 
 /// Approximate, measured on the sampled path.
 impl ClosestPoint for Spline {
