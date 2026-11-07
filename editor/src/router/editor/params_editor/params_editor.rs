@@ -20,6 +20,7 @@ use crate::router::editor::{
         paper_field::PaperField,
         param_tree::{get_param_mut_by_path, get_param_value_mut_by_path, leaf_value_mut},
         range_field::RangeField,
+        seed_field::SeedField,
         slider::Slider,
         string_field::StringField,
         v2_field::V2Field,
@@ -304,6 +305,11 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, props: &ParamsEdito
         ProjectParamValue::V2(_) => {
             rsx! {
                 V2Field { key: "{key}", ..LeafProps::new(param, path, props) }
+            }
+        }
+        ProjectParamValue::Seed(_) => {
+            rsx! {
+                SeedField { key: "{key}", ..LeafProps::new(param, path, props) }
             }
         }
         ProjectParamValue::Struct(_)

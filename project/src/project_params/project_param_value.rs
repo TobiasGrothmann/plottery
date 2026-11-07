@@ -2,6 +2,7 @@ use anyhow::Result;
 use plottery_lib::{Paper, V2};
 
 use super::angle_unit::AngleUnit;
+use super::seed::ProjectParamSeed;
 use serde::{Deserialize, Serialize};
 
 pub use super::curve_2d::Curve2D;
@@ -49,6 +50,7 @@ pub enum ProjectParamValue {
         unit: AngleUnit,
     },
     V2(V2),
+    Seed(ProjectParamSeed),
 }
 
 impl ProjectParamValue {
@@ -135,6 +137,7 @@ impl ProjectParamValue {
             ProjectParamValue::RangeI32 { .. } => "range<i32>".to_string(),
             ProjectParamValue::Angle { .. } => "angle".to_string(),
             ProjectParamValue::V2(_) => "v2".to_string(),
+            ProjectParamValue::Seed(_) => "seed".to_string(),
         }
     }
 
@@ -171,6 +174,7 @@ impl ProjectParamValue {
                 unit.short_name()
             ),
             ProjectParamValue::V2(v) => format!("({}, {})", v.x, v.y),
+            ProjectParamValue::Seed(seed) => seed.current.to_string(),
         }
     }
 }

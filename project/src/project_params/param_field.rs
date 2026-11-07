@@ -11,6 +11,7 @@ use super::project_param::ProjectParam;
 use super::project_param_optional::ProjectParamOptional;
 use super::project_param_value::ProjectParamValue;
 use super::project_param_vec::ProjectParamVec;
+use super::seed::{ProjectParamSeed, Seed};
 
 /// A type that can be used as a field of a `#[derive(PlotteryParams)]` struct.
 pub trait ParamField: Sized {
@@ -235,6 +236,21 @@ impl ParamField for V2 {
         match value {
             ProjectParamValue::V2(v) => Ok(*v),
             other => Err(param_type_mismatch("v2", other)),
+        }
+    }
+}
+
+impl ParamField for Seed {
+    fn default_param_value() -> ProjectParamValue {
+        Self::default().to_param_value()
+    }
+    fn to_param_value(&self) -> ProjectParamValue {
+        ProjectParamValue::Seed(ProjectParamSeed::new(self.value))
+    }
+    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
+        match value {
+            ProjectParamValue::Seed(seed) => Ok(Seed::new(seed.current)),
+            other => Err(param_type_mismatch("seed", other)),
         }
     }
 }

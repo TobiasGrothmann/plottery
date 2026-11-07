@@ -7,6 +7,7 @@ pub mod paper_field;
 pub mod param_tree;
 pub mod params_editor;
 pub mod range_field;
+pub mod seed_field;
 pub mod slider;
 pub mod string_field;
 pub mod v2_field;
