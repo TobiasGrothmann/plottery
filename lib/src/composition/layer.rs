@@ -1088,7 +1088,7 @@ impl Layer {
 
     /// Returns a new `Layer` without any sublayers direclty containing all [`Shape`]s of this `Layer` and its sublayers.
     ///
-    /// see also [`Layer::iter_flattened`].
+    /// see also [`Layer::iter`].
     #[must_use]
     pub fn flatten(&self) -> Self {
         Layer::new_from_shapes_and_layers(self.iter().cloned().collect(), Vec::new())
