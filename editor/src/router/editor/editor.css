@@ -74,6 +74,20 @@
   background-size: 16px 16px;
 }
 
+.preview.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+}
+.fullscreen-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1;
+  border-radius: var(--r);
+  background: var(--bg-2);
+}
+
 .preview-stage {
   position: absolute;
   inset: 0;

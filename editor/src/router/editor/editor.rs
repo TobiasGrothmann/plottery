@@ -108,6 +108,12 @@ fn run_status(state: &RunningState) -> (Tone, &'static str) {
     }
 }
 
+/// Eval script: true while a text field has focus, so single-key shortcuts stay out of the way.
+const FOCUS_IS_TEXT_FIELD: &str = r#"
+const el = document.activeElement;
+return !!el && (["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName) || el.isContentEditable);
+"#;
+
 /// The last two parent folders of `dir`, outermost first, with their paths.
 fn parent_crumbs(dir: &Path) -> Vec<(String, PathBuf)> {
     let mut crumbs: Vec<(String, PathBuf)> = dir
@@ -399,6 +405,7 @@ pub fn Editor(project_path: Vec<String>) -> Element {
     };
 
     let mut preview_zoom = use_signal(PreviewZoom::default);
+    let mut fullscreen = use_signal(|| false);
 
     // click-to-pick for V2 params
     let mut pick_target = use_context_provider(|| PickTarget {
@@ -543,6 +550,23 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                 let modifiers = event.modifiers();
                 let command = modifiers.meta() || modifiers.ctrl();
                 let zero = matches!(event.key(), Key::Character(ref key) if key == "0");
+                let f = matches!(event.key(), Key::Character(ref key) if key.eq_ignore_ascii_case("f"));
+                if f && !command && !modifiers.alt() {
+                    spawn(async move {
+                        let typing = document::eval(FOCUS_IS_TEXT_FIELD).await;
+                        if typing.ok().and_then(|v| v.as_bool()) != Some(true) {
+                            fullscreen.toggle();
+                            preview_zoom.set(PreviewZoom::default());
+                        }
+                    });
+                    return;
+                }
+                if event.key() == Key::Escape && fullscreen() {
+                    event.prevent_default();
+                    fullscreen.set(false);
+                    preview_zoom.set(PreviewZoom::default());
+                    return;
+                }
                 if event.key() == Key::Escape || (command && zero) {
                     if !preview_zoom.peek().is_fit() {
                         event.prevent_default();
@@ -801,7 +825,26 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                     }
                 }
                 main { class: "center",
-                    section { class: if busy { "preview busy" } else { "preview" },
+                    section {
+                        class: match (busy, fullscreen()) {
+                            (false, false) => "preview",
+                            (true, false) => "preview busy",
+                            (false, true) => "preview fullscreen",
+                            (true, true) => "preview busy fullscreen",
+                        },
+                        if fullscreen() {
+                            div { class: "fullscreen-close",
+                                IconButton {
+                                    icon: IconName::X,
+                                    label: "Close fullscreen",
+                                    title: "Close fullscreen (Esc)",
+                                    onclick: move |_| {
+                                        fullscreen.set(false);
+                                        preview_zoom.set(PreviewZoom::default());
+                                    },
+                                }
+                            }
+                        }
                         if project().get_editor_preview_image_path().exists() {
                             if let Some(svg) = svg() {
                                 SVGImage {
