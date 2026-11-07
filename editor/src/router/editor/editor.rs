@@ -4,6 +4,7 @@ use crate::{
         icon::IconName,
         image::*,
         loading_spinner::Loading,
+        modal::{Modal, ModalWidth},
         resizer::{Axis, Resizer},
         ui::{Button, IconButton, PanelHeader, Size, StatusPill, Switch, Tone, Variant},
     },
@@ -18,6 +19,7 @@ use crate::{
             params_editor::ParamsEditor,
         },
         pick_target::PickTarget,
+        plot_settings_editor::plot_settings_editor::PlotSettingsEditor,
         project_hot_reload::start_hot_reload,
         project_runner::ProjectRunner,
         running_state::RunningState,
@@ -132,7 +134,6 @@ impl PartialEq for LayerChangeWrapper {
 
 #[component]
 pub fn Editor(project_path: Vec<String>) -> Element {
-    let project_path_for_settings = project_path.clone();
     let loaded = use_hook(|| project_from_segments(&project_path).map_err(|e| e.to_string()));
     let nav = use_navigator();
     let Ok(loaded) = loaded else {
@@ -477,6 +478,9 @@ pub fn Editor(project_path: Vec<String>) -> Element {
     let crumb = parent_crumb(&project().dir);
     let param_count = project_params.read().list.len();
 
+    let mut show_plot_settings = use_signal(|| false);
+    let mut plot_settings_for_reset = plot_settings;
+
     let mut layout = use_signal(|| AppState::load_or_default().panel_layout.clamped());
     let save_layout = move || {
         let mut state = AppState::load_or_default();
@@ -666,11 +670,7 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                     Button {
                         variant: Variant::Ghost,
                         icon: IconName::Sliders,
-                        onclick: move |_| {
-                            nav.push(Route::ProjectPlotSettings {
-                                project_path: project_path_for_settings.clone(),
-                            });
-                        },
+                        onclick: move |_| show_plot_settings.set(true),
                         "Plot settings"
                     }
                     Button {
@@ -855,6 +855,29 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                         span { class: "rail-label", "Layers" }
                     }
                 }
+            }
+            Modal {
+                open: show_plot_settings,
+                width: ModalWidth::Table,
+                title: "Plot settings",
+                subtitle: "Saved with {project().config.name}. Changes apply to the next plot you send.",
+                body: rsx! {
+                    PlotSettingsEditor { plot_settings }
+                },
+                footer: rsx! {
+                    Button {
+                        variant: Variant::Ghost,
+                        size: Size::Sm,
+                        icon: IconName::Reset,
+                        onclick: move |_| plot_settings_for_reset.set(PlotSettings::default()),
+                        "Reset to defaults"
+                    }
+                    Button {
+                        variant: Variant::Primary,
+                        onclick: move |_| show_plot_settings.set(false),
+                        "Done"
+                    }
+                },
             }
         }
     }

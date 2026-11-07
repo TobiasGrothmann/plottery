@@ -1,33 +1,20 @@
-.PlotSettingsEditor {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  column-gap: var(--gap-1);
-  row-gap: var(--gap-1);
-  background-color: var(--col-bg-1);
-  padding: var(--gap-1);
-  align-content: start;
+.fsection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.PlotSettingsEditor .title {
-  margin: 0;
+.ftable-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg-1);
 }
 
-.PlotSettingsEditor .reset_button {
-  justify-self: end;
+.affix-end span {
+  left: auto;
+  right: 8px;
 }
-
-.PlotSettingsEditor .section_title {
-  margin-top: var(--gap-1);
-  margin-bottom: 0;
-  font-weight: bold;
-}
-
-.PlotSettingsEditor .section_spacer {
-  margin-top: var(--gap-1);
-}
-
-.PlotSettingsEditor input {
-  background-color: var(--col-bg-2);
-  width: 100%;
-  box-sizing: border-box;
+.affix-end .input {
+  padding-left: 8px;
+  padding-right: 28px;
 }
