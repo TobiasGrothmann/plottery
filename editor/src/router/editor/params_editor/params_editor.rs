@@ -14,6 +14,7 @@ use crate::router::editor::{
     params_editor::{
         angle_field::AngleField,
         bool_field::BoolField,
+        color_field::ColorField,
         curve_2d_field::Curve2DField,
         enum_field::EnumField,
         image_field::ImageField,
@@ -331,6 +332,11 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, props: &ParamsEdito
         ProjectParamValue::Noise(_) => {
             rsx! {
                 NoiseField { key: "{key}", ..LeafProps::new(param, path, props) }
+            }
+        }
+        ProjectParamValue::Color(_) => {
+            rsx! {
+                ColorField { key: "{key}", ..LeafProps::new(param, path, props) }
             }
         }
         ProjectParamValue::Struct(_)

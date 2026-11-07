@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 pub use anyhow::Error as ParamFieldError;
-use plottery_lib::{Angle, NoiseSettings, Paper, Range, V2};
+use plottery_lib::{Angle, ColorRgb, NoiseSettings, Paper, Range, V2};
 
 use super::angle_unit::AngleUnit;
 
@@ -284,6 +284,21 @@ impl ParamField for NoiseSettings {
         match value {
             ProjectParamValue::Noise(noise) => Ok(*noise),
             other => Err(param_type_mismatch("noise", other)),
+        }
+    }
+}
+
+impl ParamField for ColorRgb {
+    fn default_param_value() -> ProjectParamValue {
+        ProjectParamValue::Color(ColorRgb::black())
+    }
+    fn to_param_value(&self) -> ProjectParamValue {
+        ProjectParamValue::Color(*self)
+    }
+    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
+        match value {
+            ProjectParamValue::Color(color) => Ok(*color),
+            other => Err(param_type_mismatch("color", other)),
         }
     }
 }
