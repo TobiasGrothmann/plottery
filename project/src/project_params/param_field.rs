@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 pub use anyhow::Error as ParamFieldError;
-use plottery_lib::Paper;
+use plottery_lib::{Paper, Range};
 
 use super::curve_2d::Curve2D;
 use super::curve_2d_norm::Curve2DNorm;
@@ -134,6 +134,72 @@ impl ParamField for Paper {
         match value {
             ProjectParamValue::Paper(paper) => Ok(*paper),
             other => Err(param_type_mismatch("paper", other)),
+        }
+    }
+}
+
+impl ParamField for Range<f32> {
+    fn default_param_value() -> ProjectParamValue {
+        Self::default().to_param_value()
+    }
+    fn to_param_value(&self) -> ProjectParamValue {
+        ProjectParamValue::RangeF32 {
+            min: self.min,
+            max: self.max,
+            bounds: None,
+        }
+    }
+    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
+        match value {
+            ProjectParamValue::RangeF32 { min, max, .. } => Ok(Range::new(*min, *max)),
+            other => Err(param_type_mismatch("range<f32>", other)),
+        }
+    }
+}
+
+impl RangedParamField for Range<f32> {
+    type Bound = f32;
+    fn default_ranged_param_value(lo: f32, hi: f32) -> ProjectParamValue {
+        Range::new(lo, hi).to_ranged_param_value(lo, hi)
+    }
+    fn to_ranged_param_value(&self, lo: f32, hi: f32) -> ProjectParamValue {
+        ProjectParamValue::RangeF32 {
+            min: self.min.clamp(lo, hi),
+            max: self.max.clamp(lo, hi),
+            bounds: Some((lo, hi)),
+        }
+    }
+}
+
+impl ParamField for Range<i32> {
+    fn default_param_value() -> ProjectParamValue {
+        Self::default().to_param_value()
+    }
+    fn to_param_value(&self) -> ProjectParamValue {
+        ProjectParamValue::RangeI32 {
+            min: self.min,
+            max: self.max,
+            bounds: None,
+        }
+    }
+    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
+        match value {
+            ProjectParamValue::RangeI32 { min, max, .. } => Ok(Range::new(*min, *max)),
+            other => Err(param_type_mismatch("range<i32>", other)),
+        }
+    }
+}
+
+impl RangedParamField for Range<i32> {
+    type Bound = i32;
+    fn default_ranged_param_value(lo: i32, hi: i32) -> ProjectParamValue {
+        Range::new(lo, hi).to_ranged_param_value(lo, hi)
+    }
+    fn to_ranged_param_value(&self, lo: i32, hi: i32) -> ProjectParamValue {
+        ProjectParamValue::RangeI32 {
+            min: self.min.clamp(lo, hi),
+            max: self.max.clamp(lo, hi),
+            bounds: Some((lo, hi)),
         }
     }
 }

@@ -12,9 +12,17 @@ use super::project_param_vec::ProjectParamVec;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ProjectParamValue {
     Float(f32),
-    FloatRanged { val: f32, min: f32, max: f32 },
+    FloatRanged {
+        val: f32,
+        min: f32,
+        max: f32,
+    },
     Int(i32),
-    IntRanged { val: i32, min: i32, max: i32 },
+    IntRanged {
+        val: i32,
+        min: i32,
+        max: i32,
+    },
     Bool(bool),
     Curve2DNorm(Curve2DNorm),
     Curve2D(Curve2D),
@@ -24,6 +32,16 @@ pub enum ProjectParamValue {
     Enum(ProjectParamEnum),
     String(String),
     Paper(Paper),
+    RangeF32 {
+        min: f32,
+        max: f32,
+        bounds: Option<(f32, f32)>,
+    },
+    RangeI32 {
+        min: i32,
+        max: i32,
+        bounds: Option<(i32, i32)>,
+    },
 }
 
 impl ProjectParamValue {
@@ -106,6 +124,8 @@ impl ProjectParamValue {
             ProjectParamValue::Enum(_) => "enum".to_string(),
             ProjectParamValue::String(_) => "string".to_string(),
             ProjectParamValue::Paper(_) => "paper".to_string(),
+            ProjectParamValue::RangeF32 { .. } => "range<f32>".to_string(),
+            ProjectParamValue::RangeI32 { .. } => "range<i32>".to_string(),
         }
     }
 
@@ -134,6 +154,8 @@ impl ProjectParamValue {
             ProjectParamValue::Enum(param_enum) => param_enum.selected.clone(),
             ProjectParamValue::String(val) => val.clone(),
             ProjectParamValue::Paper(paper) => paper.to_string(),
+            ProjectParamValue::RangeF32 { min, max, .. } => format!("{min} – {max}"),
+            ProjectParamValue::RangeI32 { min, max, .. } => format!("{min} – {max}"),
         }
     }
 }

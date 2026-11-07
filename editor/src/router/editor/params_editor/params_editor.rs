@@ -18,6 +18,7 @@ use crate::router::editor::{
         number_field::NumberField,
         paper_field::PaperField,
         param_tree::{get_param_mut_by_path, get_param_value_mut_by_path, leaf_value_mut},
+        range_field::RangeField,
         slider::Slider,
         string_field::StringField,
     },
@@ -286,6 +287,11 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, props: &ParamsEdito
         ProjectParamValue::Paper(_) => {
             rsx! {
                 PaperField { key: "{key}", ..LeafProps::new(param, path, props) }
+            }
+        }
+        ProjectParamValue::RangeF32 { .. } | ProjectParamValue::RangeI32 { .. } => {
+            rsx! {
+                RangeField { key: "{key}", ..LeafProps::new(param, path, props) }
             }
         }
         ProjectParamValue::Struct(_)

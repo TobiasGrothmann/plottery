@@ -47,6 +47,20 @@ fn value_schema_equal(left: &ProjectParamValue, right: &ProjectParamValue) -> bo
         (ProjectParamValue::Vec(left_vec), ProjectParamValue::Vec(right_vec)) => {
             value_schema_equal(&left_vec.item_prototype, &right_vec.item_prototype)
         }
+        (
+            ProjectParamValue::RangeF32 { bounds, .. },
+            ProjectParamValue::RangeF32 {
+                bounds: bounds_other,
+                ..
+            },
+        ) => bounds == bounds_other,
+        (
+            ProjectParamValue::RangeI32 { bounds, .. },
+            ProjectParamValue::RangeI32 {
+                bounds: bounds_other,
+                ..
+            },
+        ) => bounds == bounds_other,
         (ProjectParamValue::Enum(left_enum), ProjectParamValue::Enum(right_enum)) => {
             left_enum.variants == right_enum.variants
         }
