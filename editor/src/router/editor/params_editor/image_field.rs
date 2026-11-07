@@ -1,4 +1,7 @@
-use std::path::PathBuf;
+use std::{
+    path::{Path, PathBuf},
+    time::UNIX_EPOCH,
+};
 
 use dioxus::prelude::*;
 use dioxus_logger::tracing;
@@ -12,6 +15,16 @@ use crate::{
     },
     util::image_import::{import_image, resolve_image_path, DOWNSCALE_MAX_PX},
 };
+
+/// Cache-busting key so a re-imported file with the same name refreshes the preview.
+fn file_mtime_millis(path: &Path) -> u128 {
+    std::fs::metadata(path)
+        .and_then(|m| m.modified())
+        .ok()
+        .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+        .map(|d| d.as_millis())
+        .unwrap_or(0)
+}
 
 fn edit_image(props: &LeafProps, edit: impl FnOnce(&mut ProjectParamImage)) {
     props.edit(|value| {
@@ -31,10 +44,13 @@ pub fn ImageField(props: LeafProps) -> Element {
     let mut import_error = use_signal_sync(|| None::<String>);
 
     let current = image.path.clone();
-    let missing = current
+    let resolved = current
         .as_deref()
-        .map(|stored| !resolve_image_path(&props.project_dir, stored).exists())
-        .unwrap_or(false);
+        .map(|stored| resolve_image_path(&props.project_dir, stored));
+    let missing = resolved.as_ref().map(|p| !p.exists()).unwrap_or(false);
+    let preview_src = resolved
+        .filter(|p| p.exists())
+        .map(|p| format!("{}?{}", p.to_string_lossy(), file_mtime_millis(&p)));
     let shown_name = current
         .as_deref()
         .map(file_name_of)
@@ -52,7 +68,7 @@ pub fn ImageField(props: LeafProps) -> Element {
         div { class: "ImageField",
             div { class: "image_row",
                 Segmented {
-                    options: vec!["copy".to_string(), "link".to_string()],
+                    options: vec!["copy into project".to_string(), "link to original".to_string()],
                     selected: Some(if copy_mode() { 0 } else { 1 }),
                     onselect: move |index: usize| copy_mode.set(index == 0),
                 }
@@ -124,6 +140,9 @@ pub fn ImageField(props: LeafProps) -> Element {
             }
             if let Some(err) = import_error() {
                 p { class: "image_missing", "{err}" }
+            }
+            if let Some(src) = preview_src {
+                img { class: "image_preview", src: "{src}", title: current.clone().unwrap_or_default() }
             }
             if !recent.is_empty() {
                 div { class: "image_row",

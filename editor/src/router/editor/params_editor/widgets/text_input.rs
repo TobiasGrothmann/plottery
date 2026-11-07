@@ -8,13 +8,15 @@ pub struct TextInputProps {
     pub oncommit: EventHandler<String>,
 }
 
-/// Text input for a string, commits on Enter or blur.
+/// Multi-line text input that grows with its content, commits on blur.
 #[component]
 pub fn TextInput(props: TextInputProps) -> Element {
+    let rows = props.value.lines().count().max(1);
     rsx! {
         style { { include_str!("widgets.css") } }
         div { class: "TextInput",
-            input {
+            textarea {
+                rows: "{rows}",
                 placeholder: "{props.placeholder}",
                 value: "{props.value}",
                 onchange: move |event| props.oncommit.call(event.value()),

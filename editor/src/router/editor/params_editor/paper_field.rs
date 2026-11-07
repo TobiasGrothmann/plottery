@@ -46,10 +46,9 @@ pub fn PaperField(props: LeafProps) -> Element {
     };
     let resolved = paper.size();
     let resolved_text = format!(
-        "{} × {} cm, margin {} cm",
+        "{} × {} cm",
         format_number(resolved.x),
-        format_number(resolved.y),
-        format_number(paper.margin_cm())
+        format_number(resolved.y)
     );
 
     let kind_props = props.clone();

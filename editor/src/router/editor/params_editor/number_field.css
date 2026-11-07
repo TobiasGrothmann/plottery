@@ -1,4 +1,4 @@
-input {
+.NumberField input {
   background-color: var(--col-bg-2);
   width: 100%;
   box-sizing: border-box;

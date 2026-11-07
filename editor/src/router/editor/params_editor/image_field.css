@@ -48,3 +48,12 @@
   font-size: 14px;
   color: var(--col-fg-2);
 }
+
+.image_preview {
+  max-width: 100%;
+  max-height: 160px;
+  object-fit: contain;
+  justify-self: start;
+  align-self: flex-start;
+  background-color: var(--col-bg-2);
+}
