@@ -141,3 +141,6 @@ h1,h2,h3,p{margin:0}
 .input[type=number]{-moz-appearance:textfield}
 .input::-webkit-outer-spin-button,.input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .grow{flex:1;min-width:0}
+.input.invalid,.input.invalid:focus{border-color:var(--err)}
+.field_error{display:flex;align-items:flex-start;gap:6px;color:var(--err)}
+.field_error .i{width:14px;height:14px;margin-top:1px}

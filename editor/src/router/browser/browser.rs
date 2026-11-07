@@ -20,6 +20,7 @@ use crate::{
         folder_tree::FolderTree,
         project_grid::ProjectGrid,
     },
+    router::project_add::project_create::NewProjectModal,
     routes::Route,
     util::editor_route,
 };
@@ -59,6 +60,7 @@ pub fn Browser() -> Element {
     use_effect(move || app_state.read().save());
 
     let nav = use_navigator();
+    let mut show_new_project = use_signal(|| false);
     let mut add_root = move || {
         if let Some(folder) = pick_root_folder() {
             let mut state = app_state.write();
@@ -134,9 +136,7 @@ pub fn Browser() -> Element {
                     Button {
                         variant: Variant::Primary,
                         icon: IconName::Plus,
-                        onclick: move |_| {
-                            nav.push(Route::ProjectAdd {});
-                        },
+                        onclick: move |_| show_new_project.set(true),
                         "New project"
                     }
                 }
@@ -199,6 +199,19 @@ pub fn Browser() -> Element {
                             on_toggle_section: move |path: PathBuf| app_state.write().toggle_section(path),
                         }
                     }
+                }
+            }
+            if show_new_project() {
+                NewProjectModal {
+                    open: show_new_project,
+                    on_created: move |_| {
+                        let fresh = AppState::load_or_default();
+                        let roots_changed = fresh.roots != app_state.peek().roots;
+                        app_state.set(fresh);
+                        if !roots_changed {
+                            scan.restart();
+                        }
+                    },
                 }
             }
             BottomBar {
