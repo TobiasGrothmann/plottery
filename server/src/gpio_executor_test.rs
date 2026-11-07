@@ -91,8 +91,14 @@ mod tests {
         let stats = executor.take_stats();
         assert_eq!(stats.steps, 100);
         // Each step follows the other axis's step within its own delay, so
-        // the measured gap is negative and clamps to zero.
-        assert_eq!(stats.stalls, 0, "{}", stats.summary());
+        // the measured gap is negative and clamps to zero. A stall can only
+        // appear if the scheduler preempts the spin loop (the executor
+        // detects that itself), so every stall must be explained by one.
+        assert!(
+            stats.stalls <= stats.spin_preemptions,
+            "{}",
+            stats.summary()
+        );
     }
 
     #[test]
