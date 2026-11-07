@@ -23,24 +23,17 @@ impl ProjectParamsListWrapper {
         Self::new(Self::combine_lists(old, new))
     }
 
+    /// Follows the order of `new` (the struct definition), keeping old values where the schema still matches.
     fn combine_lists(old: &[ProjectParam], new: &[ProjectParam]) -> Vec<ProjectParam> {
-        let mut out_list = Vec::with_capacity(old.len() + new.len());
-
-        for old_el in old {
-            if let Some(new_el) = new.iter().find(|new_el| new_el.name == old_el.name) {
-                if let Some(merged_value) = Self::combine_values(&old_el.value, &new_el.value) {
-                    out_list.push(ProjectParam::new(old_el.name.as_str(), merged_value));
-                }
-            }
-        }
-
-        for new_el in new {
-            if !out_list.iter().any(|out_el| out_el.name == new_el.name) {
-                out_list.push(new_el.clone());
-            }
-        }
-
-        out_list
+        new.iter()
+            .map(|new_el| {
+                old.iter()
+                    .find(|old_el| old_el.name == new_el.name)
+                    .and_then(|old_el| Self::combine_values(&old_el.value, &new_el.value))
+                    .map(|merged| ProjectParam::new(new_el.name.as_str(), merged))
+                    .unwrap_or_else(|| new_el.clone())
+            })
+            .collect()
     }
 
     fn combine_values(
