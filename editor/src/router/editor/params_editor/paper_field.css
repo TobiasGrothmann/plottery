@@ -1,0 +1,28 @@
+.PaperField {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: var(--gap-1);
+  row-gap: var(--gap-0);
+  align-items: center;
+}
+
+.paper_label {
+  font-size: 14px;
+  color: var(--col-fg-2);
+}
+
+.paper_row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--gap-0);
+}
+
+.paper_row .NumberInput {
+  width: 90px;
+}
+
+.paper_resolved {
+  font-size: 14px;
+  color: var(--col-fg-2);
+}

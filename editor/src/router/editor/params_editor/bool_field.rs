@@ -9,10 +9,11 @@ use tokio::sync::Mutex;
 
 use crate::router::editor::{
     console_messages::ConsoleMessages, params_editor::param_tree::get_param_value_mut_by_path,
-    project_runner::ProjectRunner, running_state::RunningState,
+    params_editor::params_editor::trigger_run, project_runner::ProjectRunner,
+    running_state::RunningState,
 };
 
-#[derive(PartialEq, Props, Clone)]
+#[derive(Props, Clone)]
 pub struct BoolFieldProps {
     param: ProjectParam,
     path: Vec<String>,
@@ -21,6 +22,20 @@ pub struct BoolFieldProps {
     running_state: SyncSignal<RunningState>,
     console: SyncSignal<ConsoleMessages>,
     release: bool,
+}
+
+/// `ProjectParam` only compares its schema, so compare the value too or Dioxus will not re-render.
+impl PartialEq for BoolFieldProps {
+    fn eq(&self, other: &Self) -> bool {
+        self.param.name == other.param.name
+            && self.param.value == other.param.value
+            && self.path == other.path
+            && self.project_params == other.project_params
+            && self.project_runner == other.project_runner
+            && self.running_state == other.running_state
+            && self.console == other.console
+            && self.release == other.release
+    }
 }
 
 #[component]
@@ -57,15 +72,7 @@ pub fn BoolField(mut props: BoolFieldProps) -> Element {
                         return;
                     }
                     props.project_params.set(new_params);
-                    match props.project_runner.read().try_lock() {
-                        Ok(mut runner) => {
-                            runner.trigger_run_project(props.release, props.running_state, props.console);
-                        },
-                        Err(e) => {
-                            tracing::error!("Error preparing to run: {:?}", e);
-                            props.running_state.set(RunningState::RunFailed { msg: format!("Error preparing to run: {}", e) });
-                        },
-                    }
+                    trigger_run(props.project_runner, props.running_state, props.console, props.release);
                 }
             }
         }

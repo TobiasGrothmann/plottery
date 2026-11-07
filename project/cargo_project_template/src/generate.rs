@@ -7,16 +7,13 @@ pub struct Params {
     #[range(0.02, 0.35)]
     pub circle_size: f32,
 
-    #[value(2)]
-    #[range(0, 6)]
-    // e.g. A0, A1, A2, ...
-    pub din_size: i32,
+    // paper size, orientation and margin
+    pub paper: Paper,
 }
 
 pub fn generate(params: Params) -> Layer {
     let mut l = Layer::new();
-    let size = V2::din_a(params.din_size as u8);
-    let frame = Frame::new_xy(size, size.min_axis() * 0.12);
+    let frame = params.paper.frame();
 
     let spiral_center = frame.center();
 

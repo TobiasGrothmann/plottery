@@ -101,8 +101,7 @@ impl<E: HardwareExecutor> Hardware<E> {
         // N at path distance L * k / N. Spacing them in time by delay * L / N
         // makes the speed setting the pen speed along the path at every
         // angle: factor 1 axis-aligned, 0.707 at 45°.
-        let path_factor =
-            (movement_abs.x as f64).hypot(movement_abs.y as f64) / total_steps as f64;
+        let path_factor = (movement_abs.x as f64).hypot(movement_abs.y as f64) / total_steps as f64;
 
         while stepped_x < movement_abs.x || stepped_y < movement_abs.y {
             let moved_fraction = (stepped_x as f32 + stepped_y as f32) / total_steps as f32;

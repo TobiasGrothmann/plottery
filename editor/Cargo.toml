@@ -46,6 +46,10 @@ open = "5.3.2"
 dioxus-timer = "0.4.1"
 which = "8.0"
 anyhow = "1.0"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+
+[dev-dependencies]
+tempfile = "3.8.1"
 
 [[bin]]
 name = "PlotteryEditor"

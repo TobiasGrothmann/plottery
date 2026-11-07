@@ -7,7 +7,7 @@ use geometry_predicates::orient2d;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SampleSettings {
     pub points_per_unit: f32,
 }

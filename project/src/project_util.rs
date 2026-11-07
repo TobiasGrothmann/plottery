@@ -88,10 +88,13 @@ fn project_build_id(project_dir: &Path) -> String {
     format!("plottery_project_{:016x}", hasher.finish())
 }
 
+/// Runs the project binary with `working_dir` as its current directory, so relative paths in
+/// params (e.g. `ImagePath`) resolve against the project.
 pub async fn run_project_executable_async(
     path: &PathBuf,
     arguments: &[&str],
     params: Option<&ProjectParamsListWrapper>, // will be piped into stdin of the child process
+    working_dir: &Path,
 ) -> Result<Child> {
     let exec_stdin = if params.is_some() {
         Stdio::piped()
@@ -101,6 +104,7 @@ pub async fn run_project_executable_async(
 
     let mut child_process = Command::new(path)
         .args(arguments)
+        .current_dir(working_dir)
         .stdin(exec_stdin)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

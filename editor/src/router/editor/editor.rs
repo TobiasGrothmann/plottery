@@ -6,7 +6,11 @@ use crate::{
         console_messages::ConsoleMessages,
         external_editor_button::ExternalEditorButton,
         layer_editor::{layer_editor::LayerEditor, layer_tree_ref::LayerTreeReference},
-        params_editor::params_editor::ParamsEditor,
+        params_editor::{
+            param_tree::{get_param_value_mut_by_path, leaf_value_mut},
+            params_editor::ParamsEditor,
+        },
+        pick_target::PickTarget,
         project_hot_reload::start_hot_reload,
         project_runner::ProjectRunner,
         running_state::RunningState,
@@ -19,8 +23,10 @@ use dioxus::prelude::*;
 use dioxus_logger::tracing;
 use dioxus_router::hooks::use_navigator;
 use notify::FsEventWatcher;
-use plottery_lib::{Layer, LayerPropsInheritable, SampleSettings};
-use plottery_project::project_params_list_wrapper::ProjectParamsListWrapper;
+use plottery_lib::{BoundingBox, Layer, LayerPropsInheritable, SampleSettings, V2};
+use plottery_project::{
+    project_param_value::ProjectParamValue, project_params_list_wrapper::ProjectParamsListWrapper,
+};
 use plottery_server_lib::{
     estimation::estimate_plot_layer_duration, plot_setting::PlotSettings, task::send_task,
 };
@@ -346,6 +352,39 @@ pub fn Editor(project_path: Vec<String>) -> Element {
         }
     };
 
+    // click-to-pick for V2 params
+    let mut pick_target = use_context_provider(|| PickTarget {
+        path: Signal::new(None),
+    });
+    let layer_bbox = use_memo(move || {
+        layer_only_visible()
+            .layer
+            .as_ref()
+            .and_then(|layer| layer.bounding_box())
+    });
+    let mut project_params_for_pick = project_params;
+    let onpick = move |point: V2| {
+        let Some(path) = pick_target.take() else {
+            return;
+        };
+        let mut new_params = project_params_for_pick.read().clone();
+        match get_param_value_mut_by_path(&mut new_params.list, &path) {
+            Some(value) => match leaf_value_mut(value) {
+                ProjectParamValue::V2(v) => *v = point,
+                _ => {
+                    tracing::error!("Pick target is not a V2 param: {:?}", path);
+                    return;
+                }
+            },
+            None => {
+                tracing::error!("Pick target not found: {:?}", path);
+                return;
+            }
+        }
+        project_params_for_pick.set(new_params);
+        trigger_run();
+    };
+
     // hot reload
     let mut hot_reload_watcher = use_signal_sync(|| None as Option<FsEventWatcher>);
     let mut hot_reload_join_handle = use_signal_sync(|| None as Option<JoinHandle<()>>);
@@ -532,6 +571,7 @@ pub fn Editor(project_path: Vec<String>) -> Element {
             div { class: "plot_and_params",
                 div { class: "params",
                     ParamsEditor {
+                        project_dir: project().get_dir(),
                         project_params,
                         project_runner,
                         running_state,
@@ -546,7 +586,12 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                                 Loading {}
                             }
                             if let Some(svg) = svg() {
-                                SVGImage { svg }
+                                SVGImage {
+                                    svg,
+                                    layer_bbox: layer_bbox(),
+                                    pick_active: pick_target.is_active(),
+                                    onpick,
+                                }
                             }
                             else {
                                 div {

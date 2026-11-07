@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use dioxus::prelude::*;
 use dioxus_logger::tracing;
@@ -12,11 +12,21 @@ use tokio::sync::Mutex;
 use crate::router::editor::{
     console_messages::ConsoleMessages,
     params_editor::{
+        angle_field::AngleField,
         bool_field::BoolField,
+        color_field::ColorField,
         curve_2d_field::Curve2DField,
+        enum_field::EnumField,
+        image_field::ImageField,
+        noise_field::NoiseField,
         number_field::NumberField,
-        param_tree::{get_param_mut_by_path, get_param_value_mut_by_path},
+        paper_field::PaperField,
+        param_tree::{get_param_mut_by_path, get_param_value_mut_by_path, leaf_value_mut},
+        range_field::RangeField,
+        seed_field::SeedField,
         slider::Slider,
+        string_field::StringField,
+        v2_field::V2Field,
     },
     project_runner::ProjectRunner,
     running_state::RunningState,
@@ -24,6 +34,7 @@ use crate::router::editor::{
 
 #[derive(PartialEq, Props, Clone)]
 pub struct ParamsEditorProps {
+    project_dir: PathBuf,
     project_params: SyncSignal<ProjectParamsListWrapper>,
     project_runner: SyncSignal<Arc<Mutex<ProjectRunner>>>,
     running_state: SyncSignal<RunningState>,
@@ -31,7 +42,70 @@ pub struct ParamsEditorProps {
     release: bool,
 }
 
-fn trigger_run(
+/// Props shared by all leaf widgets. `param` already has `Optional` unwrapped, `path` has not.
+#[derive(Props, Clone)]
+pub struct LeafProps {
+    pub param: ProjectParam,
+    pub path: Vec<String>,
+    pub project_dir: PathBuf,
+    pub project_params: SyncSignal<ProjectParamsListWrapper>,
+    pub project_runner: SyncSignal<Arc<Mutex<ProjectRunner>>>,
+    pub running_state: SyncSignal<RunningState>,
+    pub console: SyncSignal<ConsoleMessages>,
+    pub release: bool,
+}
+
+/// `ProjectParam` only compares its schema, so compare the value too or Dioxus will not re-render.
+impl PartialEq for LeafProps {
+    fn eq(&self, other: &Self) -> bool {
+        self.param.name == other.param.name
+            && self.param.value == other.param.value
+            && self.path == other.path
+            && self.project_dir == other.project_dir
+            && self.project_params == other.project_params
+            && self.project_runner == other.project_runner
+            && self.running_state == other.running_state
+            && self.console == other.console
+            && self.release == other.release
+    }
+}
+
+impl LeafProps {
+    fn new(param: ProjectParam, path: Vec<String>, props: &ParamsEditorProps) -> Self {
+        Self {
+            param,
+            path,
+            project_dir: props.project_dir.clone(),
+            project_params: props.project_params,
+            project_runner: props.project_runner,
+            running_state: props.running_state,
+            console: props.console,
+            release: props.release,
+        }
+    }
+
+    /// Applies `edit` to the leaf value at `path` and reruns the project.
+    pub fn edit(&self, edit: impl FnOnce(&mut ProjectParamValue)) {
+        let mut project_params = self.project_params;
+        let mut new_params = project_params.read().clone();
+        match get_param_value_mut_by_path(&mut new_params.list, &self.path) {
+            Some(value) => edit(leaf_value_mut(value)),
+            None => {
+                tracing::error!("Param path not found: {:?}", self.path);
+                return;
+            }
+        }
+        project_params.set(new_params);
+        trigger_run(
+            self.project_runner,
+            self.running_state,
+            self.console,
+            self.release,
+        );
+    }
+}
+
+pub(crate) fn trigger_run(
     project_runner: SyncSignal<Arc<Mutex<ProjectRunner>>>,
     mut running_state: SyncSignal<RunningState>,
     console: SyncSignal<ConsoleMessages>,
@@ -184,16 +258,7 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, props: &ParamsEdito
         }
         ProjectParamValue::FloatRanged { .. } | ProjectParamValue::IntRanged { .. } => {
             rsx! {
-                Slider {
-                    key: "{key}",
-                    param: param,
-                    path: path,
-                    project_params: props.project_params,
-                    project_runner: props.project_runner,
-                    running_state: props.running_state,
-                    console: props.console,
-                    release: props.release,
-                }
+                Slider { key: "{key}", ..LeafProps::new(param, path, props) }
             }
         }
         ProjectParamValue::Bool(_) => {
@@ -222,6 +287,56 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, props: &ParamsEdito
                     console: props.console,
                     release: props.release,
                 }
+            }
+        }
+        ProjectParamValue::Enum(_) => {
+            rsx! {
+                EnumField { key: "{key}", ..LeafProps::new(param, path, props) }
+            }
+        }
+        ProjectParamValue::String(_) => {
+            rsx! {
+                StringField { key: "{key}", ..LeafProps::new(param, path, props) }
+            }
+        }
+        ProjectParamValue::Paper(_) => {
+            rsx! {
+                PaperField { key: "{key}", ..LeafProps::new(param, path, props) }
+            }
+        }
+        ProjectParamValue::RangeF32 { .. } | ProjectParamValue::RangeI32 { .. } => {
+            rsx! {
+                RangeField { key: "{key}", ..LeafProps::new(param, path, props) }
+            }
+        }
+        ProjectParamValue::Angle { .. } => {
+            rsx! {
+                AngleField { key: "{key}", ..LeafProps::new(param, path, props) }
+            }
+        }
+        ProjectParamValue::V2(_) | ProjectParamValue::V2i(_) => {
+            rsx! {
+                V2Field { key: "{key}", ..LeafProps::new(param, path, props) }
+            }
+        }
+        ProjectParamValue::Seed(_) => {
+            rsx! {
+                SeedField { key: "{key}", ..LeafProps::new(param, path, props) }
+            }
+        }
+        ProjectParamValue::Image(_) => {
+            rsx! {
+                ImageField { key: "{key}", ..LeafProps::new(param, path, props) }
+            }
+        }
+        ProjectParamValue::Noise(_) => {
+            rsx! {
+                NoiseField { key: "{key}", ..LeafProps::new(param, path, props) }
+            }
+        }
+        ProjectParamValue::Color(_) => {
+            rsx! {
+                ColorField { key: "{key}", ..LeafProps::new(param, path, props) }
             }
         }
         ProjectParamValue::Struct(_)

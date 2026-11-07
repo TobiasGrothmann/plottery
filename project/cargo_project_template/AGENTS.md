@@ -24,11 +24,26 @@ Some examples:
 ```rust
 #[derive(PlotteryParams)]
 pub struct Params {
-    #[value(10.0)]          // Default value (required)
+    #[value(10.0)]          // Default value (optional, falls back to the type's default)
     #[range(0.0, 100.0)]    // Optional min/max for editor slider
-    pub my_param: f32,      // there are many more types that can be exposed to the editor (for example, `i32`, `Curve2D`, ...)
+    pub my_param: f32,
+    pub paper: Paper,       // paper size, orientation and margin; use `params.paper.frame()`
+    pub mode: Mode,         // your own enum, see below
+}
+
+#[derive(PlotteryEnum, Clone, Copy, PartialEq)]
+pub enum Mode {
+    #[default]
+    Lines,
+    Dots,
 }
 ```
+
+Supported field types: `f32`, `i32`, `bool`, `String`, `Paper`, `Range<f32>`, `Range<i32>`,
+`Angle`, `V2`, `V2i`, `ColorRgb`, `Seed` (call `params.seed.apply()` first), `ImagePath` (`.load()`),
+`NoiseSettings` (`.noise()` or `.noise_for(paper.size())`), `Curve2D`, `Curve2DNorm`,
+enums deriving `PlotteryEnum` (unit variants, one `#[default]`), nested structs deriving
+`PlotteryParams`, and `Option<T>` / `Vec<T>` of those.
 
 ## Common Patterns
 

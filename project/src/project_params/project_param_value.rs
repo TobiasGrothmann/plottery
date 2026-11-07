@@ -1,8 +1,14 @@
 use anyhow::Result;
+use plottery_lib::{ColorRgb, NoiseSettings, Paper, V2i, V2};
+
+use super::angle_unit::AngleUnit;
+use super::image_path::ProjectParamImage;
+use super::seed::ProjectParamSeed;
 use serde::{Deserialize, Serialize};
 
 pub use super::curve_2d::Curve2D;
 pub use super::curve_2d_norm::Curve2DNorm;
+use super::project_param_enum::ProjectParamEnum;
 use super::project_param_optional::ProjectParamOptional;
 use super::project_param_struct::ProjectParamStruct;
 use super::project_param_vec::ProjectParamVec;
@@ -10,15 +16,46 @@ use super::project_param_vec::ProjectParamVec;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ProjectParamValue {
     Float(f32),
-    FloatRanged { val: f32, min: f32, max: f32 },
+    FloatRanged {
+        val: f32,
+        min: f32,
+        max: f32,
+    },
     Int(i32),
-    IntRanged { val: i32, min: i32, max: i32 },
+    IntRanged {
+        val: i32,
+        min: i32,
+        max: i32,
+    },
     Bool(bool),
     Curve2DNorm(Curve2DNorm),
     Curve2D(Curve2D),
     Struct(ProjectParamStruct),
     Optional(ProjectParamOptional),
     Vec(ProjectParamVec),
+    Enum(ProjectParamEnum),
+    String(String),
+    Paper(Paper),
+    RangeF32 {
+        min: f32,
+        max: f32,
+        bounds: Option<(f32, f32)>,
+    },
+    RangeI32 {
+        min: i32,
+        max: i32,
+        bounds: Option<(i32, i32)>,
+    },
+    Angle {
+        rad: f32,
+        unit: AngleUnit,
+    },
+    V2(V2),
+    Seed(ProjectParamSeed),
+    Image(ProjectParamImage),
+    Noise(NoiseSettings),
+    Color(ColorRgb),
+    V2i(V2i),
 }
 
 impl ProjectParamValue {
@@ -98,6 +135,18 @@ impl ProjectParamValue {
             ProjectParamValue::Vec(vec_value) => {
                 format!("vec<{}>", vec_value.item_prototype.type_name())
             }
+            ProjectParamValue::Enum(_) => "enum".to_string(),
+            ProjectParamValue::String(_) => "string".to_string(),
+            ProjectParamValue::Paper(_) => "paper".to_string(),
+            ProjectParamValue::RangeF32 { .. } => "range<f32>".to_string(),
+            ProjectParamValue::RangeI32 { .. } => "range<i32>".to_string(),
+            ProjectParamValue::Angle { .. } => "angle".to_string(),
+            ProjectParamValue::V2(_) => "v2".to_string(),
+            ProjectParamValue::Seed(_) => "seed".to_string(),
+            ProjectParamValue::Image(_) => "image".to_string(),
+            ProjectParamValue::Noise(_) => "noise".to_string(),
+            ProjectParamValue::Color(_) => "color".to_string(),
+            ProjectParamValue::V2i(_) => "v2i".to_string(),
         }
     }
 
@@ -123,6 +172,27 @@ impl ProjectParamValue {
             ProjectParamValue::Vec(vec_value) => {
                 format!("{} items", vec_value.items.len())
             }
+            ProjectParamValue::Enum(param_enum) => param_enum.selected.clone(),
+            ProjectParamValue::String(val) => val.clone(),
+            ProjectParamValue::Paper(paper) => paper.to_string(),
+            ProjectParamValue::RangeF32 { min, max, .. } => format!("{min} – {max}"),
+            ProjectParamValue::RangeI32 { min, max, .. } => format!("{min} – {max}"),
+            ProjectParamValue::Angle { rad, unit } => format!(
+                "{} {}",
+                unit.from_angle(plottery_lib::Angle::from_rad(*rad)),
+                unit.short_name()
+            ),
+            ProjectParamValue::V2(v) => format!("({}, {})", v.x, v.y),
+            ProjectParamValue::Seed(seed) => seed.current.to_string(),
+            ProjectParamValue::Image(image) => {
+                image.file_name().unwrap_or_else(|| "none".to_string())
+            }
+            ProjectParamValue::Noise(noise) => format!(
+                "{:?} f={} o={} {:?}",
+                noise.noise_type, noise.frequency, noise.octaves, noise.scale
+            ),
+            ProjectParamValue::Color(color) => color.hex(),
+            ProjectParamValue::V2i(v) => format!("({}, {})", v.x, v.y),
         }
     }
 }
