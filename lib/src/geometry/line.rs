@@ -1,6 +1,7 @@
 use geometry_predicates::orient2d;
 use itertools::Itertools;
 use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     geometry::TransformMatrix,
@@ -10,7 +11,7 @@ use crate::{
 };
 
 /// A line defined by two points. Can represent both finite line segments and infinite lines.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Line {
     pub from: V2,
     pub to: V2,

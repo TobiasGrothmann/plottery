@@ -1,0 +1,13 @@
+[package]
+name = "plottery_fonts"
+edition = "2021"
+description = "Plotter fonts bundled with Plottery: single-stroke SVG fonts, single-line TTFs and OpenType-SVG fonts, with their licences."
+license = "GPL-3.0 AND OFL-1.1 AND LicenseRef-Hershey"
+version.workspace = true
+authors.workspace = true
+categories.workspace = true
+repository.workspace = true
+keywords.workspace = true
+include = ["src/**", "fonts/**", "LICENSES/**", "Cargo.toml", "README.md"]
+
+[dependencies]

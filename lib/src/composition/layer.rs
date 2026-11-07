@@ -20,7 +20,12 @@ use crate::{
     SampleSettings, Shape, V2,
 };
 
-use super::{path_end::PathEnd, ColorRgb, Inheritable, LayerProps, LayerPropsInheritable};
+use super::{
+    path_end::PathEnd,
+    svg_path_data::parse_svg_path_data,
+    svg_transform::{iter_svg_f32_tokens, parse_svg_transform_attr},
+    ColorRgb, Inheritable, LayerProps, LayerPropsInheritable,
+};
 
 /// `Layer` represents a tree of [`Shape`]s by holding a list of [`Shape`]s and other `Layer`s.
 ///
@@ -43,79 +48,6 @@ pub struct Layer {
     pub sublayers: Vec<Layer>,
     pub props: LayerProps,
     pub props_inheritable: Inheritable<LayerPropsInheritable>,
-}
-
-#[derive(Debug, Clone, Copy)]
-enum SvgPathToken {
-    Command(char),
-    Number(f32),
-}
-
-#[derive(Debug, Clone, Copy)]
-struct SvgTransform {
-    a: f32,
-    b: f32,
-    c: f32,
-    d: f32,
-    e: f32,
-    f: f32,
-}
-
-impl SvgTransform {
-    fn identity() -> Self {
-        Self {
-            a: 1.0,
-            b: 0.0,
-            c: 0.0,
-            d: 1.0,
-            e: 0.0,
-            f: 0.0,
-        }
-    }
-
-    fn translate(tx: f32, ty: f32) -> Self {
-        Self {
-            a: 1.0,
-            b: 0.0,
-            c: 0.0,
-            d: 1.0,
-            e: tx,
-            f: ty,
-        }
-    }
-
-    fn scale(sx: f32, sy: f32) -> Self {
-        Self {
-            a: sx,
-            b: 0.0,
-            c: 0.0,
-            d: sy,
-            e: 0.0,
-            f: 0.0,
-        }
-    }
-
-    fn matrix(a: f32, b: f32, c: f32, d: f32, e: f32, f: f32) -> Self {
-        Self { a, b, c, d, e, f }
-    }
-
-    fn multiply(self, rhs: Self) -> Self {
-        Self {
-            a: self.a * rhs.a + self.c * rhs.b,
-            b: self.b * rhs.a + self.d * rhs.b,
-            c: self.a * rhs.c + self.c * rhs.d,
-            d: self.b * rhs.c + self.d * rhs.d,
-            e: self.a * rhs.e + self.c * rhs.f + self.e,
-            f: self.b * rhs.e + self.d * rhs.f + self.f,
-        }
-    }
-
-    fn apply(self, point: V2) -> V2 {
-        V2::new(
-            self.a * point.x + self.c * point.y + self.e,
-            self.b * point.x + self.d * point.y + self.f,
-        )
-    }
 }
 
 impl Layer {
@@ -405,7 +337,7 @@ impl Layer {
     pub fn new_from_svg(path: &PathBuf) -> Result<Layer> {
         let mut svg_content = String::new();
         let mut layer = Layer::new();
-        let mut transform_stack: Vec<SvgTransform> = vec![SvgTransform::identity()];
+        let mut transform_stack: Vec<TransformMatrix> = vec![TransformMatrix::identity()];
         let mut svg_units_to_cm_scale: f32 = 1.0;
 
         for event in svg::open(path, &mut svg_content)? {
@@ -416,10 +348,12 @@ impl Layer {
                     }
                 }
 
-                let parent_transform = *transform_stack.last().unwrap_or(&SvgTransform::identity());
+                let parent_transform = *transform_stack
+                    .last()
+                    .unwrap_or(&TransformMatrix::identity());
                 let local_transform =
-                    Self::parse_svg_transform_attr(&attributes).unwrap_or(SvgTransform::identity());
-                let combined_transform = parent_transform.multiply(local_transform);
+                    parse_svg_transform_attr(&attributes).unwrap_or(TransformMatrix::identity());
+                let combined_transform = parent_transform.mul_matrix(&local_transform);
 
                 if matches!(tag_type, SvgTagType::Start) {
                     transform_stack.push(combined_transform);
@@ -435,7 +369,13 @@ impl Layer {
 
                             let path_data = data_value.to_string();
                             let should_close_paths = Self::svg_path_has_fill(&attributes);
-                            for mut path in Self::parse_svg_path_data(path_data.as_str()) {
+                            let sample_settings = SampleSettings::new(
+                                SampleSettings::default().points_per_unit * svg_units_to_cm_scale,
+                            );
+                            for mut path in parse_svg_path_data(path_data.as_str())
+                                .iter()
+                                .map(|spline| spline.to_path(sample_settings))
+                            {
                                 if should_close_paths {
                                     Self::close_path_if_needed(&mut path);
                                 }
@@ -512,16 +452,9 @@ impl Layer {
         value.to_string().parse::<f32>().ok()
     }
 
-    fn iter_svg_f32_tokens(input: &str) -> impl Iterator<Item = f32> + '_ {
-        input
-            .split(|c: char| c == ',' || c.is_ascii_whitespace())
-            .filter(|token| !token.is_empty())
-            .filter_map(|token| token.parse::<f32>().ok())
-    }
-
     fn parse_svg_points_attr(points_attr: &svg::node::Value) -> Vec<V2> {
         let points = points_attr.to_string();
-        let mut tokens = Self::iter_svg_f32_tokens(points.as_str());
+        let mut tokens = iter_svg_f32_tokens(points.as_str());
         let mut parsed_points = Vec::new();
 
         while let Some(x) = tokens.next() {
@@ -534,17 +467,21 @@ impl Layer {
         parsed_points
     }
 
-    fn apply_svg_transform_to_path(path: &Path, transform: SvgTransform, scale_to_cm: f32) -> Path {
+    fn apply_svg_transform_to_path(
+        path: &Path,
+        transform: TransformMatrix,
+        scale_to_cm: f32,
+    ) -> Path {
         Path::new_from(
             path.get_points_ref()
                 .iter()
-                .map(|point| transform.apply(*point) * scale_to_cm),
+                .map(|point| transform.mul_vector(*point) * scale_to_cm),
         )
     }
 
     fn parse_svg_root_units_to_cm_scale(attributes: &Attributes) -> Option<f32> {
         let view_box = attributes.get("viewBox")?.to_string();
-        let mut view_box_values = Self::iter_svg_f32_tokens(view_box.as_str());
+        let mut view_box_values = iter_svg_f32_tokens(view_box.as_str());
         let _view_box_x = view_box_values.next()?;
         let _view_box_y = view_box_values.next()?;
         let view_box_w = view_box_values.next()?;
@@ -648,418 +585,6 @@ impl Layer {
         }
 
         false
-    }
-
-    fn parse_svg_transform_attr(attributes: &Attributes) -> Option<SvgTransform> {
-        let transform_attr = attributes.get("transform")?.to_string();
-        Self::parse_svg_transform_chain(transform_attr.as_str())
-    }
-
-    fn parse_svg_transform_chain(transform_attr: &str) -> Option<SvgTransform> {
-        let mut combined = SvgTransform::identity();
-        let mut parsed_any = false;
-        let mut rest = transform_attr.trim();
-
-        while !rest.is_empty() {
-            let Some(open_idx) = rest.find('(') else {
-                break;
-            };
-            let Some(close_idx) = rest.find(')') else {
-                break;
-            };
-            if close_idx <= open_idx {
-                break;
-            }
-
-            let name = rest[..open_idx].trim();
-            let args_str = &rest[(open_idx + 1)..close_idx];
-            let mut args = [0.0_f32; 6];
-            let mut args_len = 0usize;
-            for value in Self::iter_svg_f32_tokens(args_str) {
-                if args_len < args.len() {
-                    args[args_len] = value;
-                }
-                args_len += 1;
-            }
-
-            let next_transform = match (name, args_len) {
-                ("matrix", 6) => Some(SvgTransform::matrix(
-                    args[0], args[1], args[2], args[3], args[4], args[5],
-                )),
-                ("translate", 1) => Some(SvgTransform::translate(args[0], 0.0)),
-                ("translate", len) if len >= 2 => Some(SvgTransform::translate(args[0], args[1])),
-                ("scale", 1) => Some(SvgTransform::scale(args[0], args[0])),
-                ("scale", len) if len >= 2 => Some(SvgTransform::scale(args[0], args[1])),
-                _ => {
-                    // TODO: Support rotate/skew transforms and malformed transform expressions.
-                    None
-                }
-            };
-
-            if let Some(next_transform) = next_transform {
-                combined = combined.multiply(next_transform);
-                parsed_any = true;
-            }
-
-            rest = rest[(close_idx + 1)..].trim_start();
-        }
-
-        if parsed_any {
-            Some(combined)
-        } else {
-            None
-        }
-    }
-
-    fn parse_svg_path_data(path_data: &str) -> Vec<Path> {
-        let mut parsed_paths: Vec<Path> = Vec::new();
-
-        let mut current_points: Vec<V2> = Vec::new();
-        let mut current_point: Option<V2> = None;
-        let mut subpath_start: Option<V2> = None;
-
-        let mut active_command = 'M';
-        let mut command_is_set = false;
-
-        let tokens = Self::tokenize_svg_path_data(path_data);
-        let mut token_index = 0;
-
-        while token_index < tokens.len() {
-            if let SvgPathToken::Command(command) = tokens[token_index] {
-                active_command = command;
-                command_is_set = true;
-                token_index += 1;
-            } else if !command_is_set {
-                // TODO: Handle malformed path data where numbers appear before the first command.
-                break;
-            }
-
-            match active_command {
-                'M' | 'm' => {
-                    let mut is_first_pair = true;
-                    while let Some((x, y)) = Self::read_svg_pair(&tokens, &mut token_index) {
-                        let mut next_point = V2::new(x, y);
-                        if active_command == 'm' {
-                            next_point = current_point.unwrap_or(V2::zero()) + next_point;
-                        }
-
-                        if is_first_pair {
-                            if current_points.len() >= 2 {
-                                parsed_paths
-                                    .push(Path::new_from(std::mem::take(&mut current_points)));
-                            }
-                            current_points.push(next_point);
-                            subpath_start = Some(next_point);
-                            is_first_pair = false;
-                        } else {
-                            current_points.push(next_point);
-                        }
-                        current_point = Some(next_point);
-                    }
-                }
-                'L' | 'l' => {
-                    while let Some((x, y)) = Self::read_svg_pair(&tokens, &mut token_index) {
-                        Self::ensure_svg_subpath_started(
-                            &mut current_points,
-                            &mut subpath_start,
-                            current_point,
-                        );
-
-                        let mut next_point = V2::new(x, y);
-                        if active_command == 'l' {
-                            next_point = current_point.unwrap_or(V2::zero()) + next_point;
-                        }
-                        current_points.push(next_point);
-                        current_point = Some(next_point);
-                    }
-                }
-                'H' | 'h' => {
-                    while let Some(x) = Self::read_svg_number(&tokens, &mut token_index) {
-                        Self::ensure_svg_subpath_started(
-                            &mut current_points,
-                            &mut subpath_start,
-                            current_point,
-                        );
-
-                        let base = current_point.unwrap_or(V2::zero());
-                        let next_point = if active_command == 'h' {
-                            V2::new(base.x + x, base.y)
-                        } else {
-                            V2::new(x, base.y)
-                        };
-                        current_points.push(next_point);
-                        current_point = Some(next_point);
-                    }
-                }
-                'V' | 'v' => {
-                    while let Some(y) = Self::read_svg_number(&tokens, &mut token_index) {
-                        Self::ensure_svg_subpath_started(
-                            &mut current_points,
-                            &mut subpath_start,
-                            current_point,
-                        );
-
-                        let base = current_point.unwrap_or(V2::zero());
-                        let next_point = if active_command == 'v' {
-                            V2::new(base.x, base.y + y)
-                        } else {
-                            V2::new(base.x, y)
-                        };
-                        current_points.push(next_point);
-                        current_point = Some(next_point);
-                    }
-                }
-                'Z' | 'z' => {
-                    if !current_points.is_empty() {
-                        if let Some(start) = subpath_start {
-                            if current_points.last() != Some(&start) {
-                                current_points.push(start);
-                            }
-                        }
-
-                        if current_points.len() >= 2 {
-                            parsed_paths.push(Path::new_from(std::mem::take(&mut current_points)));
-                        } else {
-                            current_points.clear();
-                        }
-                        current_point = subpath_start;
-                        subpath_start = None;
-                    }
-                }
-                'C' | 'c' => {
-                    while let (Some(_x1), Some(_y1), Some(_x2), Some(_y2), Some(x), Some(y)) = (
-                        Self::read_svg_number(&tokens, &mut token_index),
-                        Self::read_svg_number(&tokens, &mut token_index),
-                        Self::read_svg_number(&tokens, &mut token_index),
-                        Self::read_svg_number(&tokens, &mut token_index),
-                        Self::read_svg_number(&tokens, &mut token_index),
-                        Self::read_svg_number(&tokens, &mut token_index),
-                    ) {
-                        Self::ensure_svg_subpath_started(
-                            &mut current_points,
-                            &mut subpath_start,
-                            current_point,
-                        );
-
-                        // TODO: Sample bezier curves instead of approximating them as straight segments.
-                        let base = current_point.unwrap_or(V2::zero());
-                        let next_point = if active_command == 'c' {
-                            V2::new(base.x + x, base.y + y)
-                        } else {
-                            V2::new(x, y)
-                        };
-                        current_points.push(next_point);
-                        current_point = Some(next_point);
-                    }
-                }
-                'S' | 's' => {
-                    while let (Some(_x2), Some(_y2), Some(x), Some(y)) = (
-                        Self::read_svg_number(&tokens, &mut token_index),
-                        Self::read_svg_number(&tokens, &mut token_index),
-                        Self::read_svg_number(&tokens, &mut token_index),
-                        Self::read_svg_number(&tokens, &mut token_index),
-                    ) {
-                        Self::ensure_svg_subpath_started(
-                            &mut current_points,
-                            &mut subpath_start,
-                            current_point,
-                        );
-
-                        // TODO: Sample smooth cubic bezier curves instead of endpoint approximation.
-                        let base = current_point.unwrap_or(V2::zero());
-                        let next_point = if active_command == 's' {
-                            V2::new(base.x + x, base.y + y)
-                        } else {
-                            V2::new(x, y)
-                        };
-                        current_points.push(next_point);
-                        current_point = Some(next_point);
-                    }
-                }
-                'Q' | 'q' => {
-                    while let (Some(_cx), Some(_cy), Some(x), Some(y)) = (
-                        Self::read_svg_number(&tokens, &mut token_index),
-                        Self::read_svg_number(&tokens, &mut token_index),
-                        Self::read_svg_number(&tokens, &mut token_index),
-                        Self::read_svg_number(&tokens, &mut token_index),
-                    ) {
-                        Self::ensure_svg_subpath_started(
-                            &mut current_points,
-                            &mut subpath_start,
-                            current_point,
-                        );
-
-                        // TODO: Sample quadratic bezier curves instead of endpoint approximation.
-                        let base = current_point.unwrap_or(V2::zero());
-                        let next_point = if active_command == 'q' {
-                            V2::new(base.x + x, base.y + y)
-                        } else {
-                            V2::new(x, y)
-                        };
-                        current_points.push(next_point);
-                        current_point = Some(next_point);
-                    }
-                }
-                'T' | 't' => {
-                    while let Some((x, y)) = Self::read_svg_pair(&tokens, &mut token_index) {
-                        Self::ensure_svg_subpath_started(
-                            &mut current_points,
-                            &mut subpath_start,
-                            current_point,
-                        );
-
-                        // TODO: Sample smooth quadratic bezier curves instead of endpoint approximation.
-                        let base = current_point.unwrap_or(V2::zero());
-                        let next_point = if active_command == 't' {
-                            V2::new(base.x + x, base.y + y)
-                        } else {
-                            V2::new(x, y)
-                        };
-                        current_points.push(next_point);
-                        current_point = Some(next_point);
-                    }
-                }
-                'A' | 'a' => {
-                    while let (
-                        Some(_rx),
-                        Some(_ry),
-                        Some(_x_axis_rotation),
-                        Some(_large_arc_flag),
-                        Some(_sweep_flag),
-                        Some(x),
-                        Some(y),
-                    ) = (
-                        Self::read_svg_number(&tokens, &mut token_index),
-                        Self::read_svg_number(&tokens, &mut token_index),
-                        Self::read_svg_number(&tokens, &mut token_index),
-                        Self::read_svg_number(&tokens, &mut token_index),
-                        Self::read_svg_number(&tokens, &mut token_index),
-                        Self::read_svg_number(&tokens, &mut token_index),
-                        Self::read_svg_number(&tokens, &mut token_index),
-                    ) {
-                        Self::ensure_svg_subpath_started(
-                            &mut current_points,
-                            &mut subpath_start,
-                            current_point,
-                        );
-
-                        // TODO: Sample elliptical arcs instead of endpoint approximation.
-                        let base = current_point.unwrap_or(V2::zero());
-                        let next_point = if active_command == 'a' {
-                            V2::new(base.x + x, base.y + y)
-                        } else {
-                            V2::new(x, y)
-                        };
-                        current_points.push(next_point);
-                        current_point = Some(next_point);
-                    }
-                }
-                _ => {
-                    // TODO: Support additional SVG path commands.
-                    while Self::read_svg_number(&tokens, &mut token_index).is_some() {}
-                }
-            }
-        }
-
-        if current_points.len() >= 2 {
-            parsed_paths.push(Path::new_from(current_points));
-        }
-
-        parsed_paths
-    }
-
-    fn tokenize_svg_path_data(path_data: &str) -> Vec<SvgPathToken> {
-        let mut tokens = Vec::new();
-        let mut chars = path_data.chars().peekable();
-
-        while let Some(ch) = chars.peek().copied() {
-            if ch.is_ascii_alphabetic() {
-                chars.next();
-                tokens.push(SvgPathToken::Command(ch));
-                continue;
-            }
-
-            if ch.is_ascii_whitespace() || ch == ',' {
-                chars.next();
-                continue;
-            }
-
-            let mut number = String::new();
-            let mut seen_exponent = false;
-
-            while let Some(next_ch) = chars.peek().copied() {
-                if next_ch.is_ascii_digit() || next_ch == '.' {
-                    number.push(next_ch);
-                    chars.next();
-                    continue;
-                }
-
-                if (next_ch == 'e' || next_ch == 'E') && !seen_exponent {
-                    seen_exponent = true;
-                    number.push(next_ch);
-                    chars.next();
-                    continue;
-                }
-
-                if next_ch == '-' || next_ch == '+' {
-                    if number.is_empty() || number.ends_with('e') || number.ends_with('E') {
-                        number.push(next_ch);
-                        chars.next();
-                        continue;
-                    }
-                    break;
-                }
-
-                break;
-            }
-
-            if !number.is_empty() {
-                if let std::result::Result::Ok(value) = number.parse::<f32>() {
-                    tokens.push(SvgPathToken::Number(value));
-                } else {
-                    // TODO: Handle parse failures with richer diagnostics (line/column/path id).
-                }
-            } else {
-                chars.next();
-            }
-        }
-
-        tokens
-    }
-
-    fn ensure_svg_subpath_started(
-        current_points: &mut Vec<V2>,
-        subpath_start: &mut Option<V2>,
-        current_point: Option<V2>,
-    ) {
-        if current_points.is_empty() {
-            if let Some(start) = current_point {
-                current_points.push(start);
-                if subpath_start.is_none() {
-                    *subpath_start = Some(start);
-                }
-            }
-        }
-    }
-
-    fn read_svg_number(tokens: &[SvgPathToken], token_index: &mut usize) -> Option<f32> {
-        if *token_index >= tokens.len() {
-            return None;
-        }
-
-        match tokens[*token_index] {
-            SvgPathToken::Number(value) => {
-                *token_index += 1;
-                Some(value)
-            }
-            SvgPathToken::Command(_) => None,
-        }
-    }
-
-    fn read_svg_pair(tokens: &[SvgPathToken], token_index: &mut usize) -> Option<(f32, f32)> {
-        let x = Self::read_svg_number(tokens, token_index)?;
-        let y = Self::read_svg_number(tokens, token_index)?;
-        Some((x, y))
     }
 
     /// Returns a new `Layer` with [`Shape`]s that start/end at another [`Shape`]'s start/end combined into a single [`Path`].

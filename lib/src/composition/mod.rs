@@ -13,6 +13,9 @@ mod layer_props;
 mod layer_props_test;
 mod layer_test;
 mod path_end;
+pub(crate) mod svg_path_data;
+mod svg_path_data_test;
+pub(crate) mod svg_transform;
 
 pub use color::*;
 pub use frame::*;
