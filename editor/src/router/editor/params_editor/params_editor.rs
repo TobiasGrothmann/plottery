@@ -257,16 +257,7 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, props: &ParamsEdito
         }
         ProjectParamValue::FloatRanged { .. } | ProjectParamValue::IntRanged { .. } => {
             rsx! {
-                Slider {
-                    key: "{key}",
-                    param: param,
-                    path: path,
-                    project_params: props.project_params,
-                    project_runner: props.project_runner,
-                    running_state: props.running_state,
-                    console: props.console,
-                    release: props.release,
-                }
+                Slider { key: "{key}", ..LeafProps::new(param, path, props) }
             }
         }
         ProjectParamValue::Bool(_) => {

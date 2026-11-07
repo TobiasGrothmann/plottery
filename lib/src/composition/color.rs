@@ -46,6 +46,20 @@ impl ColorRgb {
     /// assert_eq!(ColorRgb::yellow().hex(), "#ffff00");
     /// assert_eq!(ColorRgb::blue().hex(), "#0000ff");
     /// ```
+    /// Parses `#rrggbb` or `rrggbb`.
+    pub fn from_hex(hex: &str) -> Option<Self> {
+        let hex = hex.trim().trim_start_matches('#');
+        if hex.len() != 6 {
+            return None;
+        }
+        let channel = |i: usize| u8::from_str_radix(&hex[i..i + 2], 16).ok();
+        Some(Self::new(
+            channel(0)? as f32 / 255.0,
+            channel(2)? as f32 / 255.0,
+            channel(4)? as f32 / 255.0,
+        ))
+    }
+
     pub fn hex(&self) -> String {
         format!(
             "#{:02x}{:02x}{:02x}",

@@ -1,9 +1,11 @@
 use std::ops::Range;
 
+use serde::{Deserialize, Serialize};
+
 use super::{FontMetrics, Glyph};
 use crate::{Layer, Rect, SampleSettings, V2};
 
-#[derive(Clone, Copy, Debug, PartialEq, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Default, Serialize, Deserialize)]
 pub enum TextAlign {
     #[default]
     Left,
@@ -14,7 +16,7 @@ pub enum TextAlign {
 }
 
 /// Which edge of the text block sits on the anchor; `Baseline` is the first line's baseline.
-#[derive(Clone, Copy, Debug, PartialEq, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Default, Serialize, Deserialize)]
 pub enum VerticalAlign {
     #[default]
     Baseline,
@@ -24,7 +26,7 @@ pub enum VerticalAlign {
 }
 
 /// Where a paragraph may break at `max_width`.
-#[derive(Clone, Copy, Debug, PartialEq, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Default, Serialize, Deserialize)]
 pub enum Wrap {
     /// Greedy at spaces and after hyphens.
     #[default]

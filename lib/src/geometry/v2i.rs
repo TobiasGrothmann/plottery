@@ -1,9 +1,11 @@
 use std::ops;
 
+use serde::{Deserialize, Serialize};
+
 use crate::V2;
 
 /// A 2D vector with integer coordinates (x, y). See also [`V2`] for the float equivalent.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, PartialOrd)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, PartialOrd, Serialize, Deserialize)]
 pub struct V2i {
     pub x: i32,
     pub y: i32,
