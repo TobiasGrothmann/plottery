@@ -14,6 +14,7 @@ use crate::router::editor::{
     params_editor::{
         bool_field::BoolField,
         curve_2d_field::Curve2DField,
+        enum_field::EnumField,
         number_field::NumberField,
         paper_field::PaperField,
         param_tree::{get_param_mut_by_path, get_param_value_mut_by_path, leaf_value_mut},
@@ -272,9 +273,9 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, props: &ParamsEdito
                 }
             }
         }
-        ProjectParamValue::Enum(param_enum) => {
+        ProjectParamValue::Enum(_) => {
             rsx! {
-                p { key: "{key}", "{param_enum.selected}" }
+                EnumField { key: "{key}", ..LeafProps::new(param, path, props) }
             }
         }
         ProjectParamValue::String(_) => {
