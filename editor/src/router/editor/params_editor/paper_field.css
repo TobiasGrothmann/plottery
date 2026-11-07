@@ -1,0 +1,28 @@
+.PaperField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-0);
+}
+
+.paper_row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--gap-0);
+}
+
+.paper_row .NumberInput {
+  width: 80px;
+}
+
+.paper_landscape {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-small);
+  white-space: nowrap;
+}
+
+.paper_resolved {
+  color: var(--col-fg-2);
+  font-size: 14px;
+}

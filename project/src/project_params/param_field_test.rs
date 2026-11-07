@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::*;
+    use plottery_lib::{Margin, Paper};
 
     #[derive(PlotteryEnum, Debug, Clone, Copy, PartialEq)]
     enum Mode {
@@ -36,6 +37,8 @@ mod tests {
         mode_with_default: Mode,
         #[value("hello".to_string())]
         text: String,
+        #[value(Paper::din_a(3).with_landscape(true))]
+        paper: Paper,
     }
 
     #[test]
@@ -121,6 +124,7 @@ mod tests {
             mode: Mode::Lines,
             mode_with_default: Mode::Circles,
             text: "plot".to_string(),
+            paper: Paper::din_b(2).with_margin(Margin::Cm(1.0)),
         };
 
         let round_tripped = Params::new_from_list(params.to_params_list());
@@ -137,6 +141,7 @@ mod tests {
         assert_eq!(params.mode, Mode::Circles);
         assert_eq!(params.mode_with_default, Mode::Dots);
         assert_eq!(params.text, "hello");
+        assert_eq!(params.paper, Paper::din_a(3).with_landscape(true));
     }
 
     #[test]

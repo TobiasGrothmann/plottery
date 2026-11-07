@@ -1,4 +1,5 @@
 use anyhow::Result;
+use plottery_lib::Paper;
 use serde::{Deserialize, Serialize};
 
 pub use super::curve_2d::Curve2D;
@@ -22,6 +23,7 @@ pub enum ProjectParamValue {
     Vec(ProjectParamVec),
     Enum(ProjectParamEnum),
     String(String),
+    Paper(Paper),
 }
 
 impl ProjectParamValue {
@@ -103,6 +105,7 @@ impl ProjectParamValue {
             }
             ProjectParamValue::Enum(_) => "enum".to_string(),
             ProjectParamValue::String(_) => "string".to_string(),
+            ProjectParamValue::Paper(_) => "paper".to_string(),
         }
     }
 
@@ -130,6 +133,7 @@ impl ProjectParamValue {
             }
             ProjectParamValue::Enum(param_enum) => param_enum.selected.clone(),
             ProjectParamValue::String(val) => val.clone(),
+            ProjectParamValue::Paper(paper) => paper.to_string(),
         }
     }
 }

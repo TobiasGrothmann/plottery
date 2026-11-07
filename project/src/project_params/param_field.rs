@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 pub use anyhow::Error as ParamFieldError;
+use plottery_lib::Paper;
 
 use super::curve_2d::Curve2D;
 use super::curve_2d_norm::Curve2DNorm;
@@ -118,6 +119,21 @@ impl ParamField for String {
         match value {
             ProjectParamValue::String(val) => Ok(val.clone()),
             other => Err(param_type_mismatch("string", other)),
+        }
+    }
+}
+
+impl ParamField for Paper {
+    fn default_param_value() -> ProjectParamValue {
+        ProjectParamValue::Paper(Self::default())
+    }
+    fn to_param_value(&self) -> ProjectParamValue {
+        ProjectParamValue::Paper(*self)
+    }
+    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
+        match value {
+            ProjectParamValue::Paper(paper) => Ok(*paper),
+            other => Err(param_type_mismatch("paper", other)),
         }
     }
 }
