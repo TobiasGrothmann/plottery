@@ -23,7 +23,7 @@ use dioxus::prelude::*;
 use dioxus_logger::tracing;
 use dioxus_router::hooks::use_navigator;
 use notify::FsEventWatcher;
-use plottery_lib::{BoundingBox, Layer, LayerPropsInheritable, SampleSettings, V2i, V2};
+use plottery_lib::{BoundingBox, Layer, LayerPropsInheritable, SampleSettings, V2};
 use plottery_project::{
     project_param_value::ProjectParamValue, project_params_list_wrapper::ProjectParamsListWrapper,
 };
@@ -371,11 +371,8 @@ pub fn Editor(project_path: Vec<String>) -> Element {
         match get_param_value_mut_by_path(&mut new_params.list, &path) {
             Some(value) => match leaf_value_mut(value) {
                 ProjectParamValue::V2(v) => *v = point,
-                ProjectParamValue::V2i(v) => {
-                    *v = V2i::new(point.x.round() as i32, point.y.round() as i32)
-                }
                 _ => {
-                    tracing::error!("Pick target is not a V2/V2i param: {:?}", path);
+                    tracing::error!("Pick target is not a V2 param: {:?}", path);
                     return;
                 }
             },

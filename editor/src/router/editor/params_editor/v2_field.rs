@@ -41,13 +41,15 @@ pub fn V2Field(props: LeafProps) -> Element {
                     _ => {}
                 }),
             }
-            button {
-                r#type: "button",
-                class: if picking { "v2_pick_button active_button" } else { "v2_pick_button" },
-                style: "min-height: 0; padding: var(--gap-small) var(--gap-0); font-size: 14px; white-space: nowrap;",
-                title: "click on the preview to set this point",
-                onclick: move |_| pick_target.toggle(&pick_path),
-                if picking { "click preview…" } else { "pick" }
+            if !integer {
+                button {
+                    r#type: "button",
+                    class: if picking { "v2_pick_button active_button" } else { "v2_pick_button" },
+                    style: "min-height: 0; padding: var(--gap-small) var(--gap-0); font-size: 14px; white-space: nowrap;",
+                    title: "click on the preview to set this point",
+                    onclick: move |_| pick_target.toggle(&pick_path),
+                    if picking { "click preview…" } else { "pick" }
+                }
             }
         }
     }
