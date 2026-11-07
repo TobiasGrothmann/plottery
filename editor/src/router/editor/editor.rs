@@ -1,6 +1,11 @@
 use crate::util::project_from_segments;
 use crate::{
-    components::{image::*, loading_spinner::Loading, navigation::Navigation},
+    components::{
+        icon::IconName,
+        image::*,
+        loading_spinner::Loading,
+        ui::{Button, IconButton, PanelHeader, StatusPill, Switch, Tone, Variant},
+    },
     router::editor::{
         console::Console,
         console_messages::ConsoleMessages,
@@ -74,6 +79,44 @@ fn format_estimated_plot_duration(duration: Duration) -> String {
     }
 }
 
+fn run_status(state: &RunningState) -> (Tone, &'static str) {
+    match state {
+        RunningState::Idle => (Tone::Ok, "Up to date"),
+        RunningState::Preparing { .. }
+        | RunningState::StartingBuild { .. }
+        | RunningState::Building { .. } => (Tone::Busy, "Compiling…"),
+        RunningState::StartingGetParams { .. }
+        | RunningState::GetParams { .. }
+        | RunningState::StartingRun { .. }
+        | RunningState::Running { .. }
+        | RunningState::Updating { .. } => (Tone::Busy, "Running…"),
+        RunningState::BuildFailed { .. } => (Tone::Err, "Build failed"),
+        RunningState::GetParamsFailed { .. } | RunningState::RunFailed { .. } => {
+            (Tone::Err, "Run failed")
+        }
+        RunningState::BuildKilled { .. }
+        | RunningState::GetParamsKilled { .. }
+        | RunningState::RunKilled { .. } => (Tone::Warn, "Cancelled"),
+    }
+}
+
+fn parent_crumb(dir: &std::path::Path) -> String {
+    let parents: Vec<String> = dir
+        .parent()
+        .into_iter()
+        .flat_map(|parent| parent.components())
+        .filter_map(|component| match component {
+            std::path::Component::Normal(name) => Some(name.to_string_lossy().to_string()),
+            _ => None,
+        })
+        .collect();
+    parents
+        .iter()
+        .skip(parents.len().saturating_sub(2))
+        .map(|name| format!("{name} / "))
+        .collect()
+}
+
 #[derive(Debug, Clone)]
 pub struct LayerChangeWrapper {
     pub layer: Option<Layer>,
@@ -112,7 +155,6 @@ pub fn Editor(project_path: Vec<String>) -> Element {
     let console_change_counter = use_signal_sync(|| 0);
     let console: Signal<ConsoleMessages, SyncStorage> =
         use_signal_sync(|| ConsoleMessages::new(console_change_counter));
-    let mut console_expanded = use_signal(|| false);
 
     // ui state
     let project_params = use_signal_sync(|| {
@@ -261,11 +303,8 @@ pub fn Editor(project_path: Vec<String>) -> Element {
         }
     });
 
-    let send_plot_button_text = use_memo(move || {
-        estimated_plot_duration()
-            .map(|duration| format!("send plot ({})", format_estimated_plot_duration(duration)))
-            .unwrap_or_else(|| "send plot".to_string())
-    });
+    let plot_estimate_text =
+        use_memo(move || estimated_plot_duration().map(format_estimated_plot_duration));
 
     // hooks for changes in project
     // params
@@ -391,17 +430,50 @@ pub fn Editor(project_path: Vec<String>) -> Element {
     let hot_reload_path_to_watch = project().get_cargo_path().unwrap().join("src");
     let hot_reload_is_enabled = move || hot_reload_watcher.read().is_some();
 
-    let hot_reload_button_class = if hot_reload_is_enabled() {
-        "active_button"
-    } else {
-        ""
+    let mut last_run = use_signal(|| None::<String>);
+    let mut seen_busy = use_signal(|| false);
+    use_effect(move || {
+        let state = running_state();
+        if state.is_busy() {
+            if !*seen_busy.peek() {
+                seen_busy.set(true);
+            }
+        } else if matches!(state, RunningState::Idle) && *seen_busy.peek() {
+            last_run.set(Some(chrono::Local::now().format("%H:%M").to_string()));
+        }
+    });
+
+    let hot_reload_enabled = hot_reload_is_enabled();
+    let set_hot_reload = move |enabled: bool| {
+        if enabled == hot_reload_is_enabled() {
+            return;
+        }
+        if enabled {
+            let (handle, watcher) = start_hot_reload(
+                hot_reload_path_to_watch.clone(),
+                release,
+                project_runner().clone(),
+                running_state,
+                console,
+            );
+            hot_reload_join_handle.set(Some(handle));
+            hot_reload_watcher.set(Some(watcher));
+            trigger_run();
+        } else {
+            hot_reload_watcher.set(None);
+            hot_reload_join_handle.set(None);
+        }
     };
 
-    let running_state_class = if running_state().is_error() {
-        "running_state err_box"
-    } else {
-        "running_state"
-    };
+    let state_now = running_state();
+    let (status_tone, status_text) = run_status(&state_now);
+    let status_detail = matches!(state_now, RunningState::Idle)
+        .then(|| last_run())
+        .flatten();
+    let status_title = Some(state_now.get_msg()).filter(|msg| !msg.is_empty());
+    let busy = state_now.is_busy();
+    let crumb = parent_crumb(&project().dir);
+    let param_count = project_params.read().list.len();
 
     let icon_folder = if cfg!(target_os = "windows") {
         format_svg(include_bytes!("../../../public/icons/explorer.svg"))
@@ -413,117 +485,133 @@ pub fn Editor(project_path: Vec<String>) -> Element {
 
     rsx! {
         style { { include_str!("./editor.css") } }
-        Navigation { page_name: "{project().config.name.clone()}", body: rsx! {} }
-
         div { class: "Editor",
-            div { class: "plot_header",
-                div { class: "open_actions",
-                    {
-                        let cargo_dir = use_memo(move || project().get_cargo_path().unwrap());
-                        let project_dir = use_memo(move || project().get_dir());
-                        rsx! {
-                            if vscode_installed() {
-                                ExternalEditorButton {
-                                    editor_name: "VS Code".to_string(),
-                                    editor_command: "code".to_string(),
-                                    icon_svg: include_bytes!("../../../public/icons/vscode.svg"),
-                                    project_dir: cargo_dir,
-                                }
-                            }
-                            if zed_installed() {
-                                ExternalEditorButton {
-                                    editor_name: "Zed".to_string(),
-                                    editor_command: "zed".to_string(),
-                                    icon_svg: include_bytes!("../../../public/icons/zed.svg"),
-                                    project_dir: cargo_dir,
-                                }
-                            }
-                            if cursor_installed() {
-                                ExternalEditorButton {
-                                    editor_name: "Cursor".to_string(),
-                                    editor_command: "cursor".to_string(),
-                                    icon_svg: include_bytes!("../../../public/icons/cursor.svg"),
-                                    project_dir: cargo_dir,
-                                }
-                            }
-                            if sublime_installed() {
-                                ExternalEditorButton {
-                                    editor_name: "Sublime Text".to_string(),
-                                    editor_command: "subl".to_string(),
-                                    icon_svg: include_bytes!("../../../public/icons/sublime-text.svg"),
-                                    project_dir: cargo_dir,
-                                }
-                            }
-                            button { class: "icon_button",
-                                onclick: move |event| {
-                                    open::that_in_background(project().dir).join().unwrap().unwrap();
-                                    event.stop_propagation();
-                                },
-                                img { src: "{icon_folder}" }
-                            }
-                            if gitkraken_installed() {
-                                ExternalEditorButton {
-                                    editor_name: "GitKraken".to_string(),
-                                    editor_command: "GitKraken".to_string(),
-                                    icon_svg: include_bytes!("../../../public/icons/gitkraken.svg"),
-                                    project_dir: project_dir,
-                                    extra_args: vec!["-p".to_string()],
-                                }
-                            }
-                        }
-                    }
-                }
-                div { class: "run_actions",
-                    if !matches!(running_state(), RunningState::Idle) {
-                        div { class: "{running_state_class}",
-                            p { "{running_state().get_msg()}" }
-                        }
-                    }
-                    if !hot_reload_is_enabled() {
-                        button { class: "img_button",
-                            onclick: move |event| {
-                                trigger_run();
-                                event.stop_propagation();
-                            },
-                            img { src: "{format_svg(include_bytes!(\"../../../public/icons/play.svg\"))}" }
-                        }
-                    }
-                    button { class: "img_button {hot_reload_button_class}",
-                        onclick: move |event| {
-                            if hot_reload_is_enabled() {
-                                // Disable hot reload
-                                hot_reload_watcher.set(None);
-                                hot_reload_join_handle.set(None);
+            header { class: "app-header",
+                div { class: "hgroup",
+                    IconButton {
+                        icon: IconName::ChevronLeft,
+                        label: "Back to projects",
+                        onclick: move |_| {
+                            if nav.can_go_back() {
+                                nav.go_back();
                             } else {
-                                // Enable hot reload
-                                let (handle, watcher) = start_hot_reload(
-                                    hot_reload_path_to_watch.clone(),
-                                    release,
-                                    project_runner().clone(),
-                                    running_state,
-                                    console,
-                                );
-                                hot_reload_join_handle.set(Some(handle));
-                                hot_reload_watcher.set(Some(watcher));
-                                trigger_run();
+                                nav.replace(Route::Browser {});
                             }
-                            event.stop_propagation();
                         },
-                        p { "hot reload" }
+                    }
+                    div { class: "title-block", title: "{project().dir.to_string_lossy()}",
+                        span { class: "crumb", "{crumb}" }
+                        h1 { "{project().config.name}" }
+                    }
+                    div { class: "vsep" }
+                    div { class: "hgroup tight",
+                        {
+                            let cargo_dir = use_memo(move || project().get_cargo_path().unwrap());
+                            let project_dir = use_memo(move || project().get_dir());
+                            rsx! {
+                                if vscode_installed() {
+                                    ExternalEditorButton {
+                                        editor_name: "VS Code".to_string(),
+                                        editor_command: "code".to_string(),
+                                        icon_svg: include_bytes!("../../../public/icons/vscode.svg"),
+                                        project_dir: cargo_dir,
+                                    }
+                                }
+                                if zed_installed() {
+                                    ExternalEditorButton {
+                                        editor_name: "Zed".to_string(),
+                                        editor_command: "zed".to_string(),
+                                        icon_svg: include_bytes!("../../../public/icons/zed.svg"),
+                                        project_dir: cargo_dir,
+                                    }
+                                }
+                                if cursor_installed() {
+                                    ExternalEditorButton {
+                                        editor_name: "Cursor".to_string(),
+                                        editor_command: "cursor".to_string(),
+                                        icon_svg: include_bytes!("../../../public/icons/cursor.svg"),
+                                        project_dir: cargo_dir,
+                                    }
+                                }
+                                if sublime_installed() {
+                                    ExternalEditorButton {
+                                        editor_name: "Sublime Text".to_string(),
+                                        editor_command: "subl".to_string(),
+                                        icon_svg: include_bytes!("../../../public/icons/sublime-text.svg"),
+                                        project_dir: cargo_dir,
+                                    }
+                                }
+                                button {
+                                    r#type: "button",
+                                    class: "btn btn-ghost icon-btn",
+                                    title: "Open project folder",
+                                    "aria-label": "Open project folder",
+                                    onclick: move |event| {
+                                        open::that_in_background(project().dir).join().unwrap().unwrap();
+                                        event.stop_propagation();
+                                    },
+                                    img { src: "{icon_folder}", alt: "" }
+                                }
+                                if gitkraken_installed() {
+                                    ExternalEditorButton {
+                                        editor_name: "GitKraken".to_string(),
+                                        editor_command: "GitKraken".to_string(),
+                                        icon_svg: include_bytes!("../../../public/icons/gitkraken.svg"),
+                                        project_dir: project_dir,
+                                        extra_args: vec!["-p".to_string()],
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
-                div { class: "output_actions",
-                    button { class: "img_button",
-                        onclick: move |event| {
+                div { class: "hgroup center-group",
+                    Button {
+                        variant: Variant::Primary,
+                        icon: IconName::Play,
+                        onclick: move |_| trigger_run(),
+                        "Run"
+                    }
+                    Switch {
+                        class: "toggle-box",
+                        label: "Hot reload".to_string(),
+                        checked: hot_reload_enabled,
+                        onchange: set_hot_reload,
+                    }
+                    StatusPill {
+                        tone: status_tone,
+                        text: status_text.to_string(),
+                        detail: status_detail,
+                        title: status_title,
+                    }
+                }
+                div { class: "hgroup end",
+                    Button {
+                        variant: Variant::Ghost,
+                        icon: IconName::Sliders,
+                        onclick: move |_| {
                             nav.push(Route::ProjectPlotSettings {
                                 project_path: project_path_for_settings.clone(),
                             });
-                            event.stop_propagation();
                         },
-                        p { "plot settings" }
+                        "Plot settings"
                     }
-                    button { class: "img_button",
-                        onclick: move |event| {
+                    Button {
+                        icon: IconName::External,
+                        onclick: move |_| {
+                            if let Some(svg) = svg() {
+                                let path = std::env::temp_dir().join("temp_editor.svg");
+                                std::fs::write(&path, svg).unwrap();
+                                if let Err(err) = open::that_in_background(path).join() {
+                                    tracing::error!("Failed to open svg: {:?}", err);
+                                }
+                            }
+                        },
+                        "Open SVG"
+                    }
+                    Button {
+                        variant: Variant::Primary,
+                        onclick: move |_| {
                             match layer_only_visible().layer {
                                 Some(layer) => {
                                     let current_plot_settings = plot_settings();
@@ -548,43 +636,32 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                                     console().error("cannot send plot: no layer available");
                                 }
                             }
-                            event.stop_propagation();
                         },
-                        p { "{send_plot_button_text()}" }
-                    }
-                    button { class: "img_button",
-                        onclick: move |event| {
-                            if let Some(svg) = svg() {
-                                let path = std::env::temp_dir().join("temp_editor.svg");
-                                std::fs::write(&path, svg).unwrap();
-                                if let Err(err) = open::that_in_background(path).join() {
-                                    tracing::error!("Failed to open svg: {:?}", err);
-                                }
-                            }
-                            event.stop_propagation();
-                        },
-                        p { "open svg" }
+                        "Send to plotter"
+                        if let Some(estimate) = plot_estimate_text() {
+                            span { class: "mono estimate", "{estimate}" }
+                        }
                     }
                 }
             }
 
-            div { class: "plot_and_params",
-                div { class: "params",
-                    ParamsEditor {
-                        project_dir: project().get_dir(),
-                        project_params,
-                        project_runner,
-                        running_state,
-                        console,
-                        release,
+            div { class: "workspace",
+                aside { class: "params-panel",
+                    PanelHeader { title: "Parameters", count: param_count }
+                    div { class: "panel-body scroll",
+                        ParamsEditor {
+                            project_dir: project().get_dir(),
+                            project_params,
+                            project_runner,
+                            running_state,
+                            console,
+                            release,
+                        }
                     }
                 }
-                div { class: "plot_and_console",
-                    div { class: "plot",
+                main { class: "center",
+                    section { class: if busy { "preview busy" } else { "preview" },
                         if project().get_editor_preview_image_path().exists() {
-                            if running_state().is_busy() {
-                                Loading {}
-                            }
                             if let Some(svg) = svg() {
                                 SVGImage {
                                     svg,
@@ -592,47 +669,43 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                                     pick_active: pick_target.is_active(),
                                     onpick,
                                 }
-                            }
-                            else {
-                                div {
-                                    class: "Image",
-                                    style: "height: 100%; width: 100%; flex: 1; display: flex; align-items: flex-start; justify-content: flex-start;",
+                            } else {
+                                div { class: "preview-stage",
                                     Image {
+                                        class: "paper paper-file",
                                         img_path: project().get_editor_preview_image_path().to_str().unwrap().to_string(),
                                         redraw_counter: layer().change_counter,
                                     }
                                 }
                             }
-                        } else {
-                            div { class: "err_box",
-                                p { ".svg could not be found!" }
+                            if busy {
+                                Loading {}
                             }
-                        }
-                    }
-                    div { class: "console_container",
-                        {
-                            let button_text = if console_expanded() { "▼" } else { "▲" };
-                            rsx! {
-                                button {
-                                    class: "console_toggle",
-                                    onclick: move |_| {
-                                        let current = console_expanded();
-                                        console_expanded.set(!current);
-                                    },
-                                    "{button_text}"
+                        } else {
+                            div { class: "preview-empty",
+                                p { "No preview yet" }
+                                Button {
+                                    variant: Variant::Primary,
+                                    icon: IconName::Play,
+                                    onclick: move |_| trigger_run(),
+                                    "Run"
                                 }
                             }
-                        }
-                        div { class: if console_expanded() { "console expanded" } else { "console" },
-                            Console {
-                                console: console,
+                            if busy {
+                                Loading {}
                             }
                         }
                     }
+                    Console { console }
                 }
-                LayerEditor {
-                    layer_tree_ref,
-                    running_state: running_state,
+                aside { class: "layers-panel",
+                    PanelHeader { title: "Layers" }
+                    div { class: "panel-body scroll",
+                        LayerEditor {
+                            layer_tree_ref,
+                            running_state: running_state,
+                        }
+                    }
                 }
             }
         }

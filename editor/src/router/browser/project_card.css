@@ -20,10 +20,7 @@
   justify-content: center;
   overflow: hidden;
 }
-.card_preview .Image {
-  width: 100%;
-}
-.card_preview .Image img {
+.card_preview .card_image {
   width: 100%;
   object-fit: contain;
   display: block;

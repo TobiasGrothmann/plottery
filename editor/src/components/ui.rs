@@ -120,6 +120,7 @@ fn toggle_input(
     class: &'static str,
     checked: bool,
     label: Option<String>,
+    label_class: String,
     onchange: EventHandler<bool>,
 ) -> Element {
     let input = rsx! {
@@ -133,20 +134,30 @@ fn toggle_input(
     };
     match label {
         Some(label) => rsx! {
-            label { class: "hrow toggle-label", {input} span { "{label}" } }
+            label { class: "hrow toggle-label {label_class}", {input} span { "{label}" } }
         },
         None => input,
     }
 }
 
 #[component]
-pub fn Switch(checked: bool, onchange: EventHandler<bool>, label: Option<String>) -> Element {
-    toggle_input("switch", checked, label, onchange)
+pub fn Switch(
+    checked: bool,
+    onchange: EventHandler<bool>,
+    label: Option<String>,
+    #[props(default)] class: String,
+) -> Element {
+    toggle_input("switch", checked, label, class, onchange)
 }
 
 #[component]
-pub fn Checkbox(checked: bool, onchange: EventHandler<bool>, label: Option<String>) -> Element {
-    toggle_input("check", checked, label, onchange)
+pub fn Checkbox(
+    checked: bool,
+    onchange: EventHandler<bool>,
+    label: Option<String>,
+    #[props(default)] class: String,
+) -> Element {
+    toggle_input("check", checked, label, class, onchange)
 }
 
 #[component]
@@ -167,7 +178,12 @@ pub fn Chip(
 }
 
 #[component]
-pub fn StatusPill(tone: Tone, text: String, detail: Option<String>) -> Element {
+pub fn StatusPill(
+    tone: Tone,
+    text: String,
+    detail: Option<String>,
+    title: Option<String>,
+) -> Element {
     let tone = match tone {
         Tone::Ok => "ok",
         Tone::Busy => "busy",
@@ -175,7 +191,7 @@ pub fn StatusPill(tone: Tone, text: String, detail: Option<String>) -> Element {
         Tone::Err => "err",
     };
     rsx! {
-        span { class: "pill", role: "status",
+        span { class: "pill", role: "status", title,
             span { class: "dot {tone}" }
             span { "{text}" }
             if let Some(detail) = detail {

@@ -1,26 +1,47 @@
-.Console {
-    background-color: var(--col-bg-1);
-    overflow: scroll;
-    height: 100% !important;
-    min-width: 400px !important;
-    padding: var(--gap-0) !important;
-    box-sizing: border-box;
+.console {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-1);
+  border-top: 1px solid var(--line);
+}
 
-    display: flex;
-    flex-direction: column-reverse;
+.console-head {
+  height: 32px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px 0 12px;
+}
+
+.console-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.console-body {
+  height: 168px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column-reverse;
+  padding: 4px 0;
+  border-top: 1px solid var(--line);
 }
 
 .Console p {
-    white-space: pre-wrap;
-    font-family: monospace !important;
+  padding: 0 12px;
+  white-space: pre-wrap;
+  font: 400 12px/1.6 'JetBrains Mono', ui-monospace, monospace;
 }
-
-.error {
-    color: red;
+.Console .error {
+  color: var(--err);
 }
-.info {
-    color: var(--col-fg-0);
+.Console .info {
+  color: var(--fg-1);
 }
-.project_log {
-    color: yellowgreen;
+.Console .project_log {
+  color: var(--fg-0);
 }

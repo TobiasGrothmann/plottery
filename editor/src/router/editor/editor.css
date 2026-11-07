@@ -1,115 +1,107 @@
 .Editor {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    row-gap: var(--gap-1);
-    max-height: calc(100vh - var(--header-height)) !important;
-    max-width: 100vw !important;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  outline: none;
 }
 
-.plot_header {
-    padding: var(--gap-0);
-    display: flex;
-    flex-direction: row;
-    column-gap: var(--gap-2);
-    background-color: var(--col-bg-2);
-    align-items: center;
-    justify-content: space-between;
-}
-.run_actions {
-    display: flex;
-    flex-direction: row;
-    column-gap: var(--gap-1);
-    min-width: 400px;
-    justify-content: flex-end;
-}
-.open_actions {
-    display: flex;
-    flex-direction: row;
-    column-gap: var(--gap-0);
-}
-.open_actions button {
-    color: var(--col-fg-0);
-    background-color: var(--col-bg-2);
-}
-.output_actions {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    column-gap: var(--gap-1);
+.title-block {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
 }
 
-.plot_and_params {
-    flex: 1;
-    width: 100%;
-    height: 100%;
-    overflow: scroll;
-    display: flex;
-    flex-direction: row;
-    column-gap: var(--gap-1);
-}
-.params {
-    width: 500px;
-    display: flex;
-}
-.plot_and_console {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    row-gap: var(--gap-0);
-}
-.plot {
-    display: flex;
-    flex: 1;
-    background-color: white;
-    padding: var(--gap-0);
-    overflow-x: scroll;
-    user-select: none;
-    -webkit-user-select: none;
-}
-.console_container {
-    width: 100%;
+.toggle-box {
+  height: 32px;
+  padding: 0 10px;
+  gap: 8px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  font-size: 12px;
+  color: var(--fg-1);
+  cursor: pointer;
 }
 
-.console_toggle {
-    width: 100px;
-    height: 22px;
-    min-height: 22px;
-    background-color: var(--col-bg-3);
-    cursor: pointer;
-    color: var(--col-fg-0);
-    font-size: 10px;
-    transition: background-color 0.2s;
-    display: block;
-    margin: 0 auto;
-}
-.console_toggle:hover {
-    background-color: var(--col-active);
+.estimate {
+  opacity: 0.75;
 }
 
-.console {
-    position: relative;
-    height: 170px;
-    width: 100%;
-    box-sizing: border-box;
-    overflow: auto;
-    border: 2px solid var(--col-bg-3);
-    border-radius: var(--border-radius);
-}
-.console.expanded {
-    height: 550px;
+.workspace {
+  flex: 1;
+  min-height: 0;
+  display: flex;
 }
 
-.active_button {
-    background-color: var(--col-active);
-    color: var(--col-fg-0);
+.params-panel,
+.layers-panel {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg-1);
+}
+.params-panel {
+  width: 340px;
+  border-right: 1px solid var(--line);
+}
+.layers-panel {
+  width: 240px;
+  border-left: 1px solid var(--line);
 }
 
-.running_state {
-    padding: var(--gap-0) var(--gap-1);
-    border-radius: var(--border-radius);
-    background-color: var(--col-bg-3);
-    display: flex;
-    justify-content: center;
-    align-items: center;
+.panel-body {
+  flex: 1;
+  min-height: 0;
+}
+
+.center {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.preview {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  background-color: var(--bg-0);
+  background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+.preview-stage {
+  position: absolute;
+  inset: 32px;
+  container-type: size;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.paper {
+  display: block;
+  background: var(--paper);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.35);
+  transition: opacity 0.15s;
+}
+.paper-file {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.preview.busy .paper {
+  opacity: 0.6;
+}
+
+.preview-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--fg-2);
 }
