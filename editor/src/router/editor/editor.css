@@ -58,8 +58,8 @@
   flex: 1;
   min-height: 0;
   position: relative;
-  background-color: var(--bg-0);
-  background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
+  background-color: var(--stage);
+  background-image: radial-gradient(var(--stage-dot) 1px, transparent 1px);
   background-size: 16px 16px;
 }
 
@@ -123,5 +123,5 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  color: var(--fg-2);
+  color: var(--bg-1);
 }
