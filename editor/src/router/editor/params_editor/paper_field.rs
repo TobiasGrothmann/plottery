@@ -63,23 +63,26 @@ pub fn PaperField(props: LeafProps) -> Element {
     rsx! {
         style { { include_str!("paper_field.css") } }
         div { class: "PaperField",
-            div { class: "paper_row",
-                Segmented {
-                    options: vec!["A".to_string(), "B".to_string(), "custom".to_string()],
-                    selected: Some(size_kind),
-                    onselect: move |index: usize| edit_paper(&kind_props, |paper| {
-                        let number = din_number(&paper.size);
-                        paper.size = match index {
-                            0 => PaperSize::DinA(number),
-                            1 => PaperSize::DinB(number),
-                            _ => PaperSize::Custom(paper.with_landscape(false).size()),
-                        };
-                    }),
-                }
-                if let PaperSize::Custom(size) = paper.size {
+            span { class: "paper_label", "size" }
+            Segmented {
+                options: vec!["A".to_string(), "B".to_string(), "custom".to_string()],
+                selected: Some(size_kind),
+                onselect: move |index: usize| edit_paper(&kind_props, |paper| {
+                    let number = din_number(&paper.size);
+                    paper.size = match index {
+                        0 => PaperSize::DinA(number),
+                        1 => PaperSize::DinB(number),
+                        _ => PaperSize::Custom(paper.with_landscape(false).size()),
+                    };
+                }),
+            }
+
+            if let PaperSize::Custom(size) = paper.size {
+                span { class: "paper_label", "cm" }
+                div { class: "paper_row",
                     NumberInput {
                         value: size.x,
-                        placeholder: "width cm",
+                        placeholder: "width",
                         oncommit: move |x: f32| edit_paper(&width_props, |paper| {
                             if let PaperSize::Custom(size) = &mut paper.size { size.x = x.max(0.0); }
                         }),
@@ -87,37 +90,35 @@ pub fn PaperField(props: LeafProps) -> Element {
                     span { "×" }
                     NumberInput {
                         value: size.y,
-                        placeholder: "height cm",
+                        placeholder: "height",
                         oncommit: move |y: f32| edit_paper(&height_props, |paper| {
                             if let PaperSize::Custom(size) = &mut paper.size { size.y = y.max(0.0); }
                         }),
                     }
-                } else {
-                    Dropdown {
-                        options: din_options,
-                        selected: Some(din_number(&paper.size) as usize),
-                        onselect: move |index: usize| edit_paper(&number_props, |paper| {
-                            paper.size = match paper.size {
-                                PaperSize::DinB(_) => PaperSize::DinB(index as u8),
-                                _ => PaperSize::DinA(index as u8),
-                            };
-                        }),
-                    }
                 }
-                label { class: "paper_landscape",
-                    input {
-                        r#type: "checkbox",
-                        checked: paper.landscape,
-                        onchange: move |event| {
-                            let landscape = event.value().parse().unwrap_or(false);
-                            edit_paper(&landscape_props, |paper| paper.landscape = landscape);
-                        },
-                    }
-                    "landscape"
+            } else {
+                span { class: "paper_label", "format" }
+                Dropdown {
+                    options: din_options,
+                    selected: Some(din_number(&paper.size) as usize),
+                    onselect: move |index: usize| edit_paper(&number_props, |paper| {
+                        paper.size = match paper.size {
+                            PaperSize::DinB(_) => PaperSize::DinB(index as u8),
+                            _ => PaperSize::DinA(index as u8),
+                        };
+                    }),
                 }
             }
+
+            span { class: "paper_label", "orientation" }
+            Segmented {
+                options: vec!["portrait".to_string(), "landscape".to_string()],
+                selected: Some(if paper.landscape { 1 } else { 0 }),
+                onselect: move |index: usize| edit_paper(&landscape_props, |paper| paper.landscape = index == 1),
+            }
+
+            span { class: "paper_label", "margin" }
             div { class: "paper_row",
-                span { "margin" }
                 NumberInput {
                     value: margin_value,
                     oncommit: move |value: f32| edit_paper(&margin_props, |paper| {
@@ -140,6 +141,8 @@ pub fn PaperField(props: LeafProps) -> Element {
                     }),
                 }
             }
+
+            span { class: "paper_label", "result" }
             p { class: "paper_resolved", "{resolved_text}" }
         }
     }

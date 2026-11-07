@@ -36,7 +36,7 @@ pub fn SeedField(props: LeafProps) -> Element {
                 button {
                     r#type: "button",
                     class: "seed_button",
-                    onclick: move |_| edit_seed(&random_props, |seed| seed.set(rand_range_i(0, i32::MAX))),
+                    onclick: move |_| edit_seed(&random_props, |seed| seed.set(rand_range_i(0, 101))),
                     "random"
                 }
             }

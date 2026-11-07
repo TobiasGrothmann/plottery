@@ -56,15 +56,15 @@ pub fn ImageField(props: LeafProps) -> Element {
                     selected: Some(if copy_mode() { 0 } else { 1 }),
                     onselect: move |index: usize| copy_mode.set(index == 0),
                 }
-                if copy_mode() {
-                    label { class: "image_downscale",
-                        input {
-                            r#type: "checkbox",
-                            checked: downscale(),
-                            onchange: move |event| downscale.set(event.value().parse().unwrap_or(true)),
-                        }
-                        "downscale to ≤ {DOWNSCALE_MAX_PX} px"
+            }
+            if copy_mode() {
+                label { class: "image_downscale",
+                    input {
+                        r#type: "checkbox",
+                        checked: downscale(),
+                        onchange: move |event| downscale.set(event.value().parse().unwrap_or(true)),
                     }
+                    "downscale copy to max. {DOWNSCALE_MAX_PX} px (longest side)"
                 }
             }
             div { class: "image_row",
