@@ -16,8 +16,11 @@ mod tests {
     fn move_from_origin(target: V2) -> (f32, V2) {
         let profile = HARDWARE_CONSTS.hardware_profile;
         let mut hardware = Hardware::new(profile, TimeEstimatorExecutor::new());
-        let constant_speed =
-            SpeedDelayHandler::new(SPEED_CM_PER_S, SPEED_CM_PER_S, profile.dist_per_step_axis_cm);
+        let constant_speed = SpeedDelayHandler::new(
+            SPEED_CM_PER_S,
+            SPEED_CM_PER_S,
+            profile.dist_per_step_axis_cm,
+        );
         hardware.move_to(
             1.0,
             V2Speed {

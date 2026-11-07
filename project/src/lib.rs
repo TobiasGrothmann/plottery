@@ -6,6 +6,9 @@
 //!
 //! <img alt="folder structure" src="https://github.com/user-attachments/assets/d0066b16-5b75-4563-b625-88cc7d206a77" />
 
+// Lets generated code use `::plottery_project::` paths inside this crate as well.
+extern crate self as plottery_project;
+
 mod cargo_project_template;
 mod project;
 mod project_config;

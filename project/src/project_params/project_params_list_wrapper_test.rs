@@ -1,9 +1,10 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        project_param::ProjectParam, project_param_optional::ProjectParamOptional,
-        project_param_struct::ProjectParamStruct, project_param_value::ProjectParamValue,
-        project_param_vec::ProjectParamVec, project_params_list_wrapper::ProjectParamsListWrapper,
+        project_param::ProjectParam, project_param_enum::ProjectParamEnum,
+        project_param_optional::ProjectParamOptional, project_param_struct::ProjectParamStruct,
+        project_param_value::ProjectParamValue, project_param_vec::ProjectParamVec,
+        project_params_list_wrapper::ProjectParamsListWrapper,
     };
 
     #[test]
@@ -194,5 +195,41 @@ mod tests {
 
         let combined = ProjectParamsListWrapper::new_combined(&old.list, &new.list);
         assert_eq!(combined.list, new.list);
+    }
+
+    #[test]
+    fn test_combine_enum_keeps_selection_if_variant_still_exists() {
+        let old = vec![ProjectParam::new(
+            "mode",
+            ProjectParamValue::Enum(ProjectParamEnum::new("Dots", &["Lines", "Dots"])),
+        )];
+        let new = vec![ProjectParam::new(
+            "mode",
+            ProjectParamValue::Enum(ProjectParamEnum::new(
+                "Lines",
+                &["Lines", "Dots", "Squares"],
+            )),
+        )];
+
+        let combined = ProjectParamsListWrapper::new_combined(&old, &new);
+        assert_eq!(
+            combined.list[0].value,
+            ProjectParamValue::Enum(ProjectParamEnum::new("Dots", &["Lines", "Dots", "Squares"]))
+        );
+    }
+
+    #[test]
+    fn test_combine_enum_resets_selection_if_variant_was_removed() {
+        let old = vec![ProjectParam::new(
+            "mode",
+            ProjectParamValue::Enum(ProjectParamEnum::new("Dots", &["Lines", "Dots"])),
+        )];
+        let new = vec![ProjectParam::new(
+            "mode",
+            ProjectParamValue::Enum(ProjectParamEnum::new("Lines", &["Lines", "Squares"])),
+        )];
+
+        let combined = ProjectParamsListWrapper::new_combined(&old, &new);
+        assert_eq!(combined.list, new);
     }
 }

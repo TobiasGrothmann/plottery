@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::project_param::ProjectParam;
+use super::project_param_enum::ProjectParamEnum;
 use super::project_param_optional::ProjectParamOptional;
 use super::project_param_struct::ProjectParamStruct;
 use super::project_param_value::ProjectParamValue;
@@ -62,6 +63,17 @@ impl ProjectParamsListWrapper {
                     old_optional.enabled,
                     merged_inner,
                 )))
+            }
+            (ProjectParamValue::Enum(old_enum), ProjectParamValue::Enum(new_enum)) => {
+                let selected = if new_enum.variants.contains(&old_enum.selected) {
+                    old_enum.selected.clone()
+                } else {
+                    new_enum.selected.clone()
+                };
+                Some(ProjectParamValue::Enum(ProjectParamEnum {
+                    selected,
+                    variants: new_enum.variants.clone(),
+                }))
             }
             _ => {
                 let old_schema = ProjectParam::new("__schema", old.clone());

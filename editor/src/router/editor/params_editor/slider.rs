@@ -10,6 +10,7 @@ use tokio::sync::Mutex;
 
 use crate::router::editor::{
     console_messages::ConsoleMessages, params_editor::param_tree::get_param_value_mut_by_path,
+    params_editor::params_editor::trigger_run, params_editor::widgets::format_number,
     project_runner::ProjectRunner, running_state::RunningState,
 };
 
@@ -101,12 +102,7 @@ pub fn Slider(mut props: EditorSliderProps) -> Element {
     let mut track = use_signal(|| None::<Rc<MountedData>>);
 
     let shown_value = use_memo(move || ranged.snap(slider_value()));
-    let slider_value_string = use_memo(move || {
-        format!("{:.5}", shown_value())
-            .trim_end_matches('0')
-            .trim_end_matches('.')
-            .to_string()
-    });
+    let slider_value_string = use_memo(move || format_number(shown_value()));
     let thumb_fraction = ranged.fraction(shown_value());
 
     let commit = use_callback(move |_: ()| {
@@ -118,17 +114,12 @@ pub fn Slider(mut props: EditorSliderProps) -> Element {
             return;
         }
         props.project_params.set(new_params);
-        match props.project_runner.read().try_lock() {
-            Ok(mut runner) => {
-                runner.trigger_run_project(props.release, props.running_state, props.console)
-            }
-            Err(e) => {
-                tracing::error!("Error preparing to run: {:?}", e);
-                props.running_state.set(RunningState::RunFailed {
-                    msg: format!("Error preparing to run: {}", e),
-                });
-            }
-        }
+        trigger_run(
+            props.project_runner,
+            props.running_state,
+            props.console,
+            props.release,
+        );
     });
 
     let mut end_drag = move || {

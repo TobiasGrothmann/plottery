@@ -4,3 +4,4 @@ pub mod number_field;
 pub mod param_tree;
 pub mod params_editor;
 pub mod slider;
+pub mod widgets;

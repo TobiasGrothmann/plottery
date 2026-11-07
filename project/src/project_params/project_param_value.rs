@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 pub use super::curve_2d::Curve2D;
 pub use super::curve_2d_norm::Curve2DNorm;
+use super::project_param_enum::ProjectParamEnum;
 use super::project_param_optional::ProjectParamOptional;
 use super::project_param_struct::ProjectParamStruct;
 use super::project_param_vec::ProjectParamVec;
@@ -19,6 +20,7 @@ pub enum ProjectParamValue {
     Struct(ProjectParamStruct),
     Optional(ProjectParamOptional),
     Vec(ProjectParamVec),
+    Enum(ProjectParamEnum),
 }
 
 impl ProjectParamValue {
@@ -98,6 +100,7 @@ impl ProjectParamValue {
             ProjectParamValue::Vec(vec_value) => {
                 format!("vec<{}>", vec_value.item_prototype.type_name())
             }
+            ProjectParamValue::Enum(_) => "enum".to_string(),
         }
     }
 
@@ -123,6 +126,7 @@ impl ProjectParamValue {
             ProjectParamValue::Vec(vec_value) => {
                 format!("{} items", vec_value.items.len())
             }
+            ProjectParamValue::Enum(param_enum) => param_enum.selected.clone(),
         }
     }
 }

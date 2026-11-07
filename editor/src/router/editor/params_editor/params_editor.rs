@@ -31,7 +31,7 @@ pub struct ParamsEditorProps {
     release: bool,
 }
 
-fn trigger_run(
+pub(crate) fn trigger_run(
     project_runner: SyncSignal<Arc<Mutex<ProjectRunner>>>,
     mut running_state: SyncSignal<RunningState>,
     console: SyncSignal<ConsoleMessages>,
@@ -222,6 +222,11 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, props: &ParamsEdito
                     console: props.console,
                     release: props.release,
                 }
+            }
+        }
+        ProjectParamValue::Enum(param_enum) => {
+            rsx! {
+                p { key: "{key}", "{param_enum.selected}" }
             }
         }
         ProjectParamValue::Struct(_)
