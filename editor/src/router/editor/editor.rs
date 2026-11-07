@@ -470,9 +470,7 @@ pub fn Editor(project_path: Vec<String>) -> Element {
 
     let state_now = running_state();
     let (status_tone, status_text) = run_status(&state_now);
-    let status_detail = matches!(state_now, RunningState::Idle)
-        .then(|| last_run())
-        .flatten();
+    let status_detail = last_run().filter(|_| matches!(state_now, RunningState::Idle));
     let status_title = Some(state_now.get_msg()).filter(|msg| !msg.is_empty());
     let busy = state_now.is_busy();
     let crumb = parent_crumb(&project().dir);

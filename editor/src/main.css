@@ -16,6 +16,9 @@
   --warn:#f0b450;
   --err:#ff7b6e;
   --paper:#fff;
+  --accent-hover:#97b0ff;
+  --thumb:#26262b;
+  --thumb-hover:#2c2c32;
   --grid-dot:#202025;
   --r-sm:4px;
   --r:6px;
@@ -30,7 +33,7 @@ button,input,select{font:inherit;color:inherit}
 .btn:hover{background:var(--bg-4)}
 .btn:focus-visible,.seg button:focus-visible,.chip:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .btn-primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
-.btn-primary:hover{background:#97b0ff}
+.btn-primary:hover{background:var(--accent-hover)}
 .btn-ghost{background:transparent;border-color:transparent;color:var(--fg-1)}
 .btn-ghost:hover{background:var(--bg-3);color:var(--fg-0)}
 .btn-ghost.on{background:var(--bg-3);color:var(--fg-0)}
@@ -55,7 +58,7 @@ button,input,select{font:inherit;color:inherit}
 .switch{appearance:none;-webkit-appearance:none;margin:0;width:28px;height:16px;border-radius:999px;background:var(--bg-4);position:relative;cursor:pointer;flex:none;transition:background .15s}
 .switch::before{content:'';position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:var(--fg-1);transition:transform .15s}
 .switch:checked{background:var(--accent)}
-.switch:checked::before{transform:translateX(12px);background:#fff}
+.switch:checked::before{transform:translateX(12px);background:var(--paper)}
 .check{appearance:none;-webkit-appearance:none;margin:0;width:16px;height:16px;border-radius:4px;border:1px solid var(--line-2);background:var(--bg-0);cursor:pointer;flex:none;display:grid;place-content:center}
 .check:checked{background:var(--accent);border-color:var(--accent)}
 .check:checked::before{content:'';width:8px;height:4px;border-left:2px solid var(--accent-fg);border-bottom:2px solid var(--accent-fg);transform:rotate(-45deg) translate(1px,-1px)}
@@ -101,14 +104,14 @@ button,input,select{font:inherit;color:inherit}
 .tree-row .count{margin-left:auto}
 .card{display:flex;flex-direction:column;border-radius:8px;border:1px solid var(--line);background:var(--bg-2);overflow:hidden;color:inherit;text-decoration:none;transition:border-color .12s}
 .card:hover{border-color:var(--line-2)}
-.card:hover .thumb{background:#2c2c32}
-.thumb{aspect-ratio:4 / 3;background:#26262b;display:flex;align-items:center;justify-content:center;padding:8%}
-.thumb svg{max-width:100%;max-height:100%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.4),0 6px 16px rgba(0,0,0,.3)}
+.card:hover .thumb{background:var(--thumb-hover)}
+.thumb{aspect-ratio:4 / 3;background:var(--thumb);display:flex;align-items:center;justify-content:center;padding:8%}
+.thumb svg{max-width:100%;max-height:100%;background:var(--paper);box-shadow:0 1px 2px rgba(0,0,0,.4),0 6px 16px rgba(0,0,0,.3)}
 .sec-head{display:flex;align-items:center;gap:8px;width:100%;height:36px;padding:0 8px;border:0;border-radius:var(--r);background:transparent;color:var(--fg-0);font:600 13px 'Inter',system-ui,sans-serif;cursor:pointer;text-align:left}
 .sec-head:hover{background:var(--bg-2)}
 .range{-webkit-appearance:none;appearance:none;width:96px;height:4px;border-radius:2px;background:var(--bg-4);margin:0}
 .range::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--fg-0);border:0;cursor:pointer}
-.select{appearance:none;-webkit-appearance:none;font-family:'Inter',system-ui,sans-serif;padding-right:28px;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,#8f8f98 50%),linear-gradient(135deg,#8f8f98 50%,transparent 50%);background-position:calc(100% - 14px) 12px,calc(100% - 10px) 12px;background-size:4px 4px;background-repeat:no-repeat}
+.select{appearance:none;-webkit-appearance:none;font-family:'Inter',system-ui,sans-serif;padding-right:28px;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,var(--fg-2) 50%),linear-gradient(135deg,var(--fg-2) 50%,transparent 50%);background-position:calc(100% - 14px) 12px,calc(100% - 10px) 12px;background-size:4px 4px;background-repeat:no-repeat}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 .input.lg{height:32px;font-size:13px}
 
