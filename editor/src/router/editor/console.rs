@@ -13,6 +13,9 @@ use super::console_messages::ConsoleMessages;
 #[derive(PartialEq, Props, Clone)]
 pub struct ConsoleProps {
     pub console: SyncSignal<ConsoleMessages>,
+    pub open: bool,
+    pub height: f64,
+    pub on_toggle: EventHandler<()>,
 }
 
 #[component]
@@ -46,6 +49,13 @@ pub fn Console(props: ConsoleProps) -> Element {
         style { { include_str!("console.css") } }
         section { class: "console",
             div { class: "console-head",
+                IconButton {
+                    icon: IconName::ChevronDown,
+                    label: if props.open { "Hide console" } else { "Show console" },
+                    size: Size::Sm,
+                    icon_class: if props.open { "" } else { "rot-90" },
+                    onclick: move |_| props.on_toggle.call(()),
+                }
                 span { class: "panel-title",
                     "Console"
                     span { class: "count", "{messages.len()}" }
@@ -62,8 +72,10 @@ pub fn Console(props: ConsoleProps) -> Element {
                     }
                 }
             }
-            div { class: "console-body Console",
-                { console_items },
+            if props.open {
+                div { class: "console-body Console scroll", style: "height: {props.height}px;",
+                    { console_items },
+                }
             }
         }
     }

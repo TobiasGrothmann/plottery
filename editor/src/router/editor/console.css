@@ -12,7 +12,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 6px 0 12px;
+  padding: 0 6px;
 }
 
 .console-actions {
@@ -23,8 +23,6 @@
 }
 
 .console-body {
-  height: 168px;
-  overflow: auto;
   display: flex;
   flex-direction: column-reverse;
   padding: 4px 0;

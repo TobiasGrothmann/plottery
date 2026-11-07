@@ -41,14 +41,6 @@
   min-height: 0;
   background: var(--bg-1);
 }
-.params-panel {
-  width: 340px;
-  border-right: 1px solid var(--line);
-}
-.layers-panel {
-  width: 240px;
-  border-left: 1px solid var(--line);
-}
 
 .panel-body {
   flex: 1;

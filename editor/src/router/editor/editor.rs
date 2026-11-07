@@ -4,8 +4,10 @@ use crate::{
         icon::IconName,
         image::*,
         loading_spinner::Loading,
-        ui::{Button, IconButton, PanelHeader, StatusPill, Switch, Tone, Variant},
+        resizer::{Axis, Resizer},
+        ui::{Button, IconButton, PanelHeader, Size, StatusPill, Switch, Tone, Variant},
     },
+    model::app_state::{AppState, Panel},
     router::editor::{
         console::Console,
         console_messages::ConsoleMessages,
@@ -475,6 +477,37 @@ pub fn Editor(project_path: Vec<String>) -> Element {
     let crumb = parent_crumb(&project().dir);
     let param_count = project_params.read().list.len();
 
+    let mut layout = use_signal(|| AppState::load_or_default().panel_layout.clamped());
+    let save_layout = move || {
+        let mut state = AppState::load_or_default();
+        state.panel_layout = layout.peek().clone();
+        state.save();
+    };
+    let mut toggle_panel = move |panel: Panel| {
+        layout.write().toggle(panel);
+        save_layout();
+    };
+    let resize_panel = move |panel: Panel| {
+        EventHandler::new(move |size: f64| layout.write().set_size(panel, size))
+    };
+    let commit_panel = move |panel: Panel| {
+        EventHandler::new(move |size: f64| {
+            layout.write().set_size(panel, size);
+            save_layout();
+        })
+    };
+    let current_layout = layout();
+    let shortcut = |key: &str| {
+        if cfg!(target_os = "macos") {
+            format!("⌘{key}")
+        } else {
+            format!("Ctrl+{key}")
+        }
+    };
+    let (params_min, params_max, params_default) = Panel::Params.size_limits();
+    let (layers_min, layers_max, layers_default) = Panel::Layers.size_limits();
+    let (console_min, console_max, console_default) = Panel::Console.size_limits();
+
     let icon_folder = if cfg!(target_os = "windows") {
         format_svg(include_bytes!("../../../public/icons/explorer.svg"))
     } else if cfg!(target_os = "macos") {
@@ -485,7 +518,27 @@ pub fn Editor(project_path: Vec<String>) -> Element {
 
     rsx! {
         style { { include_str!("./editor.css") } }
-        div { class: "Editor",
+        div {
+            class: "Editor",
+            tabindex: "-1",
+            onmounted: move |event| async move {
+                let _ = event.data().set_focus(true).await;
+            },
+            onkeydown: move |event| {
+                let modifiers = event.modifiers();
+                if !(modifiers.meta() || modifiers.ctrl()) {
+                    return;
+                }
+                let Key::Character(key) = event.key() else { return };
+                let panel = match key.to_lowercase().as_str() {
+                    "1" => Panel::Params,
+                    "j" => Panel::Console,
+                    "2" => Panel::Layers,
+                    _ => return,
+                };
+                event.prevent_default();
+                toggle_panel(panel);
+            },
             header { class: "app-header",
                 div { class: "hgroup",
                     IconButton {
@@ -586,6 +639,30 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                     }
                 }
                 div { class: "hgroup end",
+                    div { class: "hgroup tight",
+                        IconButton {
+                            icon: IconName::PanelLeft,
+                            label: "Toggle parameters",
+                            title: "Toggle parameters ({shortcut(\"1\")})",
+                            active: current_layout.params_open,
+                            onclick: move |_| toggle_panel(Panel::Params),
+                        }
+                        IconButton {
+                            icon: IconName::PanelBottom,
+                            label: "Toggle console",
+                            title: "Toggle console ({shortcut(\"J\")})",
+                            active: current_layout.console_open,
+                            onclick: move |_| toggle_panel(Panel::Console),
+                        }
+                        IconButton {
+                            icon: IconName::PanelRight,
+                            label: "Toggle layers",
+                            title: "Toggle layers ({shortcut(\"2\")})",
+                            active: current_layout.layers_open,
+                            onclick: move |_| toggle_panel(Panel::Layers),
+                        }
+                    }
+                    div { class: "vsep" }
                     Button {
                         variant: Variant::Ghost,
                         icon: IconName::Sliders,
@@ -646,17 +723,43 @@ pub fn Editor(project_path: Vec<String>) -> Element {
             }
 
             div { class: "workspace",
-                aside { class: "params-panel",
-                    PanelHeader { title: "Parameters", count: param_count }
-                    div { class: "panel-body scroll",
-                        ParamsEditor {
-                            project_dir: project().get_dir(),
-                            project_params,
-                            project_runner,
-                            running_state,
-                            console,
-                            release,
+                if current_layout.params_open {
+                    aside { class: "params-panel", style: "width: {current_layout.params_w}px;",
+                        PanelHeader {
+                            title: "Parameters",
+                            count: param_count,
+                            on_collapse: move |_| toggle_panel(Panel::Params),
                         }
+                        div { class: "panel-body scroll",
+                            ParamsEditor {
+                                project_dir: project().get_dir(),
+                                project_params,
+                                project_runner,
+                                running_state,
+                                console,
+                                release,
+                            }
+                        }
+                    }
+                    Resizer {
+                        axis: Axis::Vertical,
+                        value: current_layout.params_w,
+                        min: params_min,
+                        max: params_max,
+                        default: params_default,
+                        onchange: resize_panel(Panel::Params),
+                        oncommit: commit_panel(Panel::Params),
+                        label: "Resize parameters",
+                    }
+                } else {
+                    div { class: "rail rail-left",
+                        IconButton {
+                            icon: IconName::ChevronRight,
+                            label: "Show parameters",
+                            size: Size::Sm,
+                            onclick: move |_| toggle_panel(Panel::Params),
+                        }
+                        span { class: "rail-label", "Parameters" }
                     }
                 }
                 main { class: "center",
@@ -696,15 +799,60 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                             }
                         }
                     }
-                    Console { console }
-                }
-                aside { class: "layers-panel",
-                    PanelHeader { title: "Layers" }
-                    div { class: "panel-body scroll",
-                        LayerEditor {
-                            layer_tree_ref,
-                            running_state: running_state,
+                    if current_layout.console_open {
+                        Resizer {
+                            axis: Axis::Horizontal,
+                            value: current_layout.console_h,
+                            min: console_min,
+                            max: console_max,
+                            default: console_default,
+                            invert: true,
+                            onchange: resize_panel(Panel::Console),
+                            oncommit: commit_panel(Panel::Console),
+                            label: "Resize console",
                         }
+                    }
+                    Console {
+                        console,
+                        open: current_layout.console_open,
+                        height: current_layout.console_h,
+                        on_toggle: move |_| toggle_panel(Panel::Console),
+                    }
+                }
+                if current_layout.layers_open {
+                    Resizer {
+                        axis: Axis::Vertical,
+                        value: current_layout.layers_w,
+                        min: layers_min,
+                        max: layers_max,
+                        default: layers_default,
+                        invert: true,
+                        onchange: resize_panel(Panel::Layers),
+                        oncommit: commit_panel(Panel::Layers),
+                        label: "Resize layers",
+                    }
+                    aside { class: "layers-panel", style: "width: {current_layout.layers_w}px;",
+                        PanelHeader {
+                            title: "Layers",
+                            collapse_icon: IconName::ChevronRight,
+                            on_collapse: move |_| toggle_panel(Panel::Layers),
+                        }
+                        div { class: "panel-body scroll",
+                            LayerEditor {
+                                layer_tree_ref,
+                                running_state: running_state,
+                            }
+                        }
+                    }
+                } else {
+                    div { class: "rail rail-right",
+                        IconButton {
+                            icon: IconName::ChevronLeft,
+                            label: "Show layers",
+                            size: Size::Sm,
+                            onclick: move |_| toggle_panel(Panel::Layers),
+                        }
+                        span { class: "rail-label", "Layers" }
                     }
                 }
             }
