@@ -17,7 +17,7 @@ pub fn ExternalEditorButton(props: ExternalEditorButtonProps) -> Element {
     rsx! {
         button {
             r#type: "button",
-            class: "btn btn-ghost icon-btn",
+            class: "btn btn-ghost icon-btn app-btn",
             "aria-label": "Open in {props.editor_name}",
             title: "Open in {props.editor_name}",
             onclick: move |event| {

@@ -20,6 +20,8 @@
   --stage:#7a7a7a;
   --stage-hover:#838383;
   --stage-dot:#6e6e6e;
+  --app-btn:#5c5c5c;
+  --app-btn-hover:#6a6a6a;
   --r-sm:4px;
   --r:6px;
   --r-lg:10px;
@@ -147,3 +149,6 @@ h1,h2,h3,p{margin:0}
 .input.invalid,.input.invalid:focus{border-color:var(--err)}
 .field_error{display:flex;align-items:flex-start;gap:6px;color:var(--err)}
 .field_error .i{width:14px;height:14px;margin-top:1px}
+.app-btn{background:var(--app-btn)}
+.app-btn:hover{background:var(--app-btn-hover)}
+.hgroup.tight:has(> .app-btn){gap:4px}

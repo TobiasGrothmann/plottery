@@ -638,7 +638,7 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                                 }
                                 button {
                                     r#type: "button",
-                                    class: "btn btn-ghost icon-btn",
+                                    class: "btn btn-ghost icon-btn app-btn",
                                     title: "Open project folder",
                                     "aria-label": "Open project folder",
                                     onclick: move |event| {
