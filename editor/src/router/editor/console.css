@@ -29,17 +29,20 @@
   border-top: 1px solid var(--line);
 }
 
-.Console p {
-  padding: 0 12px;
-  white-space: pre-wrap;
-  font: 400 12px/1.6 'JetBrains Mono', ui-monospace, monospace;
+.log-time {
+  color: var(--fg-2);
 }
-.Console .error {
+.log-text {
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.lvl-info {
+  color: var(--accent);
+}
+.lvl-err {
   color: var(--err);
 }
-.Console .info {
-  color: var(--fg-1);
-}
-.Console .project_log {
-  color: var(--fg-0);
+.lvl-log {
+  color: var(--fg-2);
 }

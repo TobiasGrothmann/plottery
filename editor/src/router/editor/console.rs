@@ -32,15 +32,16 @@ pub fn Console(props: ConsoleProps) -> Element {
     };
 
     let console_items = messages.iter().rev().map(|message| {
-        let type_class_name = match message.msg_type {
-            ConsoleMessageType::Error => "error",
-            ConsoleMessageType::Info => "info",
-            ConsoleMessageType::ProjectLog => "project_log",
+        let (level, level_class) = match message.msg_type {
+            ConsoleMessageType::Error => ("error", "lvl-err"),
+            ConsoleMessageType::Info => ("info", "lvl-info"),
+            ConsoleMessageType::ProjectLog => ("log", "lvl-log"),
         };
         rsx! {
-            p { class: "{type_class_name}",
-                key: "{message.id}",
-                "{message.msg}",
+            div { class: "log", key: "{message.id}",
+                span { class: "log-time", "{message.time}" }
+                span { class: "{level_class}", "{level}" }
+                span { class: "log-text", "{message.msg}" }
             }
         }
     });
@@ -73,7 +74,7 @@ pub fn Console(props: ConsoleProps) -> Element {
                 }
             }
             if props.open {
-                div { class: "console-body Console scroll", style: "height: {props.height}px;",
+                div { class: "console-body scroll", style: "height: {props.height}px;",
                     { console_items },
                 }
             }

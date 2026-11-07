@@ -13,6 +13,8 @@ pub enum ConsoleMessageType {
 #[derive(Debug, Clone)]
 pub struct ConsoleMessage {
     pub id: i32,
+    /// Local time the message was logged, `HH:MM:SS`.
+    pub time: String,
     pub msg: String,
     pub msg_type: ConsoleMessageType,
 }
@@ -21,6 +23,7 @@ impl ConsoleMessage {
     pub fn new(msg: &str, msg_type: ConsoleMessageType) -> Self {
         Self {
             id: rand_range_i(i32::MIN, i32::MAX),
+            time: chrono::Local::now().format("%H:%M:%S").to_string(),
             msg: msg.to_string(),
             msg_type,
         }
