@@ -102,7 +102,7 @@ pub fn Segmented<T: Clone + PartialEq + 'static>(
 ) -> Element {
     rsx! {
         div { class: "seg", role: "group",
-            for (option , text) in options.into_iter() {
+            for (option, text) in options.into_iter() {
                 button {
                     key: "{text}",
                     r#type: "button",
@@ -120,6 +120,7 @@ fn toggle_input(
     class: &'static str,
     checked: bool,
     label: Option<String>,
+    aria_label: Option<String>,
     label_class: String,
     onchange: EventHandler<bool>,
 ) -> Element {
@@ -128,13 +129,16 @@ fn toggle_input(
             r#type: "checkbox",
             class,
             checked,
-            "aria-label": label.clone(),
+            "aria-label": aria_label.or(label.clone()),
             onchange: move |event| onchange.call(event.value().parse().unwrap_or(false)),
         }
     };
     match label {
         Some(label) => rsx! {
-            label { class: "hrow toggle-label {label_class}", {input} span { "{label}" } }
+            label { class: "hrow toggle-label {label_class}",
+                {input}
+                span { "{label}" }
+            }
         },
         None => input,
     }
@@ -145,9 +149,10 @@ pub fn Switch(
     checked: bool,
     onchange: EventHandler<bool>,
     label: Option<String>,
+    aria_label: Option<String>,
     #[props(default)] class: String,
 ) -> Element {
-    toggle_input("switch", checked, label, class, onchange)
+    toggle_input("switch", checked, label, aria_label, class, onchange)
 }
 
 #[component]
@@ -155,9 +160,10 @@ pub fn Checkbox(
     checked: bool,
     onchange: EventHandler<bool>,
     label: Option<String>,
+    aria_label: Option<String>,
     #[props(default)] class: String,
 ) -> Element {
-    toggle_input("check", checked, label, class, onchange)
+    toggle_input("check", checked, label, aria_label, class, onchange)
 }
 
 #[component]

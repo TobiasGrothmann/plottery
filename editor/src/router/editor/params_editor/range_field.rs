@@ -71,22 +71,24 @@ pub fn RangeField(props: LeafProps) -> Element {
         .unwrap_or_default();
 
     rsx! {
-        div { class: "RangeField", style: "display: flex; align-items: center; gap: var(--gap-0);",
+        div { class: "hrow",
             NumberInput {
                 value: view.min,
                 integer: view.is_int,
                 placeholder: "min",
+                aria_label: "Minimum",
                 oncommit: move |new_min: f32| min_props.edit(|value| set_range(value, new_min, view.max)),
             }
-            span { "–" }
+            span { class: "hint", "–" }
             NumberInput {
                 value: view.max,
                 integer: view.is_int,
                 placeholder: "max",
+                aria_label: "Maximum",
                 oncommit: move |new_max: f32| max_props.edit(|value| set_range(value, view.min, new_max)),
             }
             if !bounds_text.is_empty() {
-                span { style: "color: var(--col-fg-2); font-size: 14px; white-space: nowrap;", "{bounds_text}" }
+                span { class: "hint nowrap", "{bounds_text}" }
             }
         }
     }

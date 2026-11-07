@@ -5,7 +5,7 @@ use dioxus::{html::input_data::MouseButton, prelude::*};
 use super::format_number;
 
 /// Must match `.slider_thumb` width in slider_input.css.
-const THUMB_WIDTH_PX: f64 = 40.0;
+const THUMB_WIDTH_PX: f64 = 12.0;
 const ALT_SPEED_FACTOR: f64 = 0.25;
 
 #[derive(PartialEq, Props, Clone)]
@@ -79,9 +79,8 @@ pub fn SliderInput(props: SliderInputProps) -> Element {
     };
 
     rsx! {
-        style { { include_str!("slider_input.css") } }
+        style { {include_str!("slider_input.css")} }
         div { class: "SliderInput",
-            p { class: "slider_value", "{shown_text}" }
             div {
                 class: "slider_track",
                 onmounted: move |event| track.set(Some(event.data())),
@@ -104,6 +103,7 @@ pub fn SliderInput(props: SliderInputProps) -> Element {
                     style: "left: calc({thumb_fraction} * (100% - {THUMB_WIDTH_PX}px));",
                 }
             }
+            span { class: "mono slider_value", "{shown_text}" }
         }
         if let Some(state) = drag() {
             div {

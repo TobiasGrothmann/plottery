@@ -18,7 +18,9 @@ fn set_color(props: &LeafProps, hex: &str) {
 #[component]
 pub fn ColorField(props: LeafProps) -> Element {
     let ProjectParamValue::Color(color) = props.param.value else {
-        return rsx! { p { "unexpected value type" } };
+        return rsx! {
+            p { "unexpected value type" }
+        };
     };
     let hex = color.hex();
     let name = color.get_name().name.to_lowercase();
@@ -26,21 +28,22 @@ pub fn ColorField(props: LeafProps) -> Element {
     let text_props = props.clone();
 
     rsx! {
-        style { { include_str!("color_field.css") } }
-        div { class: "ColorField",
+        div { class: "hrow",
             input {
                 r#type: "color",
-                class: "color_picker",
+                class: "color-swatch",
+                "aria-label": "Pick color",
                 value: "{hex}",
                 onchange: move |event| set_color(&picker_props, &event.value()),
             }
             input {
                 r#type: "text",
-                class: "color_hex",
+                class: "input color-hex",
+                "aria-label": "Hex color",
                 value: "{hex}",
                 onchange: move |event| set_color(&text_props, &event.value()),
             }
-            span { class: "color_name", "{name}" }
+            span { class: "hint", "{name}" }
         }
     }
 }

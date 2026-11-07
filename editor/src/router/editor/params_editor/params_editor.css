@@ -1,100 +1,85 @@
-.ParamsEditor {
-    flex: 1;
-    min-height: 0;
-    display: grid;
-    grid-template-columns: auto 1fr;
-    column-gap: var(--gap-1);
-    row-gap: var(--gap-1);
-    background-color: var(--col-bg-1);
-    padding: var(--gap-1);
-    align-content: start;
-    overflow-y: auto;
-    overflow-x: hidden;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+.ParamsEditor .prow:last-child {
+  border-bottom: 0;
 }
 
-.ParamsEditor::-webkit-scrollbar {
-    width: 0;
-    height: 0;
-    display: none;
+.ParamsEditor .plabel,
+.ParamsEditor .sublabel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.ParamsEditor h2,
-.ParamsEditor h3 {
-    margin: 0;
-    margin-top: 5px;
-    align-self: start;
+.ParamsEditor .sub {
+  align-items: start;
+}
+.ParamsEditor .sublabel {
+  padding-top: 6px;
+  overflow-wrap: anywhere;
 }
 
-.ParamOptionLabel {
-    display: flex;
-    align-items: center;
-    gap: 4px;
+.opt-row {
+  align-items: flex-start;
+}
+.opt-row > .switch {
+  margin-top: 6px;
+}
+.opt-unset {
+  line-height: 28px;
 }
 
-.ParamOptionLabel input[type="checkbox"] {
-    margin: 0 8px;
+.pvec {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.ParamStruct {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    column-gap: var(--gap-1);
-    row-gap: var(--gap-1);
-    align-items: start;
-    border-left: 2px solid white;
-    padding-left: var(--gap-1);
+.vec-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.vec-index {
+  width: 16px;
+  flex: none;
+  text-align: right;
+  font-size: 11px;
+  line-height: 28px;
+  color: var(--fg-2);
+}
+.vec-item > .icon-btn {
+  margin-top: 2px;
 }
 
-.ParamVec {
-    display: flex;
-    flex-direction: column;
-    gap: var(--gap-1);
-    border-left: 2px solid white;
-    padding-left: 6px;
+.pctl > .switch {
+  margin-top: 6px;
 }
 
-.ParamVecItem {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: start;
-    gap: var(--gap-1);
+.hrow.wrap {
+  flex-wrap: wrap;
 }
 
-.ParamVecItemContent {
-    min-width: 0;
+.nowrap {
+  white-space: nowrap;
 }
 
-.ParamVecDeleteButton,
-.ParamVecAddButton {
-    border: 1px solid var(--col-border-1);
-    background: var(--col-bg-3);
-    color: var(--col-fg-1);
-    border-radius: 4px;
-    cursor: pointer;
-    min-height: 0;
-    padding: 0;
-    line-height: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+.color-swatch {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: none;
+  cursor: pointer;
 }
-
-.ParamVecDeleteButton {
-    align-self: start;
-    width: 25px;
-    height: 25px;
-    font-size: 14px;
+.color-swatch::-webkit-color-swatch-wrapper {
+  padding: 2px;
 }
-
-.ParamVecAddButton {
-    width: 100px;
-    height: 25px;
-    font-size: 14px;
+.color-swatch::-webkit-color-swatch {
+  border: 0;
+  border-radius: 2px;
 }
-
-.ParamVecAddRow {
-    display: flex;
-    justify-content: center;
+.color-hex {
+  width: 96px;
+  flex: none;
 }

@@ -9,6 +9,10 @@ use plottery_project::{file_name_of, project_param_value::ProjectParamValue, Pro
 use rfd::FileDialog;
 
 use crate::{
+    components::{
+        icon::IconName,
+        ui::{Button, Checkbox, IconButton, Size},
+    },
     router::editor::params_editor::{
         params_editor::LeafProps,
         widgets::{dropdown::Dropdown, segmented::Segmented},
@@ -37,7 +41,9 @@ fn edit_image(props: &LeafProps, edit: impl FnOnce(&mut ProjectParamImage)) {
 #[component]
 pub fn ImageField(props: LeafProps) -> Element {
     let ProjectParamValue::Image(image) = &props.param.value else {
-        return rsx! { p { "unexpected value type" } };
+        return rsx! {
+            p { "unexpected value type" }
+        };
     };
     let mut copy_mode = use_signal(|| true);
     let mut downscale = use_signal(|| true);
@@ -54,7 +60,7 @@ pub fn ImageField(props: LeafProps) -> Element {
     let shown_name = current
         .as_deref()
         .map(file_name_of)
-        .unwrap_or_else(|| "no image".to_string());
+        .unwrap_or_else(|| "No image selected".to_string());
     let recent = image.recent.clone();
     let recent_names: Vec<String> = recent.iter().map(|p| file_name_of(p)).collect();
 
@@ -64,98 +70,100 @@ pub fn ImageField(props: LeafProps) -> Element {
     let project_dir: PathBuf = props.project_dir.clone();
 
     rsx! {
-        style { { include_str!("image_field.css") } }
-        div { class: "ImageField",
-            div { class: "image_row",
-                Segmented {
-                    options: vec!["copy into project".to_string(), "link to original".to_string()],
-                    selected: Some(if copy_mode() { 0 } else { 1 }),
-                    onselect: move |index: usize| copy_mode.set(index == 0),
-                }
+        style { {include_str!("image_field.css")} }
+        div {
+            Segmented {
+                options: vec!["Copy into project".to_string(), "Link to original".to_string()],
+                selected: Some(if copy_mode() { 0 } else { 1 }),
+                onselect: move |index: usize| copy_mode.set(index == 0),
             }
-            if copy_mode() {
-                label { class: "image_downscale",
-                    input {
-                        r#type: "checkbox",
-                        checked: downscale(),
-                        onchange: move |event| downscale.set(event.value().parse().unwrap_or(true)),
-                    }
-                    "downscale copy to max. {DOWNSCALE_MAX_PX} px (longest side)"
-                }
+        }
+        if copy_mode() {
+            Checkbox {
+                class: "image-downscale",
+                checked: downscale(),
+                label: "Downscale copy to {DOWNSCALE_MAX_PX} px max",
+                onchange: move |checked: bool| downscale.set(checked),
             }
-            div { class: "image_row",
-                button {
-                    r#type: "button",
-                    class: "image_button",
-                    onclick: move |_| {
-                        let Some(picked) = FileDialog::new()
-                            .add_filter("images", &["png", "jpg", "jpeg"])
-                            .pick_file()
+        }
+        div { class: "hrow",
+            Button {
+                size: Size::Sm,
+                icon: IconName::Image,
+                onclick: move |_| {
+                    let Some(picked) = FileDialog::new()
+                        .add_filter("images", &["png", "jpg", "jpeg"])
+                        .pick_file()
                         else {
-                            return;
-                        };
-                        import_error.set(None);
-                        if !copy_mode() {
-                            edit_image(&choose_props, |image| {
-                                image.set(Some(picked.to_string_lossy().to_string()))
-                            });
-                            return;
-                        }
-                        let project_dir = project_dir.clone();
-                        let props = choose_props.clone();
-                        let downscale = downscale();
-                        tokio::spawn(async move {
-                            let result = tokio::task::spawn_blocking(move || {
+                        return;
+                    };
+                    import_error.set(None);
+                    if !copy_mode() {
+                        edit_image(
+                            &choose_props,
+                            |image| { image.set(Some(picked.to_string_lossy().to_string())) },
+                        );
+                        return;
+                    }
+                    let project_dir = project_dir.clone();
+                    let props = choose_props.clone();
+                    let downscale = downscale();
+                    tokio::spawn(async move {
+                        let result = tokio::task::spawn_blocking(move || {
                                 import_image(&project_dir, &picked, downscale)
                             })
                             .await;
-                            match result {
-                                Ok(Ok(stored)) => edit_image(&props, |image| image.set(Some(stored))),
-                                Ok(Err(e)) => {
-                                    tracing::error!("Failed to import image: {:?}", e);
-                                    if let Ok(mut err) = import_error.try_write() {
-                                        *err = Some(format!("{e:#}"));
-                                    }
+                        match result {
+                            Ok(Ok(stored)) => edit_image(&props, |image| image.set(Some(stored))),
+                            Ok(Err(e)) => {
+                                tracing::error!("Failed to import image: {:?}", e);
+                                if let Ok(mut err) = import_error.try_write() {
+                                    *err = Some(format!("{e:#}"));
                                 }
-                                Err(e) => tracing::error!("Image import task failed: {:?}", e),
                             }
-                        });
-                    },
-                    "choose…"
-                }
-                span {
-                    class: if missing { "image_name image_missing" } else { "image_name" },
-                    title: current.clone().unwrap_or_default(),
-                    if missing { "file not found: {shown_name}" } else { "{shown_name}" }
-                }
-                if current.is_some() {
-                    button {
-                        r#type: "button",
-                        class: "image_button",
-                        title: "remove image",
-                        onclick: move |_| edit_image(&clear_props, |image| image.set(None)),
-                        "×"
-                    }
+                            Err(e) => tracing::error!("Image import task failed: {:?}", e),
+                        }
+                    });
+                },
+                "Choose…"
+            }
+            span {
+                class: if missing { "hint image-name image-missing" } else { "hint image-name" },
+                title: current.clone().unwrap_or_default(),
+                if missing {
+                    "File not found: {shown_name}"
+                } else {
+                    "{shown_name}"
                 }
             }
-            if let Some(err) = import_error() {
-                p { class: "image_missing", "{err}" }
-            }
-            if let Some(src) = preview_src {
-                img { class: "image_preview", src: "{src}", title: current.clone().unwrap_or_default() }
-            }
-            if !recent.is_empty() {
-                div { class: "image_row",
-                    span { class: "image_recent_label", "recent" }
-                    Dropdown {
-                        options: recent_names,
-                        selected: None,
-                        onselect: move |index: usize| {
-                            let Some(path) = recent.get(index).cloned() else { return };
-                            edit_image(&recent_props, |image| image.set(Some(path)));
-                        },
-                    }
+            if current.is_some() {
+                IconButton {
+                    icon: IconName::X,
+                    label: "Remove image",
+                    size: Size::Sm,
+                    onclick: move |_| edit_image(&clear_props, |image| image.set(None)),
                 }
+            }
+        }
+        if let Some(err) = import_error() {
+            span { class: "hint image-missing", "{err}" }
+        }
+        if let Some(src) = preview_src {
+            img {
+                class: "image-preview",
+                src: "{src}",
+                title: current.clone().unwrap_or_default(),
+            }
+        }
+        if !recent.is_empty() {
+            Dropdown {
+                options: recent_names,
+                selected: None,
+                placeholder: "Recent images…",
+                onselect: move |index: usize| {
+                    let Some(path) = recent.get(index).cloned() else { return };
+                    edit_image(&recent_props, |image| image.set(Some(path)));
+                },
             }
         }
     }

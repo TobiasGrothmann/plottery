@@ -7,6 +7,7 @@ use plottery_project::{
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+use crate::components::ui::Switch;
 use crate::router::editor::{
     console_messages::ConsoleMessages, params_editor::param_tree::get_param_value_mut_by_path,
     params_editor::params_editor::trigger_run, project_runner::ProjectRunner,
@@ -41,40 +42,46 @@ impl PartialEq for BoolFieldProps {
 #[component]
 pub fn BoolField(mut props: BoolFieldProps) -> Element {
     rsx! {
-        style { { include_str!("bool_field.css") } }
-        div { class: "BoolField",
-            input {
-                name: "{props.param.name.clone()}",
-                type: "checkbox",
-                required: true,
-                value: match &props.param.value {
-                    ProjectParamValue::Bool(val) => val.to_string(),
-                    ProjectParamValue::Optional(optional) => match optional.value.as_ref() {
-                        ProjectParamValue::Bool(val) => val.to_string(),
+        Switch {
+            aria_label: "{props.param.formatted_name()}",
+            checked: match &props.param.value {
+                ProjectParamValue::Bool(val) => *val,
+                ProjectParamValue::Optional(optional) => {
+                    match optional.value.as_ref() {
+                        ProjectParamValue::Bool(val) => *val,
                         _ => panic!("Unexpected Error"),
-                    },
-                    _ => panic!("Unexpected Error"),
-                },
-                onchange: move |event| {
-                    let mut new_params = props.project_params.read().clone();
-                    if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, &props.path) {
-                        let new_val = event.value().parse().expect("Failed to parse boolean value");
-                        match param_value {
-                            ProjectParamValue::Bool(val) => *val = new_val,
-                            ProjectParamValue::Optional(optional) => match optional.value.as_mut() {
+                    }
+                }
+                _ => panic!("Unexpected Error"),
+            },
+            onchange: move |new_val: bool| {
+                let mut new_params = props.project_params.read().clone();
+                if let Some(param_value) = get_param_value_mut_by_path(
+                    &mut new_params.list,
+                    &props.path,
+                ) {
+                    match param_value {
+                        ProjectParamValue::Bool(val) => *val = new_val,
+                        ProjectParamValue::Optional(optional) => {
+                            match optional.value.as_mut() {
                                 ProjectParamValue::Bool(val) => *val = new_val,
                                 _ => panic!("Unexpected Error"),
-                            },
-                            _ => panic!("Unexpected Error"),
+                            }
                         }
-                    } else {
-                        tracing::error!("Param path not found: {:?}", props.path);
-                        return;
+                        _ => panic!("Unexpected Error"),
                     }
-                    props.project_params.set(new_params);
-                    trigger_run(props.project_runner, props.running_state, props.console, props.release);
+                } else {
+                    tracing::error!("Param path not found: {:?}", props.path);
+                    return;
                 }
-            }
+                props.project_params.set(new_params);
+                trigger_run(
+                    props.project_runner,
+                    props.running_state,
+                    props.console,
+                    props.release,
+                );
+            },
         }
     }
 }

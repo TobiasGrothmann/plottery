@@ -137,3 +137,7 @@ h1,h2,h3,p{margin:0}
 .rail-left{border-right:1px solid var(--line)}
 .rail-right{border-left:1px solid var(--line)}
 .rot-90{transform:rotate(-90deg)}
+.textarea{height:auto;min-height:28px;padding:5px 8px;line-height:1.5;resize:vertical;display:block}
+.input[type=number]{-moz-appearance:textfield}
+.input::-webkit-outer-spin-button,.input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.grow{flex:1;min-width:0}
