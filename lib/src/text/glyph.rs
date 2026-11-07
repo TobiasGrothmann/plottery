@@ -1,4 +1,4 @@
-use crate::{BoundingBox, Path, Rect, SampleSettings, Scale, Spline, Translate, V2};
+use crate::{Angle, BoundingBox, Path, Rect, Rotate, SampleSettings, Scale, Spline, Translate, V2};
 
 /// Index of a glyph within its font; 0 is the missing glyph.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -31,6 +31,21 @@ impl Translate for Glyph {
                 .contours
                 .iter()
                 .map(|contour| contour.translate(dist))
+                .collect(),
+        }
+    }
+}
+
+/// Rotates the contours only, the advance stays horizontal.
+impl Rotate for Glyph {
+    fn rotate(&self, angle: Angle) -> Self {
+        Self {
+            id: self.id,
+            advance: self.advance,
+            contours: self
+                .contours
+                .iter()
+                .map(|contour| contour.rotate(angle))
                 .collect(),
         }
     }

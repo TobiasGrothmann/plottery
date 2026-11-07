@@ -82,9 +82,9 @@ Text is drawn with single-line fonts, so every glyph is a set of pen strokes. Th
 let font = Font::bundled(BundledFont::HersheyScript);
 let text = Text::new("Hello plotter", &font)
     .size(1.5) // em height in cm
-    .at(frame.center())
+    .in_rect(frame.inner_rect()) // wraps words at the rect's width
     .align(TextAlign::Center)
-    .max_width(frame.inner_rect().width()) // wraps words
+    .vertical_align(VerticalAlign::Center)
     .to_layer(SampleSettings::default())
     .expect("text");
 l.push_layer(text);
