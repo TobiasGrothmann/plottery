@@ -65,11 +65,39 @@
 
 .preview-stage {
   position: absolute;
-  inset: 32px;
+  inset: 0;
+  padding: 32px;
+  overflow: hidden;
   container-type: size;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.preview-stage.zoomable {
+  touch-action: none;
+}
+.preview-stage.dragging,
+.preview-stage.dragging .paper {
+  cursor: grabbing !important;
+}
+.paper.animate {
+  transition: transform 0.2s ease, opacity 0.15s;
+}
+
+.zoom-ctl {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 2px 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--bg-2);
+  color: var(--fg-1);
+  font-size: 12px;
+  cursor: default;
 }
 
 .paper {

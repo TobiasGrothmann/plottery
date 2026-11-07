@@ -25,7 +25,7 @@ use crate::{
         running_state::RunningState,
     },
     routes::Route,
-    util::format_svg,
+    util::{format_svg, preview_zoom::PreviewZoom},
 };
 use bincode::{deserialize, serialize};
 use dioxus::prelude::*;
@@ -394,6 +394,8 @@ pub fn Editor(project_path: Vec<String>) -> Element {
         }
     };
 
+    let mut preview_zoom = use_signal(PreviewZoom::default);
+
     // click-to-pick for V2 params
     let mut pick_target = use_context_provider(|| PickTarget {
         path: Signal::new(None),
@@ -528,7 +530,16 @@ pub fn Editor(project_path: Vec<String>) -> Element {
             },
             onkeydown: move |event| {
                 let modifiers = event.modifiers();
-                if !(modifiers.meta() || modifiers.ctrl()) {
+                let command = modifiers.meta() || modifiers.ctrl();
+                let zero = matches!(event.key(), Key::Character(ref key) if key == "0");
+                if event.key() == Key::Escape || (command && zero) {
+                    if !preview_zoom.peek().is_fit() {
+                        event.prevent_default();
+                        preview_zoom.set(PreviewZoom::default());
+                    }
+                    return;
+                }
+                if !command {
                     return;
                 }
                 let Key::Character(key) = event.key() else { return };
@@ -769,6 +780,7 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                                     layer_bbox: layer_bbox(),
                                     pick_active: pick_target.is_active(),
                                     onpick,
+                                    zoom: preview_zoom,
                                 }
                             } else {
                                 div { class: "preview-stage",
