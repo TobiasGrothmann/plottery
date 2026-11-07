@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::f32::consts::PI;
 
-use crate::{SampleSettings, GOLDEN_RATIO};
+use crate::{rand_range, SampleSettings, GOLDEN_RATIO};
 
 /// A struct for working with angles in different units (radians, degrees, or rotations).
 ///
@@ -46,10 +46,10 @@ impl Angle {
         }
     }
 
-    /// Creates a random angle between 0 and 2π (0° and 360°).
+    /// Creates a random angle between 0 and 2π (0° and 360°), see [`crate::seed`].
     pub fn rand() -> Self {
         Self {
-            rad: rand::random::<f32>() * 2.0 * PI,
+            rad: rand_range(0.0, 2.0 * PI),
         }
     }
 
