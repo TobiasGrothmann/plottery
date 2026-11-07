@@ -4,6 +4,8 @@ use dioxus::prelude::*;
 pub struct DropdownProps {
     pub options: Vec<String>,
     pub selected: Option<usize>,
+    #[props(default)]
+    pub placeholder: Option<String>,
     pub onselect: EventHandler<usize>,
 }
 
@@ -11,18 +13,24 @@ pub struct DropdownProps {
 pub fn Dropdown(props: DropdownProps) -> Element {
     let selected = props.selected.map(|i| i.to_string()).unwrap_or_default();
     rsx! {
-        style { { include_str!("widgets.css") } }
-        div { class: "Dropdown",
-            select {
-                value: "{selected}",
-                onchange: move |event| {
-                    if let Ok(index) = event.value().parse::<usize>() {
-                        props.onselect.call(index);
-                    }
-                },
-                for (index, option) in props.options.iter().enumerate() {
-                    option { key: "{option}", value: "{index}", "{option}" }
+        select {
+            class: "input select",
+            value: "{selected}",
+            onchange: move |event| {
+                if let Ok(index) = event.value().parse::<usize>() {
+                    props.onselect.call(index);
                 }
+            },
+            if let Some(placeholder) = props.placeholder.clone() {
+                option {
+                    value: "",
+                    disabled: true,
+                    selected: props.selected.is_none(),
+                    "{placeholder}"
+                }
+            }
+            for (index, option) in props.options.iter().enumerate() {
+                option { key: "{option}", value: "{index}", "{option}" }
             }
         }
     }

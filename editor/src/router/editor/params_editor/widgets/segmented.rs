@@ -1,5 +1,7 @@
 use dioxus::prelude::*;
 
+use crate::components::ui;
+
 #[derive(PartialEq, Props, Clone)]
 pub struct SegmentedProps {
     pub options: Vec<String>,
@@ -11,17 +13,10 @@ pub struct SegmentedProps {
 #[component]
 pub fn Segmented(props: SegmentedProps) -> Element {
     rsx! {
-        style { { include_str!("widgets.css") } }
-        div { class: "Segmented",
-            for (index, option) in props.options.iter().enumerate() {
-                button {
-                    key: "{option}",
-                    r#type: "button",
-                    class: if props.selected == Some(index) { "active_button" } else { "" },
-                    onclick: move |_| props.onselect.call(index),
-                    "{option}"
-                }
-            }
+        ui::Segmented {
+            options: props.options.iter().cloned().enumerate().collect::<Vec<_>>(),
+            value: props.selected.unwrap_or(usize::MAX),
+            onchange: props.onselect,
         }
     }
 }

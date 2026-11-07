@@ -29,14 +29,6 @@ impl RunningState {
                 | RunningState::GetParamsKilled { .. }
         )
     }
-    pub fn is_error(&self) -> bool {
-        matches!(
-            self,
-            RunningState::BuildFailed { .. }
-                | RunningState::RunFailed { .. }
-                | RunningState::GetParamsFailed { .. }
-        )
-    }
     pub fn get_msg(&self) -> String {
         match self {
             RunningState::Idle => "".to_string(),

@@ -48,6 +48,7 @@ fn app() -> Element {
 
     rsx! {
         style { { include_str!("./main.css") } }
+        style { { util::font_face_css() } }
         body {
             Router::<Route> {}
         }

@@ -15,15 +15,17 @@ pub fn BottomBar(props: BottomBarProps) -> Element {
     rsx! {
         style { { include_str!("./bottom_bar.css") } }
         div { class: "BottomBar",
-            p { class: "bottom_bar_status", "{props.status}" }
+            span { class: "bottom_bar_status", "{props.status}" }
             if let Some(detail) = props.detail.as_ref() {
-                p { class: "bottom_bar_detail", title: "{detail}", "{detail}" }
+                span { class: "mono bottom_bar_detail selectable", title: "{detail}", "{detail}" }
             }
-            div { class: "tile_size_control", title: "Tile size",
+            div { class: "tile_size_control",
+                span { class: "hint", "Tile size" }
                 span { class: "tile_size_glyph tile_size_glyph_small" }
                 input {
                     r#type: "range",
-                    class: "tile_size_slider",
+                    class: "range",
+                    "aria-label": "Tile size",
                     min: "{TILE_SIZE_MIN}",
                     max: "{TILE_SIZE_MAX}",
                     step: "10",

@@ -8,7 +8,15 @@ use plottery_server_lib::{
     PlotSettings,
 };
 
-use crate::components::navigation::Navigation;
+use dioxus_router::hooks::use_navigator;
+
+use crate::{
+    components::{
+        icon::IconName,
+        ui::{Button, IconButton, StatusPill, Tone, Variant},
+    },
+    routes::Route,
+};
 
 #[component]
 pub fn Remote() -> Element {
@@ -24,21 +32,44 @@ pub fn Remote() -> Element {
         }
     });
 
+    let nav = use_navigator();
+
     rsx! {
-        Navigation { page_name: "Plotter Remote", body: rsx! {} }
-        div { class: "Remote",
         style { { include_str!("./remote.css") } }
-            div { class: "remote_content",
-                if let Some(state) = &*state_resource.value().read() {
-                    if let Ok(state) = state {
-                        RemoteInternal {
-                            state: *state
+        div { class: "Remote",
+            header { class: "app-header",
+                div { class: "hgroup",
+                    IconButton {
+                        icon: IconName::ChevronLeft,
+                        label: "Back",
+                        onclick: move |_| {
+                            if nav.can_go_back() {
+                                nav.go_back();
+                            } else {
+                                nav.replace(Route::Browser {});
+                            }
+                        },
+                    }
+                    h1 { "Plotter remote" }
+                }
+            }
+            div { class: "remote_body",
+                div { class: "remote_content",
+                    if let Some(state) = &*state_resource.value().read() {
+                        if let Ok(state) = state {
+                            RemoteInternal {
+                                state: *state
+                            }
+                        } else {
+                            div { class: "remote_row",
+                                StatusPill { tone: Tone::Err, text: "Plotter offline" }
+                            }
                         }
                     } else {
-                        p {"Plotter offline"}
+                        div { class: "remote_row",
+                            StatusPill { tone: Tone::Busy, text: "Connecting…" }
+                        }
                     }
-                } else {
-                    p {"Loading..."}
                 }
             }
         }
@@ -64,71 +95,99 @@ fn RemoteInternal(props: RemoteInternalProps) -> Element {
     let target_y_pos = format!("{:.2}", target.read().y);
 
     rsx! {
-        div { class: "row",
-            h2 { "position" }
-            p { class: "pos_item", "{x_pos}" }
-            p { class: "pos_item", "{y_pos}" }
-            p { class: "pos_item", "{activity}" }
+        div { class: "remote_row",
+            span { class: "remote_label", "Position" }
+            span { class: "mono remote_value selectable", "{x_pos}" }
+            span { class: "mono remote_value selectable", "{y_pos}" }
+            StatusPill {
+                tone: if props.state.plotting { Tone::Busy } else { Tone::Ok },
+                text: activity,
+            }
         }
 
-        div { class: "row",
-            h2 { "target" }
-            input {
-                class: "target_item",
-                value: target_x_pos,
-                onchange: move |event| async move {
-                    event.value().parse::<f32>().map(|x| {
-                        let mut target_handle = target.write();
-                        *target_handle = V2::new(x, target_handle.y)
-                    }).ok();
-                    event.stop_propagation();
+        div { class: "remote_row",
+            span { class: "remote_label", "Target" }
+            label { class: "affix remote_input",
+                span { "x" }
+                input {
+                    class: "input",
+                    "aria-label": "Target x",
+                    value: target_x_pos,
+                    onchange: move |event| async move {
+                        event.value().parse::<f32>().map(|x| {
+                            let mut target_handle = target.write();
+                            *target_handle = V2::new(x, target_handle.y)
+                        }).ok();
+                        event.stop_propagation();
+                    }
                 }
             }
-            input {
-                class: "target_item",
-                value: target_y_pos,
-                onchange: move |event| async move {
-                    event.value().parse::<f32>().map(|y| {
-                        let mut target_handle = target.write();
-                        *target_handle = V2::new(target_handle.x, y)
-                    }).ok();
-                    event.stop_propagation();
+            label { class: "affix remote_input",
+                span { "y" }
+                input {
+                    class: "input",
+                    "aria-label": "Target y",
+                    value: target_y_pos,
+                    onchange: move |event| async move {
+                        event.value().parse::<f32>().map(|y| {
+                            let mut target_handle = target.write();
+                            *target_handle = V2::new(target_handle.x, y)
+                        }).ok();
+                        event.stop_propagation();
+                    }
                 }
             }
-            button {
-                onclick: move |event| async move {
+            Button {
+                variant: Variant::Primary,
+                onclick: move |event: MouseEvent| async move {
                     send_task(plottery_server_lib::Task::MoveTo(*target.read(), PlotSettings::default())).await.ok();
                     event.stop_propagation();
                 },
-                p { "move" }
+                "Move"
             }
         }
 
-        div { class: "row",
-            button {
-                onclick: move |event| async move {
+        div { class: "remote_row",
+            span { class: "remote_label", "Origin" }
+            Button {
+                onclick: move |event: MouseEvent| async move {
                     send_task(plottery_server_lib::Task::SetOrigin()).await.ok();
                     *target.write() = V2::zero();
                     event.stop_propagation();
                 },
-                p { "set origin" }
+                "Set origin"
             }
         }
 
-        div { class: "row",
-            button {
-                onclick: move |event| async move {
+        div { class: "remote_row",
+            span { class: "remote_label", "Motors" }
+            StatusPill {
+                tone: if props.state.motors_enabled { Tone::Ok } else { Tone::Warn },
+                text: if props.state.motors_enabled { "motors are enabled" } else { "motors are disabled" },
+            }
+            Button {
+                variant: Variant::Ghost,
+                onclick: move |event: MouseEvent| async move {
                     send_task(plottery_server_lib::Task::SetEnabled(!props.state.motors_enabled)).await.ok();
                     event.stop_propagation();
                 },
-                p { if props.state.motors_enabled { "motors are enabled" } else { "motors are disabled" } }
+                if props.state.motors_enabled { "Disable" } else { "Enable" }
             }
-            button {
-                onclick: move |event| async move {
+        }
+
+        div { class: "remote_row",
+            span { class: "remote_label", "Head" }
+            StatusPill {
+                tone: if props.state.head_down { Tone::Busy } else { Tone::Ok },
+                text: if props.state.head_down { "head is down" } else { "head is up" },
+            }
+            Button {
+                variant: Variant::Ghost,
+                onclick: move |event: MouseEvent| async move {
                     send_task(plottery_server_lib::Task::SetHead(!props.state.head_down)).await.ok();
                     event.stop_propagation();
                 },
-                p { if props.state.head_down { "head is down" } else { "head is up" } }
+                if props.state.head_down { "Raise" } else { "Lower" }
             }
         }
     }

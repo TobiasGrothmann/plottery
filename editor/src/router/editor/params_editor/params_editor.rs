@@ -9,6 +9,10 @@ use plottery_project::{
 };
 use tokio::sync::Mutex;
 
+use crate::components::{
+    icon::IconName,
+    ui::{Button, IconButton, Size, Switch, Variant},
+};
 use crate::router::editor::{
     console_messages::ConsoleMessages,
     params_editor::{
@@ -246,8 +250,8 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, props: &ParamsEdito
             rsx! {
                 NumberField {
                     key: "{key}",
-                    param: param,
-                    path: path,
+                    param,
+                    path,
                     project_params: props.project_params,
                     project_runner: props.project_runner,
                     running_state: props.running_state,
@@ -265,8 +269,8 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, props: &ParamsEdito
             rsx! {
                 BoolField {
                     key: "{key}",
-                    param: param,
-                    path: path,
+                    param,
+                    path,
                     project_params: props.project_params,
                     project_runner: props.project_runner,
                     running_state: props.running_state,
@@ -279,8 +283,8 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, props: &ParamsEdito
             rsx! {
                 Curve2DField {
                     key: "{key}",
-                    param: param,
-                    path: path,
+                    param,
+                    path,
                     project_params: props.project_params,
                     project_runner: props.project_runner,
                     running_state: props.running_state,
@@ -343,7 +347,7 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, props: &ParamsEdito
         | ProjectParamValue::Optional(_)
         | ProjectParamValue::Vec(_) => {
             rsx! {
-                p { "nested..." }
+                span { class: "hint", "Unsupported nested value" }
             }
         }
     }
@@ -355,13 +359,11 @@ fn render_struct_value(
     props: &ParamsEditorProps,
 ) -> Element {
     rsx! {
-        div { class: "ParamStruct",
-            for child in param_struct.fields.into_iter() {
-                {
-                    let mut child_path = path.clone();
-                    child_path.push(child.name.clone());
-                    render_named_param(child, child_path, props, false)
-                }
+        for child in param_struct.fields.into_iter() {
+            {
+                let mut child_path = path.clone();
+                child_path.push(child.name.clone());
+                render_named_param(child, child_path, props, false)
             }
         }
     }
@@ -373,18 +375,38 @@ fn render_optional_value(
     path: Vec<String>,
     props: &ParamsEditorProps,
 ) -> Element {
-    if !optional.enabled {
-        return rsx! { div {} };
-    }
+    let enabled = optional.enabled;
+    let path_for_switch = path.clone();
+    let project_params = props.project_params;
+    let project_runner = props.project_runner;
+    let running_state = props.running_state;
+    let console = props.console;
+    let release = props.release;
 
-    match *optional.value {
-        ProjectParamValue::Struct(param_struct) => render_struct_value(param_struct, path, props),
-        ProjectParamValue::Vec(vec_value) => {
-            render_vec_value(param_name.to_string(), vec_value, path, props)
-        }
-        value => {
-            let inner_param = ProjectParam::new(param_name, value);
-            render_leaf_param(inner_param, path, props)
+    rsx! {
+        div { class: "hrow opt-row",
+            Switch {
+                checked: enabled,
+                aria_label: "Set {param_name}",
+                onchange: move |enabled: bool| {
+                    set_optional_enabled(
+                        &path_for_switch,
+                        enabled,
+                        project_params,
+                        project_runner,
+                        running_state,
+                        console,
+                        release,
+                    );
+                },
+            }
+            div { class: "grow pctl",
+                if enabled {
+                    {render_value_without_label(param_name.to_string(), *optional.value, path, props)}
+                } else {
+                    span { class: "hint opt-unset", "Not set" }
+                }
+            }
         }
     }
 }
@@ -422,7 +444,7 @@ fn render_vec_value(
     let release_for_add = props.release;
 
     rsx! {
-        div { class: "ParamVec",
+        div { class: "pvec",
             for (index, item) in vec_value.items.into_iter().enumerate() {
                 {
                     let mut item_path = path.clone();
@@ -437,14 +459,15 @@ fn render_vec_value(
                     let item_key = item_path.join("_");
 
                     rsx! {
-                        div { class: "ParamVecItem", key: "{item_key}",
-                            div { class: "ParamVecItemContent",
+                        div { class: "vec-item", key: "{item_key}",
+                            span { class: "mono vec-index", "{index}" }
+                            div { class: "grow pctl",
                                 {render_value_without_label(param_name.clone(), item, item_path, props)}
                             }
-                            button {
-                                class: "ParamVecDeleteButton",
-                                r#type: "button",
-                                title: "Delete item",
+                            IconButton {
+                                icon: IconName::X,
+                                label: "Remove item",
+                                size: Size::Sm,
                                 onclick: move |_| {
                                     remove_vec_item(
                                         &vec_path_for_remove,
@@ -456,17 +479,16 @@ fn render_vec_value(
                                         release_for_remove,
                                     );
                                 },
-                                "X"
                             }
                         }
                     }
                 }
             }
-
-            div { class: "ParamVecAddRow",
-                button {
-                    class: "ParamVecAddButton",
-                    r#type: "button",
+            div {
+                Button {
+                    variant: Variant::Dashed,
+                    size: Size::Sm,
+                    icon: IconName::Plus,
                     onclick: move |_| {
                         add_vec_item(
                             &vec_path_for_add,
@@ -477,10 +499,18 @@ fn render_vec_value(
                             release_for_add,
                         );
                     },
-                    "+"
+                    "Add item"
                 }
             }
         }
+    }
+}
+
+fn vec_item_count(value: &ProjectParamValue) -> Option<usize> {
+    match value {
+        ProjectParamValue::Vec(vec_value) => Some(vec_value.items.len()),
+        ProjectParamValue::Optional(optional) => vec_item_count(&optional.value),
+        _ => None,
     }
 }
 
@@ -490,109 +520,36 @@ fn render_named_param(
     props: &ParamsEditorProps,
     top_level: bool,
 ) -> Element {
-    let heading_key = format!("name_{}", path.join("."));
+    let key = format!("param_{}", path.join("."));
     let formatted_name = param.formatted_name();
-    let param_name = param.name;
+    let item_count = vec_item_count(&param.value).map(|count| match count {
+        1 => "1 item".to_string(),
+        n => format!("{n} items"),
+    });
+    let control = render_value_without_label(param.name, param.value, path, props);
 
-    match param.value {
-        ProjectParamValue::Struct(param_struct) => {
-            if top_level {
-                rsx! {
-                    h2 { key: "{heading_key}", "{formatted_name}" }
-                    {render_struct_value(param_struct.clone(), path.clone(), props)}
-                }
-            } else {
-                rsx! {
-                    h3 { key: "{heading_key}", "{formatted_name}" }
-                    {render_struct_value(param_struct, path, props)}
-                }
-            }
-        }
-        ProjectParamValue::Optional(optional) => {
-            let path_for_handler = path.clone();
-            let project_params = props.project_params;
-            let project_runner = props.project_runner;
-            let running_state = props.running_state;
-            let console = props.console;
-            let release = props.release;
-
-            let optional_for_top = optional.clone();
-            let optional_for_top_enabled = optional_for_top.enabled;
-            let optional_enabled = optional.enabled;
-
-            if top_level {
-                rsx! {
-                    h2 { key: "{heading_key}", class: "ParamOptionLabel",
-                        "{formatted_name}"
-                        input {
-                            r#type: "checkbox",
-                            checked: optional_for_top_enabled,
-                            onchange: move |event| {
-                                let enabled = event.value().parse().unwrap_or(false);
-                                set_optional_enabled(
-                                    &path_for_handler,
-                                    enabled,
-                                    project_params,
-                                    project_runner,
-                                    running_state,
-                                    console,
-                                    release,
-                                );
-                            }
-                        }
+    if top_level {
+        rsx! {
+            div { class: "prow", key: "{key}",
+                div { class: "plabel",
+                    "{formatted_name}"
+                    if let Some(item_count) = item_count {
+                        span { class: "count", "{item_count}" }
                     }
-                    {render_optional_value(param_name.as_str(), optional_for_top, path.clone(), props)}
                 }
-            } else {
-                rsx! {
-                    h3 { key: "{heading_key}", class: "ParamOptionLabel",
-                        "{formatted_name}"
-                        input {
-                            r#type: "checkbox",
-                            checked: optional_enabled,
-                            onchange: move |event| {
-                                let enabled = event.value().parse().unwrap_or(false);
-                                set_optional_enabled(
-                                    &path_for_handler,
-                                    enabled,
-                                    project_params,
-                                    project_runner,
-                                    running_state,
-                                    console,
-                                    release,
-                                );
-                            }
-                        }
+                div { class: "pctl", {control} }
+            }
+        }
+    } else {
+        rsx! {
+            div { class: "sub", key: "{key}",
+                div { class: "sublabel",
+                    "{formatted_name}"
+                    if let Some(item_count) = item_count {
+                        span { class: "count", "{item_count}" }
                     }
-                    {render_optional_value(param_name.as_str(), optional, path, props)}
                 }
-            }
-        }
-        ProjectParamValue::Vec(vec_value) => {
-            if top_level {
-                rsx! {
-                    h2 { key: "{heading_key}", "{formatted_name}" }
-                    {render_vec_value(param_name.clone(), vec_value.clone(), path.clone(), props)}
-                }
-            } else {
-                rsx! {
-                    h3 { key: "{heading_key}", "{formatted_name}" }
-                    {render_vec_value(param_name, vec_value, path, props)}
-                }
-            }
-        }
-        value => {
-            let leaf_param = ProjectParam::new(param_name.as_str(), value);
-            if top_level {
-                rsx! {
-                    h2 { key: "{heading_key}", "{formatted_name}" }
-                    {render_leaf_param(leaf_param.clone(), path.clone(), props)}
-                }
-            } else {
-                rsx! {
-                    h3 { key: "{heading_key}", "{formatted_name}" }
-                    {render_leaf_param(leaf_param, path, props)}
-                }
+                div { class: "pctl", {control} }
             }
         }
     }
@@ -601,7 +558,7 @@ fn render_named_param(
 #[component]
 pub fn ParamsEditor(props: ParamsEditorProps) -> Element {
     rsx! {
-        style { { include_str!("params_editor.css") } }
+        style { {include_str!("params_editor.css")} }
         div { class: "ParamsEditor",
             for param in props.project_params.read().list.iter().cloned() {
                 {

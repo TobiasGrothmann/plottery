@@ -1,38 +1,10 @@
-.ImageField {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-0);
+.image-downscale {
+  font-size: 12px;
+  color: var(--fg-1);
+  cursor: pointer;
 }
 
-.image_row {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: var(--gap-0);
-  min-width: 0;
-}
-
-.image_row .Dropdown {
-  flex: 1;
-  min-width: 0;
-}
-
-.image_button {
-  min-height: 0;
-  padding: var(--gap-small) var(--gap-0);
-  font-size: 14px;
-  white-space: nowrap;
-}
-
-.image_downscale {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-0);
-  font-size: 14px;
-  color: var(--col-fg-1);
-}
-
-.image_name {
+.image-name {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -40,20 +12,16 @@
   white-space: nowrap;
 }
 
-.image_missing {
-  color: var(--col-err);
+.image-missing {
+  color: var(--err);
 }
 
-.image_recent_label {
-  font-size: 14px;
-  color: var(--col-fg-2);
-}
-
-.image_preview {
+.image-preview {
   max-width: 100%;
   max-height: 160px;
   object-fit: contain;
-  justify-self: start;
   align-self: flex-start;
-  background-color: var(--col-bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--bg-0);
 }

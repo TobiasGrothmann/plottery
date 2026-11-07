@@ -13,14 +13,12 @@ pub struct TextInputProps {
 pub fn TextInput(props: TextInputProps) -> Element {
     let rows = props.value.lines().count().max(1);
     rsx! {
-        style { { include_str!("widgets.css") } }
-        div { class: "TextInput",
-            textarea {
-                rows: "{rows}",
-                placeholder: "{props.placeholder}",
-                value: "{props.value}",
-                onchange: move |event| props.oncommit.call(event.value()),
-            }
+        textarea {
+            class: "input textarea",
+            rows: "{rows}",
+            placeholder: "{props.placeholder}",
+            value: "{props.value}",
+            onchange: move |event| props.oncommit.call(event.value()),
         }
     }
 }

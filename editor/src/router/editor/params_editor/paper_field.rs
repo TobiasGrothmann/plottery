@@ -28,7 +28,9 @@ fn edit_paper(props: &LeafProps, edit: impl FnOnce(&mut Paper)) {
 #[component]
 pub fn PaperField(props: LeafProps) -> Element {
     let ProjectParamValue::Paper(paper) = props.param.value else {
-        return rsx! { p { "unexpected value type" } };
+        return rsx! {
+            p { "unexpected value type" }
+        };
     };
 
     let size_kind = match paper.size {
@@ -60,89 +62,127 @@ pub fn PaperField(props: LeafProps) -> Element {
     let margin_props = props.clone();
 
     rsx! {
-        style { { include_str!("paper_field.css") } }
-        div { class: "PaperField",
-            span { class: "paper_label", "size" }
-            Segmented {
-                options: vec!["A".to_string(), "B".to_string(), "custom".to_string()],
-                selected: Some(size_kind),
-                onselect: move |index: usize| edit_paper(&kind_props, |paper| {
-                    let number = din_number(&paper.size);
-                    paper.size = match index {
-                        0 => PaperSize::DinA(number),
-                        1 => PaperSize::DinB(number),
-                        _ => PaperSize::Custom(paper.with_landscape(false).size()),
-                    };
-                }),
+        div { class: "sub",
+            span { class: "sublabel", "size" }
+            div {
+                Segmented {
+                    options: vec!["A".to_string(), "B".to_string(), "custom".to_string()],
+                    selected: Some(size_kind),
+                    onselect: move |index: usize| edit_paper(
+                        &kind_props,
+                        |paper| {
+                            let number = din_number(&paper.size);
+                            paper.size = match index {
+                                0 => PaperSize::DinA(number),
+                                1 => PaperSize::DinB(number),
+                                _ => PaperSize::Custom(paper.with_landscape(false).size()),
+                            };
+                        },
+                    ),
+                }
             }
-
-            if let PaperSize::Custom(size) = paper.size {
-                span { class: "paper_label", "cm" }
-                div { class: "paper_row",
+        }
+        if let PaperSize::Custom(size) = paper.size {
+            div { class: "sub",
+                span { class: "sublabel", "cm" }
+                div { class: "hrow",
                     NumberInput {
                         value: size.x,
                         placeholder: "width",
-                        oncommit: move |x: f32| edit_paper(&width_props, |paper| {
-                            if let PaperSize::Custom(size) = &mut paper.size { size.x = x.max(0.0); }
-                        }),
+                        affix: "w",
+                        aria_label: "Width",
+                        oncommit: move |x: f32| edit_paper(
+                            &width_props,
+                            |paper| {
+                                if let PaperSize::Custom(size) = &mut paper.size {
+                                    size.x = x.max(0.0);
+                                }
+                            },
+                        ),
                     }
-                    span { "×" }
                     NumberInput {
                         value: size.y,
                         placeholder: "height",
-                        oncommit: move |y: f32| edit_paper(&height_props, |paper| {
-                            if let PaperSize::Custom(size) = &mut paper.size { size.y = y.max(0.0); }
-                        }),
+                        affix: "h",
+                        aria_label: "Height",
+                        oncommit: move |y: f32| edit_paper(
+                            &height_props,
+                            |paper| {
+                                if let PaperSize::Custom(size) = &mut paper.size {
+                                    size.y = y.max(0.0);
+                                }
+                            },
+                        ),
                     }
                 }
-            } else {
-                span { class: "paper_label", "format" }
+            }
+        } else {
+            div { class: "sub",
+                span { class: "sublabel", "format" }
                 Dropdown {
                     options: din_options,
                     selected: Some(din_number(&paper.size) as usize),
-                    onselect: move |index: usize| edit_paper(&number_props, |paper| {
-                        paper.size = match paper.size {
-                            PaperSize::DinB(_) => PaperSize::DinB(index as u8),
-                            _ => PaperSize::DinA(index as u8),
-                        };
-                    }),
+                    onselect: move |index: usize| edit_paper(
+                        &number_props,
+                        |paper| {
+                            paper.size = match paper.size {
+                                PaperSize::DinB(_) => PaperSize::DinB(index as u8),
+                                _ => PaperSize::DinA(index as u8),
+                            };
+                        },
+                    ),
                 }
             }
-
-            span { class: "paper_label", "orientation" }
-            Segmented {
-                options: vec!["portrait".to_string(), "landscape".to_string()],
-                selected: Some(if paper.landscape { 1 } else { 0 }),
-                onselect: move |index: usize| edit_paper(&landscape_props, |paper| paper.landscape = index == 1),
+        }
+        div { class: "sub",
+            span { class: "sublabel", "orientation" }
+            div {
+                Segmented {
+                    options: vec!["portrait".to_string(), "landscape".to_string()],
+                    selected: Some(if paper.landscape { 1 } else { 0 }),
+                    onselect: move |index: usize| edit_paper(
+                        &landscape_props,
+                        |paper| paper.landscape = index == 1,
+                    ),
+                }
             }
-
-            span { class: "paper_label", "margin" }
-            div { class: "paper_row",
+        }
+        div { class: "sub",
+            span { class: "sublabel", "margin" }
+            div { class: "hrow",
                 NumberInput {
                     value: margin_value,
-                    oncommit: move |value: f32| edit_paper(&margin_props, |paper| {
-                        paper.margin = match paper.margin {
-                            Margin::Cm(_) => Margin::Cm(value.max(0.0)),
-                            Margin::Fraction(_) => Margin::Fraction(value.max(0.0)),
-                        };
-                    }),
+                    aria_label: "Margin",
+                    oncommit: move |value: f32| edit_paper(
+                        &margin_props,
+                        |paper| {
+                            paper.margin = match paper.margin {
+                                Margin::Cm(_) => Margin::Cm(value.max(0.0)),
+                                Margin::Fraction(_) => Margin::Fraction(value.max(0.0)),
+                            };
+                        },
+                    ),
                 }
                 Segmented {
                     options: vec!["cm".to_string(), "fraction".to_string()],
                     selected: Some(margin_kind),
-                    onselect: move |index: usize| edit_paper(&margin_kind_props, |paper| {
-                        let margin_cm = paper.margin_cm();
-                        paper.margin = if index == 0 {
-                            Margin::Cm(margin_cm)
-                        } else {
-                            Margin::Fraction(margin_cm / paper.size().min_axis().max(f32::EPSILON))
-                        };
-                    }),
+                    onselect: move |index: usize| edit_paper(
+                        &margin_kind_props,
+                        |paper| {
+                            let margin_cm = paper.margin_cm();
+                            paper.margin = if index == 0 {
+                                Margin::Cm(margin_cm)
+                            } else {
+                                Margin::Fraction(margin_cm / paper.size().min_axis().max(f32::EPSILON))
+                            };
+                        },
+                    ),
                 }
             }
-
-            span { class: "paper_label", "result" }
-            p { class: "paper_resolved", "{resolved_text}" }
+        }
+        div { class: "sub",
+            span { class: "sublabel", "result" }
+            span { class: "mono hint", "{resolved_text}" }
         }
     }
 }

@@ -12,6 +12,77 @@ pub const TILE_SIZE_MIN: u32 = 140;
 pub const TILE_SIZE_MAX: u32 = 600;
 pub const TILE_SIZE_DEFAULT: u32 = 320;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Panel {
+    Params,
+    Layers,
+    Console,
+}
+
+impl Panel {
+    /// Allowed size range and default size in pixels.
+    pub fn size_limits(self) -> (f64, f64, f64) {
+        match self {
+            Panel::Params => (260.0, 520.0, 340.0),
+            Panel::Layers => (180.0, 400.0, 240.0),
+            Panel::Console => (72.0, 420.0, 168.0),
+        }
+    }
+}
+
+/// Visibility and size of the editor's side panels and console.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct PanelLayout {
+    pub params_open: bool,
+    pub params_w: f64,
+    pub layers_open: bool,
+    pub layers_w: f64,
+    pub console_open: bool,
+    pub console_h: f64,
+}
+
+impl Default for PanelLayout {
+    fn default() -> Self {
+        Self {
+            params_open: true,
+            params_w: Panel::Params.size_limits().2,
+            layers_open: true,
+            layers_w: Panel::Layers.size_limits().2,
+            console_open: true,
+            console_h: Panel::Console.size_limits().2,
+        }
+    }
+}
+
+impl PanelLayout {
+    pub fn toggle(&mut self, panel: Panel) {
+        let open = match panel {
+            Panel::Params => &mut self.params_open,
+            Panel::Layers => &mut self.layers_open,
+            Panel::Console => &mut self.console_open,
+        };
+        *open = !*open;
+    }
+
+    pub fn set_size(&mut self, panel: Panel, size: f64) {
+        let (min, max, _) = panel.size_limits();
+        let size = size.clamp(min, max);
+        match panel {
+            Panel::Params => self.params_w = size,
+            Panel::Layers => self.layers_w = size,
+            Panel::Console => self.console_h = size,
+        }
+    }
+
+    pub fn clamped(mut self) -> Self {
+        self.set_size(Panel::Params, self.params_w);
+        self.set_size(Panel::Layers, self.layers_w);
+        self.set_size(Panel::Console, self.console_h);
+        self
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AppState {
     /// Folders scanned for projects, absolutized and deduplicated.
@@ -24,6 +95,11 @@ pub struct AppState {
     /// Minimum width of a project tile in the browser grid, in pixels.
     #[serde(default = "default_tile_size")]
     pub tile_size: u32,
+    #[serde(default)]
+    pub panel_layout: PanelLayout,
+    /// Project grid sections the user collapsed.
+    #[serde(default)]
+    pub collapsed_sections: BTreeSet<PathBuf>,
     /// v1 project list, only read to migrate it into `roots`.
     #[serde(rename = "projects", default, skip_serializing)]
     legacy_projects: Vec<Project>,
@@ -40,6 +116,8 @@ impl Default for AppState {
             selected_folder: None,
             expanded_folders: BTreeSet::new(),
             tile_size: TILE_SIZE_DEFAULT,
+            panel_layout: PanelLayout::default(),
+            collapsed_sections: BTreeSet::new(),
             legacy_projects: Vec::new(),
         }
     }
@@ -148,6 +226,12 @@ impl AppState {
             self.selected_folder = None;
         }
         self.expanded_folders.retain(|f| !f.starts_with(&root));
+    }
+
+    pub fn toggle_section(&mut self, path: PathBuf) {
+        if !self.collapsed_sections.remove(&path) {
+            self.collapsed_sections.insert(path);
+        }
     }
 
     pub fn set_tile_size(&mut self, size: u32) {

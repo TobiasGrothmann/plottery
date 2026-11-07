@@ -34,26 +34,31 @@ pub fn ProjectCard(props: ProjectCardProps) -> Element {
 
     let open_project = props.project.clone();
 
+    let key_project = props.project.clone();
+
     rsx! {
         style { { include_str!("./project_card.css") } }
-        div { class: "ProjectCard",
+        div {
+            class: "card",
+            role: "button",
+            tabindex: "0",
             title: "{dir.to_string_lossy()}",
             onclick: move |_| props.on_open.call(open_project.clone()),
-            div { class: "card_preview",
+            onkeydown: move |event| {
+                if event.key() == Key::Enter {
+                    props.on_open.call(key_project.clone());
+                }
+            },
+            div { class: "thumb",
                 if preview_exists {
-                    Image { img_path: preview_path, class: "card_image" }
+                    Image { img_path: preview_path, class: "thumb_paper" }
                 } else {
-                    div { class: "card_no_preview", p { "no preview yet" } }
+                    span { class: "thumb_empty", "No preview yet" }
                 }
             }
             div { class: "card_body",
-                div { class: "card_text",
-                    h2 { class: "card_name", "{name}" }
-                    p { class: "card_meta",
-                        span { "{modified}" }
-                        span { class: "card_meta_dim", " ago" }
-                    }
-                }
+                span { class: "card_name", "{name}" }
+                span { class: "card_meta", "{modified} ago" }
             }
         }
     }

@@ -1,26 +1,48 @@
-.Console {
-    background-color: var(--col-bg-1);
-    overflow: scroll;
-    height: 100% !important;
-    min-width: 400px !important;
-    padding: var(--gap-0) !important;
-    box-sizing: border-box;
-
-    display: flex;
-    flex-direction: column-reverse;
+.console {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-1);
+  border-top: 1px solid var(--line);
 }
 
-.Console p {
-    white-space: pre-wrap;
-    font-family: monospace !important;
+.console-head {
+  height: 32px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px;
 }
 
-.error {
-    color: red;
+.console-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
-.info {
-    color: var(--col-fg-0);
+
+.console-body {
+  display: flex;
+  flex-direction: column-reverse;
+  padding: 4px 0;
+  border-top: 1px solid var(--line);
 }
-.project_log {
-    color: yellowgreen;
+
+.log-time {
+  color: var(--fg-2);
+}
+.log-text {
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.lvl-info {
+  color: var(--accent);
+}
+.lvl-err {
+  color: var(--err);
+}
+.lvl-log {
+  color: var(--fg-2);
 }

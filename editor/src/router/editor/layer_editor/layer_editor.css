@@ -1,64 +1,47 @@
 .LayerEditor {
-  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px;
   cursor: pointer;
-  user-select: none;
-  padding: var(--gap-1);
-  background-color: var(--col-bg-1);
 }
 
-.row {
-  display: flex;
-  flex-direction: row;
-  gap: var(--gap-0);
-  align-items: center;
+.layers-empty {
+  padding: 12px;
 }
 
-.sublayers {
-  width: auto;
-  display: flex;
-  flex-direction: row;
-  gap: var(--gap-0);
-  align-items: flex-start;
+.layer {
+  padding-right: 2px;
+}
+.layer.off .layer-name,
+.layer.off .layer-dot {
+  opacity: 0.45;
 }
 
-.LayerEditorLayer {
-  display: flex;
-  flex-direction: column;
+.layer-chevron {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--fg-2);
+  cursor: pointer;
 }
-.sublayers-list {
+.layer-chevron:hover {
+  color: var(--fg-0);
+}
+.layer-chevron .i {
+  width: 14px;
+  height: 14px;
+}
+
+.layer-name {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.arrow {
-  width: 20px;
-  text-align: center;
-}
-
-.hidden {
-  color: #999;
-  opacity: 0.55;
-}
-
-.layer_color_indicator {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 20%;
-  border: 1px solid white;
-}
-.layer_color_indicator_empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-}
-.eye {
-  text-align: center;
-  display: inline-block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

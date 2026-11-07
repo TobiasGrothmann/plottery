@@ -41,50 +41,63 @@ impl PartialEq for NumberFieldProps {
 #[component]
 pub fn NumberField(mut props: NumberFieldProps) -> Element {
     rsx! {
-        style { { include_str!("number_field.css") } }
-        div { class: "NumberField",
-            input {
-                name: "{props.param.name.clone()}",
-                placeholder: "value",
-                required: true,
-                value: match &props.param.value {
-                    ProjectParamValue::Float(val) => val.to_string(),
-                    ProjectParamValue::Int(val) => val.to_string(),
-                    ProjectParamValue::Optional(optional) => match optional.value.as_ref() {
+        input {
+            class: "input",
+            name: "{props.param.name.clone()}",
+            "aria-label": "{props.param.formatted_name()}",
+            placeholder: "value",
+            required: true,
+            value: match &props.param.value {
+                ProjectParamValue::Float(val) => val.to_string(),
+                ProjectParamValue::Int(val) => val.to_string(),
+                ProjectParamValue::Optional(optional) => {
+                    match optional.value.as_ref() {
                         ProjectParamValue::Float(val) => val.to_string(),
                         ProjectParamValue::Int(val) => val.to_string(),
                         _ => panic!("Unexpected Error"),
-                    },
-                    _ => panic!("Unexpected Error"),
-                },
-                onchange: move |event| {
-                    let mut new_params = props.project_params.read().clone();
-                    if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, &props.path) {
-                        let new_val = event.value().parse::<f32>();
-                        match new_val {
-                            Ok(val) => match param_value {
+                    }
+                }
+                _ => panic!("Unexpected Error"),
+            },
+            onchange: move |event| {
+                let mut new_params = props.project_params.read().clone();
+                if let Some(param_value) = get_param_value_mut_by_path(
+                    &mut new_params.list,
+                    &props.path,
+                ) {
+                    let new_val = event.value().parse::<f32>();
+                    match new_val {
+                        Ok(val) => {
+                            match param_value {
                                 ProjectParamValue::Float(inner) => *inner = val,
                                 ProjectParamValue::Int(inner) => *inner = val.round() as i32,
-                                ProjectParamValue::Optional(optional) => match optional.value.as_mut() {
-                                    ProjectParamValue::Float(inner) => *inner = val,
-                                    ProjectParamValue::Int(inner) => *inner = val.round() as i32,
-                                    _ => panic!("Unexpected Error"),
-                                },
+                                ProjectParamValue::Optional(optional) => {
+                                    match optional.value.as_mut() {
+                                        ProjectParamValue::Float(inner) => *inner = val,
+                                        ProjectParamValue::Int(inner) => *inner = val.round() as i32,
+                                        _ => panic!("Unexpected Error"),
+                                    }
+                                }
                                 _ => panic!("Unexpected Error"),
-                            },
-                            Err(e) => {
-                                tracing::error!("Error parsing value: {:?}", e);
-                                return;
                             }
                         }
-                    } else {
-                        tracing::error!("Param path not found: {:?}", props.path);
-                        return;
+                        Err(e) => {
+                            tracing::error!("Error parsing value: {:?}", e);
+                            return;
+                        }
                     }
-                    props.project_params.set(new_params);
-                    trigger_run(props.project_runner, props.running_state, props.console, props.release);
+                } else {
+                    tracing::error!("Param path not found: {:?}", props.path);
+                    return;
                 }
-            }
+                props.project_params.set(new_params);
+                trigger_run(
+                    props.project_runner,
+                    props.running_state,
+                    props.console,
+                    props.release,
+                );
+            },
         }
     }
 }

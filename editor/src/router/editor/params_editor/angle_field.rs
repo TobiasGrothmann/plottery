@@ -19,7 +19,7 @@ pub fn AngleField(props: LeafProps) -> Element {
     let unit_props = props.clone();
 
     rsx! {
-        div { class: "AngleField", style: "display: flex; align-items: center; gap: var(--gap-0);",
+        div { class: "hrow",
             NumberInput {
                 value: shown,
                 oncommit: move |value: f32| value_props.edit(|param| {

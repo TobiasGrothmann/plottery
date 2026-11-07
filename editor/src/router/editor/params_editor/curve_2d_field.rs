@@ -17,7 +17,7 @@ use crate::router::editor::{
 };
 
 // Margin is constant, dimensions are detected from CSS
-const MARGIN: f64 = 10.0;
+const MARGIN: f64 = 8.0;
 
 #[derive(Props, Clone)]
 pub struct Curve2DNormProps {
@@ -50,9 +50,9 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
     let mut mousedown_index = use_signal(|| None::<usize>);
     let param_path = use_memo(move || props.path.clone());
 
-    // Fixed 150x150 dimensions
-    const CANVAS_WIDTH: f64 = 150.0;
-    const CANVAS_HEIGHT: f64 = 150.0;
+    const CANVAS_WIDTH: f64 = 128.0;
+    const CANVAS_HEIGHT: f64 = 128.0;
+    const GRID_STEP: f64 = 32.0;
     const GRAPH_WIDTH: f64 = CANVAS_WIDTH - 2.0 * MARGIN;
     const GRAPH_HEIGHT: f64 = CANVAS_HEIGHT - 2.0 * MARGIN;
     const GRAPH_BOTTOM: f64 = CANVAS_HEIGHT - MARGIN;
@@ -64,7 +64,7 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
 
     rsx! {
         style { { include_str!("curve_2d_field.css") } }
-        div { class: "Curve2DNorm",
+        div { class: "Curve2D",
             {
                 let path = param_path.read().clone();
                 let raw_param_value = get_param_value_by_path(&props.project_params.read().list, &path)
@@ -102,12 +102,13 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                     if is_curve2d {
                         if let ProjectParamValue::Curve2D(curve) = &param_value {
                             div { class: "domain-fields",
-                                div { class: "domain-row",
-                                    label { "X:" }
+                                    span { class: "hint", "x" }
                                     input {
+                                        class: "input",
                                         r#type: "number",
                                         step: "any",
                                         placeholder: "x_start",
+                                        "aria-label": "x from",
                                         value: "{curve.mapped_to.x_start}",
                                         onchange: move |event| {
                                             if let Ok(val) = event.value().parse::<f32>() {
@@ -129,11 +130,13 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                             }
                                         }
                                     }
-                                    span { "to" }
+                                    span { class: "hint", "–" }
                                     input {
+                                        class: "input",
                                         r#type: "number",
                                         step: "any",
                                         placeholder: "x_end",
+                                        "aria-label": "x to",
                                         value: "{curve.mapped_to.x_end}",
                                         onchange: move |event| {
                                             if let Ok(val) = event.value().parse::<f32>() {
@@ -155,13 +158,13 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                             }
                                         }
                                     }
-                                }
-                                div { class: "domain-row",
-                                    label { "Y:" }
+                                    span { class: "hint", "y" }
                                     input {
+                                        class: "input",
                                         r#type: "number",
                                         step: "any",
                                         placeholder: "y_start",
+                                        "aria-label": "y from",
                                         value: "{curve.mapped_to.y_start}",
                                         onchange: move |event| {
                                             if let Ok(val) = event.value().parse::<f32>() {
@@ -183,11 +186,13 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                             }
                                         }
                                     }
-                                    span { "to" }
+                                    span { class: "hint", "–" }
                                     input {
+                                        class: "input",
                                         r#type: "number",
                                         step: "any",
                                         placeholder: "y_end",
+                                        "aria-label": "y to",
                                         value: "{curve.mapped_to.y_end}",
                                         onchange: move |event| {
                                             if let Ok(val) = event.value().parse::<f32>() {
@@ -209,7 +214,6 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                             }
                                         }
                                     }
-                                }
                             }
                         }
                     }
@@ -345,6 +349,15 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                             }
                         },
 
+                        for step in 1..(CANVAS_WIDTH / GRID_STEP) as i32 {
+                            {
+                                let at = step as f64 * GRID_STEP;
+                                rsx! {
+                                    line { class: "curve-grid", x1: "{at}", y1: "0", x2: "{at}", y2: "{CANVAS_HEIGHT}" }
+                                    line { class: "curve-grid", x1: "0", y1: "{at}", x2: "{CANVAS_WIDTH}", y2: "{at}" }
+                                }
+                            }
+                        }
                         polyline {
                             points: {
                                 graph.iter_points()
@@ -356,9 +369,7 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                     .collect::<Vec<_>>()
                                     .join(" ")
                             },
-                            fill: "none",
-                            stroke: "#333",
-                            stroke_width: "2",
+                            class: "curve-line",
                         }
 
                         for (i, point) in graph.iter_points().enumerate() {
@@ -369,9 +380,8 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                     circle {
                                         cx: "{cx}",
                                         cy: "{cy}",
-                                        r: "6",
-                                        fill: "#333",
-                                        style: "cursor: pointer;",
+                                        r: "4",
+                                        class: "curve-handle",
                                         ondoubleclick: move |event| {
                                             event.stop_propagation();
                                             if i > 0 && i < graph_len - 1 {

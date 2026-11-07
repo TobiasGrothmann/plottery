@@ -1,70 +1,50 @@
 .ProjectGrid {
   display: flex;
   flex-direction: column;
-  gap: var(--gap-4);
+  gap: 16px;
 }
 
 .grid_section {
   display: flex;
   flex-direction: column;
-  gap: var(--gap-1);
-  padding: var(--gap-1);
-  background-color: var(--col-bg-2);
-  border-radius: var(--border-radius);
+  gap: 8px;
 }
 
-.grid_section_header {
+.grid_section_head {
   display: flex;
-  flex-direction: row;
   align-items: center;
-  gap: var(--gap-0);
+  gap: 4px;
+  margin: 0 -8px;
+}
+.grid_section_head .sec-head {
+  flex: 1;
   min-width: 0;
-  padding-bottom: var(--gap-0);
-  border-bottom: 1px solid var(--col-bg-3);
-}
-.grid_section_header_link {
-  cursor: pointer;
-}
-.grid_section_header_link:hover .grid_section_title {
-  text-decoration: underline;
 }
 
-.grid_section_icon {
-  width: 22px;
-  height: 22px;
-  flex-shrink: 0;
-  filter: invert(1);
-  opacity: 0.7;
+.sec-chevron {
+  color: var(--fg-2);
 }
-
-.grid_section_title {
-  font-size: 20px;
-  font-weight: 500;
+.sec-folder {
+  color: var(--fg-2);
+}
+.sec-label {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.grid_section_count {
-  font-size: 14px;
-  color: var(--col-fg-2);
-  flex-shrink: 0;
-}
-
 .grid_cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(var(--tile-size, 320px), 100%), 1fr));
-  gap: var(--gap-1);
+  grid-template-columns: repeat(auto-fill, minmax(min(var(--tile-size), 100%), 1fr));
+  gap: 16px;
 }
 
 .grid_empty {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--gap-0);
-  padding: var(--gap-4);
-  color: var(--col-fg-2);
-}
-.grid_empty_path {
-  font-size: 13px;
+  gap: 6px;
+  padding: 32px;
+  color: var(--fg-2);
 }

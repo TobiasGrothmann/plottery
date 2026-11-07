@@ -27,13 +27,24 @@ pub fn SVGImage(props: SVGImageProps) -> Element {
         "default"
     };
 
-    rsx!(
-        div { class: "Image",
-            style: "height: 100%; width: 100%; flex: 1; display: flex; align-items: flex-start; justify-content: flex-start;",
+    let size = props
+        .layer_bbox
+        .map(|bbox| bbox.size())
+        .filter(|size| size.x > 0.0 && size.y > 0.0);
+    let fit = match size {
+        Some(size) => {
+            let ratio = size.x / size.y;
+            format!("width: min(100cqw, calc(100cqh * {ratio})); height: min(100cqh, calc(100cqw / {ratio}));")
+        }
+        None => "max-width: 100%; max-height: 100%;".to_string(),
+    };
 
+    rsx!(
+        div { class: "preview-stage",
             img {
+                class: "paper",
                 src: "{svg_data_url}",
-                style: "flex: 1; max-width: 100%; max-height: 100%; cursor: {cursor};",
+                style: "{fit} cursor: {cursor};",
                 onmounted: move |event| img.set(Some(event.data())),
                 onclick: move |event| {
                     if !props.pick_active {
@@ -87,15 +98,9 @@ pub fn Image(props: ImageProps) -> Element {
         props.redraw_counter
     );
 
-    rsx!(
-        div { class: "Image {props.class}",
-            style: "height: 100%",
-
-            img {
-                src: "{props.img_path.as_str()}?{cache_key}",
-                style: "height: 100%",
-                loading: "lazy",
-            }
-        }
-    )
+    rsx!(img {
+        class: "{props.class}",
+        src: "{props.img_path.as_str()}?{cache_key}",
+        loading: "lazy",
+    })
 }

@@ -16,7 +16,9 @@ pub struct ExternalEditorButtonProps {
 pub fn ExternalEditorButton(props: ExternalEditorButtonProps) -> Element {
     rsx! {
         button {
-            class: "icon_button",
+            r#type: "button",
+            class: "btn btn-ghost icon-btn",
+            "aria-label": "Open in {props.editor_name}",
             title: "Open in {props.editor_name}",
             onclick: move |event| {
                 let mut cmd = std::process::Command::new(&props.editor_command);
@@ -30,7 +32,7 @@ pub fn ExternalEditorButton(props: ExternalEditorButtonProps) -> Element {
                     .unwrap();
                 event.stop_propagation();
             },
-            img { src: "{format_svg(props.icon_svg)}" }
+            img { src: "{format_svg(props.icon_svg)}", alt: "" }
         }
     }
 }
