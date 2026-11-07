@@ -22,10 +22,7 @@ pub struct ConsoleProps {
 pub fn Console(props: ConsoleProps) -> Element {
     let messages = props.console.read().get_messages();
     let _change_counter = props.console.read().get_change_counter(); // to update this component when the console changes
-    let error_count = messages
-        .iter()
-        .filter(|message| matches!(message.msg_type, ConsoleMessageType::Error))
-        .count();
+    let error_count = props.console.read().error_count();
     let error_text = match error_count {
         1 => "1 error".to_string(),
         n => format!("{n} errors"),

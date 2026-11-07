@@ -497,6 +497,19 @@ pub fn Editor(project_path: Vec<String>) -> Element {
         layout.write().toggle(panel);
         save_layout();
     };
+    // Opens the console when a new error is logged.
+    let mut seen_errors = use_signal(|| 0usize);
+    use_effect(move || {
+        console_change_counter();
+        let errors = console.peek().error_count();
+        let seen = *seen_errors.peek();
+        if errors != seen {
+            seen_errors.set(errors);
+        }
+        if errors > seen && !layout.peek().console_open {
+            toggle_panel(Panel::Console);
+        }
+    });
     let resize_panel = move |panel: Panel| {
         EventHandler::new(move |size: f64| layout.write().set_size(panel, size))
     };

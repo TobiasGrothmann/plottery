@@ -99,6 +99,15 @@ impl ConsoleMessages {
         self.trigger_change();
     }
 
+    pub fn error_count(&self) -> usize {
+        self.entries
+            .lock()
+            .expect("Failed to lock console entries")
+            .iter()
+            .filter(|message| matches!(message.msg_type, ConsoleMessageType::Error))
+            .count()
+    }
+
     pub fn get_messages(&self) -> Vec<ConsoleMessage> {
         self.entries
             .lock()
