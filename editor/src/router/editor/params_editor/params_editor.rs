@@ -15,8 +15,9 @@ use crate::router::editor::{
         bool_field::BoolField,
         curve_2d_field::Curve2DField,
         number_field::NumberField,
-        param_tree::{get_param_mut_by_path, get_param_value_mut_by_path},
+        param_tree::{get_param_mut_by_path, get_param_value_mut_by_path, leaf_value_mut},
         slider::Slider,
+        string_field::StringField,
     },
     project_runner::ProjectRunner,
     running_state::RunningState,
@@ -29,6 +30,52 @@ pub struct ParamsEditorProps {
     running_state: SyncSignal<RunningState>,
     console: SyncSignal<ConsoleMessages>,
     release: bool,
+}
+
+/// Props shared by all leaf widgets. `param` already has `Optional` unwrapped, `path` has not.
+#[derive(PartialEq, Props, Clone)]
+pub struct LeafProps {
+    pub param: ProjectParam,
+    pub path: Vec<String>,
+    pub project_params: SyncSignal<ProjectParamsListWrapper>,
+    pub project_runner: SyncSignal<Arc<Mutex<ProjectRunner>>>,
+    pub running_state: SyncSignal<RunningState>,
+    pub console: SyncSignal<ConsoleMessages>,
+    pub release: bool,
+}
+
+impl LeafProps {
+    fn new(param: ProjectParam, path: Vec<String>, props: &ParamsEditorProps) -> Self {
+        Self {
+            param,
+            path,
+            project_params: props.project_params,
+            project_runner: props.project_runner,
+            running_state: props.running_state,
+            console: props.console,
+            release: props.release,
+        }
+    }
+
+    /// Applies `edit` to the leaf value at `path` and reruns the project.
+    pub fn edit(&self, edit: impl FnOnce(&mut ProjectParamValue)) {
+        let mut project_params = self.project_params;
+        let mut new_params = project_params.read().clone();
+        match get_param_value_mut_by_path(&mut new_params.list, &self.path) {
+            Some(value) => edit(leaf_value_mut(value)),
+            None => {
+                tracing::error!("Param path not found: {:?}", self.path);
+                return;
+            }
+        }
+        project_params.set(new_params);
+        trigger_run(
+            self.project_runner,
+            self.running_state,
+            self.console,
+            self.release,
+        );
+    }
 }
 
 pub(crate) fn trigger_run(
@@ -227,6 +274,11 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, props: &ParamsEdito
         ProjectParamValue::Enum(param_enum) => {
             rsx! {
                 p { key: "{key}", "{param_enum.selected}" }
+            }
+        }
+        ProjectParamValue::String(_) => {
+            rsx! {
+                StringField { key: "{key}", ..LeafProps::new(param, path, props) }
             }
         }
         ProjectParamValue::Struct(_)

@@ -34,6 +34,8 @@ mod tests {
         mode: Mode,
         #[value(Mode::Dots)]
         mode_with_default: Mode,
+        #[value("hello".to_string())]
+        text: String,
     }
 
     #[test]
@@ -118,6 +120,7 @@ mod tests {
             },
             mode: Mode::Lines,
             mode_with_default: Mode::Circles,
+            text: "plot".to_string(),
         };
 
         let round_tripped = Params::new_from_list(params.to_params_list());
@@ -133,6 +136,7 @@ mod tests {
         assert_eq!(params.numbers, vec![1, 2, 3]);
         assert_eq!(params.mode, Mode::Circles);
         assert_eq!(params.mode_with_default, Mode::Dots);
+        assert_eq!(params.text, "hello");
     }
 
     #[test]

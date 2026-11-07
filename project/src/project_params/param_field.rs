@@ -107,6 +107,21 @@ impl ParamField for bool {
     }
 }
 
+impl ParamField for String {
+    fn default_param_value() -> ProjectParamValue {
+        ProjectParamValue::String(String::new())
+    }
+    fn to_param_value(&self) -> ProjectParamValue {
+        ProjectParamValue::String(self.clone())
+    }
+    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
+        match value {
+            ProjectParamValue::String(val) => Ok(val.clone()),
+            other => Err(param_type_mismatch("string", other)),
+        }
+    }
+}
+
 impl ParamField for Curve2DNorm {
     fn default_param_value() -> ProjectParamValue {
         ProjectParamValue::Curve2DNorm(Self::default())

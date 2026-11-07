@@ -21,6 +21,7 @@ pub enum ProjectParamValue {
     Optional(ProjectParamOptional),
     Vec(ProjectParamVec),
     Enum(ProjectParamEnum),
+    String(String),
 }
 
 impl ProjectParamValue {
@@ -101,6 +102,7 @@ impl ProjectParamValue {
                 format!("vec<{}>", vec_value.item_prototype.type_name())
             }
             ProjectParamValue::Enum(_) => "enum".to_string(),
+            ProjectParamValue::String(_) => "string".to_string(),
         }
     }
 
@@ -127,6 +129,7 @@ impl ProjectParamValue {
                 format!("{} items", vec_value.items.len())
             }
             ProjectParamValue::Enum(param_enum) => param_enum.selected.clone(),
+            ProjectParamValue::String(val) => val.clone(),
         }
     }
 }
