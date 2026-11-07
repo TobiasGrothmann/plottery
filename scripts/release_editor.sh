@@ -84,9 +84,12 @@ echo ""
 
 if [ "$UPLOAD" = "true" ]; then
   echo -e "${YELLOW}Creating GitHub release v$VERSION...${NC}"
-  NOTES="This dmg is not codesigned.
+  NOTES="Install or update on macOS with one command, it downloads the newest release and puts the app into /Applications:
+\`\`\`
+curl -fsSL https://raw.githubusercontent.com/TobiasGrothmann/plottery/main/editor/scripts/install_macos.sh | bash
+\`\`\`
 
-To remove macOS's *\"This app is damaged\"* hogwash use:
+The dmg is not codesigned. If you download it in a browser instead, remove macOS's *\"This app is damaged\"* hogwash with:
 \`\`\`
 xattr -d com.apple.quarantine $RENAMED_DMG_NAME
 \`\`\`"
