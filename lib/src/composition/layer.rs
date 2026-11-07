@@ -16,7 +16,7 @@ use svg::{
 use crate::{
     geometry::TransformMatrix,
     traits::{Normalize, Scale, Scale2D, Transform, Translate},
-    Angle, BoundingBox, Circle, Masked, Mirror, Path, Plottable, Rect, Rotate, Rotate90,
+    Angle, Bezier, BoundingBox, Circle, Masked, Mirror, Path, Plottable, Rect, Rotate, Rotate90,
     SampleSettings, Shape, V2,
 };
 
@@ -435,7 +435,12 @@ impl Layer {
 
                             let path_data = data_value.to_string();
                             let should_close_paths = Self::svg_path_has_fill(&attributes);
-                            for mut path in Self::parse_svg_path_data(path_data.as_str()) {
+                            let sample_settings = SampleSettings::new(
+                                SampleSettings::default().points_per_unit * svg_units_to_cm_scale,
+                            );
+                            for mut path in
+                                Self::parse_svg_path_data(path_data.as_str(), sample_settings)
+                            {
                                 if should_close_paths {
                                     Self::close_path_if_needed(&mut path);
                                 }
@@ -711,12 +716,15 @@ impl Layer {
         }
     }
 
-    fn parse_svg_path_data(path_data: &str) -> Vec<Path> {
+    /// Parses path data in SVG units; curves are sampled with `sample_settings` (points per SVG unit).
+    fn parse_svg_path_data(path_data: &str, sample_settings: SampleSettings) -> Vec<Path> {
         let mut parsed_paths: Vec<Path> = Vec::new();
 
         let mut current_points: Vec<V2> = Vec::new();
         let mut current_point: Option<V2> = None;
         let mut subpath_start: Option<V2> = None;
+        let mut last_cubic_control: Option<V2> = None;
+        let mut last_quad_control: Option<V2> = None;
 
         let mut active_command = 'M';
         let mut command_is_set = false;
@@ -827,7 +835,7 @@ impl Layer {
                     }
                 }
                 'C' | 'c' => {
-                    while let (Some(_x1), Some(_y1), Some(_x2), Some(_y2), Some(x), Some(y)) = (
+                    while let (Some(x1), Some(y1), Some(x2), Some(y2), Some(x), Some(y)) = (
                         Self::read_svg_number(&tokens, &mut token_index),
                         Self::read_svg_number(&tokens, &mut token_index),
                         Self::read_svg_number(&tokens, &mut token_index),
@@ -841,19 +849,26 @@ impl Layer {
                             current_point,
                         );
 
-                        // TODO: Sample bezier curves instead of approximating them as straight segments.
                         let base = current_point.unwrap_or(V2::zero());
-                        let next_point = if active_command == 'c' {
-                            V2::new(base.x + x, base.y + y)
+                        let offset = if active_command == 'c' {
+                            base
                         } else {
-                            V2::new(x, y)
+                            V2::zero()
                         };
-                        current_points.push(next_point);
+                        let ctrl1 = offset + V2::new(x1, y1);
+                        let ctrl2 = offset + V2::new(x2, y2);
+                        let next_point = offset + V2::new(x, y);
+                        Self::push_svg_curve(
+                            &mut current_points,
+                            Bezier::cubic(base, ctrl1, ctrl2, next_point),
+                            sample_settings,
+                        );
+                        last_cubic_control = Some(ctrl2);
                         current_point = Some(next_point);
                     }
                 }
                 'S' | 's' => {
-                    while let (Some(_x2), Some(_y2), Some(x), Some(y)) = (
+                    while let (Some(x2), Some(y2), Some(x), Some(y)) = (
                         Self::read_svg_number(&tokens, &mut token_index),
                         Self::read_svg_number(&tokens, &mut token_index),
                         Self::read_svg_number(&tokens, &mut token_index),
@@ -865,19 +880,26 @@ impl Layer {
                             current_point,
                         );
 
-                        // TODO: Sample smooth cubic bezier curves instead of endpoint approximation.
                         let base = current_point.unwrap_or(V2::zero());
-                        let next_point = if active_command == 's' {
-                            V2::new(base.x + x, base.y + y)
+                        let offset = if active_command == 's' {
+                            base
                         } else {
-                            V2::new(x, y)
+                            V2::zero()
                         };
-                        current_points.push(next_point);
+                        let ctrl1 = last_cubic_control.map_or(base, |ctrl| base * 2.0 - ctrl);
+                        let ctrl2 = offset + V2::new(x2, y2);
+                        let next_point = offset + V2::new(x, y);
+                        Self::push_svg_curve(
+                            &mut current_points,
+                            Bezier::cubic(base, ctrl1, ctrl2, next_point),
+                            sample_settings,
+                        );
+                        last_cubic_control = Some(ctrl2);
                         current_point = Some(next_point);
                     }
                 }
                 'Q' | 'q' => {
-                    while let (Some(_cx), Some(_cy), Some(x), Some(y)) = (
+                    while let (Some(cx), Some(cy), Some(x), Some(y)) = (
                         Self::read_svg_number(&tokens, &mut token_index),
                         Self::read_svg_number(&tokens, &mut token_index),
                         Self::read_svg_number(&tokens, &mut token_index),
@@ -889,14 +911,20 @@ impl Layer {
                             current_point,
                         );
 
-                        // TODO: Sample quadratic bezier curves instead of endpoint approximation.
                         let base = current_point.unwrap_or(V2::zero());
-                        let next_point = if active_command == 'q' {
-                            V2::new(base.x + x, base.y + y)
+                        let offset = if active_command == 'q' {
+                            base
                         } else {
-                            V2::new(x, y)
+                            V2::zero()
                         };
-                        current_points.push(next_point);
+                        let ctrl = offset + V2::new(cx, cy);
+                        let next_point = offset + V2::new(x, y);
+                        Self::push_svg_curve(
+                            &mut current_points,
+                            Bezier::quadratic(base, ctrl, next_point),
+                            sample_settings,
+                        );
+                        last_quad_control = Some(ctrl);
                         current_point = Some(next_point);
                     }
                 }
@@ -908,14 +936,20 @@ impl Layer {
                             current_point,
                         );
 
-                        // TODO: Sample smooth quadratic bezier curves instead of endpoint approximation.
                         let base = current_point.unwrap_or(V2::zero());
-                        let next_point = if active_command == 't' {
-                            V2::new(base.x + x, base.y + y)
+                        let offset = if active_command == 't' {
+                            base
                         } else {
-                            V2::new(x, y)
+                            V2::zero()
                         };
-                        current_points.push(next_point);
+                        let ctrl = last_quad_control.map_or(base, |ctrl| base * 2.0 - ctrl);
+                        let next_point = offset + V2::new(x, y);
+                        Self::push_svg_curve(
+                            &mut current_points,
+                            Bezier::quadratic(base, ctrl, next_point),
+                            sample_settings,
+                        );
+                        last_quad_control = Some(ctrl);
                         current_point = Some(next_point);
                     }
                 }
@@ -958,6 +992,12 @@ impl Layer {
                     // TODO: Support additional SVG path commands.
                     while Self::read_svg_number(&tokens, &mut token_index).is_some() {}
                 }
+            }
+            if !matches!(active_command, 'C' | 'c' | 'S' | 's') {
+                last_cubic_control = None;
+            }
+            if !matches!(active_command, 'Q' | 'q' | 'T' | 't') {
+                last_quad_control = None;
             }
         }
 
@@ -1025,6 +1065,15 @@ impl Layer {
         }
 
         tokens
+    }
+
+    /// Appends the sampled curve without repeating its start point.
+    fn push_svg_curve(
+        current_points: &mut Vec<V2>,
+        curve: Bezier,
+        sample_settings: SampleSettings,
+    ) {
+        current_points.extend(curve.points(sample_settings).into_iter().skip(1));
     }
 
     fn ensure_svg_subpath_started(

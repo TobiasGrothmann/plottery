@@ -438,6 +438,12 @@ mod test_layer {
                 _ => panic!("Expected imported shape to be Path"),
             }
         }
+
+        // the curve commands are sampled, not approximated by their end points
+        let Shape::Path(curved) = imported.iter().next().unwrap() else {
+            panic!("Expected imported shape to be Path");
+        };
+        assert!(curved.get_points_ref().len() > 8);
     }
 
     #[test]
