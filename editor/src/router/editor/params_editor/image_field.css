@@ -23,5 +23,7 @@
   align-self: flex-start;
   border: 1px solid var(--line);
   border-radius: var(--r-sm);
-  background: var(--bg-0);
+  background-color: var(--checker-b);
+  background-image: conic-gradient(var(--checker-a) 25%, transparent 0 50%, var(--checker-a) 0 75%, transparent 0);
+  background-size: 16px 16px;
 }

@@ -184,12 +184,7 @@ pub fn Chip(
 }
 
 #[component]
-pub fn StatusPill(
-    tone: Tone,
-    text: String,
-    detail: Option<String>,
-    title: Option<String>,
-) -> Element {
+pub fn StatusPill(tone: Tone, text: String, title: Option<String>) -> Element {
     let tone = match tone {
         Tone::Ok => "ok",
         Tone::Busy => "busy",
@@ -200,9 +195,6 @@ pub fn StatusPill(
         span { class: "pill", role: "status", title,
             span { class: "dot {tone}" }
             span { "{text}" }
-            if let Some(detail) = detail {
-                span { class: "hint", "{detail}" }
-            }
         }
     }
 }

@@ -17,9 +17,13 @@
   --err:#ff7b6e;
   --paper:#fff;
   --accent-hover:#97b0ff;
-  --thumb:#26262b;
-  --thumb-hover:#2c2c32;
-  --grid-dot:#202025;
+  --stage:#7a7a7a;
+  --stage-hover:#838383;
+  --stage-dot:#6e6e6e;
+  --app-btn:#5c5c5c;
+  --app-btn-hover:#6a6a6a;
+  --checker-a:#9c9c9c;
+  --checker-b:#d0d0d0;
   --r-sm:4px;
   --r:6px;
   --r-lg:10px;
@@ -49,7 +53,7 @@ button,input,select{font:inherit;color:inherit}
 .affix span{position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--fg-2);font-size:11px;pointer-events:none}
 .affix .input{padding-left:20px}
 .seg{display:inline-flex;padding:2px;gap:2px;background:var(--bg-0);border:1px solid var(--line);border-radius:var(--r)}
-.seg button{height:22px;padding:0 10px;border:0;border-radius:4px;background:transparent;color:var(--fg-1);font:500 12px 'Inter',system-ui,sans-serif;cursor:pointer}
+.seg button{height:22px;padding:0 10px;white-space:nowrap;border:0;border-radius:4px;background:transparent;color:var(--fg-1);font:500 12px 'Inter',system-ui,sans-serif;cursor:pointer}
 .seg button:hover{color:var(--fg-0)}
 .seg button.on{background:var(--bg-4);color:var(--fg-0)}
 .chip{height:22px;padding:0 8px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--fg-1);font:400 11px 'JetBrains Mono',ui-monospace,monospace;cursor:pointer}
@@ -104,8 +108,8 @@ button,input,select{font:inherit;color:inherit}
 .tree-row .count{margin-left:auto}
 .card{display:flex;flex-direction:column;border-radius:8px;border:1px solid var(--line);background:var(--bg-2);overflow:hidden;color:inherit;text-decoration:none;transition:border-color .12s}
 .card:hover{border-color:var(--line-2)}
-.card:hover .thumb{background:var(--thumb-hover)}
-.thumb{aspect-ratio:1 / 1;background:var(--thumb);display:grid;grid-template:minmax(0,1fr) / minmax(0,1fr);place-items:center;padding:8%;overflow:hidden}
+.card:hover .thumb{background:var(--stage-hover)}
+.thumb{aspect-ratio:1 / 1;background:var(--stage);display:grid;grid-template:minmax(0,1fr) / minmax(0,1fr);place-items:center;padding:8%;overflow:hidden}
 .thumb svg{max-width:100%;max-height:100%;background:var(--paper);box-shadow:0 1px 2px rgba(0,0,0,.4),0 6px 16px rgba(0,0,0,.3)}
 .sec-head{display:flex;align-items:center;gap:8px;width:100%;height:36px;padding:0 8px;border:0;border-radius:var(--r);background:transparent;color:var(--fg-0);font:600 13px 'Inter',system-ui,sans-serif;cursor:pointer;text-align:left}
 .sec-head:hover{background:var(--bg-2)}
@@ -147,3 +151,8 @@ h1,h2,h3,p{margin:0}
 .input.invalid,.input.invalid:focus{border-color:var(--err)}
 .field_error{display:flex;align-items:flex-start;gap:6px;color:var(--err)}
 .field_error .i{width:14px;height:14px;margin-top:1px}
+.app-btn{background:var(--app-btn)}
+.app-btn:hover{background:var(--app-btn-hover)}
+.hgroup.tight:has(> .app-btn){gap:4px}
+.panel-fill{fill:none;stroke:none}
+.icon-btn.on .panel-fill{fill:currentColor}

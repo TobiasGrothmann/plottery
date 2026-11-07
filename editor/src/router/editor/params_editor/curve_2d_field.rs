@@ -1,4 +1,4 @@
-use dioxus::prelude::*;
+use dioxus::{html::input_data::MouseButton, prelude::*};
 use dioxus_logger::tracing;
 use plottery_lib::V2;
 use plottery_project::{
@@ -12,12 +12,54 @@ use crate::router::editor::{
     console_messages::ConsoleMessages,
     params_editor::param_tree::{get_param_value_by_path, get_param_value_mut_by_path},
     params_editor::params_editor::trigger_run,
+    params_editor::widgets::slider_input::ALT_SPEED_FACTOR,
     project_runner::ProjectRunner,
     running_state::RunningState,
 };
 
 // Margin is constant, dimensions are detected from CSS
 const MARGIN: f64 = 8.0;
+/// Pixels the mouse has to move before a press on a handle becomes a drag.
+const DRAG_THRESHOLD_PX: f64 = 2.0;
+/// Grid the handles snap to while shift is held.
+const SNAP_STEPS: f32 = 10.0;
+
+#[derive(Clone, Copy)]
+struct CurveDrag {
+    index: usize,
+    last: (f64, f64),
+    /// Unsnapped normalized position, so snapping doesn't accumulate.
+    pos: V2,
+    active: bool,
+}
+
+/// Moves point `index` of the curve in `value`; the endpoints only move vertically.
+fn move_curve_point(value: &mut ProjectParamValue, index: usize, point: V2) {
+    match value {
+        ProjectParamValue::Curve2DNorm(g) => {
+            if index == 0 {
+                g.update_endpoint(true, point.y);
+            } else if index == g.len() - 1 {
+                g.update_endpoint(false, point.y);
+            } else {
+                let _ = g.update_point_norm(index - 1, point);
+            }
+        }
+        ProjectParamValue::Curve2D(c) => {
+            if index == 0 {
+                c.update_endpoint_norm(true, point.y);
+            } else if index == c.len() - 1 {
+                c.update_endpoint_norm(false, point.y);
+            } else {
+                let _ = c.update_point_norm(index - 1, point);
+            }
+        }
+        ProjectParamValue::Optional(optional) => {
+            move_curve_point(optional.value.as_mut(), index, point)
+        }
+        _ => {}
+    }
+}
 
 #[derive(Props, Clone)]
 pub struct Curve2DNormProps {
@@ -46,8 +88,7 @@ impl PartialEq for Curve2DNormProps {
 
 #[component]
 pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
-    let mut dragging_index = use_signal(|| None::<usize>);
-    let mut mousedown_index = use_signal(|| None::<usize>);
+    let mut drag = use_signal(|| None::<CurveDrag>);
     let param_path = use_memo(move || props.path.clone());
 
     const CANVAS_WIDTH: f64 = 128.0;
@@ -61,6 +102,47 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
     let svg_width = format!("{}", CANVAS_WIDTH as i32);
     let svg_height = format!("{}", CANVAS_HEIGHT as i32);
     let view_box = format!("0 0 {} {}", CANVAS_WIDTH as i32, CANVAS_HEIGHT as i32);
+
+    // Relative drag like the sliders: alt slows it down, shift snaps to the grid.
+    let mut drag_to = move |state: CurveDrag, client: (f64, f64), slow: bool, snap: bool| {
+        let speed = if slow { ALT_SPEED_FACTOR } else { 1.0 };
+        let delta = V2::new(
+            ((client.0 - state.last.0) * speed / GRAPH_WIDTH) as f32,
+            (-(client.1 - state.last.1) * speed / GRAPH_HEIGHT) as f32,
+        );
+        let pos = (state.pos + delta).max(V2::zero()).min(V2::new(1.0, 1.0));
+        let point = if snap {
+            V2::new(
+                (pos.x * SNAP_STEPS).round() / SNAP_STEPS,
+                (pos.y * SNAP_STEPS).round() / SNAP_STEPS,
+            )
+        } else {
+            pos
+        };
+        let mut new_params = props.project_params.read().clone();
+        if let Some(value) = get_param_value_mut_by_path(&mut new_params.list, &param_path.read()) {
+            move_curve_point(value, state.index, point);
+        }
+        props.project_params.set(new_params);
+        drag.set(Some(CurveDrag {
+            last: client,
+            pos,
+            active: true,
+            ..state
+        }));
+    };
+    let mut end_drag = move || {
+        let was_active = drag().is_some_and(|state| state.active);
+        drag.set(None);
+        if was_active {
+            trigger_run(
+                props.project_runner,
+                props.running_state,
+                props.console,
+                props.release,
+            );
+        }
+    };
 
     rsx! {
         style { { include_str!("curve_2d_field.css") } }
@@ -257,97 +339,22 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                             trigger_run(props.project_runner, props.running_state, props.console, props.release);
                         },
                         onmousemove: move |event| {
-                            // If mouse is down but not yet dragging, start dragging
-                            if mousedown_index().is_some() && dragging_index().is_none() {
-                                dragging_index.set(mousedown_index());
-                                mousedown_index.set(None);
+                            let Some(state) = drag() else { return };
+                            if state.active {
+                                return;
                             }
-
-                            if let Some(index) = dragging_index() {
-                                let rect = event.data.element_coordinates();
-                                let mut x = ((rect.x - MARGIN) / GRAPH_WIDTH).clamp(0.0, 1.0) as f32;
-                                let mut y = ((GRAPH_BOTTOM - rect.y) / GRAPH_HEIGHT).clamp(0.0, 1.0) as f32;
-
-                                // Snap to 0.1 grid when Alt key is held
-                                if event.data.modifiers().alt() {
-                                    x = (x * 10.0).round() / 10.0;
-                                    y = (y * 10.0).round() / 10.0;
-                                }
-
-                                let mut new_params = props.project_params.read().clone();
-                                let path = param_path.read().clone();
-                                if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, &path) {
-                                    match param_value {
-                                        ProjectParamValue::Curve2DNorm(ref mut g) => {
-                                            let total_points = g.len();
-                                            if index == 0 {
-                                                g.update_endpoint(true, y);
-                                            } else if index == total_points - 1 {
-                                                g.update_endpoint(false, y);
-                                            } else {
-                                                let _ = g.update_point_norm(index - 1, V2::new(x, y));
-                                            }
-                                        }
-                                        ProjectParamValue::Curve2D(ref mut c) => {
-                                            let total_points = c.len();
-                                            if index == 0 {
-                                                c.update_endpoint_norm(true, y);
-                                            } else if index == total_points - 1 {
-                                                c.update_endpoint_norm(false, y);
-                                            } else {
-                                                let _ = c.update_point_norm(index - 1, V2::new(x, y));
-                                            }
-                                        }
-                                        ProjectParamValue::Optional(optional) => {
-                                            match optional.value.as_mut() {
-                                                ProjectParamValue::Curve2DNorm(g) => {
-                                                    let total_points = g.len();
-                                                    if index == 0 {
-                                                        g.update_endpoint(true, y);
-                                                    } else if index == total_points - 1 {
-                                                        g.update_endpoint(false, y);
-                                                    } else {
-                                                        let _ = g.update_point_norm(index - 1, V2::new(x, y));
-                                                    }
-                                                }
-                                                ProjectParamValue::Curve2D(c) => {
-                                                    let total_points = c.len();
-                                                    if index == 0 {
-                                                        c.update_endpoint_norm(true, y);
-                                                    } else if index == total_points - 1 {
-                                                        c.update_endpoint_norm(false, y);
-                                                    } else {
-                                                        let _ = c.update_point_norm(index - 1, V2::new(x, y));
-                                                    }
-                                                }
-                                                _ => {}
-                                            }
-                                        }
-                                        _ => {}
-                                    }
-                                }
-                                props.project_params.set(new_params);
+                            if !event.held_buttons().contains(MouseButton::Primary) {
+                                drag.set(None);
+                                return;
+                            }
+                            let client = event.client_coordinates();
+                            let moved = (client.x - state.last.0).hypot(client.y - state.last.1);
+                            if moved >= DRAG_THRESHOLD_PX {
+                                let modifiers = event.modifiers();
+                                drag_to(state, (client.x, client.y), modifiers.alt(), modifiers.shift());
                             }
                         },
-                        onmouseup: move |_| {
-                            // Clear mousedown state without triggering drag
-                            mousedown_index.set(None);
-
-                            if dragging_index().is_some() {
-                                dragging_index.set(None);
-                                trigger_run(props.project_runner, props.running_state, props.console, props.release);
-                            }
-                        },
-                        onmouseleave: move |_| {
-                            // Clear mousedown state
-                            mousedown_index.set(None);
-
-                            if dragging_index().is_some() {
-                                dragging_index.set(None);
-                                // Commit changes when dragging outside bounds
-                                trigger_run(props.project_runner, props.running_state, props.console, props.release);
-                            }
-                        },
+                        onmouseup: move |_| end_drag(),
 
                         for step in 1..(CANVAS_WIDTH / GRID_STEP) as i32 {
                             {
@@ -416,14 +423,36 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                         },
                                         onmousedown: move |event| {
                                             event.stop_propagation();
-                                            // Don't start dragging immediately - wait for mousemove
-                                            mousedown_index.set(Some(i));
+                                            event.prevent_default();
+                                            let client = event.client_coordinates();
+                                            drag.set(Some(CurveDrag {
+                                                index: i,
+                                                last: (client.x, client.y),
+                                                pos: point,
+                                                active: false,
+                                            }));
                                         },
                                     }
                                 }
                             }
                         }
                     }
+                }
+            }
+            if drag().is_some_and(|state| state.active) {
+                div {
+                    class: "curve_drag_overlay",
+                    onmousemove: move |event| {
+                        if !event.held_buttons().contains(MouseButton::Primary) {
+                            end_drag();
+                            return;
+                        }
+                        let Some(state) = drag() else { return };
+                        let client = event.client_coordinates();
+                        let modifiers = event.modifiers();
+                        drag_to(state, (client.x, client.y), modifiers.alt(), modifiers.shift());
+                    },
+                    onmouseup: move |_| end_drag(),
                 }
             }
         }

@@ -59,9 +59,21 @@ fn children(name: IconName) -> Element {
         IconName::External => rsx! {
             path { d: "M14 3h7v7M21 3l-9 9M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5" }
         },
-        IconName::PanelLeft => rsx! { {frame()} path { d: "M9 4v16" } },
-        IconName::PanelRight => rsx! { {frame()} path { d: "M15 4v16" } },
-        IconName::PanelBottom => rsx! { {frame()} path { d: "M3 15h18" } },
+        IconName::PanelLeft => rsx! {
+            path { class: "panel-fill", d: "M9 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4z" }
+            {frame()}
+            path { d: "M9 4v16" }
+        },
+        IconName::PanelRight => rsx! {
+            path { class: "panel-fill", d: "M15 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4z" }
+            {frame()}
+            path { d: "M15 4v16" }
+        },
+        IconName::PanelBottom => rsx! {
+            path { class: "panel-fill", d: "M3 15v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3z" }
+            {frame()}
+            path { d: "M3 15h18" }
+        },
         IconName::Folder => rsx! {
             path { d: "M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" }
         },

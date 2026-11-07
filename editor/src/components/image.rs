@@ -1,11 +1,19 @@
-use std::rc::Rc;
-
 use dioxus::prelude::*;
-use dioxus_logger::tracing;
 use plottery_lib::{Rect, V2};
+use serde::Deserialize;
 use std::time::UNIX_EPOCH;
 
-use crate::util::{format_svg, preview_coords::preview_click_to_layer};
+use crate::{
+    components::{
+        icon::IconName,
+        ui::{IconButton, Size},
+    },
+    util::{
+        format_svg,
+        preview_coords::preview_click_to_layer,
+        preview_zoom::{PreviewZoom, ZoomViewport, CLICK_ZOOM},
+    },
+};
 
 #[derive(PartialEq, Props, Clone)]
 pub struct SVGImageProps {
@@ -15,16 +23,113 @@ pub struct SVGImageProps {
     /// Shows a crosshair and reports clicks through `onpick`.
     pub pick_active: bool,
     pub onpick: EventHandler<V2>,
+    pub zoom: Signal<PreviewZoom>,
+}
+
+/// An input event from `preview_input.js`; positions are relative to the stage centre.
+#[derive(Deserialize)]
+struct PreviewInput {
+    kind: String,
+    x: f32,
+    y: f32,
+    paper_w: f32,
+    paper_h: f32,
+    stage_w: f32,
+    stage_h: f32,
+    factor: f32,
+    dx: f32,
+    dy: f32,
+}
+
+impl PreviewInput {
+    fn at(&self) -> V2 {
+        V2::new(self.x, self.y)
+    }
+
+    fn view(&self) -> ZoomViewport {
+        ZoomViewport {
+            paper: V2::new(self.paper_w, self.paper_h),
+            stage: V2::new(self.stage_w, self.stage_h),
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+struct PickState {
+    layer_bbox: Option<Rect>,
+    active: bool,
+    onpick: EventHandler<V2>,
 }
 
 #[component]
 pub fn SVGImage(props: SVGImageProps) -> Element {
     let svg_data_url = format_svg(props.svg.as_bytes());
-    let mut img = use_signal(|| None::<Rc<MountedData>>);
-    let cursor = if props.pick_active {
-        "crosshair"
-    } else {
-        "default"
+    let mut zoom = props.zoom;
+    let mut animate = use_signal(|| false);
+    // The input loop outlives this render, so it reads the latest pick props from here.
+    let mut pick = use_hook(|| {
+        CopyValue::new(PickState {
+            layer_bbox: props.layer_bbox,
+            active: props.pick_active,
+            onpick: props.onpick,
+        })
+    });
+    *pick.write() = PickState {
+        layer_bbox: props.layer_bbox,
+        active: props.pick_active,
+        onpick: props.onpick,
+    };
+
+    let mut set_animate = move |on: bool| {
+        if *animate.peek() != on {
+            animate.set(on);
+        }
+    };
+    let start_input = move |_| {
+        spawn(async move {
+            let mut eval = document::eval(include_str!("preview_input.js"));
+            while let Ok(input) = eval.recv::<PreviewInput>().await {
+                let view = input.view();
+                let current = *zoom.peek();
+                let next = match input.kind.as_str() {
+                    "zoom" => {
+                        set_animate(false);
+                        current.zoom_at(input.factor, input.at(), view)
+                    }
+                    "pan" => {
+                        set_animate(false);
+                        current.pan_by(V2::new(input.dx, input.dy), view)
+                    }
+                    "click" => {
+                        let on_paper = current.stage_to_paper(input.at(), view.paper);
+                        let state = *pick.peek();
+                        if state.active {
+                            let point = state.layer_bbox.and_then(|bbox| {
+                                preview_click_to_layer(on_paper, view.paper, bbox)
+                            });
+                            if let Some(point) = point {
+                                state.onpick.call(point);
+                            }
+                            continue;
+                        }
+                        let inside = on_paper.x >= 0.0
+                            && on_paper.y >= 0.0
+                            && on_paper.x <= view.paper.x
+                            && on_paper.y <= view.paper.y;
+                        set_animate(true);
+                        match (current.is_fit(), inside) {
+                            (true, true) => current.zoom_at(CLICK_ZOOM, input.at(), view),
+                            (true, false) => continue,
+                            (false, _) => PreviewZoom::default(),
+                        }
+                    }
+                    _ => continue,
+                };
+                if next != current {
+                    zoom.set(next);
+                }
+            }
+        });
     };
 
     let size = props
@@ -38,34 +143,45 @@ pub fn SVGImage(props: SVGImageProps) -> Element {
         }
         None => "max-width: 100%; max-height: 100%;".to_string(),
     };
+    let current = zoom();
+    let transform = format!(
+        "transform: translate({}px, {}px) scale({});",
+        current.pan.x, current.pan.y, current.scale
+    );
+    let (stage_cursor, paper_cursor) = match (props.pick_active, current.is_fit()) {
+        (true, _) => ("default", "crosshair"),
+        (false, true) => ("default", "zoom-in"),
+        (false, false) => ("zoom-out", "zoom-out"),
+    };
+    let paper_class = if animate() { "paper animate" } else { "paper" };
+    let percent = (current.scale * 100.0).round();
 
     rsx!(
-        div { class: "preview-stage",
+        div {
+            id: "preview-stage",
+            class: "preview-stage zoomable",
+            style: "cursor: {stage_cursor};",
+            onmounted: start_input,
             img {
-                class: "paper",
+                class: paper_class,
                 src: "{svg_data_url}",
-                style: "{fit} cursor: {cursor};",
-                onmounted: move |event| img.set(Some(event.data())),
-                onclick: move |event| {
-                    if !props.pick_active {
-                        return;
+                draggable: "false",
+                style: "{fit} {transform} cursor: {paper_cursor};",
+            }
+            if !current.is_fit() {
+                div { class: "zoom-ctl",
+                    span { class: "mono", "{percent}%" }
+                    IconButton {
+                        icon: IconName::Fit,
+                        label: "Fit to view",
+                        title: "Fit to view (Esc)",
+                        size: Size::Sm,
+                        onclick: move |_| {
+                            set_animate(true);
+                            zoom.set(PreviewZoom::default());
+                        },
                     }
-                    let (Some(img), Some(bbox)) = (img(), props.layer_bbox) else { return };
-                    let click = event.data.element_coordinates();
-                    let click = V2::new(click.x as f32, click.y as f32);
-                    let onpick = props.onpick;
-                    spawn(async move {
-                        match img.get_client_rect().await {
-                            Ok(rect) => {
-                                let element = V2::new(rect.size.width as f32, rect.size.height as f32);
-                                if let Some(point) = preview_click_to_layer(click, element, bbox) {
-                                    onpick.call(point);
-                                }
-                            }
-                            Err(e) => tracing::error!("Failed to get preview size: {:?}", e),
-                        }
-                    });
-                },
+                }
             }
         }
     )

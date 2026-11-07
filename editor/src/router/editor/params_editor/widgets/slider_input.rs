@@ -6,7 +6,7 @@ use super::format_number;
 
 /// Must match `.slider_thumb` width in slider_input.css.
 const THUMB_WIDTH_PX: f64 = 12.0;
-const ALT_SPEED_FACTOR: f64 = 0.25;
+pub const ALT_SPEED_FACTOR: f64 = 0.25;
 
 #[derive(PartialEq, Props, Clone)]
 pub struct SliderInputProps {

@@ -11,6 +11,17 @@
   gap: 4px;
   min-width: 0;
 }
+.crumb-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+.crumb-link:hover {
+  color: var(--fg-0);
+  text-decoration: underline;
+}
 
 .toggle-box {
   height: 32px;
@@ -58,18 +69,60 @@
   flex: 1;
   min-height: 0;
   position: relative;
-  background-color: var(--bg-0);
-  background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
+  background-color: var(--stage);
+  background-image: radial-gradient(var(--stage-dot) 1px, transparent 1px);
   background-size: 16px 16px;
+}
+
+.preview.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+}
+.fullscreen-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1;
+  border-radius: var(--r);
+  background: var(--bg-2);
 }
 
 .preview-stage {
   position: absolute;
-  inset: 32px;
+  inset: 0;
+  padding: 32px;
+  overflow: hidden;
   container-type: size;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.preview-stage.zoomable {
+  touch-action: none;
+}
+.preview-stage.dragging,
+.preview-stage.dragging .paper {
+  cursor: grabbing !important;
+}
+.paper.animate {
+  transition: transform 0.2s ease, opacity 0.15s;
+}
+
+.zoom-ctl {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 2px 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--bg-2);
+  color: var(--fg-1);
+  font-size: 12px;
+  cursor: default;
 }
 
 .paper {
@@ -95,5 +148,5 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  color: var(--fg-2);
+  color: var(--bg-1);
 }

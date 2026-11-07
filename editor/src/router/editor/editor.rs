@@ -25,7 +25,7 @@ use crate::{
         running_state::RunningState,
     },
     routes::Route,
-    util::format_svg,
+    util::{format_svg, preview_zoom::PreviewZoom},
 };
 use bincode::{deserialize, serialize};
 use dioxus::prelude::*;
@@ -39,7 +39,11 @@ use plottery_project::{
 use plottery_server_lib::{
     estimation::estimate_plot_layer_duration, plot_setting::PlotSettings, task::send_task,
 };
-use std::{sync::Arc, time::Duration};
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+    time::Duration,
+};
 use tokio::{sync::Mutex, task::JoinHandle};
 
 fn is_gitkraken_installed() -> bool {
@@ -83,9 +87,10 @@ fn format_estimated_plot_duration(duration: Duration) -> String {
     }
 }
 
-fn run_status(state: &RunningState) -> (Tone, &'static str) {
-    match state {
-        RunningState::Idle => (Tone::Ok, "Up to date"),
+/// Header pill for the run state; nothing while idle.
+fn run_status(state: &RunningState) -> Option<(Tone, &'static str)> {
+    let status = match state {
+        RunningState::Idle => return None,
         RunningState::Preparing { .. }
         | RunningState::StartingBuild { .. }
         | RunningState::Building { .. } => (Tone::Busy, "Compiling…"),
@@ -101,24 +106,31 @@ fn run_status(state: &RunningState) -> (Tone, &'static str) {
         RunningState::BuildKilled { .. }
         | RunningState::GetParamsKilled { .. }
         | RunningState::RunKilled { .. } => (Tone::Warn, "Cancelled"),
-    }
+    };
+    Some(status)
 }
 
-fn parent_crumb(dir: &std::path::Path) -> String {
-    let parents: Vec<String> = dir
-        .parent()
-        .into_iter()
-        .flat_map(|parent| parent.components())
-        .filter_map(|component| match component {
-            std::path::Component::Normal(name) => Some(name.to_string_lossy().to_string()),
-            _ => None,
+/// Eval script: true while a text field has focus, so single-key shortcuts stay out of the way.
+const FOCUS_IS_TEXT_FIELD: &str = r#"
+const el = document.activeElement;
+return !!el && (["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName) || el.isContentEditable);
+"#;
+
+/// The last two parent folders of `dir`, outermost first, with their paths.
+fn parent_crumbs(dir: &Path) -> Vec<(String, PathBuf)> {
+    let mut crumbs: Vec<(String, PathBuf)> = dir
+        .ancestors()
+        .skip(1)
+        .filter_map(|path| {
+            Some((
+                path.file_name()?.to_string_lossy().to_string(),
+                path.to_path_buf(),
+            ))
         })
+        .take(2)
         .collect();
-    parents
-        .iter()
-        .skip(parents.len().saturating_sub(2))
-        .map(|name| format!("{name} / "))
-        .collect()
+    crumbs.reverse();
+    crumbs
 }
 
 #[derive(Debug, Clone)]
@@ -394,6 +406,9 @@ pub fn Editor(project_path: Vec<String>) -> Element {
         }
     };
 
+    let mut preview_zoom = use_signal(PreviewZoom::default);
+    let mut fullscreen = use_signal(|| false);
+
     // click-to-pick for V2 params
     let mut pick_target = use_context_provider(|| PickTarget {
         path: Signal::new(None),
@@ -433,19 +448,6 @@ pub fn Editor(project_path: Vec<String>) -> Element {
     let hot_reload_path_to_watch = project().get_cargo_path().unwrap().join("src");
     let hot_reload_is_enabled = move || hot_reload_watcher.read().is_some();
 
-    let mut last_run = use_signal(|| None::<String>);
-    let mut seen_busy = use_signal(|| false);
-    use_effect(move || {
-        let state = running_state();
-        if state.is_busy() {
-            if !*seen_busy.peek() {
-                seen_busy.set(true);
-            }
-        } else if matches!(state, RunningState::Idle) && *seen_busy.peek() {
-            last_run.set(Some(chrono::Local::now().format("%H:%M").to_string()));
-        }
-    });
-
     let hot_reload_enabled = hot_reload_is_enabled();
     let set_hot_reload = move |enabled: bool| {
         if enabled == hot_reload_is_enabled() {
@@ -469,11 +471,17 @@ pub fn Editor(project_path: Vec<String>) -> Element {
     };
 
     let state_now = running_state();
-    let (status_tone, status_text) = run_status(&state_now);
-    let status_detail = last_run().filter(|_| matches!(state_now, RunningState::Idle));
+    let status = run_status(&state_now);
     let status_title = Some(state_now.get_msg()).filter(|msg| !msg.is_empty());
     let busy = state_now.is_busy();
-    let crumb = parent_crumb(&project().dir);
+    // Crumbs inside a watched folder get a path so they can open the browser there.
+    let crumbs = use_memo(move || {
+        let state = AppState::load_or_default();
+        parent_crumbs(&project().dir)
+            .into_iter()
+            .map(|(name, path)| (name, state.covers(&path).then_some(path)))
+            .collect::<Vec<_>>()
+    });
     let param_count = project_params.read().list.len();
 
     let mut show_plot_settings = use_signal(|| false);
@@ -489,6 +497,19 @@ pub fn Editor(project_path: Vec<String>) -> Element {
         layout.write().toggle(panel);
         save_layout();
     };
+    // Opens the console when a new error is logged.
+    let mut seen_errors = use_signal(|| 0usize);
+    use_effect(move || {
+        console_change_counter();
+        let errors = console.peek().error_count();
+        let seen = *seen_errors.peek();
+        if errors != seen {
+            seen_errors.set(errors);
+        }
+        if errors > seen && !layout.peek().console_open {
+            toggle_panel(Panel::Console);
+        }
+    });
     let resize_panel = move |panel: Panel| {
         EventHandler::new(move |size: f64| layout.write().set_size(panel, size))
     };
@@ -528,7 +549,33 @@ pub fn Editor(project_path: Vec<String>) -> Element {
             },
             onkeydown: move |event| {
                 let modifiers = event.modifiers();
-                if !(modifiers.meta() || modifiers.ctrl()) {
+                let command = modifiers.meta() || modifiers.ctrl();
+                let zero = matches!(event.key(), Key::Character(ref key) if key == "0");
+                let f = matches!(event.key(), Key::Character(ref key) if key.eq_ignore_ascii_case("f"));
+                if f && !command && !modifiers.alt() {
+                    spawn(async move {
+                        let typing = document::eval(FOCUS_IS_TEXT_FIELD).await;
+                        if typing.ok().and_then(|v| v.as_bool()) != Some(true) {
+                            fullscreen.toggle();
+                            preview_zoom.set(PreviewZoom::default());
+                        }
+                    });
+                    return;
+                }
+                if event.key() == Key::Escape && fullscreen() {
+                    event.prevent_default();
+                    fullscreen.set(false);
+                    preview_zoom.set(PreviewZoom::default());
+                    return;
+                }
+                if event.key() == Key::Escape || (command && zero) {
+                    if !preview_zoom.peek().is_fit() {
+                        event.prevent_default();
+                        preview_zoom.set(PreviewZoom::default());
+                    }
+                    return;
+                }
+                if !command {
                     return;
                 }
                 let Key::Character(key) = event.key() else { return };
@@ -555,7 +602,25 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                         },
                     }
                     div { class: "title-block", title: "{project().dir.to_string_lossy()}",
-                        span { class: "crumb", "{crumb}" }
+                        for (name, path) in crumbs() {
+                            if let Some(path) = path {
+                                button {
+                                    r#type: "button",
+                                    class: "crumb crumb-link",
+                                    title: "Show {path.to_string_lossy()} in projects",
+                                    onclick: move |_| {
+                                        let mut state = AppState::load_or_default();
+                                        state.reveal_folder(&path);
+                                        state.save();
+                                        nav.push(Route::Browser {});
+                                    },
+                                    "{name}"
+                                }
+                            } else {
+                                span { class: "crumb", "{name}" }
+                            }
+                            span { class: "crumb", "/" }
+                        }
                         h1 { "{project().config.name}" }
                     }
                     div { class: "vsep" }
@@ -598,7 +663,7 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                                 }
                                 button {
                                     r#type: "button",
-                                    class: "btn btn-ghost icon-btn",
+                                    class: "btn btn-ghost icon-btn app-btn",
                                     title: "Open project folder",
                                     "aria-label": "Open project folder",
                                     onclick: move |event| {
@@ -633,11 +698,8 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                         checked: hot_reload_enabled,
                         onchange: set_hot_reload,
                     }
-                    StatusPill {
-                        tone: status_tone,
-                        text: status_text.to_string(),
-                        detail: status_detail,
-                        title: status_title,
+                    if let Some((tone, text)) = status {
+                        StatusPill { tone, text, title: status_title }
                     }
                 }
                 div { class: "hgroup end",
@@ -761,7 +823,26 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                     }
                 }
                 main { class: "center",
-                    section { class: if busy { "preview busy" } else { "preview" },
+                    section {
+                        class: match (busy, fullscreen()) {
+                            (false, false) => "preview",
+                            (true, false) => "preview busy",
+                            (false, true) => "preview fullscreen",
+                            (true, true) => "preview busy fullscreen",
+                        },
+                        if fullscreen() {
+                            div { class: "fullscreen-close",
+                                IconButton {
+                                    icon: IconName::X,
+                                    label: "Close fullscreen",
+                                    title: "Close fullscreen (Esc)",
+                                    onclick: move |_| {
+                                        fullscreen.set(false);
+                                        preview_zoom.set(PreviewZoom::default());
+                                    },
+                                }
+                            }
+                        }
                         if project().get_editor_preview_image_path().exists() {
                             if let Some(svg) = svg() {
                                 SVGImage {
@@ -769,6 +850,7 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                                     layer_bbox: layer_bbox(),
                                     pick_active: pick_target.is_active(),
                                     onpick,
+                                    zoom: preview_zoom,
                                 }
                             } else {
                                 div { class: "preview-stage",

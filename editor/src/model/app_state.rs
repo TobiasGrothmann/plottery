@@ -238,12 +238,39 @@ impl AppState {
         self.tile_size = size.clamp(TILE_SIZE_MIN, TILE_SIZE_MAX);
     }
 
+    /// True if `dir` is a root or inside one, so the browser can show it.
+    pub fn covers(&self, dir: &Path) -> bool {
+        let dir = absolutize(dir);
+        self.roots.iter().any(|r| dir.starts_with(r))
+    }
+
+    /// Selects `folder` in the browser and expands the tree down to it.
+    pub fn reveal_folder(&mut self, folder: &Path) {
+        let folder = absolutize(folder);
+        let Some(root) = self
+            .roots
+            .iter()
+            .filter(|r| folder.starts_with(r))
+            .max_by_key(|r| r.components().count())
+            .cloned()
+        else {
+            return;
+        };
+        self.expanded_folders.extend(
+            folder
+                .ancestors()
+                .take_while(|p| p.starts_with(&root))
+                .map(Path::to_path_buf),
+        );
+        self.selected_folder = Some(folder);
+    }
+
     /// Adds `dir`'s parent as a root unless some root already contains `dir`.
     pub fn ensure_root_covers(&mut self, dir: &Path) {
-        let dir = absolutize(dir);
-        if self.roots.iter().any(|r| dir.starts_with(r)) {
+        if self.covers(dir) {
             return;
         }
+        let dir = absolutize(dir);
         if let Some(parent) = dir.parent() {
             self.add_root(parent.to_path_buf());
         }
