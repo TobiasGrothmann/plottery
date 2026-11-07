@@ -1,5 +1,7 @@
 use anyhow::Result;
 use plottery_lib::Paper;
+
+use super::angle_unit::AngleUnit;
 use serde::{Deserialize, Serialize};
 
 pub use super::curve_2d::Curve2D;
@@ -41,6 +43,10 @@ pub enum ProjectParamValue {
         min: i32,
         max: i32,
         bounds: Option<(i32, i32)>,
+    },
+    Angle {
+        rad: f32,
+        unit: AngleUnit,
     },
 }
 
@@ -126,6 +132,7 @@ impl ProjectParamValue {
             ProjectParamValue::Paper(_) => "paper".to_string(),
             ProjectParamValue::RangeF32 { .. } => "range<f32>".to_string(),
             ProjectParamValue::RangeI32 { .. } => "range<i32>".to_string(),
+            ProjectParamValue::Angle { .. } => "angle".to_string(),
         }
     }
 
@@ -156,6 +163,11 @@ impl ProjectParamValue {
             ProjectParamValue::Paper(paper) => paper.to_string(),
             ProjectParamValue::RangeF32 { min, max, .. } => format!("{min} – {max}"),
             ProjectParamValue::RangeI32 { min, max, .. } => format!("{min} – {max}"),
+            ProjectParamValue::Angle { rad, unit } => format!(
+                "{} {}",
+                unit.from_angle(plottery_lib::Angle::from_rad(*rad)),
+                unit.short_name()
+            ),
         }
     }
 }

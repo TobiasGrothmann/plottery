@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        project_param::ProjectParam, project_param_enum::ProjectParamEnum,
+        angle_unit::AngleUnit, project_param::ProjectParam, project_param_enum::ProjectParamEnum,
         project_param_optional::ProjectParamOptional, project_param_struct::ProjectParamStruct,
         project_param_value::ProjectParamValue, project_param_vec::ProjectParamVec,
         project_params_list_wrapper::ProjectParamsListWrapper,
@@ -231,5 +231,26 @@ mod tests {
 
         let combined = ProjectParamsListWrapper::new_combined(&old, &new);
         assert_eq!(combined.list, new);
+    }
+
+    #[test]
+    fn test_combine_angle_keeps_value_and_unit() {
+        let old = vec![ProjectParam::new(
+            "rotation",
+            ProjectParamValue::Angle {
+                rad: 1.0,
+                unit: AngleUnit::Rotations,
+            },
+        )];
+        let new = vec![ProjectParam::new(
+            "rotation",
+            ProjectParamValue::Angle {
+                rad: 0.5,
+                unit: AngleUnit::Degrees,
+            },
+        )];
+
+        let combined = ProjectParamsListWrapper::new_combined(&old, &new);
+        assert_eq!(combined.list, old);
     }
 }

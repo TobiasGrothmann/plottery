@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 pub use anyhow::Error as ParamFieldError;
-use plottery_lib::{Paper, Range};
+use plottery_lib::{Angle, Paper, Range};
+
+use super::angle_unit::AngleUnit;
 
 use super::curve_2d::Curve2D;
 use super::curve_2d_norm::Curve2DNorm;
@@ -200,6 +202,24 @@ impl RangedParamField for Range<i32> {
             min: self.min.clamp(lo, hi),
             max: self.max.clamp(lo, hi),
             bounds: Some((lo, hi)),
+        }
+    }
+}
+
+impl ParamField for Angle {
+    fn default_param_value() -> ProjectParamValue {
+        Angle::zero().to_param_value()
+    }
+    fn to_param_value(&self) -> ProjectParamValue {
+        ProjectParamValue::Angle {
+            rad: self.to_rad(),
+            unit: AngleUnit::default(),
+        }
+    }
+    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
+        match value {
+            ProjectParamValue::Angle { rad, .. } => Ok(Angle::from_rad(*rad)),
+            other => Err(param_type_mismatch("angle", other)),
         }
     }
 }

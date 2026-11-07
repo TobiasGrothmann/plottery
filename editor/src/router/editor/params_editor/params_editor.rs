@@ -12,6 +12,7 @@ use tokio::sync::Mutex;
 use crate::router::editor::{
     console_messages::ConsoleMessages,
     params_editor::{
+        angle_field::AngleField,
         bool_field::BoolField,
         curve_2d_field::Curve2DField,
         enum_field::EnumField,
@@ -292,6 +293,11 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, props: &ParamsEdito
         ProjectParamValue::RangeF32 { .. } | ProjectParamValue::RangeI32 { .. } => {
             rsx! {
                 RangeField { key: "{key}", ..LeafProps::new(param, path, props) }
+            }
+        }
+        ProjectParamValue::Angle { .. } => {
+            rsx! {
+                AngleField { key: "{key}", ..LeafProps::new(param, path, props) }
             }
         }
         ProjectParamValue::Struct(_)
