@@ -11,6 +11,17 @@
   gap: 4px;
   min-width: 0;
 }
+.crumb-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+.crumb-link:hover {
+  color: var(--fg-0);
+  text-decoration: underline;
+}
 
 .toggle-box {
   height: 32px;

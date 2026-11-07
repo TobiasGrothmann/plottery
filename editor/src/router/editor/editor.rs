@@ -39,7 +39,11 @@ use plottery_project::{
 use plottery_server_lib::{
     estimation::estimate_plot_layer_duration, plot_setting::PlotSettings, task::send_task,
 };
-use std::{sync::Arc, time::Duration};
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+    time::Duration,
+};
 use tokio::{sync::Mutex, task::JoinHandle};
 
 fn is_gitkraken_installed() -> bool {
@@ -104,21 +108,21 @@ fn run_status(state: &RunningState) -> (Tone, &'static str) {
     }
 }
 
-fn parent_crumb(dir: &std::path::Path) -> String {
-    let parents: Vec<String> = dir
-        .parent()
-        .into_iter()
-        .flat_map(|parent| parent.components())
-        .filter_map(|component| match component {
-            std::path::Component::Normal(name) => Some(name.to_string_lossy().to_string()),
-            _ => None,
+/// The last two parent folders of `dir`, outermost first, with their paths.
+fn parent_crumbs(dir: &Path) -> Vec<(String, PathBuf)> {
+    let mut crumbs: Vec<(String, PathBuf)> = dir
+        .ancestors()
+        .skip(1)
+        .filter_map(|path| {
+            Some((
+                path.file_name()?.to_string_lossy().to_string(),
+                path.to_path_buf(),
+            ))
         })
+        .take(2)
         .collect();
-    parents
-        .iter()
-        .skip(parents.len().saturating_sub(2))
-        .map(|name| format!("{name} / "))
-        .collect()
+    crumbs.reverse();
+    crumbs
 }
 
 #[derive(Debug, Clone)]
@@ -475,7 +479,7 @@ pub fn Editor(project_path: Vec<String>) -> Element {
     let status_detail = last_run().filter(|_| matches!(state_now, RunningState::Idle));
     let status_title = Some(state_now.get_msg()).filter(|msg| !msg.is_empty());
     let busy = state_now.is_busy();
-    let crumb = parent_crumb(&project().dir);
+    let crumbs = parent_crumbs(&project().dir);
     let param_count = project_params.read().list.len();
 
     let mut show_plot_settings = use_signal(|| false);
@@ -566,7 +570,20 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                         },
                     }
                     div { class: "title-block", title: "{project().dir.to_string_lossy()}",
-                        span { class: "crumb", "{crumb}" }
+                        for (name, path) in crumbs {
+                            button {
+                                r#type: "button",
+                                class: "crumb crumb-link",
+                                title: "Open {path.to_string_lossy()}",
+                                onclick: move |_| {
+                                    if let Err(err) = open::that(&path) {
+                                        tracing::error!("Failed to open {:?}: {:?}", path, err);
+                                    }
+                                },
+                                "{name}"
+                            }
+                            span { class: "crumb", "/" }
+                        }
                         h1 { "{project().config.name}" }
                     }
                     div { class: "vsep" }
