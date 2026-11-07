@@ -53,6 +53,10 @@
   align-items: flex-start;
   gap: 6px;
 }
+.vec-item + .vec-item {
+  border-top: 1px solid var(--line);
+  padding-top: 6px;
+}
 .vec-index {
   width: 16px;
   flex: none;
