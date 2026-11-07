@@ -42,7 +42,7 @@ pub struct ParamsEditorProps {
 }
 
 /// Props shared by all leaf widgets. `param` already has `Optional` unwrapped, `path` has not.
-#[derive(PartialEq, Props, Clone)]
+#[derive(Props, Clone)]
 pub struct LeafProps {
     pub param: ProjectParam,
     pub path: Vec<String>,
@@ -52,6 +52,21 @@ pub struct LeafProps {
     pub running_state: SyncSignal<RunningState>,
     pub console: SyncSignal<ConsoleMessages>,
     pub release: bool,
+}
+
+/// `ProjectParam` only compares its schema, so compare the value too or Dioxus will not re-render.
+impl PartialEq for LeafProps {
+    fn eq(&self, other: &Self) -> bool {
+        self.param.name == other.param.name
+            && self.param.value == other.param.value
+            && self.path == other.path
+            && self.project_dir == other.project_dir
+            && self.project_params == other.project_params
+            && self.project_runner == other.project_runner
+            && self.running_state == other.running_state
+            && self.console == other.console
+            && self.release == other.release
+    }
 }
 
 impl LeafProps {

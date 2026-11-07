@@ -13,7 +13,7 @@ use crate::router::editor::{
     running_state::RunningState,
 };
 
-#[derive(PartialEq, Props, Clone)]
+#[derive(Props, Clone)]
 pub struct NumberFieldProps {
     param: ProjectParam,
     path: Vec<String>,
@@ -22,6 +22,20 @@ pub struct NumberFieldProps {
     running_state: SyncSignal<RunningState>,
     console: SyncSignal<ConsoleMessages>,
     release: bool,
+}
+
+/// `ProjectParam` only compares its schema, so compare the value too or Dioxus will not re-render.
+impl PartialEq for NumberFieldProps {
+    fn eq(&self, other: &Self) -> bool {
+        self.param.name == other.param.name
+            && self.param.value == other.param.value
+            && self.path == other.path
+            && self.project_params == other.project_params
+            && self.project_runner == other.project_runner
+            && self.running_state == other.running_state
+            && self.console == other.console
+            && self.release == other.release
+    }
 }
 
 #[component]

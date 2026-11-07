@@ -19,7 +19,7 @@ use crate::router::editor::{
 // Margin is constant, dimensions are detected from CSS
 const MARGIN: f64 = 10.0;
 
-#[derive(PartialEq, Props, Clone)]
+#[derive(Props, Clone)]
 pub struct Curve2DNormProps {
     param: ProjectParam,
     path: Vec<String>,
@@ -28,6 +28,20 @@ pub struct Curve2DNormProps {
     running_state: SyncSignal<RunningState>,
     console: SyncSignal<ConsoleMessages>,
     release: bool,
+}
+
+/// `ProjectParam` only compares its schema, so compare the value too or Dioxus will not re-render.
+impl PartialEq for Curve2DNormProps {
+    fn eq(&self, other: &Self) -> bool {
+        self.param.name == other.param.name
+            && self.param.value == other.param.value
+            && self.path == other.path
+            && self.project_params == other.project_params
+            && self.project_runner == other.project_runner
+            && self.running_state == other.running_state
+            && self.console == other.console
+            && self.release == other.release
+    }
 }
 
 #[component]

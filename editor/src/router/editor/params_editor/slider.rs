@@ -18,7 +18,7 @@ use crate::router::editor::{
 const THUMB_WIDTH_PX: f64 = 40.0;
 const ALT_SPEED_FACTOR: f64 = 0.25;
 
-#[derive(PartialEq, Props, Clone)]
+#[derive(Props, Clone)]
 pub struct EditorSliderProps {
     param: ProjectParam,
     path: Vec<String>,
@@ -27,6 +27,20 @@ pub struct EditorSliderProps {
     running_state: SyncSignal<RunningState>,
     console: SyncSignal<ConsoleMessages>,
     release: bool,
+}
+
+/// `ProjectParam` only compares its schema, so compare the value too or Dioxus will not re-render.
+impl PartialEq for EditorSliderProps {
+    fn eq(&self, other: &Self) -> bool {
+        self.param.name == other.param.name
+            && self.param.value == other.param.value
+            && self.path == other.path
+            && self.project_params == other.project_params
+            && self.project_runner == other.project_runner
+            && self.running_state == other.running_state
+            && self.console == other.console
+            && self.release == other.release
+    }
 }
 
 #[derive(Clone, Copy)]
