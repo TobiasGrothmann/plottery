@@ -41,6 +41,13 @@
 .curve-handle {
   fill: var(--accent);
   cursor: pointer;
+  /* Invisible stroke widens the hit area to about 9px around the dot. */
+  stroke: transparent;
+  stroke-width: 10;
+  pointer-events: all;
+}
+.curve-handle:hover {
+  fill: var(--accent-hover);
 }
 
 .curve_drag_overlay {
