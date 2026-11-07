@@ -48,17 +48,20 @@ pub fn NoiseField(props: LeafProps) -> Element {
         }
         div { class: "sub",
             span { class: "sublabel", "frequency" }
-            div { class: "hrow",
-                NumberInput {
-                    aria_label: "Frequency",
-                    value: noise.frequency,
-                    oncommit: move |value: f32| edit_noise(
-                        &frequency_props,
-                        |noise| {
-                            noise.frequency = value.max(0.0);
-                        },
-                    ),
-                }
+            NumberInput {
+                aria_label: "Frequency",
+                value: noise.frequency,
+                oncommit: move |value: f32| edit_noise(
+                    &frequency_props,
+                    |noise| {
+                        noise.frequency = value.max(0.0);
+                    },
+                ),
+            }
+        }
+        div { class: "sub",
+            span { class: "sublabel", "scale" }
+            div {
                 Segmented {
                     options: vec!["per cm".to_string(), "per paper".to_string()],
                     selected: Some(scale_index),
