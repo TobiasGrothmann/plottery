@@ -22,6 +22,7 @@ use crate::router::editor::{
         range_field::RangeField,
         slider::Slider,
         string_field::StringField,
+        v2_field::V2Field,
     },
     project_runner::ProjectRunner,
     running_state::RunningState,
@@ -298,6 +299,11 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, props: &ParamsEdito
         ProjectParamValue::Angle { .. } => {
             rsx! {
                 AngleField { key: "{key}", ..LeafProps::new(param, path, props) }
+            }
+        }
+        ProjectParamValue::V2(_) => {
+            rsx! {
+                V2Field { key: "{key}", ..LeafProps::new(param, path, props) }
             }
         }
         ProjectParamValue::Struct(_)

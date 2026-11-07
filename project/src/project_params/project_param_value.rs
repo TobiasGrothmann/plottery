@@ -1,5 +1,5 @@
 use anyhow::Result;
-use plottery_lib::Paper;
+use plottery_lib::{Paper, V2};
 
 use super::angle_unit::AngleUnit;
 use serde::{Deserialize, Serialize};
@@ -48,6 +48,7 @@ pub enum ProjectParamValue {
         rad: f32,
         unit: AngleUnit,
     },
+    V2(V2),
 }
 
 impl ProjectParamValue {
@@ -133,6 +134,7 @@ impl ProjectParamValue {
             ProjectParamValue::RangeF32 { .. } => "range<f32>".to_string(),
             ProjectParamValue::RangeI32 { .. } => "range<i32>".to_string(),
             ProjectParamValue::Angle { .. } => "angle".to_string(),
+            ProjectParamValue::V2(_) => "v2".to_string(),
         }
     }
 
@@ -168,6 +170,7 @@ impl ProjectParamValue {
                 unit.from_angle(plottery_lib::Angle::from_rad(*rad)),
                 unit.short_name()
             ),
+            ProjectParamValue::V2(v) => format!("({}, {})", v.x, v.y),
         }
     }
 }

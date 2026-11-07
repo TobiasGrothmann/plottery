@@ -9,4 +9,5 @@ pub mod params_editor;
 pub mod range_field;
 pub mod slider;
 pub mod string_field;
+pub mod v2_field;
 pub mod widgets;

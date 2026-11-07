@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::*;
-    use plottery_lib::{Angle, Margin, Paper, Range};
+    use plottery_lib::{Angle, Margin, Paper, Range, V2};
 
     #[derive(PlotteryEnum, Debug, Clone, Copy, PartialEq)]
     enum Mode {
@@ -45,6 +45,8 @@ mod tests {
         count: Range<i32>,
         #[value(Angle::from_degrees(45.0))]
         rotation: Angle,
+        #[value(V2::new(1.0, 2.0))]
+        center: V2,
     }
 
     #[test]
@@ -142,6 +144,7 @@ mod tests {
             radius: Range::new(1.0, 9.0),
             count: Range::new(3, 8),
             rotation: Angle::from_rotations(0.75),
+            center: V2::new(-3.0, 4.5),
         };
 
         let round_tripped = Params::new_from_list(params.to_params_list());
@@ -162,6 +165,7 @@ mod tests {
         assert_eq!(params.radius, Range::new(2.0, 10.0));
         assert_eq!(params.count, Range::new(0, 1));
         assert_eq!(params.rotation, Angle::from_degrees(45.0));
+        assert_eq!(params.center, V2::new(1.0, 2.0));
     }
 
     #[test]

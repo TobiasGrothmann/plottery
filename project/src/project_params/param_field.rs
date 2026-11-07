@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 pub use anyhow::Error as ParamFieldError;
-use plottery_lib::{Angle, Paper, Range};
+use plottery_lib::{Angle, Paper, Range, V2};
 
 use super::angle_unit::AngleUnit;
 
@@ -220,6 +220,21 @@ impl ParamField for Angle {
         match value {
             ProjectParamValue::Angle { rad, .. } => Ok(Angle::from_rad(*rad)),
             other => Err(param_type_mismatch("angle", other)),
+        }
+    }
+}
+
+impl ParamField for V2 {
+    fn default_param_value() -> ProjectParamValue {
+        ProjectParamValue::V2(V2::zero())
+    }
+    fn to_param_value(&self) -> ProjectParamValue {
+        ProjectParamValue::V2(*self)
+    }
+    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
+        match value {
+            ProjectParamValue::V2(v) => Ok(*v),
+            other => Err(param_type_mismatch("v2", other)),
         }
     }
 }
