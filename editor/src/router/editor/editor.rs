@@ -532,6 +532,7 @@ pub fn Editor(project_path: Vec<String>) -> Element {
             div { class: "plot_and_params",
                 div { class: "params",
                     ParamsEditor {
+                        project_dir: project().get_dir(),
                         project_params,
                         project_runner,
                         running_state,

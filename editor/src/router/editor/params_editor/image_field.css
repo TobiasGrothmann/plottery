@@ -1,0 +1,50 @@
+.ImageField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-0);
+}
+
+.image_row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--gap-0);
+  min-width: 0;
+}
+
+.image_row .Dropdown {
+  flex: 1;
+  min-width: 0;
+}
+
+.image_button {
+  min-height: 0;
+  padding: var(--gap-small) var(--gap-0);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.image_downscale {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-small);
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.image_name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.image_missing {
+  color: var(--col-err);
+}
+
+.image_recent_label {
+  font-size: 14px;
+  color: var(--col-fg-2);
+}

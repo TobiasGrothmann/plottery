@@ -320,7 +320,7 @@ impl Project {
             "true",
         ];
         Ok((
-            run_project_executable_async(&bin_path, &arguments, Some(params)).await?,
+            run_project_executable_async(&bin_path, &arguments, Some(params), &self.dir).await?,
             temp_file,
         ))
     }
@@ -345,7 +345,7 @@ impl Project {
             )));
         }
         let arguments = vec!["params"];
-        Ok(run_project_executable_async(&bin_path, &arguments, None).await?)
+        Ok(run_project_executable_async(&bin_path, &arguments, None, &self.dir).await?)
     }
 
     pub fn write_svg(

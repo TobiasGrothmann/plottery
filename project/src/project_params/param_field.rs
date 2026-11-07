@@ -7,6 +7,7 @@ use super::angle_unit::AngleUnit;
 
 use super::curve_2d::Curve2D;
 use super::curve_2d_norm::Curve2DNorm;
+use super::image_path::{ImagePath, ProjectParamImage};
 use super::project_param::ProjectParam;
 use super::project_param_optional::ProjectParamOptional;
 use super::project_param_value::ProjectParamValue;
@@ -251,6 +252,23 @@ impl ParamField for Seed {
         match value {
             ProjectParamValue::Seed(seed) => Ok(Seed::new(seed.current)),
             other => Err(param_type_mismatch("seed", other)),
+        }
+    }
+}
+
+impl ParamField for ImagePath {
+    fn default_param_value() -> ProjectParamValue {
+        ProjectParamValue::Image(ProjectParamImage::default())
+    }
+    fn to_param_value(&self) -> ProjectParamValue {
+        ProjectParamValue::Image(ProjectParamImage::new(self.path.clone()))
+    }
+    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
+        match value {
+            ProjectParamValue::Image(image) => Ok(ImagePath {
+                path: image.path.clone(),
+            }),
+            other => Err(param_type_mismatch("image", other)),
         }
     }
 }

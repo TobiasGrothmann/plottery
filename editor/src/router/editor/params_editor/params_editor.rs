@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use dioxus::prelude::*;
 use dioxus_logger::tracing;
@@ -16,6 +16,7 @@ use crate::router::editor::{
         bool_field::BoolField,
         curve_2d_field::Curve2DField,
         enum_field::EnumField,
+        image_field::ImageField,
         number_field::NumberField,
         paper_field::PaperField,
         param_tree::{get_param_mut_by_path, get_param_value_mut_by_path, leaf_value_mut},
@@ -31,6 +32,7 @@ use crate::router::editor::{
 
 #[derive(PartialEq, Props, Clone)]
 pub struct ParamsEditorProps {
+    project_dir: PathBuf,
     project_params: SyncSignal<ProjectParamsListWrapper>,
     project_runner: SyncSignal<Arc<Mutex<ProjectRunner>>>,
     running_state: SyncSignal<RunningState>,
@@ -43,6 +45,7 @@ pub struct ParamsEditorProps {
 pub struct LeafProps {
     pub param: ProjectParam,
     pub path: Vec<String>,
+    pub project_dir: PathBuf,
     pub project_params: SyncSignal<ProjectParamsListWrapper>,
     pub project_runner: SyncSignal<Arc<Mutex<ProjectRunner>>>,
     pub running_state: SyncSignal<RunningState>,
@@ -55,6 +58,7 @@ impl LeafProps {
         Self {
             param,
             path,
+            project_dir: props.project_dir.clone(),
             project_params: props.project_params,
             project_runner: props.project_runner,
             running_state: props.running_state,
@@ -310,6 +314,11 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, props: &ParamsEdito
         ProjectParamValue::Seed(_) => {
             rsx! {
                 SeedField { key: "{key}", ..LeafProps::new(param, path, props) }
+            }
+        }
+        ProjectParamValue::Image(_) => {
+            rsx! {
+                ImageField { key: "{key}", ..LeafProps::new(param, path, props) }
             }
         }
         ProjectParamValue::Struct(_)

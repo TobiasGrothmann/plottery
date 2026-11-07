@@ -49,6 +49,7 @@ mod tests {
         center: V2,
         #[value(Seed::new(7))]
         seed: Seed,
+        image: ImagePath,
     }
 
     #[test]
@@ -148,6 +149,7 @@ mod tests {
             rotation: Angle::from_rotations(0.75),
             center: V2::new(-3.0, 4.5),
             seed: Seed::new(-1),
+            image: ImagePath::new("resources/images/a.png"),
         };
 
         let round_tripped = Params::new_from_list(params.to_params_list());
@@ -170,6 +172,7 @@ mod tests {
         assert_eq!(params.rotation, Angle::from_degrees(45.0));
         assert_eq!(params.center, V2::new(1.0, 2.0));
         assert_eq!(params.seed, Seed::new(7));
+        assert_eq!(params.image, ImagePath::none());
     }
 
     #[test]

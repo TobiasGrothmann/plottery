@@ -2,6 +2,7 @@ use anyhow::Result;
 use plottery_lib::{Paper, V2};
 
 use super::angle_unit::AngleUnit;
+use super::image_path::ProjectParamImage;
 use super::seed::ProjectParamSeed;
 use serde::{Deserialize, Serialize};
 
@@ -51,6 +52,7 @@ pub enum ProjectParamValue {
     },
     V2(V2),
     Seed(ProjectParamSeed),
+    Image(ProjectParamImage),
 }
 
 impl ProjectParamValue {
@@ -138,6 +140,7 @@ impl ProjectParamValue {
             ProjectParamValue::Angle { .. } => "angle".to_string(),
             ProjectParamValue::V2(_) => "v2".to_string(),
             ProjectParamValue::Seed(_) => "seed".to_string(),
+            ProjectParamValue::Image(_) => "image".to_string(),
         }
     }
 
@@ -175,6 +178,9 @@ impl ProjectParamValue {
             ),
             ProjectParamValue::V2(v) => format!("({}, {})", v.x, v.y),
             ProjectParamValue::Seed(seed) => seed.current.to_string(),
+            ProjectParamValue::Image(image) => {
+                image.file_name().unwrap_or_else(|| "none".to_string())
+            }
         }
     }
 }

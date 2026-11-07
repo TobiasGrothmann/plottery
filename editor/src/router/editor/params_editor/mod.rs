@@ -2,6 +2,7 @@ pub mod angle_field;
 pub mod bool_field;
 pub mod curve_2d_field;
 pub mod enum_field;
+pub mod image_field;
 pub mod number_field;
 pub mod paper_field;
 pub mod param_tree;

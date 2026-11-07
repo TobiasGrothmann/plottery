@@ -5286,6 +5286,7 @@ dependencies = [
  "dioxus-router",
  "dioxus-timer",
  "directories",
+ "image",
  "log",
  "nix",
  "notify",
@@ -5298,6 +5299,7 @@ dependencies = [
  "rfd 0.14.1",
  "serde",
  "serde_json",
+ "tempfile",
  "tokio",
  "which",
 ]
