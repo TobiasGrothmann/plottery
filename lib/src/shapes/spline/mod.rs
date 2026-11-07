@@ -5,6 +5,7 @@ mod builder_test;
 pub mod hobby;
 mod hobby_test;
 pub mod segment;
+pub mod sink;
 #[allow(clippy::module_inception)]
 pub mod spline;
 mod spline_test;
