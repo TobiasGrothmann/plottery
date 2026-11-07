@@ -514,6 +514,14 @@ fn vec_item_count(value: &ProjectParamValue) -> Option<usize> {
     }
 }
 
+fn is_struct(value: &ProjectParamValue) -> bool {
+    match value {
+        ProjectParamValue::Struct(_) => true,
+        ProjectParamValue::Optional(optional) => is_struct(&optional.value),
+        _ => false,
+    }
+}
+
 fn render_named_param(
     param: ProjectParam,
     path: Vec<String>,
@@ -526,6 +534,11 @@ fn render_named_param(
         1 => "1 item".to_string(),
         n => format!("{n} items"),
     });
+    let sub_class = if is_struct(&param.value) {
+        "sub group"
+    } else {
+        "sub"
+    };
     let control = render_value_without_label(param.name, param.value, path, props);
 
     if top_level {
@@ -542,7 +555,7 @@ fn render_named_param(
         }
     } else {
         rsx! {
-            div { class: "sub", key: "{key}",
+            div { class: sub_class, key: "{key}",
                 div { class: "sublabel",
                     "{formatted_name}"
                     if let Some(item_count) = item_count {

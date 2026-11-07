@@ -25,6 +25,13 @@
   overflow-wrap: anywhere;
 }
 
+/* Nested structs get a line above and below so neighbouring structs don't merge. */
+.ParamsEditor .sub.group:not(:first-child),
+.ParamsEditor .sub.group + .sub {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
 .opt-row {
   align-items: flex-start;
 }
