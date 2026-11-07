@@ -3,7 +3,7 @@ resolver = "2"
 members = ["lib", "fonts", "cli", "editor", "project", "server", "server_lib"]
 
 [workspace.package]
-version = "0.11.0"
+version = "0.12.0"
 authors = ["Tobias Grothmann <tobiasgrothmannplotterart@gmail.com>"]
 license = "GPL-3.0"
 repository = "https://github.com/TobiasGrothmann/plottery"

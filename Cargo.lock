@@ -5267,7 +5267,7 @@ checksum = "19f132c84eca552bf34cab8ec81f1c1dcc229b811638f9d283dceabe58c5569e"
 
 [[package]]
 name = "plottery_cli"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "clap",
  "plottery_project",
@@ -5275,7 +5275,7 @@ dependencies = [
 
 [[package]]
 name = "plottery_editor"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -5304,11 +5304,11 @@ dependencies = [
 
 [[package]]
 name = "plottery_fonts"
-version = "0.11.0"
+version = "0.12.0"
 
 [[package]]
 name = "plottery_lib"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "anyhow",
  "bincode",
@@ -5337,7 +5337,7 @@ dependencies = [
 
 [[package]]
 name = "plottery_project"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "anyhow",
  "async-process",
@@ -5364,7 +5364,7 @@ dependencies = [
 
 [[package]]
 name = "plottery_project_macros"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5373,7 +5373,7 @@ dependencies = [
 
 [[package]]
 name = "plottery_server"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "anyhow",
  "libc",
@@ -5386,7 +5386,7 @@ dependencies = [
 
 [[package]]
 name = "plottery_server_lib"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "anyhow",
  "bincode",
