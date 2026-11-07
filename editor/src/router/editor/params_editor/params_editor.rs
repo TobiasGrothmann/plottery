@@ -314,7 +314,7 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, props: &ParamsEdito
                 AngleField { key: "{key}", ..LeafProps::new(param, path, props) }
             }
         }
-        ProjectParamValue::V2(_) => {
+        ProjectParamValue::V2(_) | ProjectParamValue::V2i(_) => {
             rsx! {
                 V2Field { key: "{key}", ..LeafProps::new(param, path, props) }
             }

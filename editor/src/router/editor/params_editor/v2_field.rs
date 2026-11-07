@@ -8,8 +8,10 @@ use crate::router::editor::{
 
 #[component]
 pub fn V2Field(props: LeafProps) -> Element {
-    let ProjectParamValue::V2(v) = props.param.value else {
-        return rsx! { p { "unexpected value type" } };
+    let (x, y, integer) = match props.param.value {
+        ProjectParamValue::V2(v) => (v.x, v.y, false),
+        ProjectParamValue::V2i(v) => (v.x as f32, v.y as f32, true),
+        _ => return rsx! { p { "unexpected value type" } },
     };
     let x_props = props.clone();
     let y_props = props.clone();
@@ -21,16 +23,22 @@ pub fn V2Field(props: LeafProps) -> Element {
         div { class: "V2Field", style: "display: flex; align-items: center; gap: var(--gap-0);",
             span { "x" }
             NumberInput {
-                value: v.x,
-                oncommit: move |x: f32| x_props.edit(|value| {
-                    if let ProjectParamValue::V2(v) = value { v.x = x; }
+                value: x,
+                integer,
+                oncommit: move |x: f32| x_props.edit(|value| match value {
+                    ProjectParamValue::V2(v) => v.x = x,
+                    ProjectParamValue::V2i(v) => v.x = x.round() as i32,
+                    _ => {}
                 }),
             }
             span { "y" }
             NumberInput {
-                value: v.y,
-                oncommit: move |y: f32| y_props.edit(|value| {
-                    if let ProjectParamValue::V2(v) = value { v.y = y; }
+                value: y,
+                integer,
+                oncommit: move |y: f32| y_props.edit(|value| match value {
+                    ProjectParamValue::V2(v) => v.y = y,
+                    ProjectParamValue::V2i(v) => v.y = y.round() as i32,
+                    _ => {}
                 }),
             }
             button {

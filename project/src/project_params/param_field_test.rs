@@ -2,7 +2,7 @@
 mod tests {
     use crate::*;
     use plottery_lib::{
-        Angle, ColorRgb, Margin, NoiseScale, NoiseSettings, NoiseType, Paper, Range, V2,
+        Angle, ColorRgb, Margin, NoiseScale, NoiseSettings, NoiseType, Paper, Range, V2i, V2,
     };
 
     #[derive(PlotteryEnum, Debug, Clone, Copy, PartialEq)]
@@ -56,6 +56,8 @@ mod tests {
         noise: NoiseSettings,
         #[value(ColorRgb::new(1.0, 0.0, 0.0))]
         color: ColorRgb,
+        #[value(V2i::new(4, 6))]
+        cells: V2i,
     }
 
     #[test]
@@ -158,6 +160,7 @@ mod tests {
             image: ImagePath::new("resources/images/a.png"),
             noise: NoiseSettings::new(NoiseType::Simplex, 3.0, 4, NoiseScale::PerPaper),
             color: ColorRgb::new(0.2, 0.4, 0.6),
+            cells: V2i::new(-1, 9),
         };
 
         let round_tripped = Params::new_from_list(params.to_params_list());
@@ -183,6 +186,7 @@ mod tests {
         assert_eq!(params.image, ImagePath::none());
         assert_eq!(params.noise.noise_type, NoiseType::Worley);
         assert_eq!(params.color, ColorRgb::new(1.0, 0.0, 0.0));
+        assert_eq!(params.cells, V2i::new(4, 6));
     }
 
     #[test]

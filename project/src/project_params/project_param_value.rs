@@ -1,5 +1,5 @@
 use anyhow::Result;
-use plottery_lib::{ColorRgb, NoiseSettings, Paper, V2};
+use plottery_lib::{ColorRgb, NoiseSettings, Paper, V2i, V2};
 
 use super::angle_unit::AngleUnit;
 use super::image_path::ProjectParamImage;
@@ -55,6 +55,7 @@ pub enum ProjectParamValue {
     Image(ProjectParamImage),
     Noise(NoiseSettings),
     Color(ColorRgb),
+    V2i(V2i),
 }
 
 impl ProjectParamValue {
@@ -145,6 +146,7 @@ impl ProjectParamValue {
             ProjectParamValue::Image(_) => "image".to_string(),
             ProjectParamValue::Noise(_) => "noise".to_string(),
             ProjectParamValue::Color(_) => "color".to_string(),
+            ProjectParamValue::V2i(_) => "v2i".to_string(),
         }
     }
 
@@ -190,6 +192,7 @@ impl ProjectParamValue {
                 noise.noise_type, noise.frequency, noise.octaves, noise.scale
             ),
             ProjectParamValue::Color(color) => color.hex(),
+            ProjectParamValue::V2i(v) => format!("({}, {})", v.x, v.y),
         }
     }
 }
