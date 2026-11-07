@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::*;
-    use plottery_lib::{Angle, Margin, Paper, Range, V2};
+    use plottery_lib::{Angle, Margin, NoiseScale, NoiseSettings, NoiseType, Paper, Range, V2};
 
     #[derive(PlotteryEnum, Debug, Clone, Copy, PartialEq)]
     enum Mode {
@@ -50,6 +50,8 @@ mod tests {
         #[value(Seed::new(7))]
         seed: Seed,
         image: ImagePath,
+        #[value(NoiseSettings::default().with_type(NoiseType::Worley))]
+        noise: NoiseSettings,
     }
 
     #[test]
@@ -150,6 +152,7 @@ mod tests {
             center: V2::new(-3.0, 4.5),
             seed: Seed::new(-1),
             image: ImagePath::new("resources/images/a.png"),
+            noise: NoiseSettings::new(NoiseType::Simplex, 3.0, 4, NoiseScale::PerPaper),
         };
 
         let round_tripped = Params::new_from_list(params.to_params_list());
@@ -173,6 +176,7 @@ mod tests {
         assert_eq!(params.center, V2::new(1.0, 2.0));
         assert_eq!(params.seed, Seed::new(7));
         assert_eq!(params.image, ImagePath::none());
+        assert_eq!(params.noise.noise_type, NoiseType::Worley);
     }
 
     #[test]

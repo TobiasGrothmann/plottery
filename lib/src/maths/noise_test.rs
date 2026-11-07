@@ -5,7 +5,7 @@ mod test_noise {
     use crate::{
         maths::thread_local::{seed, seed_random},
         perlin_2d, perlin_3d, simplex_2d, simplex_3d, worley_2d, worley_3d, MarchingSquares, Noise,
-        Rect, SampleSettings, V2,
+        NoiseScale, NoiseSettings, Rect, SampleSettings, V2,
     };
 
     #[test]
@@ -92,5 +92,30 @@ mod test_noise {
         let noise1 = noise_3d(0.5, 0.5, 0.5);
         let noise2 = noise_3d(0.47, 0.53, 0.5);
         assert_ne!(noise1, noise2);
+    }
+
+    #[test]
+    fn test_noise_settings_per_paper_divides_frequency() {
+        let size = V2::new(20.0, 40.0);
+        let settings = NoiseSettings::default()
+            .with_frequency(4.0)
+            .with_scale(NoiseScale::PerPaper);
+
+        // explicit seeds: the global RNG is shared with tests running in parallel
+        let per_paper = settings.noise_for(size).seed(7);
+        let absolute = settings.with_frequency(4.0 / 20.0).noise().seed(7);
+        for i in 0..20 {
+            let p = V2::new(i as f32 * 1.3, i as f32 * 0.7);
+            assert_eq!(per_paper.get(p), absolute.get(p));
+        }
+
+        let per_cm = settings
+            .with_scale(NoiseScale::PerCm)
+            .noise_for(size)
+            .seed(7);
+        assert_eq!(
+            per_cm.get(V2::xy(2.0)),
+            settings.noise().seed(7).get(V2::xy(2.0))
+        );
     }
 }

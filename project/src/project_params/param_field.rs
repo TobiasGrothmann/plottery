@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 pub use anyhow::Error as ParamFieldError;
-use plottery_lib::{Angle, Paper, Range, V2};
+use plottery_lib::{Angle, NoiseSettings, Paper, Range, V2};
 
 use super::angle_unit::AngleUnit;
 
@@ -269,6 +269,21 @@ impl ParamField for ImagePath {
                 path: image.path.clone(),
             }),
             other => Err(param_type_mismatch("image", other)),
+        }
+    }
+}
+
+impl ParamField for NoiseSettings {
+    fn default_param_value() -> ProjectParamValue {
+        ProjectParamValue::Noise(Self::default())
+    }
+    fn to_param_value(&self) -> ProjectParamValue {
+        ProjectParamValue::Noise(*self)
+    }
+    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
+        match value {
+            ProjectParamValue::Noise(noise) => Ok(*noise),
+            other => Err(param_type_mismatch("noise", other)),
         }
     }
 }

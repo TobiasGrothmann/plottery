@@ -39,7 +39,9 @@ pub enum Mode {
 }
 ```
 
-Supported field types: `f32`, `i32`, `bool`, `String`, `Paper`, `Curve2D`, `Curve2DNorm`,
+Supported field types: `f32`, `i32`, `bool`, `String`, `Paper`, `Range<f32>`, `Range<i32>`,
+`Angle`, `V2`, `Seed` (call `params.seed.apply()` first), `ImagePath` (`.load()`),
+`NoiseSettings` (`.noise()` or `.noise_for(paper.size())`), `Curve2D`, `Curve2DNorm`,
 enums deriving `PlotteryEnum` (unit variants, one `#[default]`), nested structs deriving
 `PlotteryParams`, and `Option<T>` / `Vec<T>` of those.
 
