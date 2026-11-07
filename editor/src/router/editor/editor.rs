@@ -87,9 +87,10 @@ fn format_estimated_plot_duration(duration: Duration) -> String {
     }
 }
 
-fn run_status(state: &RunningState) -> (Tone, &'static str) {
-    match state {
-        RunningState::Idle => (Tone::Ok, "Up to date"),
+/// Header pill for the run state; nothing while idle.
+fn run_status(state: &RunningState) -> Option<(Tone, &'static str)> {
+    let status = match state {
+        RunningState::Idle => return None,
         RunningState::Preparing { .. }
         | RunningState::StartingBuild { .. }
         | RunningState::Building { .. } => (Tone::Busy, "Compiling…"),
@@ -105,7 +106,8 @@ fn run_status(state: &RunningState) -> (Tone, &'static str) {
         RunningState::BuildKilled { .. }
         | RunningState::GetParamsKilled { .. }
         | RunningState::RunKilled { .. } => (Tone::Warn, "Cancelled"),
-    }
+    };
+    Some(status)
 }
 
 /// Eval script: true while a text field has focus, so single-key shortcuts stay out of the way.
@@ -446,19 +448,6 @@ pub fn Editor(project_path: Vec<String>) -> Element {
     let hot_reload_path_to_watch = project().get_cargo_path().unwrap().join("src");
     let hot_reload_is_enabled = move || hot_reload_watcher.read().is_some();
 
-    let mut last_run = use_signal(|| None::<String>);
-    let mut seen_busy = use_signal(|| false);
-    use_effect(move || {
-        let state = running_state();
-        if state.is_busy() {
-            if !*seen_busy.peek() {
-                seen_busy.set(true);
-            }
-        } else if matches!(state, RunningState::Idle) && *seen_busy.peek() {
-            last_run.set(Some(chrono::Local::now().format("%H:%M").to_string()));
-        }
-    });
-
     let hot_reload_enabled = hot_reload_is_enabled();
     let set_hot_reload = move |enabled: bool| {
         if enabled == hot_reload_is_enabled() {
@@ -482,8 +471,7 @@ pub fn Editor(project_path: Vec<String>) -> Element {
     };
 
     let state_now = running_state();
-    let (status_tone, status_text) = run_status(&state_now);
-    let status_detail = last_run().filter(|_| matches!(state_now, RunningState::Idle));
+    let status = run_status(&state_now);
     let status_title = Some(state_now.get_msg()).filter(|msg| !msg.is_empty());
     let busy = state_now.is_busy();
     // Crumbs inside a watched folder get a path so they can open the browser there.
@@ -697,11 +685,8 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                         checked: hot_reload_enabled,
                         onchange: set_hot_reload,
                     }
-                    StatusPill {
-                        tone: status_tone,
-                        text: status_text.to_string(),
-                        detail: status_detail,
-                        title: status_title,
+                    if let Some((tone, text)) = status {
+                        StatusPill { tone, text, title: status_title }
                     }
                 }
                 div { class: "hgroup end",
