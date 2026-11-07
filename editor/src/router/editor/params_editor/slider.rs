@@ -1,6 +1,6 @@
-use std::sync::Arc;
+use std::{rc::Rc, sync::Arc};
 
-use dioxus::prelude::*;
+use dioxus::{html::input_data::MouseButton, prelude::*};
 use dioxus_logger::tracing;
 use plottery_project::{
     project_param::ProjectParam, project_param_value::ProjectParamValue,
@@ -13,6 +13,10 @@ use crate::router::editor::{
     project_runner::ProjectRunner, running_state::RunningState,
 };
 
+/// Must match `.slider_thumb` width in slider.css.
+const THUMB_WIDTH_PX: f64 = 40.0;
+const ALT_SPEED_FACTOR: f64 = 0.25;
+
 #[derive(PartialEq, Props, Clone)]
 pub struct EditorSliderProps {
     param: ProjectParam,
@@ -24,63 +28,115 @@ pub struct EditorSliderProps {
     release: bool,
 }
 
+#[derive(Clone, Copy)]
+struct Ranged {
+    val: f32,
+    min: f32,
+    max: f32,
+    is_int: bool,
+}
+
+impl Ranged {
+    fn from_value(value: &ProjectParamValue) -> Self {
+        match value {
+            ProjectParamValue::FloatRanged { val, min, max } => Ranged {
+                val: *val,
+                min: *min,
+                max: *max,
+                is_int: false,
+            },
+            ProjectParamValue::IntRanged { val, min, max } => Ranged {
+                val: *val as f32,
+                min: *min as f32,
+                max: *max as f32,
+                is_int: true,
+            },
+            ProjectParamValue::Optional(optional) => Self::from_value(optional.value.as_ref()),
+            _ => panic!("Unexpected parameter value type in slider"),
+        }
+    }
+
+    fn snap(&self, val: f32) -> f32 {
+        let val = val.clamp(self.min, self.max);
+        if self.is_int {
+            val.round()
+        } else {
+            val
+        }
+    }
+
+    fn fraction(&self, val: f32) -> f32 {
+        if self.max > self.min {
+            ((val - self.min) / (self.max - self.min)).clamp(0.0, 1.0)
+        } else {
+            0.0
+        }
+    }
+}
+
+fn set_ranged_value(param_value: &mut ProjectParamValue, new_val: f32) {
+    match param_value {
+        ProjectParamValue::FloatRanged { val, min, max } => *val = new_val.clamp(*min, *max),
+        ProjectParamValue::IntRanged { val, min, max } => {
+            *val = (new_val.round() as i32).clamp(*min, *max)
+        }
+        ProjectParamValue::Optional(optional) => set_ranged_value(optional.value.as_mut(), new_val),
+        _ => panic!("Unexpected parameter value type in slider"),
+    }
+}
+
+#[derive(Clone, Copy)]
+struct DragState {
+    last_x: f64,
+    /// Pixels the thumb travels over the full value range.
+    px_range: f64,
+}
+
 #[component]
 pub fn Slider(mut props: EditorSliderProps) -> Element {
-    let slider_step = match &props.param.value {
-        ProjectParamValue::FloatRanged { val: _, min, max } => {
-            ((max - min) / 100_000_f32).to_string()
-        }
-        ProjectParamValue::IntRanged {
-            val: _,
-            min: _,
-            max: _,
-        } => "1".to_string(),
-        ProjectParamValue::Optional(optional) => match optional.value.as_ref() {
-            ProjectParamValue::FloatRanged { val: _, min, max } => {
-                ((max - min) / 100_000_f32).to_string()
-            }
-            ProjectParamValue::IntRanged {
-                val: _,
-                min: _,
-                max: _,
-            } => "1".to_string(),
-            _ => panic!("Unexpected Error"),
-        },
-        _ => panic!("Unexpected Error"),
-    };
+    let ranged = Ranged::from_value(&props.param.value);
 
-    let mut slider_value = use_signal(|| match &props.param.value {
-        ProjectParamValue::FloatRanged {
-            val,
-            min: _,
-            max: _,
-        } => *val,
-        ProjectParamValue::IntRanged {
-            val,
-            min: _,
-            max: _,
-        } => *val as f32,
-        ProjectParamValue::Optional(optional) => match optional.value.as_ref() {
-            ProjectParamValue::FloatRanged {
-                val,
-                min: _,
-                max: _,
-            } => *val,
-            ProjectParamValue::IntRanged {
-                val,
-                min: _,
-                max: _,
-            } => *val as f32,
-            _ => panic!("Unexpected Error"),
-        },
-        _ => panic!("Unexpected Error"),
-    });
+    let mut slider_value = use_signal(|| ranged.val);
+    let mut drag = use_signal(|| None::<DragState>);
+    let mut track = use_signal(|| None::<Rc<MountedData>>);
+
+    let shown_value = use_memo(move || ranged.snap(slider_value()));
     let slider_value_string = use_memo(move || {
-        format!("{:.5}", slider_value.read())
+        format!("{:.5}", shown_value())
             .trim_end_matches('0')
             .trim_end_matches('.')
             .to_string()
     });
+    let thumb_fraction = ranged.fraction(shown_value());
+
+    let commit = use_callback(move |_: ()| {
+        let mut new_params = props.project_params.read().clone();
+        if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, &props.path) {
+            set_ranged_value(param_value, shown_value());
+        } else {
+            tracing::error!("Param path not found: {:?}", props.path);
+            return;
+        }
+        props.project_params.set(new_params);
+        match props.project_runner.read().try_lock() {
+            Ok(mut runner) => {
+                runner.trigger_run_project(props.release, props.running_state, props.console)
+            }
+            Err(e) => {
+                tracing::error!("Error preparing to run: {:?}", e);
+                props.running_state.set(RunningState::RunFailed {
+                    msg: format!("Error preparing to run: {}", e),
+                });
+            }
+        }
+    });
+
+    let mut end_drag = move || {
+        if drag().is_some() {
+            drag.set(None);
+            commit.call(());
+        }
+    };
 
     rsx! {
         style { { include_str!("slider.css") } }
@@ -88,77 +144,45 @@ pub fn Slider(mut props: EditorSliderProps) -> Element {
             p { class: "slider_value",
                 "{slider_value_string}"
             }
-            input {
-                class: "slider",
-                name: "{props.param.name.clone()}",
-                required: true,
-                r#type: "range",
-                step: slider_step,
-                min: match &props.param.value {
-                    ProjectParamValue::FloatRanged { val: _, min, max: _ } => min.to_string(),
-                    ProjectParamValue::IntRanged { val: _, min, max: _ } => min.to_string(),
-                    ProjectParamValue::Optional(optional) => match optional.value.as_ref() {
-                        ProjectParamValue::FloatRanged { val: _, min, max: _ } => min.to_string(),
-                        ProjectParamValue::IntRanged { val: _, min, max: _ } => min.to_string(),
-                        _ => panic!("Unexpected Error"),
-                    },
-                    _ => panic!("Unexpected Error"),
-                },
-                max: match &props.param.value {
-                    ProjectParamValue::FloatRanged { val: _, min: _, max } => max.to_string(),
-                    ProjectParamValue::IntRanged { val: _, min: _, max } => max.to_string(),
-                    ProjectParamValue::Optional(optional) => match optional.value.as_ref() {
-                        ProjectParamValue::FloatRanged { val: _, min: _, max } => max.to_string(),
-                        ProjectParamValue::IntRanged { val: _, min: _, max } => max.to_string(),
-                        _ => panic!("Unexpected Error"),
-                    },
-                    _ => panic!("Unexpected Error"),
-                },
-                value: slider_value.to_string(),
-                oninput: move |event| {
-                    let new_value = event.value().parse::<f32>().unwrap();
-                    slider_value.set(new_value);
-                },
-                onchange: move |event| {
-                    let mut new_params = props.project_params.read().clone();
-                    if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, &props.path) {
-                        let new_val = event
-                            .value()
-                            .parse::<f32>()
-                            .expect("Failed to parse slider value");
-                        match param_value {
-                            ProjectParamValue::FloatRanged { val, min, max } => {
-                                *val = new_val.clamp(*min, *max)
-                            }
-                            ProjectParamValue::IntRanged { val, min, max } => {
-                                *val = (new_val.round() as i32).clamp(*min, *max)
-                            }
-                            ProjectParamValue::Optional(optional) => {
-                                match optional.value.as_mut() {
-                                    ProjectParamValue::FloatRanged { val, min, max } => {
-                                        *val = new_val.clamp(*min, *max)
-                                    }
-                                    ProjectParamValue::IntRanged { val, min, max } => {
-                                        *val = (new_val.round() as i32).clamp(*min, *max)
-                                    }
-                                    _ => panic!("Unexpected parameter value type in slider"),
-                                }
-                            }
-                            _ => panic!("Unexpected parameter value type in slider"),
-                        }
-                    } else {
-                        tracing::error!("Param path not found: {:?}", props.path);
+            div {
+                class: "slider_track",
+                onmounted: move |event| track.set(Some(event.data())),
+                onmousedown: move |event| {
+                    if event.trigger_button() != Some(MouseButton::Primary) {
                         return;
                     }
-                    props.project_params.set(new_params);
-                    match props.project_runner.read().try_lock() {
-                        Ok(mut runner) => runner.trigger_run_project(props.release, props.running_state, props.console),
-                        Err(e) => {
-                            tracing::error!("Error preparing to run: {:?}", e);
-                            props.running_state.set(RunningState::RunFailed { msg: format!("Error preparing to run: {}", e) });
-                        },
-                    }
+                    event.prevent_default();
+                    let Some(track) = track() else { return };
+                    let last_x = event.client_coordinates().x;
+                    spawn(async move {
+                        if let Ok(rect) = track.get_client_rect().await {
+                            let px_range = (rect.size.width - THUMB_WIDTH_PX).max(1.0);
+                            drag.set(Some(DragState { last_x, px_range }));
+                        }
+                    });
+                },
+                div {
+                    class: "slider_thumb",
+                    style: "left: calc({thumb_fraction} * (100% - {THUMB_WIDTH_PX}px));",
                 }
+            }
+        }
+        if let Some(state) = drag() {
+            div {
+                class: "slider_drag_overlay",
+                onmousemove: move |event| {
+                    if !event.held_buttons().contains(MouseButton::Primary) {
+                        end_drag();
+                        return;
+                    }
+                    let x = event.client_coordinates().x;
+                    let speed = if event.modifiers().alt() { ALT_SPEED_FACTOR } else { 1.0 };
+                    let delta = (x - state.last_x) * speed / state.px_range
+                        * (ranged.max - ranged.min) as f64;
+                    slider_value.set((slider_value() + delta as f32).clamp(ranged.min, ranged.max));
+                    drag.set(Some(DragState { last_x: x, ..state }));
+                },
+                onmouseup: move |_| end_drag(),
             }
         }
     }
