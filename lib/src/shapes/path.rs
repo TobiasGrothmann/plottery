@@ -11,7 +11,7 @@ use std::{
 
 use crate::{
     geometry::TransformMatrix,
-    traits::{ClosestPoint, Normalize, Scale, Scale2D, Transform, Translate},
+    traits::{ClosestPoint, Fit, Scale, Scale2D, Transform, Translate},
     Angle, BoundingBox, Circle, Containment, Line, LineIntersection, Mirror, Plottable,
     PointLineRelation, Rect, Rotate, Rotate90, SampleSettings, Shape, V2,
 };
@@ -748,7 +748,7 @@ impl Scale2D for Path {
     }
 }
 
-impl Normalize for Path {}
+impl Fit for Path {}
 
 impl BoundingBox for Path {
     fn bounding_box(&self) -> Option<Rect> {

@@ -8,6 +8,7 @@ license.workspace = true
 categories.workspace = true
 repository.workspace = true
 keywords.workspace = true
+exclude = ["samples/**/*.svg"]
 
 [dependencies]
 plottery_fonts = { path = "../fonts", version = "^0.12.0" }

@@ -3,7 +3,7 @@ use std::path::Path as FilePath;
 use ::image::RgbImage;
 use anyhow::{Context, Result};
 
-use crate::{Alignment, ColorRgb, Histogram, Normalize, Rect, V2i, V2};
+use crate::{Alignment, ColorRgb, Fit, Histogram, Rect, V2i, V2};
 
 /// What [`Image::color_at`] returns outside of the image bounds.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
@@ -61,7 +61,7 @@ impl Image {
     pub fn fit_inside(mut self, target: Rect, alignment: Alignment) -> Self {
         self.bounds = self
             .bounds
-            .normalize_inside(target, alignment)
+            .fit_inside(target, alignment)
             .expect("target rect must have a size");
         self
     }
@@ -71,7 +71,7 @@ impl Image {
     pub fn fit_around(mut self, target: Rect, alignment: Alignment) -> Self {
         self.bounds = self
             .bounds
-            .normalize_around(target, alignment)
+            .fit_around(target, alignment)
             .expect("target rect must have a size");
         self
     }

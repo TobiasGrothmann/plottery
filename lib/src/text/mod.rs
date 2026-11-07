@@ -1,3 +1,5 @@
+#![doc = include_str!("../../samples/text/README.md")]
+
 pub mod bundled;
 mod bundled_test;
 pub mod font;

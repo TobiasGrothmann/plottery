@@ -7,9 +7,9 @@ mod test_layer {
     use svg::parser::Event;
 
     use crate::{
-        traits::{normalize::Alignment, Translate},
-        Angle, BoundingBox, Circle, FloatInterpolation, Layer, Normalize, Path, Plottable, Rect,
-        Rotate, SampleSettings, Shape, ToAngle, LARGE_EPSILON, V2,
+        traits::{fit::Alignment, Translate},
+        Angle, BoundingBox, Circle, Fit, FloatInterpolation, Layer, Path, Plottable, Rect, Rotate,
+        SampleSettings, Shape, ToAngle, LARGE_EPSILON, V2,
     };
 
     #[test]
@@ -619,7 +619,7 @@ mod test_layer {
         )]));
 
         let l_normalized = l
-            .normalize_inside(
+            .fit_inside(
                 Rect::new(V2::new(0.5, 0.5), V2::new(1.0, 1.0)),
                 Alignment::Center,
             )

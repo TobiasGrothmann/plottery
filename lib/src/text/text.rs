@@ -440,7 +440,7 @@ impl Text {
             .collect())
     }
 
-    /// A flat layer named `"text"` with one path per contour; see [`Text::layout`] for lines and glyphs.
+    /// A flat layer named `"text"` with one path per contour; see [`Text::layout`] for lines and glyphs and the [`text`](crate::text) module for examples.
     pub fn to_layer(&self, sample_settings: SampleSettings) -> Result<Layer> {
         Ok(self.layout()?.to_layer(sample_settings))
     }

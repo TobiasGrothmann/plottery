@@ -1,8 +1,8 @@
 pub mod bounding_box;
 pub mod closest_point;
+pub mod fit;
+mod fit_test;
 pub mod mirror;
-pub mod normalize;
-mod normalize_test;
 pub mod plottable;
 mod plottable_test;
 pub mod rotate;
@@ -14,8 +14,8 @@ pub mod translate;
 
 pub use bounding_box::*;
 pub use closest_point::*;
+pub use fit::*;
 pub use mirror::*;
-pub use normalize::*;
 pub use plottable::*;
 pub use rotate::*;
 pub use rotate90::*;

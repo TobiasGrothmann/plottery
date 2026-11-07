@@ -1,5 +1,5 @@
 use crate::{
-    traits::{ClosestPoint, Normalize, Scale, Scale2D, Translate},
+    traits::{ClosestPoint, Fit, Scale, Scale2D, Translate},
     Angle, BoundingBox, Circle, Containment, Line, LineIntersection, Mirror, Path, Plottable,
     PointLineRelation, Rotate, Rotate90, SampleSettings, Shape, LARGE_EPSILON, V2,
 };
@@ -640,7 +640,7 @@ impl Scale2D for Rect {
     }
 }
 
-impl Normalize for Rect {}
+impl Fit for Rect {}
 
 impl Mirror for Rect {
     fn mirror_x(&self) -> Self {
