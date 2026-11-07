@@ -1,3 +1,5 @@
+pub mod bundled;
+mod bundled_test;
 pub mod font;
 pub mod glyph;
 pub mod layout;
@@ -18,4 +20,5 @@ pub use font::*;
 pub use glyph::*;
 pub use layout::*;
 pub use metrics::*;
+pub use plottery_fonts::{BundledFont, Credit, FontKind, Licence};
 pub use text::*;

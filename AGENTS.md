@@ -6,7 +6,8 @@ Generative art engine for pen-plotters written in Rust.
 
 | Crate | Purpose |
 |-------|---------|
-| `lib/` | Core geometry library - shapes, vectors, layers, transformations |
+| `lib/` | Core geometry library - shapes, vectors, layers, transformations, text |
+| `fonts/` | `plottery_fonts`: bundled plotter fonts (data + licences), loaded via `Font::bundled` |
 | `project/` | Project creation/management, `PlotteryParams` derive macro |
 | `cli/` | Command-line tool for creating and running projects |
 | `editor/` | Desktop GUI (Dioxus) for previewing and managing projects |
@@ -24,6 +25,7 @@ See `project/cargo_project_template/` for the generated project template.
 ## Where to Find Things
 
 - **Shapes & geometry:** `lib/src/shapes/`, `lib/src/geometry/`
+- **Text & fonts:** `lib/src/text/` (`Font`, `Text`), font data in `fonts/fonts/`, credits in `fonts/LICENSES/CREDITS.md`
 - **Layer composition:** `lib/src/composition/layer.rs`
 - **Transformation traits:** `lib/src/traits/` (`Translate`, `Rotate`, `Scale`, `Mirror`, `Transform`, etc.)
 - **Math utilities:** `lib/src/maths/` (angles, noise, random)

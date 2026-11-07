@@ -5303,6 +5303,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "plottery_fonts"
+version = "0.11.0"
+
+[[package]]
 name = "plottery_lib"
 version = "0.11.0"
 dependencies = [
@@ -5319,6 +5323,7 @@ dependencies = [
  "lazy_static",
  "mint",
  "num-traits",
+ "plottery_fonts",
  "ramer_douglas_peucker",
  "rand 0.8.6",
  "rand_distr",
