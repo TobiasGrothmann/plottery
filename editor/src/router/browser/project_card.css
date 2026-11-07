@@ -1,75 +1,42 @@
-.ProjectCard {
-  display: flex;
-  flex-direction: column;
-  background-color: var(--col-bg-3);
-  border-radius: var(--border-radius);
+.card {
   cursor: pointer;
-  overflow: hidden;
-  container-type: inline-size;
 }
-.ProjectCard:hover {
-  filter: brightness(1.15);
+.card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
-.card_preview {
-  aspect-ratio: 1 / 1;
-  background-color: var(--col-fg-0);
-  padding: var(--gap-0);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-.card_preview .card_image {
-  width: 100%;
-  object-fit: contain;
+.thumb_paper {
   display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  background: var(--paper);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 16px rgba(0, 0, 0, 0.3);
 }
-.card_no_preview {
-  align-self: stretch;
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--col-bg-3);
-}
-.card_no_preview p {
-  font-size: clamp(11px, 6cqw, 16px);
+
+.thumb_empty {
+  font-size: 12px;
+  color: var(--fg-2);
 }
 
 .card_body {
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: var(--gap-0);
-  padding: var(--gap-0) var(--gap-1);
-}
-.card_text {
-  flex: 1;
-  min-width: 0;
-  display: flex;
   flex-direction: column;
   gap: 2px;
+  padding: 10px 12px;
+  min-width: 0;
 }
+
 .card_name {
-  font-size: clamp(13px, 6cqw, 17px);
+  font-size: 13px;
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.card_meta {
-  font-size: 13px;
-}
-.card_meta_dim {
-  color: var(--col-fg-2);
-}
 
-/* Narrow tiles: drop the date and tighten the body. */
-@container (max-width: 190px) {
-  .card_meta {
-    display: none;
-  }
-  .card_body {
-    padding: var(--gap-small) var(--gap-0);
-  }
+.card_meta {
+  font-size: 12px;
+  color: var(--fg-2);
 }

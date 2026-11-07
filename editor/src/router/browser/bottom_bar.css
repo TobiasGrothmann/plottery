@@ -1,25 +1,24 @@
 .BottomBar {
-  height: 40px;
-  flex-shrink: 0;
+  height: 30px;
+  flex: none;
   display: flex;
-  flex-direction: row;
   align-items: center;
-  gap: var(--gap-1);
-  padding: 0 var(--gap-1);
-  background-color: var(--col-bg-1);
-  border-top: 1px solid var(--col-bg-2);
-  color: var(--col-fg-2);
+  gap: 12px;
+  padding: 0 12px;
+  background: var(--bg-1);
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--fg-2);
 }
 
 .bottom_bar_status {
-  font-size: 13px;
+  color: var(--fg-1);
   white-space: nowrap;
-  flex-shrink: 0;
+  flex: none;
 }
 
 .bottom_bar_detail {
-  font-size: 13px;
-  opacity: 0.55;
+  font-size: 11px;
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -30,26 +29,14 @@
 .tile_size_control {
   margin-left: auto;
   display: flex;
-  flex-direction: row;
   align-items: center;
-  gap: var(--gap-0);
-  flex-shrink: 0;
-}
-
-.tile_size_slider {
-  width: 160px;
-  padding: 0;
-  background-color: transparent;
-  accent-color: var(--col-fg-0);
-  cursor: pointer;
-}
-.tile_size_slider:hover {
-  filter: none;
+  gap: 6px;
+  flex: none;
 }
 
 .tile_size_glyph {
   display: block;
-  border: 1.5px solid var(--col-fg-2);
+  border: 1.5px solid var(--fg-2);
   border-radius: 2px;
 }
 .tile_size_glyph_small {
@@ -57,6 +44,6 @@
   height: 8px;
 }
 .tile_size_glyph_large {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
 }

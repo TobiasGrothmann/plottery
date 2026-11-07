@@ -5,7 +5,11 @@ use dioxus_router::hooks::use_navigator;
 use plottery_project::{scan_roots, Project, ScanOptions, ScanResult};
 
 use crate::{
-    components::{loading_spinner::Loading, navigation::Navigation},
+    components::{
+        icon::IconName,
+        loading_spinner::Loading,
+        ui::{Button, IconButton, Variant},
+    },
     model::{
         app_state::AppState,
         folder_tree::{build_tree, find_closest_in_forest},
@@ -17,7 +21,7 @@ use crate::{
         project_grid::ProjectGrid,
     },
     routes::Route,
-    util::{editor_route, format_svg},
+    util::editor_route,
 };
 
 fn pick_root_folder() -> Option<PathBuf> {
@@ -88,6 +92,7 @@ pub fn Browser() -> Element {
         .cloned();
     let selected_path = selected_node.as_ref().map(|n| n.path.clone());
     let expanded = state.expanded_folders.clone();
+    let collapsed_sections = state.collapsed_sections.clone();
     let tile_size = state.tile_size;
     drop(state);
 
@@ -105,36 +110,42 @@ pub fn Browser() -> Element {
 
     rsx! {
         style { { include_str!("./browser.css") } }
-        Navigation {
-            page_name: "Projects",
-            body: rsx! {
-                button { class: "img_button",
-                    title: "Rescan watched folders",
-                    onclick: move |_| scan.restart(),
-                    img { src: "{format_svg(include_bytes!(\"../../../public/icons/refresh.svg\"))}" }
+        div { class: "Browser",
+            header { class: "app-header",
+                div { class: "hgroup",
+                    h1 { "Projects" }
                 }
-                button { class: "img_button",
-                    title: "Create project",
-                    onclick: move |_| {
-                        nav.push(Route::ProjectAdd {});
-                    },
-                    img { src: "{format_svg(include_bytes!(\"../../../public/icons/add.svg\"))}" }
-                }
-                button { class: "img_button",
-                    title: "Remote",
-                    onclick: move |_| {
-                        nav.push(Route::Remote {});
-                    },
-                    img { src: "{format_svg(include_bytes!(\"../../../public/icons/remote.svg\"))}" }
+                div {}
+                div { class: "hgroup end",
+                    IconButton {
+                        icon: IconName::Refresh,
+                        label: "Rescan watched folders",
+                        onclick: move |_| scan.restart(),
+                    }
+                    Button {
+                        variant: Variant::Ghost,
+                        icon: IconName::Plotter,
+                        onclick: move |_| {
+                            nav.push(Route::Remote {});
+                        },
+                        "Plotter remote"
+                    }
+                    div { class: "vsep" }
+                    Button {
+                        variant: Variant::Primary,
+                        icon: IconName::Plus,
+                        onclick: move |_| {
+                            nav.push(Route::ProjectAdd {});
+                        },
+                        "New project"
+                    }
                 }
             }
-        }
-        div { class: "Browser",
             if first_load {
                 Loading {}
             }
             div { class: "browser_content",
-                div { class: "browser_sidebar",
+                aside { class: "browser_sidebar scroll",
                     FolderTree {
                         nodes: tree.clone(),
                         selected: selected_path.clone(),
@@ -153,37 +164,39 @@ pub fn Browser() -> Element {
                     }
                     if !errors.is_empty() {
                         details { class: "browser_scan_errors",
-                            summary { "{errors.len()} scan problems" }
+                            summary { class: "hint", "{errors.len()} scan problems" }
                             for (path, message) in errors.iter() {
                                 div { class: "err_box browser_scan_error",
-                                    p { class: "browser_scan_error_path", "{path.to_string_lossy()}" }
+                                    p { class: "mono browser_scan_error_path", "{path.to_string_lossy()}" }
                                     p { "{message}" }
                                 }
                             }
                         }
                     }
                 }
-                div { class: "browser_main",
+                main { class: "browser_main scroll",
                     style: "--tile-size: {tile_size}px;",
                     onmounted: move |event| scroll.on_mounted(event),
                     onscroll: move |event| scroll.on_scroll(event),
                     if roots_now.is_empty() {
                         div { class: "browser_empty",
                             p { "Add a folder to watch for Plottery projects." }
-                            button { class: "img_button",
+                            Button {
+                                icon: IconName::Folder,
                                 onclick: move |_| add_root(),
-                                img { src: "{format_svg(include_bytes!(\"../../../public/icons/folder_open.svg\"))}" }
-                                p { "Add folder" }
+                                "Watch a folder"
                             }
                         }
                     } else if let Some(node) = selected_node {
                         ProjectGrid {
                             node,
                             thumbnail_generation: thumbnail_generation(),
+                            collapsed: collapsed_sections,
                             on_open: move |project: Project| {
                                 nav.push(editor_route(&project));
                             },
                             on_select_folder: move |path: PathBuf| select_folder(path),
+                            on_toggle_section: move |path: PathBuf| app_state.write().toggle_section(path),
                         }
                     }
                 }

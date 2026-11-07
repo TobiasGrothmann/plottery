@@ -97,6 +97,9 @@ pub struct AppState {
     pub tile_size: u32,
     #[serde(default)]
     pub panel_layout: PanelLayout,
+    /// Project grid sections the user collapsed.
+    #[serde(default)]
+    pub collapsed_sections: BTreeSet<PathBuf>,
     /// v1 project list, only read to migrate it into `roots`.
     #[serde(rename = "projects", default, skip_serializing)]
     legacy_projects: Vec<Project>,
@@ -114,6 +117,7 @@ impl Default for AppState {
             expanded_folders: BTreeSet::new(),
             tile_size: TILE_SIZE_DEFAULT,
             panel_layout: PanelLayout::default(),
+            collapsed_sections: BTreeSet::new(),
             legacy_projects: Vec::new(),
         }
     }
@@ -222,6 +226,12 @@ impl AppState {
             self.selected_folder = None;
         }
         self.expanded_folders.retain(|f| !f.starts_with(&root));
+    }
+
+    pub fn toggle_section(&mut self, path: PathBuf) {
+        if !self.collapsed_sections.remove(&path) {
+            self.collapsed_sections.insert(path);
+        }
     }
 
     pub fn set_tile_size(&mut self, size: u32) {
