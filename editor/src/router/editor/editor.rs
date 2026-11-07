@@ -479,7 +479,14 @@ pub fn Editor(project_path: Vec<String>) -> Element {
     let status_detail = last_run().filter(|_| matches!(state_now, RunningState::Idle));
     let status_title = Some(state_now.get_msg()).filter(|msg| !msg.is_empty());
     let busy = state_now.is_busy();
-    let crumbs = parent_crumbs(&project().dir);
+    // Crumbs inside a watched folder get a path so they can open the browser there.
+    let crumbs = use_memo(move || {
+        let state = AppState::load_or_default();
+        parent_crumbs(&project().dir)
+            .into_iter()
+            .map(|(name, path)| (name, state.covers(&path).then_some(path)))
+            .collect::<Vec<_>>()
+    });
     let param_count = project_params.read().list.len();
 
     let mut show_plot_settings = use_signal(|| false);
@@ -570,17 +577,22 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                         },
                     }
                     div { class: "title-block", title: "{project().dir.to_string_lossy()}",
-                        for (name, path) in crumbs {
-                            button {
-                                r#type: "button",
-                                class: "crumb crumb-link",
-                                title: "Open {path.to_string_lossy()}",
-                                onclick: move |_| {
-                                    if let Err(err) = open::that(&path) {
-                                        tracing::error!("Failed to open {:?}: {:?}", path, err);
-                                    }
-                                },
-                                "{name}"
+                        for (name, path) in crumbs() {
+                            if let Some(path) = path {
+                                button {
+                                    r#type: "button",
+                                    class: "crumb crumb-link",
+                                    title: "Show {path.to_string_lossy()} in projects",
+                                    onclick: move |_| {
+                                        let mut state = AppState::load_or_default();
+                                        state.reveal_folder(&path);
+                                        state.save();
+                                        nav.push(Route::Browser {});
+                                    },
+                                    "{name}"
+                                }
+                            } else {
+                                span { class: "crumb", "{name}" }
                             }
                             span { class: "crumb", "/" }
                         }
