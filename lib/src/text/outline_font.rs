@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Result};
-use skrifa::{font::name::NameId, DrawMemory, PathSink, ScalerFont};
+use skrifa::{font::name::NameId, raw::TableProvider, DrawMemory, PathSink, ScalerFont};
 
-use super::{FontMetrics, Glyph, GlyphId, PositionedGlyph};
-use crate::{shapes::spline::sink::SplineSink, Scale, V2};
+use super::{svg_glyph::parse_svg_glyph, FontMetrics, Glyph, GlyphId, PositionedGlyph};
+use crate::{shapes::spline::sink::SplineSink, Scale, Spline, V2};
 
 /// TrueType / OpenType font read by skrifa and shaped by harfrust; font units, y-up.
 pub(crate) struct OutlineFont {
@@ -11,16 +11,18 @@ pub(crate) struct OutlineFont {
     units_per_em: f32,
     metrics: FontMetrics,
     family: Option<String>,
+    /// Single-line fonts store open strokes as TrueType contours; leave them open.
+    open_contours: bool,
 }
 
 impl OutlineFont {
-    pub(crate) fn from_bytes(bytes: Vec<u8>, index: u32) -> Result<Self> {
+    pub(crate) fn from_bytes(bytes: Vec<u8>, index: u32, open_contours: bool) -> Result<Self> {
         let font = skrifa::Font::new(bytes, index)
             .ok_or_else(|| anyhow!("not a readable TrueType/OpenType font (index {index})"))?;
-        Ok(Self::from_font(font))
+        Ok(Self::from_font(font, open_contours))
     }
 
-    pub(crate) fn from_font(font: skrifa::Font) -> Self {
+    pub(crate) fn from_font(font: skrifa::Font, open_contours: bool) -> Self {
         let raw = font.metrics();
         let units_per_em = match raw.units_per_em {
             0 => 1000.0,
@@ -42,7 +44,12 @@ impl OutlineFont {
             units_per_em,
             metrics,
             family,
+            open_contours,
         }
+    }
+
+    pub(crate) fn open_contours(&self) -> bool {
+        self.open_contours
     }
 
     pub(crate) fn family(&self) -> Option<&str> {
@@ -94,16 +101,12 @@ impl OutlineFont {
             .collect())
     }
 
+    /// An OpenType `SVG ` document wins over the `glyf`/`CFF` outline, which single-line fonts only carry as a fallback.
     pub(crate) fn glyph(&self, id: GlyphId, scale: f32) -> Glyph {
         let raw_id = skrifa::GlyphId::new(id.0);
-        let mut pen = SplinePen(SplineSink::new());
-        let (contours, drawn_advance) = match self
-            .scaler
-            .outline(raw_id)
-            .map(|outline| outline.draw(DrawMemory::Scratch, &mut pen))
-        {
-            Some(Ok(drawn)) => (pen.0.finish(), drawn.h_advance),
-            _ => (Vec::new(), None),
+        let (contours, drawn_advance) = match self.svg_glyph(raw_id) {
+            Some(contours) => (contours, None),
+            None => self.drawn_outline(raw_id),
         };
         let advance = drawn_advance.unwrap_or_else(|| self.font.glyph_metrics().h_advance(raw_id));
         Glyph {
@@ -117,6 +120,34 @@ impl OutlineFont {
     }
 }
 
+impl OutlineFont {
+    fn svg_glyph(&self, id: skrifa::GlyphId) -> Option<Vec<Spline>> {
+        let document = self.font.tables().svg().ok()?.glyph_data(id)?;
+        match parse_svg_glyph(document) {
+            Ok(contours) => Some(contours),
+            Err(error) => {
+                eprintln!("ignoring SVG glyph {}: {error:#}", id.to_u32());
+                None
+            }
+        }
+    }
+
+    fn drawn_outline(&self, id: skrifa::GlyphId) -> (Vec<Spline>, Option<f32>) {
+        let mut pen = SplinePen {
+            sink: SplineSink::new(),
+            open_contours: self.open_contours,
+        };
+        match self
+            .scaler
+            .outline(id)
+            .map(|outline| outline.draw(DrawMemory::Scratch, &mut pen))
+        {
+            Some(Ok(drawn)) => (pen.sink.finish(), drawn.h_advance),
+            _ => (Vec::new(), None),
+        }
+    }
+}
+
 /// English name if there is one, otherwise the first.
 pub(crate) fn name(font: &skrifa::Font, id: NameId) -> Option<String> {
     font.names()
@@ -125,23 +156,30 @@ pub(crate) fn name(font: &skrifa::Font, id: NameId) -> Option<String> {
         .map(|localized| localized.name().to_string())
 }
 
-struct SplinePen(SplineSink);
+struct SplinePen {
+    sink: SplineSink,
+    open_contours: bool,
+}
 
 impl PathSink for SplinePen {
     fn move_to(&mut self, x: f32, y: f32) {
-        self.0.move_to(V2::new(x, y));
+        self.sink.move_to(V2::new(x, y));
     }
     fn line_to(&mut self, x: f32, y: f32) {
-        self.0.line_to(V2::new(x, y));
+        self.sink.line_to(V2::new(x, y));
     }
     fn quad_to(&mut self, cx0: f32, cy0: f32, x: f32, y: f32) {
-        self.0.quad_to(V2::new(cx0, cy0), V2::new(x, y));
+        self.sink.quad_to(V2::new(cx0, cy0), V2::new(x, y));
     }
     fn curve_to(&mut self, cx0: f32, cy0: f32, cx1: f32, cy1: f32, x: f32, y: f32) {
-        self.0
+        self.sink
             .cubic_to(V2::new(cx0, cy0), V2::new(cx1, cy1), V2::new(x, y));
     }
     fn close(&mut self) {
-        self.0.close();
+        if self.open_contours {
+            self.sink.end();
+        } else {
+            self.sink.close();
+        }
     }
 }

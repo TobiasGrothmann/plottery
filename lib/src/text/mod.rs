@@ -7,6 +7,8 @@ mod outline_font;
 mod outline_font_test;
 mod stroke_font;
 mod stroke_font_test;
+mod svg_glyph;
+mod svg_glyph_test;
 mod system;
 #[allow(clippy::module_inception)]
 pub mod text;

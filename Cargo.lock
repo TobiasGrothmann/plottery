@@ -5309,6 +5309,7 @@ dependencies = [
  "anyhow",
  "bincode",
  "fastnoise-lite",
+ "flate2",
  "geo",
  "geo-types",
  "geometry-predicates",

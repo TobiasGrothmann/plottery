@@ -77,6 +77,11 @@ impl SplineSink {
         self.current = start;
     }
 
+    /// Ends the contour open, keeping the current point.
+    pub(crate) fn end(&mut self) {
+        self.flush(false);
+    }
+
     pub(crate) fn current(&self) -> V2 {
         self.current
     }

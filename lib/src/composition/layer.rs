@@ -21,8 +21,10 @@ use crate::{
 };
 
 use super::{
-    path_end::PathEnd, svg_path_data::parse_svg_path_data, ColorRgb, Inheritable, LayerProps,
-    LayerPropsInheritable,
+    path_end::PathEnd,
+    svg_path_data::parse_svg_path_data,
+    svg_transform::{iter_svg_f32_tokens, parse_svg_transform_attr},
+    ColorRgb, Inheritable, LayerProps, LayerPropsInheritable,
 };
 
 /// `Layer` represents a tree of [`Shape`]s by holding a list of [`Shape`]s and other `Layer`s.
@@ -46,73 +48,6 @@ pub struct Layer {
     pub sublayers: Vec<Layer>,
     pub props: LayerProps,
     pub props_inheritable: Inheritable<LayerPropsInheritable>,
-}
-
-#[derive(Debug, Clone, Copy)]
-struct SvgTransform {
-    a: f32,
-    b: f32,
-    c: f32,
-    d: f32,
-    e: f32,
-    f: f32,
-}
-
-impl SvgTransform {
-    fn identity() -> Self {
-        Self {
-            a: 1.0,
-            b: 0.0,
-            c: 0.0,
-            d: 1.0,
-            e: 0.0,
-            f: 0.0,
-        }
-    }
-
-    fn translate(tx: f32, ty: f32) -> Self {
-        Self {
-            a: 1.0,
-            b: 0.0,
-            c: 0.0,
-            d: 1.0,
-            e: tx,
-            f: ty,
-        }
-    }
-
-    fn scale(sx: f32, sy: f32) -> Self {
-        Self {
-            a: sx,
-            b: 0.0,
-            c: 0.0,
-            d: sy,
-            e: 0.0,
-            f: 0.0,
-        }
-    }
-
-    fn matrix(a: f32, b: f32, c: f32, d: f32, e: f32, f: f32) -> Self {
-        Self { a, b, c, d, e, f }
-    }
-
-    fn multiply(self, rhs: Self) -> Self {
-        Self {
-            a: self.a * rhs.a + self.c * rhs.b,
-            b: self.b * rhs.a + self.d * rhs.b,
-            c: self.a * rhs.c + self.c * rhs.d,
-            d: self.b * rhs.c + self.d * rhs.d,
-            e: self.a * rhs.e + self.c * rhs.f + self.e,
-            f: self.b * rhs.e + self.d * rhs.f + self.f,
-        }
-    }
-
-    fn apply(self, point: V2) -> V2 {
-        V2::new(
-            self.a * point.x + self.c * point.y + self.e,
-            self.b * point.x + self.d * point.y + self.f,
-        )
-    }
 }
 
 impl Layer {
@@ -402,7 +337,7 @@ impl Layer {
     pub fn new_from_svg(path: &PathBuf) -> Result<Layer> {
         let mut svg_content = String::new();
         let mut layer = Layer::new();
-        let mut transform_stack: Vec<SvgTransform> = vec![SvgTransform::identity()];
+        let mut transform_stack: Vec<TransformMatrix> = vec![TransformMatrix::identity()];
         let mut svg_units_to_cm_scale: f32 = 1.0;
 
         for event in svg::open(path, &mut svg_content)? {
@@ -413,10 +348,12 @@ impl Layer {
                     }
                 }
 
-                let parent_transform = *transform_stack.last().unwrap_or(&SvgTransform::identity());
+                let parent_transform = *transform_stack
+                    .last()
+                    .unwrap_or(&TransformMatrix::identity());
                 let local_transform =
-                    Self::parse_svg_transform_attr(&attributes).unwrap_or(SvgTransform::identity());
-                let combined_transform = parent_transform.multiply(local_transform);
+                    parse_svg_transform_attr(&attributes).unwrap_or(TransformMatrix::identity());
+                let combined_transform = parent_transform.mul_matrix(&local_transform);
 
                 if matches!(tag_type, SvgTagType::Start) {
                     transform_stack.push(combined_transform);
@@ -515,16 +452,9 @@ impl Layer {
         value.to_string().parse::<f32>().ok()
     }
 
-    fn iter_svg_f32_tokens(input: &str) -> impl Iterator<Item = f32> + '_ {
-        input
-            .split(|c: char| c == ',' || c.is_ascii_whitespace())
-            .filter(|token| !token.is_empty())
-            .filter_map(|token| token.parse::<f32>().ok())
-    }
-
     fn parse_svg_points_attr(points_attr: &svg::node::Value) -> Vec<V2> {
         let points = points_attr.to_string();
-        let mut tokens = Self::iter_svg_f32_tokens(points.as_str());
+        let mut tokens = iter_svg_f32_tokens(points.as_str());
         let mut parsed_points = Vec::new();
 
         while let Some(x) = tokens.next() {
@@ -537,17 +467,21 @@ impl Layer {
         parsed_points
     }
 
-    fn apply_svg_transform_to_path(path: &Path, transform: SvgTransform, scale_to_cm: f32) -> Path {
+    fn apply_svg_transform_to_path(
+        path: &Path,
+        transform: TransformMatrix,
+        scale_to_cm: f32,
+    ) -> Path {
         Path::new_from(
             path.get_points_ref()
                 .iter()
-                .map(|point| transform.apply(*point) * scale_to_cm),
+                .map(|point| transform.mul_vector(*point) * scale_to_cm),
         )
     }
 
     fn parse_svg_root_units_to_cm_scale(attributes: &Attributes) -> Option<f32> {
         let view_box = attributes.get("viewBox")?.to_string();
-        let mut view_box_values = Self::iter_svg_f32_tokens(view_box.as_str());
+        let mut view_box_values = iter_svg_f32_tokens(view_box.as_str());
         let _view_box_x = view_box_values.next()?;
         let _view_box_y = view_box_values.next()?;
         let view_box_w = view_box_values.next()?;
@@ -651,67 +585,6 @@ impl Layer {
         }
 
         false
-    }
-
-    fn parse_svg_transform_attr(attributes: &Attributes) -> Option<SvgTransform> {
-        let transform_attr = attributes.get("transform")?.to_string();
-        Self::parse_svg_transform_chain(transform_attr.as_str())
-    }
-
-    fn parse_svg_transform_chain(transform_attr: &str) -> Option<SvgTransform> {
-        let mut combined = SvgTransform::identity();
-        let mut parsed_any = false;
-        let mut rest = transform_attr.trim();
-
-        while !rest.is_empty() {
-            let Some(open_idx) = rest.find('(') else {
-                break;
-            };
-            let Some(close_idx) = rest.find(')') else {
-                break;
-            };
-            if close_idx <= open_idx {
-                break;
-            }
-
-            let name = rest[..open_idx].trim();
-            let args_str = &rest[(open_idx + 1)..close_idx];
-            let mut args = [0.0_f32; 6];
-            let mut args_len = 0usize;
-            for value in Self::iter_svg_f32_tokens(args_str) {
-                if args_len < args.len() {
-                    args[args_len] = value;
-                }
-                args_len += 1;
-            }
-
-            let next_transform = match (name, args_len) {
-                ("matrix", 6) => Some(SvgTransform::matrix(
-                    args[0], args[1], args[2], args[3], args[4], args[5],
-                )),
-                ("translate", 1) => Some(SvgTransform::translate(args[0], 0.0)),
-                ("translate", len) if len >= 2 => Some(SvgTransform::translate(args[0], args[1])),
-                ("scale", 1) => Some(SvgTransform::scale(args[0], args[0])),
-                ("scale", len) if len >= 2 => Some(SvgTransform::scale(args[0], args[1])),
-                _ => {
-                    // TODO: Support rotate/skew transforms and malformed transform expressions.
-                    None
-                }
-            };
-
-            if let Some(next_transform) = next_transform {
-                combined = combined.multiply(next_transform);
-                parsed_any = true;
-            }
-
-            rest = rest[(close_idx + 1)..].trim_start();
-        }
-
-        if parsed_any {
-            Some(combined)
-        } else {
-            None
-        }
     }
 
     /// Returns a new `Layer` with [`Shape`]s that start/end at another [`Shape`]'s start/end combined into a single [`Path`].
