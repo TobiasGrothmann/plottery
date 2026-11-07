@@ -38,9 +38,6 @@
 .opt-row > .switch {
   margin-top: 6px;
 }
-.opt-unset {
-  line-height: 28px;
-}
 
 .pvec {
   display: flex;

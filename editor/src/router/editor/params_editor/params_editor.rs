@@ -400,11 +400,9 @@ fn render_optional_value(
                     );
                 },
             }
-            div { class: "grow pctl",
-                if enabled {
+            if enabled {
+                div { class: "grow pctl",
                     {render_value_without_label(param_name.to_string(), *optional.value, path, props)}
-                } else {
-                    span { class: "hint opt-unset", "Not set" }
                 }
             }
         }
