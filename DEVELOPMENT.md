@@ -5,7 +5,7 @@
 Before releasing, validate (tests, clippy, docs) with:
 
 ```sh
-./scripts/pre_release.sh
+./scripts/pre_release_checks.sh
 ```
 
 ## Release

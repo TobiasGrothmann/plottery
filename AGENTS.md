@@ -67,7 +67,7 @@ Add `*_test.rs` files for new functionality. Only if relevant, use `cargo` for t
 
 ## Publishing
 
-`lib`, `project`, and `cli` are published to crates.io. Workspace shares a single version in root `Cargo.toml`.
+`lib`, `fonts`, `project`, and `cli` are published to crates.io. Workspace shares a single version in root `Cargo.toml`.
 
 ## Common Pitfalls
 

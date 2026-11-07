@@ -7,6 +7,7 @@
 * [**plottery_server**](./server): Controller for the pen-plotter hardware – The server offers a http interface to send tasks to execute on the hardware and controls the motors. This is highly customized to my personal DIY pen-plotter.
 * [**plottery_cli**](./cli) ([crates.io](https://docs.rs/crate/plottery_cli/latest)): Command line interface to create and run projects.
 * [**plottery_project**](./project) ([crates.io](https://docs.rs/plottery_project/latest/plottery_project/)): Library containing functionality to handle **Plottery** projects.
+* [**plottery_fonts**](./fonts) ([crates.io](https://crates.io/crates/plottery_fonts)): 65 bundled single-line fonts for plotters (Hershey, EMS, Cutlings, Relief, ...) with their licences. Data only, usable without **Plottery**.
 
 <br/>
 
@@ -72,6 +73,27 @@ pub fn generate(params: Params) -> Layer {
     l.with_name("root").optimize_recursive()
 }
 ```
+
+# Text & Fonts
+
+Text is drawn with single-line fonts, so every glyph is a set of pen strokes. The [bundled fonts](./fonts) are embedded in the library and load with no setup:
+
+```rust
+let font = Font::bundled(BundledFont::HersheyScript);
+let text = Text::new("Hello plotter", &font)
+    .size(1.5) // em height in cm
+    .at(frame.center())
+    .align(TextAlign::Center)
+    .max_width(frame.inner_rect().width()) // wraps words
+    .to_layer(SampleSettings::default())
+    .expect("text");
+l.push_layer(text);
+```
+
+`Font::load` reads SVG, TTF and OTF files, `Font::load_single_line` keeps the strokes of single-line TrueType fonts open, and `Font::system("Helvetica")` finds an installed font. All 65 bundled fonts are shown in the [fonts README](./fonts/README.md).
+
+<img src="./fonts/samples/HersheyScript.svg" width="49%" /> <img src="./fonts/samples/EmsReadability.svg" width="49%" />
+<img src="./fonts/samples/ReliefSingleLine.svg" width="49%" /> <img src="./fonts/samples/HersheyGothicEnglish.svg" width="49%" />
 
 # Example
 
