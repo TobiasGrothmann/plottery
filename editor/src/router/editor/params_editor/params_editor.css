@@ -2,11 +2,19 @@
   border-bottom: 0;
 }
 
+/* Labels and single-line controls share a 28px first line so they centre on each other. */
 .ParamsEditor .plabel,
 .ParamsEditor .sublabel {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  line-height: 16px;
+}
+.ParamsEditor .hrow {
+  min-height: 28px;
+}
+.ParamsEditor .sub > .hint {
+  line-height: 28px;
 }
 
 .ParamsEditor .sub {
