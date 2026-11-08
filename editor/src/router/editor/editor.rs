@@ -337,7 +337,7 @@ pub fn Editor(project_path: Vec<String>) -> Element {
         if let Some(layer) = layer {
             let mut svg = svg;
             tokio::spawn(async move {
-                match tokio::task::spawn_blocking(move || layer.to_svg(1.0).to_string()).await {
+                match tokio::task::spawn_blocking(move || layer.to_svg(10.0).to_string()).await {
                     Ok(svg_str) => {
                         if let Ok(mut svg_write) = svg.try_write() {
                             *svg_write = Some(svg_str);

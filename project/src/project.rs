@@ -407,7 +407,7 @@ impl Project {
     ) -> Result<()> {
         self.save_editor_params(params)?;
         self.save_editor_layer(layer)?;
-        self.save_editor_preview(&layer.to_svg(1.0).to_string())
+        self.save_editor_preview(&layer.to_svg(10.0).to_string())
     }
 
     pub fn write_editor_thumbnail(&self, svg_data: &[u8]) -> Result<()> {
