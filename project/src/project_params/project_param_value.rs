@@ -1,5 +1,5 @@
 use anyhow::Result;
-use plottery_lib::{ColorRgb, NoiseSettings, Paper, V2i, V2};
+use plottery_lib::{ColorRgb, Easing, NoiseSettings, Paper, V2i, V2};
 
 use super::angle_unit::AngleUnit;
 use super::project_param_file::ProjectParamFile;
@@ -54,6 +54,7 @@ pub enum ProjectParamValue {
     Seed(ProjectParamSeed),
     Image(ProjectParamFile),
     Noise(NoiseSettings),
+    Easing(Easing),
     Color(ColorRgb),
     V2i(V2i),
     Svg(ProjectParamFile),
@@ -146,6 +147,7 @@ impl ProjectParamValue {
             ProjectParamValue::Seed(_) => "seed".to_string(),
             ProjectParamValue::Image(_) => "image".to_string(),
             ProjectParamValue::Noise(_) => "noise".to_string(),
+            ProjectParamValue::Easing(_) => "easing".to_string(),
             ProjectParamValue::Color(_) => "color".to_string(),
             ProjectParamValue::V2i(_) => "v2i".to_string(),
             ProjectParamValue::Svg(_) => "svg".to_string(),
@@ -193,6 +195,9 @@ impl ProjectParamValue {
                 "{:?} f={} o={} {:?}",
                 noise.noise_type, noise.frequency, noise.octaves, noise.scale
             ),
+            ProjectParamValue::Easing(easing) => {
+                format!("{:?} {:.2}", easing.kind, easing.amount).to_lowercase()
+            }
             ProjectParamValue::Color(color) => color.hex(),
             ProjectParamValue::V2i(v) => format!("({}, {})", v.x, v.y),
         }

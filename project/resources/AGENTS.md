@@ -23,7 +23,7 @@ pub struct Params {
 pub enum Mode { #[default] Lines, Dots }
 ```
 
-**Field types:** `f32`, `i32`, `bool`, `String`, `Paper`, `Range<f32|i32>`, `Angle`, `V2`, `V2i`, `ColorRgb`, `Seed`, `ImagePath`, `SvgPath`, `NoiseSettings`, `Curve2D`, `Curve2DNorm`, `PlotteryEnum` enums, nested `PlotteryParams` structs, `Option<T>`, `Vec<T>`.
+**Field types:** `f32`, `i32`, `bool`, `String`, `Paper`, `Range<f32|i32>`, `Angle`, `V2`, `V2i`, `ColorRgb`, `Seed`, `ImagePath`, `SvgPath`, `NoiseSettings`, `Easing`, `Curve2D`, `Curve2DNorm`, `PlotteryEnum` enums, nested `PlotteryParams` structs, `Option<T>`, `Vec<T>`.
 
 Group many params with `#[section("..")]` (the struct stays flat) instead of `// ---` comments, and describe params with `///` instead of `//`.
 Nested structs and `Option<Struct>` show as their own section; use `Option<Struct>` for "on/off switch + its params".

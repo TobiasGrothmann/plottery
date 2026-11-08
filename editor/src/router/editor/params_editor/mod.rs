@@ -2,6 +2,7 @@ pub mod angle_field;
 pub mod bool_field;
 pub mod color_field;
 pub mod curve_2d_field;
+pub mod easing_field;
 pub mod enum_field;
 pub mod file_field;
 pub mod noise_field;

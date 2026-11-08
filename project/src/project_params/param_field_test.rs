@@ -2,7 +2,8 @@
 mod tests {
     use crate::*;
     use plottery_lib::{
-        Angle, ColorRgb, Margin, NoiseScale, NoiseSettings, NoiseType, Paper, Range, V2i, V2,
+        Angle, ColorRgb, Easing, Margin, NoiseScale, NoiseSettings, NoiseType, Paper, Range, V2i,
+        V2,
     };
 
     #[derive(PlotteryEnum, Debug, Clone, Copy, PartialEq)]
@@ -55,6 +56,8 @@ mod tests {
         svg: SvgPath,
         #[value(NoiseSettings::default().with_type(NoiseType::Worley))]
         noise: NoiseSettings,
+        #[value(Easing::power(-0.5))]
+        easing: Easing,
         #[value(ColorRgb::new(1.0, 0.0, 0.0))]
         color: ColorRgb,
         #[value(V2i::new(4, 6))]
@@ -161,6 +164,7 @@ mod tests {
             image: ImagePath::new("resources/images/a.png"),
             svg: SvgPath::new("resources/svgs/a.svg"),
             noise: NoiseSettings::new(NoiseType::Simplex, 3.0, 4, NoiseScale::PerPaper),
+            easing: Easing::s_curve(0.4),
             color: ColorRgb::new(0.2, 0.4, 0.6),
             cells: V2i::new(-1, 9),
         };
@@ -188,6 +192,7 @@ mod tests {
         assert_eq!(params.image, ImagePath::none());
         assert_eq!(params.svg, SvgPath::none());
         assert_eq!(params.noise.noise_type, NoiseType::Worley);
+        assert_eq!(params.easing, Easing::power(-0.5));
         assert_eq!(params.color, ColorRgb::new(1.0, 0.0, 0.0));
         assert_eq!(params.cells, V2i::new(4, 6));
     }

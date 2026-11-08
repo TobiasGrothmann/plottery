@@ -157,3 +157,32 @@
   text-underline-offset: 3px;
   cursor: help;
 }
+
+.EasingField {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.EasingField .easing-controls {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.easing-preview {
+  flex: none;
+  display: block;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+}
+.easing-diagonal {
+  stroke: #25252b;
+  stroke-width: 1;
+}
+.easing-line {
+  fill: none;
+  stroke: var(--fg-0);
+  stroke-width: 1.5;
+}
