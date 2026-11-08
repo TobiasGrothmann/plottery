@@ -11,7 +11,6 @@ use anyhow::{Error, Ok, Result};
 use async_process::Child;
 use path_absolutize::Absolutize;
 use resvg::{tiny_skia, usvg};
-use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tempfile::NamedTempFile;
 use usvg::{fontdb, TreeParsing, TreeTextToPath};
@@ -63,7 +62,7 @@ fn png_longest_side(path: &std::path::Path) -> Option<u32> {
     Some(width.max(height))
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Project {
     pub config: ProjectConfig,
     pub dir: PathBuf,
