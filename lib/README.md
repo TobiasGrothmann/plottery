@@ -10,7 +10,7 @@ use plottery_lib::*;
 
 // vector operations
 let v1 = V2::new(5.0, 0.0) + V2::polar(Angle::from_degrees(60.0), 3.0);
-let length = v1.len();
+let length = v1.length();
 
 let v2 = V2::xy(10.0) * 2.0;
 let distance = v2.dist(v1);
