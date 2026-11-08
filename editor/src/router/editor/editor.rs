@@ -463,7 +463,6 @@ pub fn Editor(project_path: Vec<String>) -> Element {
             .map(|(name, path)| (name, state.covers(&path).then_some(path)))
             .collect::<Vec<_>>()
     });
-    let param_count = project_params.read().list.len();
 
     let mut show_plot_settings = use_signal(|| false);
     let mut plot_settings_for_reset = plot_settings;
@@ -768,7 +767,6 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                     aside { class: "params-panel", style: "width: {current_layout.params_w}px;",
                         PanelHeader {
                             title: "Parameters",
-                            count: param_count,
                             on_collapse: move |_| toggle_panel(Panel::Params),
                         }
                         div { class: "panel-body scroll",

@@ -202,7 +202,6 @@ pub fn StatusPill(tone: Tone, text: String, title: Option<String>) -> Element {
 #[component]
 pub fn PanelHeader(
     title: String,
-    count: Option<usize>,
     #[props(default = VNode::empty())] actions: Element,
     on_collapse: Option<EventHandler<()>>,
     #[props(default = IconName::ChevronLeft)] collapse_icon: IconName,
@@ -211,9 +210,6 @@ pub fn PanelHeader(
         div { class: "panel-head",
             span { class: "panel-title",
                 "{title}"
-                if let Some(count) = count {
-                    span { class: "count", "{count}" }
-                }
             }
             div { class: "hrow",
                 {actions}
