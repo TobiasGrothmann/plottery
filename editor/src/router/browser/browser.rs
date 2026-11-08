@@ -21,7 +21,6 @@ use crate::{
         project_grid::ProjectGrid,
     },
     router::project_add::project_create::NewProjectModal,
-    routes::Route,
     util::editor_route,
 };
 
@@ -123,14 +122,6 @@ pub fn Browser() -> Element {
                         icon: IconName::Refresh,
                         label: "Rescan watched folders",
                         onclick: move |_| scan.restart(),
-                    }
-                    Button {
-                        variant: Variant::Ghost,
-                        icon: IconName::Plotter,
-                        onclick: move |_| {
-                            nav.push(Route::Remote {});
-                        },
-                        "Plotter remote"
                     }
                     div { class: "vsep" }
                     Button {

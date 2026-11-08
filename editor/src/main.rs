@@ -1,5 +1,9 @@
 #![allow(non_snake_case)]
-use crate::{model::window_state::WindowState, routes::Route};
+use crate::{
+    components::remote::{PlotterRemote, RemoteOpen},
+    model::window_state::WindowState,
+    routes::Route,
+};
 use dioxus::{
     desktop::{
         tao::event::{Event, WindowEvent},
@@ -25,7 +29,7 @@ fn app() -> Element {
         };
         // The builder position is taken as the content origin; set the frame position properly.
         window.set_outer_position(state.position());
-        if let Some(route) = state.route {
+        if let Some(route) = state.route.filter(|route| route.parse::<Route>().is_ok()) {
             history.push(route);
         }
     });
@@ -45,12 +49,14 @@ fn app() -> Element {
             }
         }
     });
+    use_context_provider(|| RemoteOpen(Signal::new(false)));
 
     rsx! {
         style { { include_str!("./main.css") } }
         style { { util::font_face_css() } }
         body {
             Router::<Route> {}
+            PlotterRemote {}
         }
     }
 }

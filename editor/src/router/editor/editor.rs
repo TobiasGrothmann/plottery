@@ -5,6 +5,7 @@ use crate::{
         image::*,
         loading_spinner::Loading,
         modal::{Modal, ModalWidth},
+        remote::RemoteOpen,
         resizer::{Axis, Resizer},
         ui::{Button, IconButton, PanelHeader, Size, StatusPill, Switch, Tone, Variant},
     },
@@ -148,6 +149,7 @@ impl PartialEq for LayerChangeWrapper {
 pub fn Editor(project_path: Vec<String>) -> Element {
     let loaded = use_hook(|| project_from_segments(&project_path).map_err(|e| e.to_string()));
     let nav = use_navigator();
+    let RemoteOpen(mut remote_open) = use_context::<RemoteOpen>();
     let Ok(loaded) = loaded else {
         tracing::error!(
             "Cannot open project, returning home: {}",
@@ -707,6 +709,12 @@ pub fn Editor(project_path: Vec<String>) -> Element {
                         }
                     }
                     div { class: "vsep" }
+                    IconButton {
+                        icon: IconName::Plotter,
+                        label: "Plotter remote",
+                        title: "Plotter remote (R)",
+                        onclick: move |_| remote_open.set(true),
+                    }
                     Button {
                         variant: Variant::Ghost,
                         icon: IconName::Sliders,
