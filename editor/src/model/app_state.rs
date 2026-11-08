@@ -1,6 +1,5 @@
 use dioxus_logger::tracing;
 use path_absolutize::Absolutize;
-use plottery_project::Project;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeSet,
@@ -103,9 +102,6 @@ pub struct AppState {
     /// Param sections the user collapsed, keyed `"{project_dir}#{section path}"`.
     #[serde(default)]
     pub collapsed_param_sections: BTreeSet<String>,
-    /// v1 project list, only read to migrate it into `roots`.
-    #[serde(rename = "projects", default, skip_serializing)]
-    legacy_projects: Vec<Project>,
 }
 
 fn default_tile_size() -> u32 {
@@ -122,7 +118,6 @@ impl Default for AppState {
             panel_layout: PanelLayout::default(),
             collapsed_sections: BTreeSet::new(),
             collapsed_param_sections: BTreeSet::new(),
-            legacy_projects: Vec::new(),
         }
     }
 }
@@ -143,7 +138,7 @@ impl AppState {
         path
     }
 
-    /// Loads the state file, migrating the v1 format; a missing or broken file yields a default.
+    /// Loads the state file; a missing or broken file yields a default.
     pub fn load_or_default() -> Self {
         let path = Self::get_save_file_path();
         if !path.exists() {
@@ -156,7 +151,7 @@ impl AppState {
         let parsed = File::open(&path)
             .map_err(anyhow::Error::from)
             .and_then(|file| serde_json::from_reader::<_, Self>(file).map_err(Into::into));
-        let mut state = match parsed {
+        match parsed {
             Ok(state) => state,
             Err(err) => {
                 tracing::error!("Failed to read app state, starting fresh: {err}");
@@ -166,31 +161,7 @@ impl AppState {
                 }
                 Self::default()
             }
-        };
-        state.migrate_v1();
-        state
-    }
-
-    fn migrate_v1(&mut self) {
-        if !self.roots.is_empty() || self.legacy_projects.is_empty() {
-            self.legacy_projects.clear();
-            return;
         }
-        let parents: Vec<PathBuf> = self
-            .legacy_projects
-            .iter()
-            .filter_map(|p| p.dir.parent().map(Path::to_path_buf))
-            .collect();
-        for parent in parents {
-            self.add_root(parent);
-        }
-        tracing::info!(
-            "Migrated {} projects into roots {:?}",
-            self.legacy_projects.len(),
-            self.roots
-        );
-        self.legacy_projects.clear();
-        self.save();
     }
 
     pub fn save(&self) {
