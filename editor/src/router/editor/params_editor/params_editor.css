@@ -112,6 +112,10 @@
   align-items: center;
   gap: 8px;
   padding: 0 12px 0 4px;
+  background: var(--bg-2);
+}
+.psection-head:hover {
+  background: var(--bg-3);
 }
 .psection-toggle {
   display: flex;
@@ -119,19 +123,16 @@
   min-width: 0;
   align-items: center;
   gap: 6px;
-  height: 32px;
+  height: 34px;
   padding: 0 4px;
   border: 0;
   background: transparent;
-  color: var(--fg-1);
-  font: 600 11px 'Inter', system-ui, sans-serif;
+  color: var(--fg-0);
+  font: 700 12px 'Inter', system-ui, sans-serif;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   text-align: left;
   cursor: pointer;
-}
-.psection-toggle:hover:not(:disabled) {
-  color: var(--fg-0);
 }
 .psection-toggle:disabled {
   color: var(--fg-2);
