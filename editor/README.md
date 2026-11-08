@@ -6,7 +6,7 @@ Check out the [releases on github](https://github.com/TobiasGrothmann/plottery/r
 
 ## Install on macOS
 
-This downloads the newest release and puts `PlotteryEditor.app` into `/Applications`, replacing an older version:
+This downloads the newest release and puts `PlotteryEditor.app` into `/Applications`, replacing an older version. If `cargo` is installed, it also installs the [`plottery` CLI](../cli) of the same version:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/TobiasGrothmann/plottery/main/editor/scripts/install_macos.sh | bash

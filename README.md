@@ -40,6 +40,8 @@ cargo install plottery_cli
 plottery new /path/to/folder awesome_project
 ```
 
+The [editor install script](./editor/README.md#install-on-macos) also installs the CLI. From a checkout, `cargo install --path cli` installs the unreleased version.
+
 Projects in **Plottery** are a [wrapper around a regular cargo project](./project). They support a couple of commands when run directly:
 
 ```sh
