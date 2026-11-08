@@ -154,6 +154,33 @@ impl Project {
         Ok((params, layer))
     }
 
+    /// Builds and returns the project's default params.
+    pub async fn build_and_get_params_async(
+        &self,
+        release: bool,
+        on_event: impl Fn(RunEvent),
+        cancel: impl Future<Output = ()>,
+    ) -> Result<ProjectParamsListWrapper, RunError> {
+        let mut cancel = std::pin::pin!(cancel);
+        self.build_async_streaming(release, &on_event, &mut cancel)
+            .await?;
+        self.get_params_stage(release, &[], &on_event, &mut cancel)
+            .await
+    }
+
+    /// Runs the already built project with `params`.
+    pub async fn run_with_params_async(
+        &self,
+        release: bool,
+        params: &ProjectParamsListWrapper,
+        on_event: impl Fn(RunEvent),
+        cancel: impl Future<Output = ()>,
+    ) -> Result<Layer, RunError> {
+        let mut cancel = std::pin::pin!(cancel);
+        self.run_stage(release, params, &on_event, &mut cancel)
+            .await
+    }
+
     async fn get_params_stage(
         &self,
         release: bool,

@@ -28,7 +28,7 @@ each pen into its own named sublayer. The user plots them one after another by h
 
 - `{{project-name}}/src/generate.rs`: `Params` and `generate`. Start here.
 - `{{project-name}}/Cargo.toml`: depends on `plottery_lib` (geometry) and `plottery_project` (params, runner).
-- `{{project-name}}.plottery`: project config. The `plottery` CLI takes this file.
+- `{{project-name}}.plottery`: project config. The `plottery` CLI finds it from any folder inside the project.
 - `resources/images/`, `resources/svgs/`: files the user picked for `ImagePath` and `SvgPath` params,
   copied in by the editor. The params hold paths relative to the project root.
 - `resources/` otherwise: editor state (the user's param values, plot settings, preview, thumbnail),
@@ -37,13 +37,14 @@ each pen into its own named sublayer. The user plots them one after another by h
 
 ## Build and render with the `plottery` CLI
 
-From the project root, next to `{{project-name}}.plottery`:
+Run it anywhere inside the project, it finds `{{project-name}}.plottery` upwards (or pass `-p <path>`):
 
 ```sh
-plottery build {{project-name}}.plottery                                # compile, shows warnings
-plottery render png {{project-name}}.plottery /tmp/{{project-name}}.png  # render to look at
-plottery render svg {{project-name}}.plottery /tmp/{{project-name}}.svg  # exact geometry
-plottery run {{project-name}}.plottery                                  # like the editor's Run button
+plottery build                                    # compile, shows warnings
+plottery params                                   # the user's param values
+plottery render /tmp/{{project-name}}.png         # render to look at, prints stats
+plottery render /tmp/a.png /tmp/a.svg --set size=12 --set glow.radius=2   # try other values
+plottery run                                      # like the editor's Run button
 ```
 
 `plottery --help` lists all commands. If `plottery` is missing or lacks a command, install the version
@@ -51,7 +52,19 @@ matching `plottery_project`: `cargo install plottery_cli`, or `cargo install --p
 
 The CLI works like the editor. It builds in release mode into the target directory the editor shares,
 and runs with the user's param values, so a render shows what the user sees.
-`plottery run` and `render --update-editor` also write the result into `resources/` for the editor.
+
+- `plottery params` prints one line per param: `name: type = value   (range or variants, default)   doc`.
+  Each name and value is valid for `--set NAME=VALUE`; nested fields are `glow.radius`, list items
+  `points.0`. Angles are `45deg`, vectors `1.5,2`, ranges `2..5`, colors `#rrggbb`, paper `A3 landscape`,
+  options `on`/`off`. File paths are relative to the project root.
+- `--set` and `--defaults` (the code's `#[value]`s) apply to that one command and never change the
+  user's saved values. Use `params --set ...` to check an override before rendering.
+- `render` writes `.png` (white, `--size` px on the long side, default 1600) and `.svg` files and prints
+  shape count, draw and travel length, and the bounds against the paper frame.
+- `plottery run` and `render --update-editor` write the result into `resources/` for the editor.
+  Don't use them to try things out: they replace what the user sees.
+- Compiler errors show paths relative to `{{project-name}}/`, e.g. `src/generate.rs` is
+  `{{project-name}}/src/generate.rs`.
 
 Cargo in `{{project-name}}/` behaves differently:
 
@@ -60,7 +73,8 @@ Cargo in `{{project-name}}/` behaves differently:
 
 Use cargo only for what the CLI doesn't do, such as `cargo add` or `cargo clippy`.
 
-**Done** means `plottery build` shows no warnings and you looked at a rendered png.
+**Done** means `plottery build` shows no warnings, you looked at a rendered png, and the bounds in
+the stats are where you meant the drawing to be.
 
 ## Plottery source
 

@@ -6,6 +6,8 @@ mod curve_2d_test;
 pub mod image_path;
 pub mod param_field;
 mod param_field_test;
+pub mod param_text;
+mod param_text_test;
 mod plottery_params_vec_test;
 pub mod project_param;
 pub mod project_param_enum;

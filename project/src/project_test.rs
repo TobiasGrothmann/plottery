@@ -110,7 +110,7 @@ mod tests {
 
         // test saving png
         let temp_png_path = temp_dir.path().join("temp.png");
-        project.write_png(temp_png_path.clone(), &generated_layer)?;
+        project.write_png(temp_png_path.clone(), &generated_layer, 512)?;
         assert!(temp_png_path.exists());
 
         Ok(())

@@ -19,7 +19,12 @@ use usvg::{fontdb, TreeParsing, TreeTextToPath};
 pub const EDITOR_THUMBNAIL_SIZE: u32 = 1024;
 
 /// Rasterizes SVG data to a PNG, scaled so the longest side is `max_size` when given.
-fn render_svg_to_png(svg_data: &[u8], path: &std::path::Path, max_size: Option<u32>) -> Result<()> {
+fn render_svg_to_png(
+    svg_data: &[u8],
+    path: &std::path::Path,
+    max_size: Option<u32>,
+    background: Option<tiny_skia::Color>,
+) -> Result<()> {
     let rtree = {
         let opt = usvg::Options::default();
         let mut fontdb = fontdb::Database::new();
@@ -38,6 +43,9 @@ fn render_svg_to_png(svg_data: &[u8], path: &std::path::Path, max_size: Option<u
     let height = ((size.height() * scale).ceil() as u32).max(1);
     let mut pixmap = tiny_skia::Pixmap::new(width, height)
         .ok_or_else(|| Error::msg("Failed to create pixmap"))?;
+    if let Some(background) = background {
+        pixmap.fill(background);
+    }
     rtree.render(
         tiny_skia::Transform::from_scale(scale, scale),
         &mut pixmap.as_mut(),
@@ -353,9 +361,15 @@ impl Project {
         layer.write_svg(path, 10.0)
     }
 
-    pub fn write_png(&self, path: PathBuf, layer: &Layer) -> Result<()> {
+    /// Writes a PNG on white, its longest side `max_size` pixels.
+    pub fn write_png(&self, path: PathBuf, layer: &Layer, max_size: u32) -> Result<()> {
         let svg_data = layer.to_svg(10.0).to_string();
-        render_svg_to_png(svg_data.as_bytes(), &path, None)
+        render_svg_to_png(
+            svg_data.as_bytes(),
+            &path,
+            Some(max_size),
+            Some(tiny_skia::Color::WHITE),
+        )
     }
 
     /// Params last used by the editor, empty when none were saved.
@@ -401,6 +415,7 @@ impl Project {
             svg_data,
             &self.get_editor_thumbnail_path(),
             Some(EDITOR_THUMBNAIL_SIZE),
+            None,
         )
     }
 
