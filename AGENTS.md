@@ -60,6 +60,7 @@ Use idiomatic rust - iterators, builder types, and functional programming.
 - Cargo workspace: `cargo build`, `cargo test`
 - Dioxus CLI (`dx`) for editor builds
 - Cross-compilation for Raspberry Pi server
+- `scripts/`: `install_macos.sh` (editor + matching CLI), `release_editor.sh`, `pre_release_checks.sh`, `raspi/` (server deploy)
 
 ## Testing
 

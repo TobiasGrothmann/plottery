@@ -25,6 +25,18 @@
 
 <br/>
 
+# Install
+
+On macOS, this downloads the newest editor release and puts `PlotteryEditor.app` into `/Applications`, replacing an older version. If `cargo` is installed, it also installs the [`plottery` CLI](./cli) of the same version:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/TobiasGrothmann/plottery/main/scripts/install_macos.sh | bash
+```
+
+From a checkout, `./scripts/install_macos.sh [dir]` does the same; pass a directory to install somewhere else. The dmg is not codesigned, so the script also removes the quarantine flag that would make macOS report the app as damaged.
+
+To install only the CLI, use `cargo install plottery_cli`. From a checkout, `cargo install --path cli` installs the unreleased version.
+
 # Editor
 
 The [Editor](./editor) lets you manage, preview and run **Plottery** projects.
@@ -39,8 +51,6 @@ To create a new project either use the [editor](./editor) or the [command line i
 cargo install plottery_cli
 plottery new /path/to/folder awesome_project
 ```
-
-The [editor install script](./editor/README.md#install-on-macos) also installs the CLI. From a checkout, `cargo install --path cli` installs the unreleased version.
 
 Projects in **Plottery** are a [wrapper around a regular cargo project](./project). They support a couple of commands when run directly:
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Installs the newest Plottery Editor release into /Applications (or the directory given as argument),
+# Installs Plottery on macOS: the newest editor release into /Applications (or the given directory)
 # and the plottery CLI of the same version when cargo is available.
 set -euo pipefail
 

@@ -1,6 +1,6 @@
 # Plottery CLI
 
-Creates, builds and renders Plottery projects. Install with `cargo install plottery_cli`.
+Creates, builds and renders Plottery projects. Install with `cargo install plottery_cli`, or on macOS together with the editor via the [install script](../README.md#install).
 
 Create a new project in the folder `sketches/my_sketch`:
 ```sh
