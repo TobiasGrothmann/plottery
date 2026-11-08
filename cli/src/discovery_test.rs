@@ -31,6 +31,6 @@ mod tests {
     fn no_file_is_an_error() {
         let temp = tempfile::tempdir().unwrap();
         let error = find_project_file(temp.path()).unwrap_err().to_string();
-        assert!(error.starts_with("No .plottery file in"), "{error}");
+        assert!(error.starts_with("No project found in"), "{error}");
     }
 }

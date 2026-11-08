@@ -32,7 +32,7 @@ pub fn find_project_file(start: &Path) -> Result<PathBuf> {
             [] => continue,
             [file] => return Ok(file.clone()),
             _ => bail!(
-                "Several projects in '{}': {}. Pick one with -p",
+                "Several projects in '{}': {}. Pass one, e.g. plottery run <file>",
                 dir.display(),
                 files
                     .iter()
@@ -43,7 +43,7 @@ pub fn find_project_file(start: &Path) -> Result<PathBuf> {
         }
     }
     bail!(
-        "No .plottery file in '{}' or its parent folders. Pass the project with -p",
+        "No project found in '{}' or its parent folders. Pass the project folder, e.g. plottery run <folder>",
         start.display()
     )
 }

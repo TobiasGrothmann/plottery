@@ -19,15 +19,16 @@ plottery run                                      # like the editor's Run button
 | Command | |
 |---|---|
 | `new <PATH> <NAME> [-l cratesio\|home\|PATH]` | create a project |
-| `build` | build the project |
-| `run` | build and run with the saved params, update the editor files |
-| `params [--defaults] [--set NAME=VALUE]...` | print the params, one `--set` target per line |
+| `build [PROJECT]` | build the project |
+| `run [PROJECT]` | build and run with the saved params, update the editor files |
+| `params [PROJECT] [--defaults] [--set NAME=VALUE]...` | print the params, one `--set` target per line |
 | `render <OUT>... [--defaults] [--set NAME=VALUE]... [--size PX] [--update-editor]` | render to `.png` and `.svg` files |
 | `set-home <PATH>` | set `PLOTTERY_HOME` for `new -l home` |
 | `version` | print the version |
 
-All project commands take `-p <PATH>`, a project folder or `.plottery` file. Without it the project
-is found from the current folder upwards.
+Project commands take the project folder or `.plottery` file as an argument, e.g.
+`plottery run ~/art/labyrinth` (`render` takes it with `-p`). Without it the project is found from
+the current folder upwards.
 
 `--set` and `--defaults` only apply to that command. The editor's saved values change only with
 `render --update-editor`, which saves what was rendered.

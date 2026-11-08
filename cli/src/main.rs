@@ -30,6 +30,30 @@ fn parse_lib_source(value: &str) -> LibSource {
 #[derive(Debug, Clone, Args)]
 struct ProjectArg {
     #[arg(
+        value_name = "PROJECT",
+        help = "Project folder or .plottery file [default: found from the current folder upwards]"
+    )]
+    path: Option<PathBuf>,
+    #[arg(
+        short,
+        long,
+        value_name = "PATH",
+        conflicts_with = "path",
+        help = "Same as PROJECT"
+    )]
+    project: Option<PathBuf>,
+}
+
+impl ProjectArg {
+    fn find(self) -> Result<Project> {
+        find_project(self.path.or(self.project))
+    }
+}
+
+/// `-p` only, for render, whose outputs are positional.
+#[derive(Debug, Clone, Args)]
+struct ProjectFlag {
+    #[arg(
         short,
         long,
         value_name = "PATH",
@@ -101,7 +125,7 @@ enum Command {
         )]
         outputs: Vec<PathBuf>,
         #[command(flatten)]
-        project: ProjectArg,
+        project: ProjectFlag,
         #[command(flatten)]
         params: ParamArgs,
         #[arg(
@@ -129,7 +153,8 @@ const AFTER_HELP: &str = "\
 Typical loop inside a project folder:
   plottery build                                  compile, show warnings
   plottery params                                 the user's param values
-  plottery render /tmp/a.png --set size=12        render with an override, print stats";
+  plottery render /tmp/a.png --set size=12        render with an override, print stats
+  plottery run ~/art/labyrinth                    run a project from anywhere";
 
 #[derive(Parser, Debug)]
 #[command(
@@ -154,6 +179,12 @@ enum OutputFormat {
 
 /// Format from the extension, and the folder must exist, so mistakes show before building.
 fn check_output(path: &Path) -> Result<OutputFormat> {
+    if path.is_dir() || path.extension().is_some_and(|ext| ext == "plottery") {
+        bail!(
+            "'{0}' is a project. Pass it with -p: plottery render -p {0} <OUT>...",
+            path.display()
+        );
+    }
     let extension = path
         .extension()
         .map(|ext| ext.to_string_lossy().to_lowercase());
@@ -231,12 +262,12 @@ pub fn main() -> Result<()> {
             println!("Created project at '{}'", project.dir.display());
         }
         Command::Build { project } => {
-            let project = find_project(project.project)?;
+            let project = project.find()?;
             block_on(project.build_async_streaming(RELEASE, &print_event, &mut pending()))?;
             println!("Built '{}'", project.dir.display());
         }
         Command::Run { project } => {
-            let project = find_project(project.project)?;
+            let project = project.find()?;
             let (params, _) = build_and_resolve_params(
                 &project,
                 &ParamArgs {
@@ -248,12 +279,13 @@ pub fn main() -> Result<()> {
                 block_on(project.run_with_params_async(RELEASE, &params, print_event, pending()))?;
             project.save_editor_outputs(&params, &layer)?;
             println!(
-                "Updated editor files in '{}'",
-                project.get_resource_dir().display()
+                "Ran '{}', the editor shows the new result",
+                project.config.name
             );
+            println!("{}", stats::format_stats(&layer, &params.list));
         }
         Command::Params { project, params } => {
-            let project = find_project(project.project)?;
+            let project = project.find()?;
             let (params, defaults) = build_and_resolve_params(&project, &params)?;
             println!("{}", params::format_params(&params.list, &defaults.list));
         }
