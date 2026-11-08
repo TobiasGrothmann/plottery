@@ -121,9 +121,11 @@ impl HexGrid {
     /// Outlines of all cells overlapping `bounds`, every edge drawn once.
     #[must_use]
     pub fn outlines(&self) -> Layer {
-        let axials: HashSet<V2i> = self.axials_overlapping(self.bounds).collect();
+        // iterate in generation order, the set is only for lookups
+        let ordered: Vec<V2i> = self.axials_overlapping(self.bounds).collect();
+        let axials: HashSet<V2i> = ordered.iter().copied().collect();
         let mut layer = Layer::new();
-        for &axial in &axials {
+        for &axial in &ordered {
             let cell = self.cell(axial);
             // own edges: towards the right, upper right and upper left neighbor
             layer.push(Path::new_from(vec![
