@@ -10,9 +10,10 @@ use plottery_project::{
 use tokio::sync::Mutex;
 
 use crate::components::{
-    icon::IconName,
+    icon::{Icon, IconName},
     ui::{Button, IconButton, Size, Switch, Variant},
 };
+use crate::model::app_state::AppState;
 use crate::router::editor::{
     console_messages::ConsoleMessages,
     params_editor::{
@@ -363,7 +364,7 @@ fn render_struct_value(
             {
                 let mut child_path = path.clone();
                 child_path.push(child.name.clone());
-                render_named_param(child, child_path, props, false)
+                render_named_param(child, child_path, props, true)
             }
         }
     }
@@ -520,14 +521,171 @@ fn is_struct(value: &ProjectParamValue) -> bool {
     }
 }
 
+fn child_path(parent: &[String], name: &str) -> Vec<String> {
+    parent.iter().cloned().chain([name.to_string()]).collect()
+}
+
+fn section_state_key(props: &ParamsEditorProps, section_path: &str) -> String {
+    format!("{}#{}", props.project_dir.to_string_lossy(), section_path)
+}
+
+/// Renders full-width rows, wrapping runs of params that share a `#[section]` in a `ParamSection`.
+fn render_param_list(
+    params: &[ProjectParam],
+    parent: &[String],
+    props: &ParamsEditorProps,
+) -> Element {
+    // Flat list so every sibling is keyed; Dioxus panics on mixed keyed/unkeyed siblings.
+    let groups = params
+        .chunk_by(|a, b| a.section == b.section)
+        .flat_map(|group| {
+            let rows = group
+                .iter()
+                .map(|param| render_named_param(param.clone(), child_path(parent, &param.name), props, false))
+                .collect::<Vec<_>>();
+            match &group[0].section {
+                None => rows,
+                Some(title) => {
+                    let section_path = child_path(parent, &format!("§{title}")).join(".");
+                    let state_key = section_state_key(props, &section_path);
+                    vec![rsx! {
+                        ParamSection { key: "{state_key}", state_key: state_key.clone(), title: title.clone(),
+                            {rows.into_iter()}
+                        }
+                    }]
+                }
+            }
+        })
+        .collect::<Vec<_>>();
+    rsx! { {groups.into_iter()} }
+}
+
+/// A `Struct` or `Option<Struct>` param as a collapsible section; `None` for any other value.
+fn render_struct_section(
+    param: &ProjectParam,
+    path: &[String],
+    props: &ParamsEditorProps,
+) -> Option<Element> {
+    let (fields, enabled) = match &param.value {
+        ProjectParamValue::Struct(param_struct) => (&param_struct.fields, None),
+        ProjectParamValue::Optional(optional) => match optional.value.as_ref() {
+            ProjectParamValue::Struct(param_struct) => {
+                (&param_struct.fields, Some(optional.enabled))
+            }
+            _ => return None,
+        },
+        _ => return None,
+    };
+    let state_key = section_state_key(props, &path.join("."));
+    let path_for_switch = path.to_vec();
+    let (project_params, project_runner, running_state, console, release) = (
+        props.project_params,
+        props.project_runner,
+        props.running_state,
+        props.console,
+        props.release,
+    );
+    let on_enabled = enabled.map(|_| {
+        EventHandler::new(move |enabled: bool| {
+            set_optional_enabled(
+                &path_for_switch,
+                enabled,
+                project_params,
+                project_runner,
+                running_state,
+                console,
+                release,
+            )
+        })
+    });
+    Some(rsx! {
+        ParamSection {
+            key: "{state_key}",
+            state_key: state_key.clone(),
+            title: param.formatted_name(),
+            description: param.description.clone(),
+            enabled,
+            on_enabled,
+            {render_param_list(fields, path, props)}
+        }
+    })
+}
+
+#[component]
+fn ParamSection(
+    state_key: String,
+    title: String,
+    description: Option<String>,
+    /// Shows a switch in the header; the body is hidden while it is off.
+    enabled: Option<bool>,
+    on_enabled: Option<EventHandler<bool>>,
+    children: Element,
+) -> Element {
+    let mut collapsed = use_signal(|| {
+        AppState::load_or_default()
+            .collapsed_param_sections
+            .contains(&state_key)
+    });
+    let switched_off = enabled == Some(false);
+    let open = !collapsed() && !switched_off;
+    let toggle_key = state_key.clone();
+
+    rsx! {
+        section { class: "psection",
+            div { class: "psection-head",
+                button {
+                    r#type: "button",
+                    class: "psection-toggle",
+                    title: description,
+                    disabled: switched_off,
+                    "aria-expanded": if open { "true" } else { "false" },
+                    onclick: move |_| {
+                        collapsed.set(!collapsed());
+                        let mut state = AppState::load_or_default();
+                        state.toggle_param_section(toggle_key.clone());
+                        state.save();
+                    },
+                    Icon {
+                        name: IconName::ChevronDown,
+                        class: if open { "sec-chevron" } else { "sec-chevron rot-90" },
+                    }
+                    span { class: "psection-title", "{title}" }
+                }
+                if let (Some(enabled), Some(on_enabled)) = (enabled, on_enabled) {
+                    Switch {
+                        checked: enabled,
+                        aria_label: "Enable {title}",
+                        onchange: move |enabled: bool| on_enabled.call(enabled),
+                    }
+                }
+            }
+            if open {
+                div { class: "psection-body", {children} }
+            }
+        }
+    }
+}
+
+/// `compact` renders a narrow label column for use inside another control (e.g. a vec item).
 fn render_named_param(
     param: ProjectParam,
     path: Vec<String>,
     props: &ParamsEditorProps,
-    top_level: bool,
+    compact: bool,
 ) -> Element {
+    if !compact {
+        if let Some(section) = render_struct_section(&param, &path, props) {
+            return section;
+        }
+    }
     let key = format!("param_{}", path.join("."));
     let formatted_name = param.formatted_name();
+    let description = param.description.clone();
+    let label_class = if description.is_some() {
+        "has-desc"
+    } else {
+        ""
+    };
     let item_count = vec_item_count(&param.value).map(|count| match count {
         1 => "1 item".to_string(),
         n => format!("{n} items"),
@@ -539,10 +697,10 @@ fn render_named_param(
     };
     let control = render_value_without_label(param.name, param.value, path, props);
 
-    if top_level {
+    if compact {
         rsx! {
-            div { class: "prow", key: "{key}",
-                div { class: "plabel",
+            div { class: sub_class, key: "{key}",
+                div { class: "sublabel {label_class}", title: description,
                     "{formatted_name}"
                     if let Some(item_count) = item_count {
                         span { class: "count", "{item_count}" }
@@ -553,8 +711,8 @@ fn render_named_param(
         }
     } else {
         rsx! {
-            div { class: sub_class, key: "{key}",
-                div { class: "sublabel",
+            div { class: "prow", key: "{key}",
+                div { class: "plabel {label_class}", title: description,
                     "{formatted_name}"
                     if let Some(item_count) = item_count {
                         span { class: "count", "{item_count}" }
@@ -568,15 +726,9 @@ fn render_named_param(
 
 #[component]
 pub fn ParamsEditor(props: ParamsEditorProps) -> Element {
+    let params = props.project_params.read().list.clone();
     rsx! {
         style { {include_str!("params_editor.css")} }
-        div { class: "ParamsEditor",
-            for param in props.project_params.read().list.iter().cloned() {
-                {
-                    let path = vec![param.name.clone()];
-                    render_named_param(param, path, &props, true)
-                }
-            }
-        }
+        div { class: "ParamsEditor", {render_param_list(&params, &[], &props)} }
     }
 }

@@ -99,3 +99,60 @@
   width: 96px;
   flex: none;
 }
+
+/* Collapsible sections from #[section] and substructs. */
+.psection {
+  border-bottom: 1px solid var(--line);
+}
+.psection:last-child {
+  border-bottom: 0;
+}
+.psection-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 0 4px;
+}
+.psection-toggle {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--fg-1);
+  font: 600 11px 'Inter', system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+}
+.psection-toggle:hover:not(:disabled) {
+  color: var(--fg-0);
+}
+.psection-toggle:disabled {
+  color: var(--fg-2);
+  cursor: default;
+}
+.psection-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.psection-body {
+  border-top: 1px solid var(--line);
+  padding-left: 10px;
+}
+.psection-body > .prow:last-child {
+  border-bottom: 0;
+}
+
+/* Labels with a /// description show it as a tooltip. */
+.ParamsEditor .has-desc {
+  text-decoration: underline dotted var(--fg-2);
+  text-underline-offset: 3px;
+  cursor: help;
+}

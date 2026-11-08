@@ -100,6 +100,9 @@ pub struct AppState {
     /// Project grid sections the user collapsed.
     #[serde(default)]
     pub collapsed_sections: BTreeSet<PathBuf>,
+    /// Param sections the user collapsed, keyed `"{project_dir}#{section path}"`.
+    #[serde(default)]
+    pub collapsed_param_sections: BTreeSet<String>,
     /// v1 project list, only read to migrate it into `roots`.
     #[serde(rename = "projects", default, skip_serializing)]
     legacy_projects: Vec<Project>,
@@ -118,6 +121,7 @@ impl Default for AppState {
             tile_size: TILE_SIZE_DEFAULT,
             panel_layout: PanelLayout::default(),
             collapsed_sections: BTreeSet::new(),
+            collapsed_param_sections: BTreeSet::new(),
             legacy_projects: Vec::new(),
         }
     }
@@ -231,6 +235,12 @@ impl AppState {
     pub fn toggle_section(&mut self, path: PathBuf) {
         if !self.collapsed_sections.remove(&path) {
             self.collapsed_sections.insert(path);
+        }
+    }
+
+    pub fn toggle_param_section(&mut self, key: String) {
+        if !self.collapsed_param_sections.remove(&key) {
+            self.collapsed_param_sections.insert(key);
         }
     }
 

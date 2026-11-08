@@ -6,10 +6,15 @@ use super::project_param_value::ProjectParamValue;
 pub struct ProjectParam {
     pub name: String,
     pub value: ProjectParamValue,
+    /// Editor section from `#[section("...")]`, carried forward to the following fields.
+    pub section: Option<String>,
+    /// From the field's `///` doc comment.
+    pub description: Option<String>,
 }
 
 impl PartialEq for ProjectParam {
     fn eq(&self, other: &Self) -> bool {
+        // section and description are display-only, so moving a field keeps its saved value.
         self.name == other.name && value_schema_equal(&self.value, &other.value)
     }
 }
@@ -73,6 +78,22 @@ impl ProjectParam {
         Self {
             name: name.to_string(),
             value,
+            section: None,
+            description: None,
+        }
+    }
+
+    pub fn with_section(self, section: &str) -> Self {
+        Self {
+            section: Some(section.to_string()),
+            ..self
+        }
+    }
+
+    pub fn with_description(self, description: &str) -> Self {
+        Self {
+            description: Some(description.to_string()),
+            ..self
         }
     }
 

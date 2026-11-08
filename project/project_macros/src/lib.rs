@@ -7,8 +7,10 @@ use syn::{
 /// Derives `PlotteryParams` and `ParamField` for a struct of named fields.
 ///
 /// Every field type must implement `ParamField`. `#[value(expr)]` sets the default,
-/// `#[range(min, max)]` restricts the value (needs `RangedParamField`).
-#[proc_macro_derive(PlotteryParams, attributes(value, range))]
+/// `#[range(min, max)]` restricts the value (needs `RangedParamField`),
+/// `#[section("Name")]` starts an editor section that runs until the next one,
+/// and `///` doc comments become the param's description.
+#[proc_macro_derive(PlotteryParams, attributes(value, range, section))]
 pub fn plottery_params(input: TokenStream) -> TokenStream {
     let ast = syn::parse(input).expect("Failed to parse macro.");
     plottery_params_impl(&ast)
@@ -24,6 +26,8 @@ pub fn plottery_enum(input: TokenStream) -> TokenStream {
 struct FieldAttributes {
     value: Option<proc_macro2::TokenStream>,
     range: Option<(proc_macro2::TokenStream, proc_macro2::TokenStream)>,
+    section: Option<String>,
+    description: Option<String>,
 }
 
 fn parse_attribute_args(list: &syn::MetaList, expected: usize) -> Vec<Expr> {
@@ -46,12 +50,29 @@ fn parse_field_attributes(field: &Field) -> FieldAttributes {
     let mut attributes = FieldAttributes {
         value: None,
         range: None,
+        section: None,
+        description: None,
     };
+    let mut doc_lines = Vec::new();
 
     for attr in &field.attrs {
+        if attr.path().is_ident("doc") {
+            if let Meta::NameValue(syn::MetaNameValue {
+                value:
+                    Expr::Lit(syn::ExprLit {
+                        lit: syn::Lit::Str(line),
+                        ..
+                    }),
+                ..
+            }) = &attr.meta
+            {
+                doc_lines.push(line.value().trim().to_string());
+            }
+            continue;
+        }
         let Meta::List(list) = &attr.meta else {
             panic!(
-                "Unknown attribute '{}'. Expected #[value(...)] or #[range(...)].",
+                "Unknown attribute '{}'. Expected #[value(...)], #[range(...)] or #[section(...)].",
                 attr.path().to_token_stream()
             );
         };
@@ -63,14 +84,26 @@ fn parse_field_attributes(field: &Field) -> FieldAttributes {
             let args = parse_attribute_args(list, 2);
             let (min, max) = (&args[0], &args[1]);
             attributes.range = Some((quote!(#min), quote!(#max)));
+        } else if list.path.is_ident("section") {
+            let title = list.parse_args::<syn::LitStr>().unwrap_or_else(|_| {
+                panic!("#[section] expects one string, e.g. #[section(\"Frames\")]")
+            });
+            attributes.section = Some(title.value());
         } else {
             panic!(
-                "Unknown attribute '{}'. Only #[value(...)] and #[range(...)] are supported for PlotteryParams fields.",
+                "Unknown attribute '{}'. Only #[value(...)], #[range(...)] and #[section(...)] are supported for PlotteryParams fields.",
                 list.path.to_token_stream()
             );
         }
     }
 
+    let description = doc_lines
+        .iter()
+        .filter(|line| !line.is_empty())
+        .cloned()
+        .collect::<Vec<_>>()
+        .join(" ");
+    attributes.description = Some(description).filter(|d| !d.is_empty());
     attributes
 }
 
@@ -160,6 +193,7 @@ fn plottery_params_impl(ast: &syn::DeriveInput) -> TokenStream {
     let mut defaults = Vec::new();
     let mut to_params = Vec::new();
     let mut from_map = Vec::new();
+    let mut current_section: Option<String> = None;
 
     for field in &fields.named {
         check_field_type(field);
@@ -167,18 +201,29 @@ fn plottery_params_impl(ast: &syn::DeriveInput) -> TokenStream {
         let field_name = ident.to_string();
         let ty = &field.ty;
         let attributes = parse_field_attributes(field);
+        if attributes.section.is_some() {
+            current_section = attributes.section.clone();
+        }
+        let metadata = {
+            let section = current_section.iter().map(|s| quote!(.with_section(#s)));
+            let description = attributes
+                .description
+                .iter()
+                .map(|d| quote!(.with_description(#d)));
+            quote!(#(#section)* #(#description)*)
+        };
 
         let default_value = attributes
             .value
             .map(|value| quote!({ let v: #ty = #value; v }));
         let default_tokens = field_value_tokens(ty, default_value, &attributes.range);
         defaults.push(quote! {
-            ::plottery_project::ProjectParam::new(#field_name, #default_tokens),
+            ::plottery_project::ProjectParam::new(#field_name, #default_tokens) #metadata,
         });
 
         let self_tokens = field_value_tokens(ty, Some(quote!(self.#ident)), &attributes.range);
         to_params.push(quote! {
-            ::plottery_project::ProjectParam::new(#field_name, #self_tokens),
+            ::plottery_project::ProjectParam::new(#field_name, #self_tokens) #metadata,
         });
 
         from_map.push(quote! {

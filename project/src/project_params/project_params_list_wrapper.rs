@@ -30,7 +30,10 @@ impl ProjectParamsListWrapper {
                 old.iter()
                     .find(|old_el| old_el.name == new_el.name)
                     .and_then(|old_el| Self::combine_values(&old_el.value, &new_el.value))
-                    .map(|merged| ProjectParam::new(new_el.name.as_str(), merged))
+                    .map(|value| ProjectParam {
+                        value,
+                        ..new_el.clone()
+                    })
                     .unwrap_or_else(|| new_el.clone())
             })
             .collect()

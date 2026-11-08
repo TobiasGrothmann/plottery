@@ -1,18 +1,27 @@
 use plottery_lib::*;
 use plottery_project::*;
 
+// Every field shows up in the editor.
+// `///` comments become tooltips on the param labels.
+// `#[section("..")]` groups this field and all following ones into a collapsible section.
 #[derive(PlotteryParams)]
 pub struct Params {
     #[value(Seed::new(1))]
     pub seed: Seed,
 
-    // paper size, orientation and margin
+    /// paper size, orientation and margin
     pub paper: Paper,
 
-    // each circle picks a random radius in this range
+    #[section("Circles")]
+    /// each circle picks a random radius in this range
     #[value(Range::new(0.05, 0.15))]
     #[range(0.02, 0.35)]
     pub circle_size: Range<f32>,
+
+    /// distance between neighbouring circles in the spiral
+    #[value(0.5)]
+    #[range(0.2, 2.0)]
+    pub spacing: f32,
 }
 
 pub fn generate(params: Params) -> Layer {
@@ -27,7 +36,7 @@ pub fn generate(params: Params) -> Layer {
     let circles = (1..)
         .map(|i| {
             let angle = Angle::golden_ratio() * i as f32;
-            let distance = (i as f32).sqrt() * 0.5;
+            let distance = (i as f32).sqrt() * params.spacing;
             spiral_center + V2::polar(angle, distance)
         })
         .take_while(|pos| pos.dist(spiral_center) < max_distance)

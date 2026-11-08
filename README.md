@@ -55,11 +55,14 @@ Projects expose parameters as a struct:
 ```rust
 #[derive(PlotteryParams)]
 pub struct Params {
+    paper: Paper,
+
+    #[section("Points")]
     num_points: i32,
+    /// distance between neighbouring points in cm
     #[value(2.0)]
     #[range(0.5, 10.0)]
     points_distance: f32,
-    paper: Paper,
 }
 ```
 
@@ -67,6 +70,9 @@ Supported field types are `f32`, `i32`, `bool`, `String`, `Paper`, `Range<f32>`,
 `Angle`, `V2`, `V2i`, `Seed`, `ImagePath`, `SvgPath`, `NoiseSettings`, `ColorRgb`, `Curve2D`, `Curve2DNorm`, enums deriving
 `PlotteryEnum`, nested structs deriving `PlotteryParams`, and `Option<T>` / `Vec<T>` of those.
 `#[value(..)]` sets the default, `#[range(min, max)]` shows a slider (or bounds for `Range`).
+`#[section("Name")]` starts a collapsible editor section that holds this and all following fields until the next `#[section]`;
+the struct stays flat. `///` doc comments are shown as tooltips on the param labels.
+Nested structs and `Option<Struct>` render as their own section, the latter with an on/off switch in the header.
 
 ### Generate
 

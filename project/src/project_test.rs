@@ -93,7 +93,8 @@ mod tests {
 
         // run to get params
         let params = project.run_get_params(release)?;
-        assert!(params.list.len() == 3);
+        assert_eq!(params.list.len(), 4);
+        assert_eq!(params.list[3].section.as_deref(), Some("Circles"));
 
         // run
         let generated_layer = project.run(release, &params)?;
