@@ -27,3 +27,9 @@
   background-image: conic-gradient(var(--checker-a) 25%, transparent 0 50%, var(--checker-a) 0 75%, transparent 0);
   background-size: 16px 16px;
 }
+
+/* svgs render at their intrinsic size, often tiny; scale them up to the preview height */
+.file-preview-svg {
+  height: 160px;
+  width: auto;
+}
