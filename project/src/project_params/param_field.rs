@@ -7,12 +7,14 @@ use super::angle_unit::AngleUnit;
 
 use super::curve_2d::Curve2D;
 use super::curve_2d_norm::Curve2DNorm;
-use super::image_path::{ImagePath, ProjectParamImage};
+use super::image_path::ImagePath;
 use super::project_param::ProjectParam;
+use super::project_param_file::ProjectParamFile;
 use super::project_param_optional::ProjectParamOptional;
 use super::project_param_value::ProjectParamValue;
 use super::project_param_vec::ProjectParamVec;
 use super::seed::{ProjectParamSeed, Seed};
+use super::svg_path::SvgPath;
 
 /// A type that can be used as a field of a `#[derive(PlotteryParams)]` struct.
 pub trait ParamField: Sized {
@@ -258,10 +260,10 @@ impl ParamField for Seed {
 
 impl ParamField for ImagePath {
     fn default_param_value() -> ProjectParamValue {
-        ProjectParamValue::Image(ProjectParamImage::default())
+        ProjectParamValue::Image(ProjectParamFile::default())
     }
     fn to_param_value(&self) -> ProjectParamValue {
-        ProjectParamValue::Image(ProjectParamImage::new(self.path.clone()))
+        ProjectParamValue::Image(ProjectParamFile::new(self.path.clone()))
     }
     fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
         match value {
@@ -269,6 +271,23 @@ impl ParamField for ImagePath {
                 path: image.path.clone(),
             }),
             other => Err(param_type_mismatch("image", other)),
+        }
+    }
+}
+
+impl ParamField for SvgPath {
+    fn default_param_value() -> ProjectParamValue {
+        ProjectParamValue::Svg(ProjectParamFile::default())
+    }
+    fn to_param_value(&self) -> ProjectParamValue {
+        ProjectParamValue::Svg(ProjectParamFile::new(self.path.clone()))
+    }
+    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
+        match value {
+            ProjectParamValue::Svg(svg) => Ok(SvgPath {
+                path: svg.path.clone(),
+            }),
+            other => Err(param_type_mismatch("svg", other)),
         }
     }
 }

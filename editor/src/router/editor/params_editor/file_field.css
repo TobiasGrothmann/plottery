@@ -1,10 +1,10 @@
-.image-downscale {
+.file-downscale {
   font-size: 12px;
   color: var(--fg-1);
   cursor: pointer;
 }
 
-.image-name {
+.file-name {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -12,11 +12,11 @@
   white-space: nowrap;
 }
 
-.image-missing {
+.file-missing {
   color: var(--err);
 }
 
-.image-preview {
+.file-preview {
   max-width: 100%;
   max-height: 160px;
   object-fit: contain;

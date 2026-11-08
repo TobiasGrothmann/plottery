@@ -9,27 +9,43 @@ pub const DOWNSCALE_MAX_PX: u32 = 2000;
 /// Folder inside the project where copied images live, relative to the project dir.
 pub const IMAGES_DIR: &str = "resources/images";
 
+/// Folder inside the project where copied svgs live, relative to the project dir.
+pub const SVGS_DIR: &str = "resources/svgs";
+
 /// Copies `source` into the project's image folder, optionally downscaled, and returns the
 /// path relative to the project dir. An identical file already present is reused.
 pub fn import_image(project_dir: &Path, source: &Path, downscale: bool) -> Result<String> {
-    let images_dir = project_dir.join(IMAGES_DIR);
-    std::fs::create_dir_all(&images_dir)
-        .with_context(|| format!("Failed to create {}", images_dir.display()))?;
-
     let bytes = if downscale {
         downscaled_bytes(source)?
     } else {
-        std::fs::read(source).with_context(|| format!("Failed to read {}", source.display()))?
+        read(source)?
     };
+    import_bytes(project_dir, IMAGES_DIR, source, &bytes)
+}
+
+/// Copies `source` into the project's svg folder, see [`import_image`].
+pub fn import_svg(project_dir: &Path, source: &Path) -> Result<String> {
+    import_bytes(project_dir, SVGS_DIR, source, &read(source)?)
+}
+
+fn read(source: &Path) -> Result<Vec<u8>> {
+    std::fs::read(source).with_context(|| format!("Failed to read {}", source.display()))
+}
+
+/// Writes `bytes` into `project_dir/dir` under the name of `source`, returns the relative path.
+fn import_bytes(project_dir: &Path, dir: &str, source: &Path, bytes: &[u8]) -> Result<String> {
+    let target_dir = project_dir.join(dir);
+    std::fs::create_dir_all(&target_dir)
+        .with_context(|| format!("Failed to create {}", target_dir.display()))?;
 
     let file_name = source
         .file_name()
-        .context("Image path has no file name")?
+        .context("File path has no file name")?
         .to_string_lossy()
         .to_string();
-    let target = unique_target(&images_dir, &file_name, &bytes)?;
+    let target = unique_target(&target_dir, &file_name, bytes)?;
     if !target.exists() {
-        std::fs::write(&target, &bytes)
+        std::fs::write(&target, bytes)
             .with_context(|| format!("Failed to write {}", target.display()))?;
     }
 
@@ -47,8 +63,7 @@ fn downscaled_bytes(source: &Path) -> Result<Vec<u8>> {
     let image = image::open(source)
         .with_context(|| format!("Failed to open image {}", source.display()))?;
     if image.width().max(image.height()) <= DOWNSCALE_MAX_PX {
-        return std::fs::read(source)
-            .with_context(|| format!("Failed to read {}", source.display()));
+        return read(source);
     }
     let resized = image.resize(DOWNSCALE_MAX_PX, DOWNSCALE_MAX_PX, FilterType::Triangle);
     let format = image::ImageFormat::from_path(source).unwrap_or(image::ImageFormat::Png);
@@ -83,8 +98,8 @@ fn unique_target(dir: &Path, file_name: &str, bytes: &[u8]) -> Result<PathBuf> {
     unreachable!()
 }
 
-/// Resolves a stored image path against the project dir, as the running project will.
-pub fn resolve_image_path(project_dir: &Path, stored: &str) -> PathBuf {
+/// Resolves a stored file param path against the project dir, as the running project will.
+pub fn resolve_stored_path(project_dir: &Path, stored: &str) -> PathBuf {
     let path = Path::new(stored);
     if path.is_absolute() {
         path.to_path_buf()

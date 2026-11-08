@@ -52,6 +52,7 @@ mod tests {
         #[value(Seed::new(7))]
         seed: Seed,
         image: ImagePath,
+        svg: SvgPath,
         #[value(NoiseSettings::default().with_type(NoiseType::Worley))]
         noise: NoiseSettings,
         #[value(ColorRgb::new(1.0, 0.0, 0.0))]
@@ -158,6 +159,7 @@ mod tests {
             center: V2::new(-3.0, 4.5),
             seed: Seed::new(-1),
             image: ImagePath::new("resources/images/a.png"),
+            svg: SvgPath::new("resources/svgs/a.svg"),
             noise: NoiseSettings::new(NoiseType::Simplex, 3.0, 4, NoiseScale::PerPaper),
             color: ColorRgb::new(0.2, 0.4, 0.6),
             cells: V2i::new(-1, 9),
@@ -184,6 +186,7 @@ mod tests {
         assert_eq!(params.center, V2::new(1.0, 2.0));
         assert_eq!(params.seed, Seed::new(7));
         assert_eq!(params.image, ImagePath::none());
+        assert_eq!(params.svg, SvgPath::none());
         assert_eq!(params.noise.noise_type, NoiseType::Worley);
         assert_eq!(params.color, ColorRgb::new(1.0, 0.0, 0.0));
         assert_eq!(params.cells, V2i::new(4, 6));

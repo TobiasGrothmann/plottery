@@ -64,7 +64,7 @@ pub struct Params {
 ```
 
 Supported field types are `f32`, `i32`, `bool`, `String`, `Paper`, `Range<f32>`, `Range<i32>`,
-`Angle`, `V2`, `V2i`, `Seed`, `ImagePath`, `NoiseSettings`, `ColorRgb`, `Curve2D`, `Curve2DNorm`, enums deriving
+`Angle`, `V2`, `V2i`, `Seed`, `ImagePath`, `SvgPath`, `NoiseSettings`, `ColorRgb`, `Curve2D`, `Curve2DNorm`, enums deriving
 `PlotteryEnum`, nested structs deriving `PlotteryParams`, and `Option<T>` / `Vec<T>` of those.
 `#[value(..)]` sets the default, `#[range(min, max)]` shows a slider (or bounds for `Range`).
 

@@ -2,7 +2,7 @@ use anyhow::Result;
 use plottery_lib::{ColorRgb, NoiseSettings, Paper, V2i, V2};
 
 use super::angle_unit::AngleUnit;
-use super::image_path::ProjectParamImage;
+use super::project_param_file::ProjectParamFile;
 use super::seed::ProjectParamSeed;
 use serde::{Deserialize, Serialize};
 
@@ -52,10 +52,11 @@ pub enum ProjectParamValue {
     },
     V2(V2),
     Seed(ProjectParamSeed),
-    Image(ProjectParamImage),
+    Image(ProjectParamFile),
     Noise(NoiseSettings),
     Color(ColorRgb),
     V2i(V2i),
+    Svg(ProjectParamFile),
 }
 
 impl ProjectParamValue {
@@ -147,6 +148,7 @@ impl ProjectParamValue {
             ProjectParamValue::Noise(_) => "noise".to_string(),
             ProjectParamValue::Color(_) => "color".to_string(),
             ProjectParamValue::V2i(_) => "v2i".to_string(),
+            ProjectParamValue::Svg(_) => "svg".to_string(),
         }
     }
 
@@ -184,8 +186,8 @@ impl ProjectParamValue {
             ),
             ProjectParamValue::V2(v) => format!("({}, {})", v.x, v.y),
             ProjectParamValue::Seed(seed) => seed.current.to_string(),
-            ProjectParamValue::Image(image) => {
-                image.file_name().unwrap_or_else(|| "none".to_string())
+            ProjectParamValue::Image(file) | ProjectParamValue::Svg(file) => {
+                file.file_name().unwrap_or_else(|| "none".to_string())
             }
             ProjectParamValue::Noise(noise) => format!(
                 "{:?} f={} o={} {:?}",

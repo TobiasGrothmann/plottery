@@ -21,7 +21,7 @@ use crate::router::editor::{
         color_field::ColorField,
         curve_2d_field::Curve2DField,
         enum_field::EnumField,
-        image_field::ImageField,
+        file_field::FileField,
         noise_field::NoiseField,
         number_field::NumberField,
         paper_field::PaperField,
@@ -328,9 +328,9 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, props: &ParamsEdito
                 SeedField { key: "{key}", ..LeafProps::new(param, path, props) }
             }
         }
-        ProjectParamValue::Image(_) => {
+        ProjectParamValue::Image(_) | ProjectParamValue::Svg(_) => {
             rsx! {
-                ImageField { key: "{key}", ..LeafProps::new(param, path, props) }
+                FileField { key: "{key}", ..LeafProps::new(param, path, props) }
             }
         }
         ProjectParamValue::Noise(_) => {
