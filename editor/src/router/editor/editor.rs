@@ -173,19 +173,10 @@ pub fn Editor(project_path: Vec<String>) -> Element {
 
     // ui state
     let project_params = use_signal_sync(|| {
-        // read params from binary file
-        let params_file_path = project().get_editor_params_path();
-        match std::fs::read(params_file_path) {
-            Ok(params_binary) => match deserialize(&params_binary) {
-                Ok(params) => ProjectParamsListWrapper::new(params),
-                Err(err) => {
-                    console()
-                        .error(format!("failed to deserialize project params: {:?}", err).as_str());
-                    ProjectParamsListWrapper::new(vec![])
-                }
-            },
-            Err(_) => ProjectParamsListWrapper::new(vec![]),
-        }
+        project().load_editor_params().unwrap_or_else(|err| {
+            console().error(format!("failed to load project params: {:?}", err).as_str());
+            ProjectParamsListWrapper::empty()
+        })
     });
     let plot_settings = use_signal_sync(|| {
         let plot_settings_file_path = project().get_editor_plot_settings_path();
@@ -324,11 +315,9 @@ pub fn Editor(project_path: Vec<String>) -> Element {
     // hooks for changes in project
     // params
     use_effect(move || {
-        let params_binary =
-            serialize(&(project_params())).expect("Failed to serialize project params");
-        let params_file_path = project().get_editor_params_path();
-        std::fs::write(params_file_path, params_binary)
-            .expect("Failed to write project params to file");
+        if let Err(e) = project().save_editor_params(&project_params()) {
+            tracing::error!("Failed to write project params to file: {:?}", e);
+        }
     });
     // plot settings
     use_effect(move || {
@@ -358,25 +347,17 @@ pub fn Editor(project_path: Vec<String>) -> Element {
         }
     });
     use_effect(move || {
-        let layer_path = project().get_editor_layer_path();
         if let Some(layer) = layer.read().layer.as_ref() {
-            let binary = layer.to_binary().expect("Failed to serialize layer");
-            match std::fs::write(layer_path, binary) {
-                Ok(_) => (),
-                Err(e) => tracing::error!("Failed to write layer to file: {:?}", e),
+            if let Err(e) = project().save_editor_layer(layer) {
+                tracing::error!("Failed to write layer to file: {:?}", e);
             }
         }
 
-        let svg_path = project().get_editor_preview_image_path();
         if let Some(svg) = svg() {
-            match std::fs::write(svg_path, &svg) {
-                Ok(_) => (),
-                Err(e) => tracing::error!("Failed to write .svg to file: {:?}", e),
-            }
             let project = project();
             tokio::task::spawn_blocking(move || {
-                if let Err(e) = project.write_editor_thumbnail(svg.as_bytes()) {
-                    tracing::error!("Failed to write thumbnail: {:?}", e);
+                if let Err(e) = project.save_editor_preview(&svg) {
+                    tracing::error!("Failed to write editor preview: {:?}", e);
                 }
             });
         }

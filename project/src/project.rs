@@ -348,25 +348,51 @@ impl Project {
         Ok(run_project_executable_async(&bin_path, &arguments, None, &self.dir).await?)
     }
 
-    pub fn write_svg(
-        &self,
-        path: PathBuf,
-        release: bool,
-        params: &ProjectParamsListWrapper,
-    ) -> Result<()> {
-        let layer = self.run(release, params)?;
-        layer.write_svg(path.clone(), 10.0)
+    pub fn write_svg(&self, path: PathBuf, layer: &Layer) -> Result<()> {
+        layer.write_svg(path, 10.0)
     }
 
-    pub fn write_png(
-        &self,
-        path: PathBuf,
-        release: bool,
-        params: &ProjectParamsListWrapper,
-    ) -> Result<()> {
-        let layer = self.run(release, params)?;
+    pub fn write_png(&self, path: PathBuf, layer: &Layer) -> Result<()> {
         let svg_data = layer.to_svg(10.0).to_string();
         render_svg_to_png(svg_data.as_bytes(), &path, None)
+    }
+
+    /// Params last used by the editor, empty when none were saved.
+    pub fn load_editor_params(&self) -> Result<ProjectParamsListWrapper> {
+        match std::fs::read(self.get_editor_params_path()) {
+            core::result::Result::Ok(binary) => Ok(bincode::deserialize(&binary)?),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                Ok(ProjectParamsListWrapper::empty())
+            }
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    pub fn save_editor_params(&self, params: &ProjectParamsListWrapper) -> Result<()> {
+        std::fs::write(self.get_editor_params_path(), bincode::serialize(params)?)?;
+        Ok(())
+    }
+
+    pub fn save_editor_layer(&self, layer: &Layer) -> Result<()> {
+        std::fs::write(self.get_editor_layer_path(), layer.to_binary()?)?;
+        Ok(())
+    }
+
+    /// Writes the editor preview SVG and the browser thumbnail rendered from it.
+    pub fn save_editor_preview(&self, svg: &str) -> Result<()> {
+        std::fs::write(self.get_editor_preview_image_path(), svg)?;
+        self.write_editor_thumbnail(svg.as_bytes())
+    }
+
+    /// Writes params, layer, preview and thumbnail, like a run in the editor.
+    pub fn save_editor_outputs(
+        &self,
+        params: &ProjectParamsListWrapper,
+        layer: &Layer,
+    ) -> Result<()> {
+        self.save_editor_params(params)?;
+        self.save_editor_layer(layer)?;
+        self.save_editor_preview(&layer.to_svg(1.0).to_string())
     }
 
     pub fn write_editor_thumbnail(&self, svg_data: &[u8]) -> Result<()> {

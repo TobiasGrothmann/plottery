@@ -32,3 +32,4 @@ rust-embed = "8.0.0"
 vfs = { version = "0.12.0", features = ["embedded-fs"] }
 set_env_perm = "2.0.0"
 walkdir = "2.5"
+nix = { version = "0.29", features = ["signal"] }

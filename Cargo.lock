@@ -5269,7 +5269,10 @@ checksum = "19f132c84eca552bf34cab8ec81f1c1dcc229b811638f9d283dceabe58c5569e"
 name = "plottery_cli"
 version = "0.13.0"
 dependencies = [
+ "anyhow",
  "clap",
+ "futures-lite",
+ "plottery_lib",
  "plottery_project",
 ]
 
@@ -5288,7 +5291,6 @@ dependencies = [
  "directories",
  "image",
  "log",
- "nix",
  "notify",
  "open",
  "path-absolutize",
@@ -5348,6 +5350,7 @@ dependencies = [
  "clap",
  "directories",
  "futures-lite",
+ "nix",
  "open",
  "path-absolutize",
  "plottery_lib",

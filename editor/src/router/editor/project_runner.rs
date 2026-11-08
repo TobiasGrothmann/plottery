@@ -1,9 +1,7 @@
 use crate::router::editor::running_state::RunningState;
 use dioxus::signals::{ReadableExt, SyncSignal, WritableExt};
-use plottery_lib::Layer;
 use plottery_project::{
-    process_lines_to_end, process_stderr_lines, process_stdout_lines,
-    project_params_list_wrapper::ProjectParamsListWrapper, read_object_from_stdout, Project,
+    project_params_list_wrapper::ProjectParamsListWrapper, Project, RunError, RunEvent, RunStage,
 };
 
 use super::{console_messages::ConsoleMessages, editor::LayerChangeWrapper};
@@ -14,6 +12,68 @@ pub struct ProjectRunner {
     cancel_tx: Option<tokio::sync::mpsc::Sender<()>>,
     layer: SyncSignal<LayerChangeWrapper>,
     params: SyncSignal<ProjectParamsListWrapper>,
+}
+
+fn stage_starting(stage: RunStage) -> (&'static str, RunningState) {
+    match stage {
+        RunStage::Build => (
+            "...starting build",
+            RunningState::StartingBuild {
+                msg: "starting build".to_string(),
+            },
+        ),
+        RunStage::GetParams => (
+            "...starting getting params",
+            RunningState::StartingGetParams {
+                msg: "starting getting params".to_string(),
+            },
+        ),
+        RunStage::Run => (
+            "...starting run",
+            RunningState::StartingRun {
+                msg: "starting run".to_string(),
+            },
+        ),
+    }
+}
+
+fn stage_running(stage: RunStage) -> (&'static str, RunningState) {
+    match stage {
+        RunStage::Build => (
+            "...building",
+            RunningState::Building {
+                msg: "building".to_string(),
+            },
+        ),
+        RunStage::GetParams => (
+            "...getting params",
+            RunningState::GetParams {
+                msg: "getting params".to_string(),
+            },
+        ),
+        RunStage::Run => (
+            "...running",
+            RunningState::Running {
+                msg: "running".to_string(),
+            },
+        ),
+    }
+}
+
+fn error_state(error: &RunError) -> RunningState {
+    let msg = error.to_string();
+    match error {
+        RunError::Failed { stage, .. } => match stage {
+            RunStage::Build => RunningState::BuildFailed { msg },
+            RunStage::GetParams => RunningState::GetParamsFailed { msg },
+            RunStage::Run => RunningState::RunFailed { msg },
+        },
+        RunError::Killed { stage } => match stage {
+            RunStage::Build => RunningState::BuildKilled { msg },
+            RunStage::GetParams => RunningState::GetParamsKilled { msg },
+            RunStage::Run => RunningState::RunKilled { msg },
+        },
+    }
 }
 
 impl ProjectRunner {
@@ -43,299 +103,52 @@ impl ProjectRunner {
         self.cancel_tx = Some(cancel_tx);
         let project = self.project.clone();
 
-        let mut layer_copy = self.layer;
-        let mut params_copy = self.params;
+        let mut layer = self.layer;
+        let params = self.params;
+        let saved_params = params.read().list.clone();
 
         console.read().info("spawning new task to run project");
-        let task = tokio::spawn(async move {
-            console.read().info("...starting build");
-            running_state.set(RunningState::StartingBuild {
-                msg: "starting build".to_string(),
-            });
-
-            // build while waiting for cancel signal
-            let build_process = project.build_async(release).await;
-            let mut run_process = match build_process {
-                Ok(process) => process,
-                Err(e) => {
-                    console
-                        .read()
-                        .error(format!("Error compiling project: {}", e).as_str());
-                    running_state.set(RunningState::BuildFailed {
-                        msg: "starting build failed".to_string(),
-                    });
-                    return;
-                }
+        tokio::spawn(async move {
+            // signals are Copy, copying them keeps the closure `Fn`
+            let on_event = move |event: RunEvent| {
+                let (mut running_state, mut params) = (running_state, params);
+                let (info, state) = match event {
+                    RunEvent::StageStarting(stage) => stage_starting(stage),
+                    RunEvent::StageRunning(stage) => stage_running(stage),
+                    RunEvent::Output(line) => {
+                        return console.read().project_message(line.as_str());
+                    }
+                    RunEvent::ParamsMerged(merged) => return params.set(merged),
+                };
+                console.read().info(info);
+                running_state.set(state);
+            };
+            let cancel = async move {
+                cancel_rx.recv().await;
             };
 
-            console.read().info("...building");
-            running_state.set(RunningState::Building {
-                msg: "building".to_string(),
-            });
-
-            let success: bool = tokio::select! {
-                _ = cancel_rx.recv() => {
-                    nix::sys::signal::kill(
-                        nix::unistd::Pid::from_raw(run_process.id() as i32),
-                        nix::sys::signal::SIGTERM,
-                    )
-                    .expect("Failed to kill build process");
-                    run_process.kill().expect("Failed to kill build process");
-                    console.read().error("build killed");
-                    running_state.set(RunningState::BuildKilled {
-                        msg: "build killed".to_string(),
-                    });
-                    false
-                }
-                build_status = process_stderr_lines(
-                    &mut run_process,
-                    |line| console.read().project_message(line.as_str()),
-                ) => {
-                    let success: bool = match build_status {
-                        Ok(status) => {
-                            if !status.success() {
-                                let msg = format!("build failed ({})", status.code().unwrap_or(-1));
-                                console.read().error(msg.as_str());
-                                running_state.set(RunningState::BuildFailed {
-                                    msg,
-                                });
-                                false
-                            } else {
-                                true
-                            }
-                        }
-                        Err(e) => {
-                            console.read().error(format!("error getting build status: {}", e).as_str());
-                            running_state.set(RunningState::BuildFailed {
-                                msg: "build failed (no status)".to_string(),
-                            });
-                            false
-                        }
-                    };
-                    success
-                }
-            };
-            if !success {
-                return;
-            }
-
-            // run get params while waiting for cancel signal
-            console.read().info("...starting getting params");
-            running_state.set(RunningState::StartingGetParams {
-                msg: "starting getting params".to_string(),
-            });
-
-            let get_params_process = project.run_get_params_async(release).await;
-            let mut get_params_process = match get_params_process {
-                Ok(process) => process,
-                Err(e) => {
-                    console
-                        .read()
-                        .error(format!("error getting params from project: {}", e).as_str());
-                    running_state.set(RunningState::GetParamsFailed {
-                        msg: "get params failed".to_string(),
-                    });
-                    return;
-                }
-            };
-
-            console.read().info("...getting params");
-            running_state.set(RunningState::GetParams {
-                msg: "getting params".to_string(),
-            });
-
-            let stderr_task = get_params_process.stderr.take().map(move |stderr| {
-                tokio::spawn(async move {
-                    process_lines_to_end(stderr, |line| {
-                        console.read().project_message(line.as_str())
-                    })
-                    .await
-                })
-            });
-
-            let read_params = tokio::select! {
-                _ = cancel_rx.recv() => {
-                    nix::sys::signal::kill(
-                        nix::unistd::Pid::from_raw(get_params_process.id() as i32),
-                        nix::sys::signal::SIGTERM,
-                    )
-                    .expect("Failed to kill get params process");
-                    get_params_process
-                        .kill()
-                        .expect("Failed to kill get params process");
-
-                    console.read().info("get params killed");
-                    running_state.set(RunningState::GetParamsKilled {
-                        msg: "get params killed".to_string(),
-                    });
-                    None
-                }
-                params_read = read_object_from_stdout::<ProjectParamsListWrapper>(&mut get_params_process) => {
-                    // getting layer from stdout of project executable
-                    match params_read {
-                        Ok(params_read) => Some(params_read),
-                        Err(e) => {
-                            running_state.set(RunningState::RunFailed {
-                                msg: "get params failed".to_string(),
-                            });
-                            console.read().error(format!("error receiving params from project: {}", e).as_str());
-                            None
-                        }
-                    }
-                }
-            };
-            if let Some(stderr_task) = stderr_task {
-                match stderr_task.await {
-                    Ok(Ok(())) => {}
-                    Ok(Err(e)) => {
-                        console
-                            .read()
-                            .error(format!("error receiving project stderr: {}", e).as_str());
-                    }
-                    Err(e) => {
-                        console
-                            .read()
-                            .error(format!("error receiving project stderr task: {}", e).as_str());
-                    }
-                }
-            }
-
-            if read_params.is_none() {
-                return;
-            }
-            let read_params = read_params.unwrap();
-
-            let new_params =
-                ProjectParamsListWrapper::new_combined(&params_copy.read().list, &read_params.list);
-            params_copy.set(new_params.clone());
-
-            // run while waiting for cancel signal
-            console.read().info("...starting run");
-            running_state.set(RunningState::StartingRun {
-                msg: "starting run".to_string(),
-            });
-
-            let run_process = project.run_async(release, &new_params).await;
-            let (mut run_process, named_pipe) = match run_process {
-                Ok(process) => process,
-                Err(e) => {
-                    console
-                        .read()
-                        .error(format!("Error running project: {}", e).as_str());
-                    running_state.set(RunningState::RunFailed {
-                        msg: "run failed".to_string(),
-                    });
-                    return;
-                }
-            };
-
-            console.read().info("...running");
-            running_state.set(RunningState::Running {
-                msg: "running".to_string(),
-            });
-
-            let stderr_task = run_process.stderr.take().map(move |stderr| {
-                tokio::spawn(async move {
-                    process_lines_to_end(stderr, |line| {
-                        console.read().project_message(line.as_str())
-                    })
-                    .await
-                })
-            });
-
-            let success = tokio::select! {
-                _ = cancel_rx.recv() => {
-                    nix::sys::signal::kill(
-                        nix::unistd::Pid::from_raw(run_process.id() as i32),
-                        nix::sys::signal::SIGTERM,
-                    )
-                    .expect("Failed to kill run process");
-                    run_process.kill().expect("Failed to kill run process");
-
-                    console.read().info("run killed");
-                    running_state.set(RunningState::RunKilled {
-                        msg: "run killed".to_string(),
-                    });
-                    false
-                }
-                exit_status = process_stdout_lines(
-                    &mut run_process,
-                    |line| console.read().project_message(line.as_str()),
-                ) => {
-                    match exit_status {
-                        Ok(status) => {
-                            if !status.success() {
-                                let msg = format!("run failed ({})", status.code().unwrap_or(-1));
-                                console.read().error(msg.as_str());
-                                running_state.set(RunningState::RunFailed {
-                                    msg,
-                                });
-                                false
-                            } else {
-                                true
-                            }
-                        }
-                        Err(e) => {
-                            console.read().error(format!("error getting running status: {}", e).as_str());
-                            running_state.set(RunningState::RunFailed {
-                                msg: "run failed (no status)".to_string(),
-                            });
-                            false
-                        }
-                    }
-                }
-            };
-            if let Some(stderr_task) = stderr_task {
-                match stderr_task.await {
-                    Ok(Ok(())) => {}
-                    Ok(Err(e)) => {
-                        console
-                            .read()
-                            .error(format!("error receiving project stderr: {}", e).as_str());
-                    }
-                    Err(e) => {
-                        console
-                            .read()
-                            .error(format!("error receiving project stderr task: {}", e).as_str());
-                    }
-                }
-            }
-
-            if !success {
-                return;
-            }
-
-            let layer_from_run = Layer::new_from_file(&named_pipe.path().to_path_buf());
-            match layer_from_run {
-                Ok(layer) => {
-                    // Publish Layer
+            match project
+                .build_and_run_async(release, &saved_params, on_event, cancel)
+                .await
+            {
+                Ok((_, new_layer)) => {
                     console.read().info("...updating editor");
                     running_state.set(RunningState::Updating {
                         msg: "updating editor".to_string(),
                     });
-
-                    let change_counter = layer_copy.read().change_counter;
-                    layer_copy.set(LayerChangeWrapper {
-                        layer: Some(layer),
+                    let change_counter = layer.read().change_counter;
+                    layer.set(LayerChangeWrapper {
+                        layer: Some(new_layer),
                         change_counter: change_counter + 1,
                     });
+                    console.read().info("done");
+                    running_state.set(RunningState::Idle);
                 }
-                Err(e) => {
-                    console
-                        .read()
-                        .error(format!("error reading layer from run: {}", e).as_str());
-                    running_state.set(RunningState::RunFailed {
-                        msg: "layer read from run failed".to_string(),
-                    });
-                    return;
+                Err(error) => {
+                    console.read().error(error.to_string().as_str());
+                    running_state.set(error_state(&error));
                 }
             }
-
-            console.read().info("done");
-            running_state.set(RunningState::Idle);
-        });
-        tokio::spawn(async move {
-            task.await.expect("task failed");
         });
     }
 }

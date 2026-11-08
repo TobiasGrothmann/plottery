@@ -16,6 +16,7 @@ mod util;
 
 mod project_main;
 mod project_params;
+mod project_pipeline;
 mod project_scan;
 mod project_scan_test;
 mod project_test;
@@ -27,6 +28,7 @@ pub use project::*;
 pub use project_config::*;
 pub use project_main::*;
 pub use project_params::*;
+pub use project_pipeline::*;
 pub use project_scan::*;
 pub use project_util::*;
 

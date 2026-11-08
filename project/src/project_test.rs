@@ -104,12 +104,12 @@ mod tests {
 
         // test saving svg
         let temp_svg_path = temp_dir.path().join("temp.svg");
-        project.write_svg(temp_svg_path.clone(), release, &params)?;
+        project.write_svg(temp_svg_path.clone(), &generated_layer)?;
         assert!(temp_svg_path.exists());
 
         // test saving png
         let temp_png_path = temp_dir.path().join("temp.png");
-        project.write_png(temp_png_path.clone(), release, &params)?;
+        project.write_png(temp_png_path.clone(), &generated_layer)?;
         assert!(temp_png_path.exists());
 
         Ok(())
