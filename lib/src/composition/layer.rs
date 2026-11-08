@@ -231,6 +231,9 @@ impl Layer {
             .set("viewBox", (origin.x, origin.y, size.x, size.y))
             .set("width", size.x)
             .set("height", size.y)
+            // Round like a real pen tip; the default miter join spikes at sharp corners.
+            .set("stroke-linejoin", "round")
+            .set("stroke-linecap", "round")
             .add(prepared.get_svg_group(scale, &LayerPropsInheritable::default()))
     }
     fn get_prepared_for_svg(&self) -> Layer {
