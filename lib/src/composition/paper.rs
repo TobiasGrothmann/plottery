@@ -85,12 +85,14 @@ impl Paper {
         Self { margin, ..self }
     }
 
-    /// Size in cm, oriented according to `landscape`.
+    /// Size in cm. DIN sizes follow `landscape`, custom sizes swap their axes when it is set.
     pub fn size(&self) -> V2 {
         let raw = match self.size {
             PaperSize::DinA(number) => V2::din_a(number.min(10)),
             PaperSize::DinB(number) => V2::din_b(number.min(10)),
-            PaperSize::Custom(size) => size,
+            PaperSize::Custom(size) => {
+                return if self.landscape { size.swap_axes() } else { size };
+            }
         };
         let (short, long) = (raw.min_axis(), raw.max_axis());
         if self.landscape {
@@ -135,7 +137,10 @@ impl fmt::Display for Paper {
         match self.size {
             PaperSize::DinA(number) => write!(f, "A{}", number)?,
             PaperSize::DinB(number) => write!(f, "B{}", number)?,
-            PaperSize::Custom(size) => write!(f, "{} × {} cm", size.x, size.y)?,
+            PaperSize::Custom(_) => {
+                let size = self.size();
+                return write!(f, "{} × {} cm", size.x, size.y);
+            }
         }
         if self.landscape {
             write!(f, " landscape")?;

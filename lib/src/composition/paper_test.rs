@@ -6,10 +6,13 @@ mod test_paper {
     fn landscape_swaps_axes() {
         let paper = Paper::din_a(4).with_landscape(true);
         assert_eq!(paper.size(), V2::new(29.7, 21.0));
-        assert_eq!(
-            Paper::custom(V2::new(30.0, 10.0)).size(),
-            V2::new(10.0, 30.0)
-        );
+    }
+
+    #[test]
+    fn custom_keeps_axes_unless_flipped() {
+        let paper = Paper::custom(V2::new(30.0, 10.0));
+        assert_eq!(paper.size(), V2::new(30.0, 10.0));
+        assert_eq!(paper.with_landscape(true).size(), V2::new(10.0, 30.0));
     }
 
     #[test]

@@ -204,7 +204,7 @@ pub fn FileField(props: LeafProps) -> Element {
         }
         if let Some(src) = preview_src {
             img {
-                class: "file-preview",
+                class: if kind == FileKind::Svg { "file-preview file-preview-svg" } else { "file-preview" },
                 src: "{src}",
                 title: current.clone().unwrap_or_default(),
             }

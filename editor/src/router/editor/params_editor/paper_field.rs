@@ -46,6 +46,11 @@ pub fn PaperField(props: LeafProps) -> Element {
         Margin::Cm(cm) => (0, cm),
         Margin::Fraction(fraction) => (1, fraction),
     };
+    let orientation_options: Vec<String> = if size_kind == 2 {
+        vec!["regular".to_string(), "axes flipped".to_string()]
+    } else {
+        vec!["portrait".to_string(), "landscape".to_string()]
+    };
     let resolved = paper.size();
     let resolved_text = format!(
         "{} × {} cm",
@@ -75,7 +80,11 @@ pub fn PaperField(props: LeafProps) -> Element {
                             paper.size = match index {
                                 0 => PaperSize::DinA(number),
                                 1 => PaperSize::DinB(number),
-                                _ => PaperSize::Custom(paper.with_landscape(false).size()),
+                                _ => {
+                                    let size = paper.size();
+                                    paper.landscape = false;
+                                    PaperSize::Custom(size)
+                                }
                             };
                         },
                     ),
@@ -138,7 +147,7 @@ pub fn PaperField(props: LeafProps) -> Element {
             span { class: "sublabel", "orientation" }
             div {
                 Segmented {
-                    options: vec!["portrait".to_string(), "landscape".to_string()],
+                    options: orientation_options,
                     selected: Some(if paper.landscape { 1 } else { 0 }),
                     onselect: move |index: usize| edit_paper(
                         &landscape_props,
