@@ -4,7 +4,7 @@ use plottery_server_lib::{
     pins::HARDWARE_CONSTS, plot_execution, plot_setting::PlotSettings, server_state::ServerState,
     task::Task,
 };
-use std::sync::{Arc, Mutex};
+use std::sync::{atomic::AtomicBool, Arc, Mutex};
 use std::thread;
 use tokio::sync::mpsc;
 
@@ -13,9 +13,11 @@ use crate::gpio_executor::GpioExecutor;
 pub fn start_server(
     mut receiver: mpsc::Receiver<Task>,
     server_state: Arc<Mutex<ServerState>>,
+    abort: Arc<AtomicBool>,
 ) -> anyhow::Result<()> {
     let executor = GpioExecutor::new(HARDWARE_CONSTS.pin_settings)?;
-    let mut hardware = Hardware::new(HARDWARE_CONSTS.hardware_profile, executor);
+    let mut hardware =
+        Hardware::new(HARDWARE_CONSTS.hardware_profile, executor).with_abort_flag(abort);
     sync_server_state(&server_state, &hardware, false);
 
     thread::spawn(move || {
@@ -24,6 +26,8 @@ pub fn start_server(
 
         while let Some(task) = receiver.blocking_recv() {
             println!("...received task");
+            // An abort sent while idle must not cancel this task.
+            hardware.clear_abort();
             match task {
                 Task::Plot {
                     layer,
@@ -67,28 +71,12 @@ pub fn start_server(
                     hardware.set_enabled(enabled);
                     sync_server_state(&server_state, &hardware, false);
                 }
-                Task::Abort => {
-                    todo!()
-                }
+                // Handled by the `/task` route, never queued.
+                Task::Abort => {}
                 Task::SetHead(head_down) => {
-                    let settings = PlotSettings::default();
-                    let speed_range = if head_down {
-                        settings.speed_head_down.clone()
-                    } else {
-                        settings.speed_head_up.clone()
-                    };
-
                     hardware.set_enabled(true);
                     sync_server_state(&server_state, &hardware, false);
-                    hardware.set_head(
-                        head_down,
-                        settings.head_travel_beyond_paper_cm,
-                        speed_range.accelleration_distance,
-                        SpeedDelayHandler::new_from_speed_range(
-                            &speed_range,
-                            HARDWARE_CONSTS.hardware_profile.dist_per_step_head_cm,
-                        ),
-                    );
+                    set_head(&mut hardware, head_down);
                     hardware.set_enabled(false);
                     sync_server_state(&server_state, &hardware, false);
                 }
@@ -137,6 +125,16 @@ pub fn start_server(
                 }
             }
 
+            if hardware.aborted() {
+                while receiver.try_recv().is_ok() {}
+                hardware.clear_abort();
+                hardware.set_enabled(true);
+                set_head(&mut hardware, false);
+                hardware.set_enabled(false);
+                sync_server_state(&server_state, &hardware, false);
+                println!("aborted");
+            }
+
             let stats = hardware.executor_mut().take_stats();
             if stats.steps > 0 {
                 println!("{}", stats.summary());
@@ -145,6 +143,25 @@ pub fn start_server(
     });
 
     Ok(())
+}
+
+/// Moves the head with the default head speeds.
+fn set_head(hardware: &mut Hardware<GpioExecutor>, head_down: bool) {
+    let settings = PlotSettings::default();
+    let speed_range = if head_down {
+        settings.speed_head_down
+    } else {
+        settings.speed_head_up
+    };
+    hardware.set_head(
+        head_down,
+        settings.head_travel_beyond_paper_cm,
+        speed_range.accelleration_distance,
+        SpeedDelayHandler::new_from_speed_range(
+            &speed_range,
+            HARDWARE_CONSTS.hardware_profile.dist_per_step_head_cm,
+        ),
+    );
 }
 
 fn sync_server_state(

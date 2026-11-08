@@ -1,3 +1,8 @@
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
+
 use plottery_lib::{geometry::v2i::V2i, *};
 
 use crate::{
@@ -24,6 +29,8 @@ pub struct Hardware<E: HardwareExecutor> {
     y: i32,
     head_down: bool,
 
+    abort: Arc<AtomicBool>,
+
     hardware_profile: crate::pins::HardwareProfile,
     executor: E,
 }
@@ -35,9 +42,24 @@ impl<E: HardwareExecutor> Hardware<E> {
             x: 0,
             y: 0,
             head_down: false,
+            abort: Arc::new(AtomicBool::new(false)),
             hardware_profile,
             executor,
         }
+    }
+
+    /// Shares `flag` so another thread can stop XY moves mid-step.
+    pub fn with_abort_flag(mut self, flag: Arc<AtomicBool>) -> Self {
+        self.abort = flag;
+        self
+    }
+
+    pub fn aborted(&self) -> bool {
+        self.abort.load(Ordering::Relaxed)
+    }
+
+    pub fn clear_abort(&self) {
+        self.abort.store(false, Ordering::Relaxed);
     }
 
     pub fn executor(&self) -> &E {
@@ -104,6 +126,9 @@ impl<E: HardwareExecutor> Hardware<E> {
         let path_factor = (movement_abs.x as f64).hypot(movement_abs.y as f64) / total_steps as f64;
 
         while stepped_x < movement_abs.x || stepped_y < movement_abs.y {
+            if self.aborted() {
+                return;
+            }
             let moved_fraction = (stepped_x as f32 + stepped_y as f32) / total_steps as f32;
             let speed_fraction =
                 speed_fraction_start + (speed_fraction_end - speed_fraction_start) * moved_fraction;

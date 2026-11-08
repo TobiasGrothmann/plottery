@@ -1,12 +1,18 @@
 #[cfg(test)]
 mod tests {
+    use std::sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    };
+
     use plottery_lib::V2;
 
     use crate::{
         accelleration::{accelleration_path::V2Speed, speed_delay_handler::SpeedDelayHandler},
         estimation::TimeEstimatorExecutor,
-        hardware::Hardware,
+        hardware::{Hardware, HardwareExecutor},
         pins::HARDWARE_CONSTS,
+        Axis,
     };
 
     const SPEED_CM_PER_S: f32 = 4.0;
@@ -70,5 +76,58 @@ mod tests {
         let (secs, pos) = move_from_origin(V2::zero());
         assert_eq!(secs, 0.0);
         assert_eq!(pos, V2::zero());
+    }
+
+    /// Counts steps and raises the abort flag after `abort_after` of them.
+    struct AbortingExecutor {
+        steps: [i32; 2],
+        abort_after: i32,
+        flag: Arc<AtomicBool>,
+    }
+
+    impl HardwareExecutor for AbortingExecutor {
+        fn set_dir(&mut self, _axis: Axis, _forward: bool) {}
+        fn step(&mut self, axis: Axis) {
+            match axis {
+                Axis::X => self.steps[0] += 1,
+                Axis::Y => self.steps[1] += 1,
+                _ => {}
+            }
+            if self.steps[0] + self.steps[1] == self.abort_after {
+                self.flag.store(true, Ordering::Relaxed);
+            }
+        }
+        fn wait_axis(&mut self, _axis: Axis, _delay_nanos: u32) {}
+        fn wait_xy(&mut self, _delay_nanos: u32) {}
+        fn set_enabled(&mut self, _enabled: bool) {}
+    }
+
+    #[test]
+    fn abort_stops_a_move_and_keeps_position_consistent() {
+        let profile = HARDWARE_CONSTS.hardware_profile;
+        let flag = Arc::new(AtomicBool::new(false));
+        let executor = AbortingExecutor {
+            steps: [0, 0],
+            abort_after: 100,
+            flag: flag.clone(),
+        };
+        let mut hardware = Hardware::new(profile, executor).with_abort_flag(flag);
+        let speed = SpeedDelayHandler::new(1.0, 1.0, profile.dist_per_step_axis_cm);
+        hardware.move_to(
+            1.0,
+            V2Speed {
+                point: point_at(30.0, 10.0),
+                speed: 1.0,
+            },
+            &speed,
+        );
+
+        let [x, y] = hardware.executor().steps;
+        assert_eq!(x + y, 100);
+        let step_cm = profile.dist_per_step_axis_cm;
+        assert_eq!(
+            hardware.get_pos(),
+            V2::new(x as f32 * step_cm, y as f32 * step_cm)
+        );
     }
 }

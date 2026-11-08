@@ -6,7 +6,10 @@ mod gpio_executor_test;
 mod task_handler;
 mod util;
 
-use std::sync::{Arc, Mutex};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, Mutex,
+};
 
 use plottery_server_lib::{server_state::ServerState, task::Task, HOST_PORT};
 use rocket::{
@@ -19,11 +22,16 @@ use tokio::sync::mpsc::{channel, Sender};
 struct ManagedState {
     task_sender: Sender<Task>,
     server_state: Arc<Mutex<ServerState>>,
+    abort: Arc<AtomicBool>,
 }
 
 #[post("/task", data = "<task_data>")]
 async fn set_task(managed_state: &State<ManagedState>, task_data: &[u8]) {
     let task = Task::from_binary(task_data).expect("Failed to decode task data from binary format");
+    if matches!(task, Task::Abort) {
+        managed_state.abort.store(true, Ordering::Relaxed);
+        return;
+    }
     managed_state
         .task_sender
         .send(task)
@@ -54,12 +62,14 @@ fn main() {
 async fn async_main() {
     let (task_sender, task_receiver) = channel::<Task>(32);
     let server_state = Arc::new(Mutex::new(ServerState::default()));
+    let abort = Arc::new(AtomicBool::new(false));
     let managed_state = ManagedState {
         task_sender,
         server_state: server_state.clone(),
+        abort: abort.clone(),
     };
 
-    match start_server(task_receiver, server_state) {
+    match start_server(task_receiver, server_state, abort) {
         Ok(_) => {}
         Err(e) => {
             eprintln!("Failed to initialize hardware {:?}", e);

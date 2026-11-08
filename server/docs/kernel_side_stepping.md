@@ -263,7 +263,7 @@ then find the real limits:
   note in the release is enough. Speed presets in the editor can come
   later.
 
-### 0.6 Abort
+### 0.6 Abort (done 2026-11-08, not yet run on the machine)
 
 Simple, because after an abort the plot is unrecoverable by definition:
 
@@ -277,6 +277,14 @@ Simple, because after an abort the plot is unrecoverable by definition:
   the channel with `try_recv`, and reports idle. Position is left as
   dead-reckoned; the user re-origins.
 - The Remote page gets an Abort button.
+
+As built, with one deviation: `set_head` does **not** check the flag.
+`head_down` flips only after the full travel, so an aborted head move
+would report a half-lowered pen as up and skip the post-abort lift. Head
+moves take a fraction of a second. `plot_shape` also checks after its
+travel, so an abort during travel does not lower the pen before the
+draw loop sees the flag. The cleanup enables motors before lifting, in
+case the abort landed during a task that had disabled them.
 
 ### 0.7 Crash safety
 
@@ -484,7 +492,7 @@ clean at 1.5× draw/travel). Open, in order:
 - 24 V ≥ 4 A motor supply (ordered 2026-10-17): check polarity with the
   meter, plug in, measure Vref on each module (`I = Vref × 1.25 A`), then
   0.5 retune.
-- 0.6 abort, 0.7 `ExecStopPost` motors-off, then the two-hour benchmark.
+- 0.6 abort (code done 2026-11-08, test on the machine), 0.7 `ExecStopPost` motors-off, then the two-hour benchmark.
 
 ## References
 

@@ -16,6 +16,9 @@ pub fn plot_layer<E: HardwareExecutor>(
     plot_settings: &PlotSettings,
 ) {
     for shape in layer.iter() {
+        if hardware.aborted() {
+            return;
+        }
         plot_shape(hardware, shape, sample_settings, plot_settings);
     }
 }
@@ -50,6 +53,9 @@ pub fn travel_to<E: HardwareExecutor>(
     );
 
     for (from, to) in acc_path.points.iter().tuple_windows() {
+        if hardware.aborted() {
+            return;
+        }
         hardware.move_to(from.speed, *to, &speed_travel);
     }
 }
@@ -88,6 +94,9 @@ pub fn plot_shape<E: HardwareExecutor>(
 
     // travel to start
     travel_to(hardware, accelleration_path.points[0].point, plot_settings);
+    if hardware.aborted() {
+        return;
+    }
 
     // draw
     hardware.set_head(
@@ -98,6 +107,9 @@ pub fn plot_shape<E: HardwareExecutor>(
     );
 
     for (from, to) in accelleration_path.points.iter().tuple_windows() {
+        if hardware.aborted() {
+            return;
+        }
         hardware.move_to(from.speed, *to, &speed_draw);
     }
 }
