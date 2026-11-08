@@ -2,7 +2,7 @@ use crate::{
     generate_cargo_project_to_disk, init_git_repo,
     project_params_list_wrapper::ProjectParamsListWrapper,
     project_util::{build_cargo_project_async, run_project_executable_async},
-    read_object_from_stdout, LibSource, ProjectConfig,
+    read_object_from_stdout, write_agents_md, LibSource, ProjectConfig,
 };
 
 use plottery_lib::*;
@@ -223,6 +223,8 @@ impl Project {
         if !resource_dir.exists() {
             std::fs::create_dir_all(resource_dir)?;
         }
+
+        write_agents_md(&self.dir, &self.config.name)?;
 
         if init_git {
             init_git_repo(&self.dir)?;

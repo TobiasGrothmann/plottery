@@ -11,6 +11,7 @@ use vfs::{EmbeddedFS, FileSystem};
 struct CargoProjectTemplate;
 
 static PLOTTERY_PROJECT_GITIGNORE: &str = include_str!("../resources/gitignore");
+static PLOTTERY_PROJECT_AGENTS_MD: &str = include_str!("../resources/AGENTS.md");
 
 fn get_fs() -> EmbeddedFS<CargoProjectTemplate> {
     EmbeddedFS::<CargoProjectTemplate>::new()
@@ -221,5 +222,17 @@ pub fn init_git_repo(dir: &PathBuf) -> Result<()> {
         gitignore_file.write_all(PLOTTERY_PROJECT_GITIGNORE.as_bytes())?;
     }
 
+    Ok(())
+}
+
+/// Writes `AGENTS.md` to the project root unless one exists.
+pub fn write_agents_md(dir: &Path, project_name: &str) -> Result<()> {
+    let path = dir.join("AGENTS.md");
+    if !path.exists() {
+        std::fs::write(
+            path,
+            PLOTTERY_PROJECT_AGENTS_MD.replace("{{project-name}}", project_name),
+        )?;
+    }
     Ok(())
 }

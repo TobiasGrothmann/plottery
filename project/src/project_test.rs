@@ -93,7 +93,7 @@ mod tests {
 
         // run to get params
         let params = project.run_get_params(release)?;
-        assert!(params.list.len() == 2);
+        assert!(params.list.len() == 3);
 
         // run
         let generated_layer = project.run(release, &params)?;
