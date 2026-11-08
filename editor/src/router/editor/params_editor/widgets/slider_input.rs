@@ -7,6 +7,8 @@ use super::format_number;
 /// Must match `.slider_thumb` width in slider_input.css.
 const THUMB_WIDTH_PX: f64 = 12.0;
 pub const ALT_SPEED_FACTOR: f64 = 0.25;
+/// Presses farther than this from the thumb centre jump the thumb to the mouse.
+const JUMP_DISTANCE_PX: f64 = 20.0;
 
 #[derive(PartialEq, Props, Clone)]
 pub struct SliderInputProps {
@@ -19,6 +21,9 @@ pub struct SliderInputProps {
     #[props(default)]
     pub label: Option<String>,
     pub oncommit: EventHandler<f32>,
+    /// Called on every drag move, before the commit on release.
+    #[props(default)]
+    pub oninput: Option<EventHandler<f32>>,
 }
 
 #[derive(Clone, Copy)]
@@ -38,6 +43,7 @@ fn snap(value: f32, props: &SliderInputProps) -> f32 {
 }
 
 /// Drag slider with relative movement (alt slows it down), commits on release.
+/// Pressing away from the thumb jumps it to the mouse first.
 #[component]
 pub fn SliderInput(props: SliderInputProps) -> Element {
     let mut slider_value = use_signal(|| props.value);
@@ -65,7 +71,10 @@ pub fn SliderInput(props: SliderInputProps) -> Element {
     };
 
     let (min, max) = (props.min, props.max);
+    let oninput = props.oninput;
     let props_for_commit = props.clone();
+    let props_for_input = props.clone();
+    let props_for_jump = props.clone();
     let commit = use_callback(move |_: ()| {
         props_for_commit
             .oncommit
@@ -91,9 +100,20 @@ pub fn SliderInput(props: SliderInputProps) -> Element {
                     event.prevent_default();
                     let Some(track) = track() else { return };
                     let last_x = event.client_coordinates().x;
+                    let props = props_for_jump.clone();
                     spawn(async move {
                         if let Ok(rect) = track.get_client_rect().await {
                             let px_range = (rect.size.width - THUMB_WIDTH_PX).max(1.0);
+                            let track_start = rect.origin.x + THUMB_WIDTH_PX / 2.0;
+                            let thumb_center = track_start + thumb_fraction as f64 * px_range;
+                            if (last_x - thumb_center).abs() > JUMP_DISTANCE_PX {
+                                let fraction = ((last_x - track_start) / px_range).clamp(0.0, 1.0);
+                                let value = min + fraction as f32 * (max - min);
+                                slider_value.set(value);
+                                if let Some(oninput) = props.oninput {
+                                    oninput.call(snap(value, &props));
+                                }
+                            }
                             drag.set(Some(DragState { last_x, px_range }));
                         }
                     });
@@ -116,7 +136,11 @@ pub fn SliderInput(props: SliderInputProps) -> Element {
                     let x = event.client_coordinates().x;
                     let speed = if event.modifiers().alt() { ALT_SPEED_FACTOR } else { 1.0 };
                     let delta = (x - state.last_x) * speed / state.px_range * (max - min) as f64;
-                    slider_value.set((slider_value() + delta as f32).clamp(min, max));
+                    let value = (slider_value() + delta as f32).clamp(min, max);
+                    slider_value.set(value);
+                    if let Some(oninput) = oninput {
+                        oninput.call(snap(value, &props_for_input));
+                    }
                     drag.set(Some(DragState { last_x: x, ..state }));
                 },
                 onmouseup: move |_| end_drag(),
