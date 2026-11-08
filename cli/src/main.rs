@@ -65,10 +65,12 @@ enum Command {
         #[arg(help = "Path to the plottery workspace directory")]
         path: String,
     },
+    #[command(about = "Print the plottery version")]
+    Version,
 }
 
 #[derive(Parser, Debug)]
-#[command(about="CLI helper to create and manager plottery projects", long_about = None)]
+#[command(name = "plottery", version, about="CLI helper to create and manager plottery projects", long_about = None)]
 struct Args {
     #[command(subcommand)]
     command: Command,
@@ -166,6 +168,7 @@ pub fn main() -> Result<()> {
             println!("PLOTTERY_HOME has been set to: {}", absolute_path_str);
             println!("This setting will persist across terminal sessions.");
         }
+        Command::Version => println!("plottery {}", env!("CARGO_PKG_VERSION")),
     }
     Ok(())
 }
