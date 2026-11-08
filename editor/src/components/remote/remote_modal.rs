@@ -172,6 +172,18 @@ fn RemoteInternal(props: RemoteInternalProps) -> Element {
                     if props.state.head_down { "Raise" } else { "Lower" }
                 }
             }
+
+            div { class: "remote_row",
+                span { class: "remote_label", "Plot" }
+                Button {
+                    variant: Variant::Primary,
+                    onclick: move |event: MouseEvent| async move {
+                        send_task(plottery_server_lib::Task::Abort).await.ok();
+                        event.stop_propagation();
+                    },
+                    "Abort"
+                }
+            }
         }
     }
 }
