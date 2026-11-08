@@ -114,7 +114,7 @@ impl Project {
 
     pub fn load_from_file(project_config_path: PathBuf) -> Result<Self> {
         let project_config_file = ProjectConfig::new_from_file(&project_config_path)?;
-        let mut project_config_dir = project_config_path.clone();
+        let mut project_config_dir = project_config_path.absolutize()?.to_path_buf();
         project_config_dir.pop();
         let loaded_project = Self {
             config: project_config_file,
