@@ -24,7 +24,7 @@ impl Panel {
         match self {
             Panel::Params => (260.0, 520.0, 340.0),
             Panel::Layers => (180.0, 400.0, 240.0),
-            Panel::Console => (72.0, 420.0, 168.0),
+            Panel::Console => (72.0, 800.0, 168.0),
         }
     }
 }
