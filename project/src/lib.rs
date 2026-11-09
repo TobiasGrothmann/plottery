@@ -1,10 +1,4 @@
-//! # Plottery project
-//!
-//! This library contains all necessary functionality to create and manage a **Plottery** project.
-//!
-//! A **Plottery** project is a wrapper around a cargo package:
-//!
-//! <img alt="folder structure" src="https://github.com/user-attachments/assets/d0066b16-5b75-4563-b625-88cc7d206a77" />
+#![doc = include_str!("../README.md")]
 
 // Lets generated code use `::plottery_project::` paths inside this crate as well.
 extern crate self as plottery_project;

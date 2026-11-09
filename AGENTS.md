@@ -57,10 +57,7 @@ Use idiomatic rust - iterators, builder types, and functional programming.
 
 ## Tools
 
-- Cargo workspace: `cargo build`, `cargo test`
-- Dioxus CLI (`dx`) for editor builds
-- Cross-compilation for Raspberry Pi server
-- `scripts/`: `install_macos.sh` (editor + matching CLI), `release_editor.sh`, `pre_release_checks.sh`, `raspi/` (server deploy)
+Building, local checkouts in projects, tests, editor screenshots and releasing: see `DEVELOPMENT.md`. Scripts live in `scripts/`.
 
 ## Testing
 
@@ -68,7 +65,9 @@ Add `*_test.rs` files for new functionality. Only if relevant, use `cargo` for t
 
 ## Publishing
 
-`lib`, `fonts`, `project`, and `cli` are published to crates.io. Workspace shares a single version in root `Cargo.toml`.
+All 8 workspace crates (including `editor`, `server`, `server_lib` and `project/project_macros`) are published to crates.io. Workspace shares a single version in root `Cargo.toml`.
+
+The `lib` and `project` READMEs are included as crate docs (`include_str!`), so their code blocks are doctests and their links must be absolute GitHub URLs.
 
 ## Common Pitfalls
 

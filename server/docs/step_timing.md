@@ -5,8 +5,7 @@ Plan for making the plotter stop losing steps.
 Fourth draft, 2026-09-15, after a Q&A that pinned down the hardware, the
 symptoms and the intent. Earlier drafts designed DMA and microcontroller
 backends first; those are now the escalation path at the end of this
-document, kept because the facts in them were hard-won. The file name is
-historical: nothing here runs in the kernel.
+document, kept because the facts in them were hard-won.
 
 ## Decisions and facts from the Q&A
 

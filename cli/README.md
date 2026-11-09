@@ -1,5 +1,7 @@
 # Plottery CLI
 
+Part of [**Plottery**](../README.md), a generative art engine for pen-plotters.
+
 Creates, builds and renders Plottery projects. Install with `cargo install plottery_cli`, or on macOS together with the editor via the [install script](../README.md#install).
 
 Create a new project in the folder `sketches/my_sketch`:
@@ -17,20 +19,4 @@ plottery run                                      # like the editor's Run button
 plottery open                                     # open the project in the editor
 ```
 
-| Command | |
-|---|---|
-| `new <PATH> <NAME> [-l cratesio\|home\|PATH]` | create a project |
-| `build [PROJECT]` | build the project |
-| `run [PROJECT]` | build and run with the saved params, update the editor files |
-| `open [PROJECT]` | open the project in the Plottery Editor (macOS) |
-| `params [PROJECT] [--defaults] [--set NAME=VALUE]...` | print the params, one `--set` target per line |
-| `render <OUT>... [--defaults] [--set NAME=VALUE]... [--size PX] [--update-editor]` | render to `.png` and `.svg` files |
-| `set-home <PATH>` | set `PLOTTERY_HOME` for `new -l home` |
-| `version` | print the version |
-
-Project commands take the project folder or `.plottery` file as an argument, e.g.
-`plottery run ~/art/labyrinth` (`render` takes it with `-p`). Without it the project is found from
-the current folder upwards.
-
-`--set` and `--defaults` only apply to that command. The editor's saved values change only with
-`render --update-editor`, which saves what was rendered.
+Project commands also take the project folder as an argument, e.g. `plottery run ~/art/labyrinth`. `plottery --help` lists all commands and `plottery <command> --help` their options.

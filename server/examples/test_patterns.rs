@@ -1,4 +1,4 @@
-//! Sends the Phase 0.2 test patterns from `server/docs/kernel_side_stepping.md`
+//! Sends the Phase 0.2 test patterns from `server/docs/step_timing.md`
 //! to the plotter server. Runs on the laptop and talks to `otter.local`.
 //!
 //! ```sh

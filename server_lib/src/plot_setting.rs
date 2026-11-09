@@ -24,7 +24,7 @@ impl Default for PlotSettings {
         // 2026-10 timing fix: the old settings (draw 0.4-4.5, travel
         // 0.6-7.0, head down 0.5-4.0, head up 1.5-7.0) were tuned against a
         // hidden 62 µs per step, which is now gone. Real limits are found in
-        // the retune (docs/kernel_side_stepping.md, 0.5).
+        // the retune (docs/step_timing.md, 0.5).
         PlotSettings {
             corner_slowdown_power: 0.2,
             head_travel_beyond_paper_cm: 0.3,
