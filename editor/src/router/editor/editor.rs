@@ -588,11 +588,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                         icon: IconName::ChevronLeft,
                         label: "Back to projects",
                         onclick: move |_| {
-                            if nav.can_go_back() {
-                                nav.go_back();
-                            } else {
-                                nav.replace(Route::Browser {});
-                            }
+                            nav.push(Route::Browser {});
                         },
                     }
                     div { class: "title-block", title: "{project().dir.to_string_lossy()}",
