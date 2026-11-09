@@ -3,7 +3,7 @@ use std::{
     sync::{Arc, Mutex, OnceLock},
 };
 
-use plottery_lib::{BundledFont, Font, Plottable, SampleSettings, Text};
+use plottery_lib::{BundledFont, Font, Plottable, SampleSettings, Text, V2};
 
 /// Shown when the font lacks most characters of its own name.
 const FALLBACK_TEXT: &str = "Aa Bb 123";
@@ -12,6 +12,8 @@ const REFERENCE_TOP: f32 = 0.8;
 const REFERENCE_BOTTOM: f32 = -0.25;
 /// Rows are ~20 px per em, so a few points per em are plenty.
 const POINTS_PER_EM: f32 = 16.0;
+/// WebKit draws zero-length subpaths with an unscaled round cap, a blob one em wide.
+const DOT_LENGTH: f32 = 0.01;
 
 /// A font's label drawn in itself, as one SVG path in em units with y pointing down.
 #[derive(Debug, Clone, PartialEq)]
@@ -99,17 +101,7 @@ fn render(font: BundledFont) -> FontPreview {
 
     let d = polylines
         .iter()
-        .map(|points| {
-            points
-                .iter()
-                .enumerate()
-                .map(|(i, p)| {
-                    let command = if i == 0 { 'M' } else { 'L' };
-                    format!("{command}{:.2} {:.2}", p.x - min_x, max_y - p.y)
-                })
-                .collect::<Vec<_>>()
-                .join(" ")
-        })
+        .map(|points| subpath(points, min_x, max_y))
         .collect::<Vec<_>>()
         .join(" ");
 
@@ -118,4 +110,21 @@ fn render(font: BundledFont) -> FontPreview {
         width: (max_x - min_x).max(f32::EPSILON),
         height: max_y - min_y,
     }
+}
+
+/// `M…L…` with y flipped; a stroke that rounds to one point (Mistral's dots) becomes a short dash.
+fn subpath(points: &[V2], min_x: f32, max_y: f32) -> String {
+    let coords: Vec<String> = points
+        .iter()
+        .map(|p| format!("{:.2} {:.2}", p.x - min_x, max_y - p.y))
+        .collect();
+    if coords.iter().all(|c| *c == coords[0]) {
+        return format!("M{} h{DOT_LENGTH}", coords[0]);
+    }
+    coords
+        .iter()
+        .enumerate()
+        .map(|(i, c)| format!("{}{c}", if i == 0 { 'M' } else { 'L' }))
+        .collect::<Vec<_>>()
+        .join(" ")
 }
