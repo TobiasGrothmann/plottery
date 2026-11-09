@@ -40,6 +40,9 @@
 .lvl-info {
   color: var(--accent);
 }
+.lvl-warn {
+  color: var(--warn);
+}
 .lvl-err {
   color: var(--err);
 }

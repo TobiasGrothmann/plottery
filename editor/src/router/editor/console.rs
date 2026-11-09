@@ -32,6 +32,7 @@ pub fn Console(props: ConsoleProps) -> Element {
         let (level, level_class) = match message.msg_type {
             ConsoleMessageType::Error => ("error", "lvl-err"),
             ConsoleMessageType::Info => ("info", "lvl-info"),
+            ConsoleMessageType::Warning => ("warn", "lvl-warn"),
             ConsoleMessageType::ProjectLog => ("log", "lvl-log"),
         };
         rsx! {

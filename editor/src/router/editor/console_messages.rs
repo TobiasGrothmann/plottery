@@ -6,6 +6,7 @@ use plottery_lib::rand_range_i;
 #[derive(Debug, Clone)]
 pub enum ConsoleMessageType {
     Info,
+    Warning,
     Error,
     ProjectLog,
 }
@@ -89,6 +90,13 @@ impl ConsoleMessages {
             .lock()
             .expect("Failed to lock console entries")
             .push(ConsoleMessage::new(msg, ConsoleMessageType::Info));
+        self.trigger_change();
+    }
+    pub fn warn(&self, msg: &str) {
+        self.entries
+            .lock()
+            .expect("Failed to lock console entries")
+            .push(ConsoleMessage::new(msg, ConsoleMessageType::Warning));
         self.trigger_change();
     }
     pub fn error(&self, msg: &str) {
