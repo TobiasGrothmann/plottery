@@ -1,50 +1,71 @@
 use plottery_lib::*;
 use plottery_project::*;
 
-// Every field shows up in the editor.
-// `///` comments become tooltips on the param labels.
-// `#[section("..")]` groups this field and all following ones into a collapsible section.
+// A grid of pebbles: closed Hobby splines through random points, with smaller rings inside.
 #[derive(PlotteryParams)]
 pub struct Params {
-    #[value(Seed::new(1))]
+    #[value(Seed::new(7))]
     pub seed: Seed,
 
     /// paper size, orientation and margin
     pub paper: Paper,
 
-    #[section("Circles")]
-    /// each circle picks a random radius in this range
-    #[value(Range::new(0.05, 0.15))]
-    #[range(0.02, 0.35)]
-    pub circle_size: Range<f32>,
+    /// side length of a grid cell in cm
+    #[value(3.0)]
+    #[range(1.0, 8.0)]
+    pub cell_size: f32,
 
-    /// distance between neighbouring circles in the spiral
-    #[value(0.5)]
-    #[range(0.2, 2.0)]
-    pub spacing: f32,
+    #[section("Pebbles")]
+    /// points each outline passes through
+    #[value(Range::new(4, 7))]
+    #[range(3, 12)]
+    pub knots: Range<i32>,
+
+    /// distance of the knots from the cell center, as a fraction of half the cell
+    #[value(Range::new(0.55, 0.95))]
+    #[range(0.1, 1.0)]
+    pub radius: Range<f32>,
+
+    /// higher pulls the curve tighter around the knots
+    #[value(1.0)]
+    #[range(0.75, 4.0)]
+    pub tension: f32,
+
+    /// smaller copies inside each pebble
+    #[value(5)]
+    #[range(0, 15)]
+    pub rings: i32,
 }
 
 pub fn generate(params: Params) -> Layer {
     params.seed.apply();
-
     let frame = params.paper.frame();
-    let inner = frame.inner_rect();
-    let spiral_center = frame.center();
-    let max_distance = inner.max_dist_to_any_corner(spiral_center);
+    let grid = Grid::with_cell_size(frame.inner_rect(), params.cell_size, 0.0);
+    let sample_settings = SampleSettings::default();
 
-    // circles in a golden-angle spiral, keeping only those inside the frame
-    let circles = (1..)
-        .map(|i| {
-            let angle = Angle::golden_ratio() * i as f32;
-            let distance = (i as f32).sqrt() * params.spacing;
-            spiral_center + V2::polar(angle, distance)
+    let pebbles = grid.iter().flat_map(|cell| {
+        let half = cell.width() * 0.5;
+        let num_knots = params.knots.sample();
+        let start = Angle::rand();
+
+        // one knot per sector around the center, so the outline never crosses itself
+        let knots = (0..num_knots).map(|i| {
+            let sector = (i as f32 + rand_range(-0.3, 0.3)) / num_knots as f32;
+            let angle = start + Angle::from_rotations(sector);
+            cell.center() + V2::polar(angle, params.radius.sample() * half)
+        });
+        let outline = Spline::through_closed_with_tension(knots, params.tension);
+
+        // the rings shrink towards a point near the center
+        let core = cell.center() + V2::random_unit_disk() * half * 0.15;
+        (0..=params.rings).map(move |ring| {
+            let scale = 1.0 - ring as f32 / (params.rings + 1) as f32;
+            outline.scale_around(core, scale).to_path(sample_settings)
         })
-        .take_while(|pos| pos.dist(spiral_center) < max_distance)
-        .filter(|pos| inner.contains_point(*pos))
-        .map(|pos| Circle::new(pos, params.circle_size.sample()));
+    });
 
     let mut l = Layer::new();
     l.push(frame.outer_rect());
-    l.push_many(circles);
+    l.push_many(pebbles);
     l.with_name("root").optimize_recursive()
 }
