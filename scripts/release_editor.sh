@@ -45,10 +45,10 @@ echo -e "${BLUE}Version: $VERSION${NC}"
 echo "========================================="
 echo ""
 
-DMG_SEARCH_ROOT="$REPO_ROOT/target/dx/PlotteryEditor/bundle/macos"
-if [ -d "$DMG_SEARCH_ROOT" ]; then
+BUNDLE_DIR="${CARGO_TARGET_DIR:-$REPO_ROOT/target}/dx/PlotteryEditor/bundle/macos"
+if [ -d "$BUNDLE_DIR" ]; then
   echo -e "${YELLOW}Cleaning up existing DMG files...${NC}"
-  find "$DMG_SEARCH_ROOT" -name "*.dmg" -type f -delete
+  find "$BUNDLE_DIR" -name "*.dmg" -type f -delete
   echo -e "${GREEN}✓ Cleanup complete${NC}"
   echo ""
 fi
@@ -56,30 +56,34 @@ fi
 echo -e "${YELLOW}Cleaning .DS_Store files from assets...${NC}"
 find "$EDITOR_DIR/public" -name ".DS_Store" -type f -delete
 
-echo -e "${YELLOW}Building .dmg using Dioxus CLI (dx)...${NC}"
+echo -e "${YELLOW}Building .app using Dioxus CLI (dx)...${NC}"
 (
   cd "$EDITOR_DIR"
-  dx bundle --release --platform desktop --package-types dmg
+  dx bundle --release --platform desktop --package-types macos
 )
+APP="$BUNDLE_DIR/macos/PlotteryEditor.app"
+if [ ! -d "$APP" ]; then
+  echo -e "${RED}✗ Error: No app bundle at $APP${NC}"
+  exit 1
+fi
 echo -e "${GREEN}✓ Build complete${NC}"
 echo ""
 
-echo -e "${YELLOW}Locating DMG file...${NC}"
-DMG_FILE=$(find "$DMG_SEARCH_ROOT" -name "*.dmg" -type f | head -n 1)
-
-if [ -z "$DMG_FILE" ]; then
-  echo -e "${RED}✗ Error: No DMG file found under $DMG_SEARCH_ROOT${NC}"
-  exit 1
-fi
-
-echo -e "${GREEN}✓ Found DMG file: $DMG_FILE${NC}"
+# dx 0.7.9 can't add document types to the Info.plist it generates, so merge them in afterwards
+echo -e "${YELLOW}Registering .plottery files in Info.plist...${NC}"
+/usr/libexec/PlistBuddy -c "Merge $EDITOR_DIR/document_types.plist" "$APP/Contents/Info.plist"
+echo -e "${GREEN}✓ Info.plist updated${NC}"
 echo ""
 
 RENAMED_DMG_NAME="PlotteryEditor_v$VERSION.dmg"
-RENAMED_DMG="$(dirname "$DMG_FILE")/$RENAMED_DMG_NAME"
-echo -e "${YELLOW}Renaming DMG file...${NC}"
-cp "$DMG_FILE" "$RENAMED_DMG"
-echo -e "${GREEN}✓ Renamed to: $RENAMED_DMG_NAME${NC}"
+RENAMED_DMG="$BUNDLE_DIR/$RENAMED_DMG_NAME"
+echo -e "${YELLOW}Creating $RENAMED_DMG_NAME...${NC}"
+STAGING=$(mktemp -d)
+cp -R "$APP" "$STAGING/"
+ln -s /Applications "$STAGING/Applications"
+hdiutil create -volname PlotteryEditor -srcfolder "$STAGING" -ov -format UDZO "$RENAMED_DMG"
+rm -rf "$STAGING"
+echo -e "${GREEN}✓ DMG created${NC}"
 echo ""
 
 if [ "$UPLOAD" = "true" ]; then
