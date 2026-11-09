@@ -2,6 +2,13 @@ use plottery_lib::*;
 use plottery_project::*;
 
 // A spiral path masked to the inside of the paper margin.
+#[derive(PlotteryEnum, Clone, Copy)]
+pub enum Direction {
+    #[default]
+    CounterClockwise,
+    Clockwise,
+}
+
 #[derive(PlotteryParams)]
 pub struct Params {
     /// paper size, orientation and margin
@@ -9,6 +16,13 @@ pub struct Params {
     pub paper: Paper,
 
     #[section("Spiral")]
+    /// center in cm, click the drawing to move it
+    #[value(V2::new(7.4, 5.25))]
+    pub center: V2,
+
+    /// which way the spiral turns going outwards
+    pub direction: Direction,
+
     /// points along the whole spiral
     #[value(2000)]
     #[range(100, 10000)]
@@ -27,13 +41,17 @@ pub struct Params {
 
 pub fn generate(params: Params) -> Layer {
     let frame = params.paper.frame();
+    let turns = match params.direction {
+        Direction::CounterClockwise => params.rotations,
+        Direction::Clockwise => -params.rotations,
+    };
 
     // collect polar points into a path, the radius grows with every point
     let spiral: Path = (0..params.num_points)
         .map(|i| {
             let t = i as f32 / params.num_points as f32;
-            let angle = Angle::from_rotations(t * params.rotations);
-            frame.center() + V2::polar(angle, t * params.radius)
+            let angle = Angle::from_rotations(t * turns);
+            params.center + V2::polar(angle, t * params.radius)
         })
         .collect();
 

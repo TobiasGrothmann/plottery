@@ -89,7 +89,7 @@ Run it in the [editor](./editor), with `plottery run`, or with `cargo run svg` t
 <a href="./examples/pebbles"><img src="./examples/pebbles/preview.png" width="19%" /></a>
 <a href="./examples/poster"><img src="./examples/poster/preview.png" width="19%" /></a>
 
-* [**spiral**](./examples/spiral/spiral/src/generate.rs): a path collected from polar points, masked to the margin, in named and colored sublayers.
+* [**spiral**](./examples/spiral/spiral/src/generate.rs): a path collected from polar points, masked to the margin, in named and colored sublayers. Its center is set by clicking the drawing, its direction by an enum.
 * [**scribbles**](./examples/scribbles/scribbles/src/generate.rs): squares that dissolve into scribbles, with a seed, a noise param, an easing curve and random ranges.
 * [**pebbles**](./examples/pebbles/pebbles/src/generate.rs): closed Hobby splines through random points, with rings inside.
 * [**poster**](./examples/poster/poster/src/generate.rs): a title fitted to the page width and a wrapped paragraph, fonts and text set in the editor.
