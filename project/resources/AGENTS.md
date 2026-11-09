@@ -124,7 +124,7 @@ constants in code. Where to find out what is possible, all in `plottery_project`
 Choosing well:
 
 - Use the most specific type: `Angle` instead of an `f32` in radians, `Range` for a random min/max,
-  `V2` for a position, `Seed` for randomness, a `PlotteryEnum` for modes.
+  `V2` for a position, `Seed` for randomness, `BundledFont` for a font, a `PlotteryEnum` for modes.
 - Put a feature that can be switched off into `Option<SomeParamsStruct>`. It shows as a checkbox with its own section.
 - Bound sliders with `#[range]` to values that give sensible results.
 - Describe every param with `///` and state its unit. Group params with `#[section("..")]`, not `// ---` comments.

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 pub use anyhow::Error as ParamFieldError;
-use plottery_lib::{Angle, ColorRgb, Easing, NoiseSettings, Paper, Range, V2i, V2};
+use plottery_lib::{Angle, BundledFont, ColorRgb, Easing, NoiseSettings, Paper, Range, V2i, V2};
 
 use super::angle_unit::AngleUnit;
 
@@ -348,6 +348,22 @@ impl ParamField for V2i {
         match value {
             ProjectParamValue::V2i(v) => Ok(*v),
             other => Err(param_type_mismatch("v2i", other)),
+        }
+    }
+}
+
+impl ParamField for BundledFont {
+    fn default_param_value() -> ProjectParamValue {
+        BundledFont::EmsReadability.to_param_value()
+    }
+    fn to_param_value(&self) -> ProjectParamValue {
+        ProjectParamValue::Font(self.name().to_string())
+    }
+    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
+        match value {
+            ProjectParamValue::Font(name) => BundledFont::from_name(name)
+                .ok_or_else(|| anyhow::anyhow!("unknown bundled font '{}'", name)),
+            other => Err(param_type_mismatch("font", other)),
         }
     }
 }

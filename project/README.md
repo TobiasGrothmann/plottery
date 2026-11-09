@@ -74,7 +74,7 @@ pub struct Params {
 Supported field types:
 
 - `f32`, `i32`, `bool`, `String`
-- `Paper`, `Range<f32>`, `Range<i32>`, `Angle`, `V2`, `V2i`, `Seed`, `Easing`, `ColorRgb`, `NoiseSettings`
+- `Paper`, `Range<f32>`, `Range<i32>`, `Angle`, `V2`, `V2i`, `Seed`, `Easing`, `ColorRgb`, `NoiseSettings`, `BundledFont`
 - `ImagePath`, `SvgPath`, `Curve2D`, `Curve2DNorm`
 - enums deriving `PlotteryEnum`, with `#[default]` on one variant
 - nested structs deriving `PlotteryParams`. They render as their own section.

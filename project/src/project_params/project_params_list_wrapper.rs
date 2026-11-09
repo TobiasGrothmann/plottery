@@ -71,6 +71,10 @@ impl ProjectParamsListWrapper {
                     variants: new_enum.variants.clone(),
                 }))
             }
+            (ProjectParamValue::Font(old_name), ProjectParamValue::Font(_)) => {
+                let known = plottery_lib::BundledFont::from_name(old_name).is_some();
+                Some(if known { old.clone() } else { new.clone() })
+            }
             _ => {
                 let old_schema = ProjectParam::new("__schema", old.clone());
                 let new_schema = ProjectParam::new("__schema", new.clone());

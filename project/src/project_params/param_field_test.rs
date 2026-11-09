@@ -2,8 +2,8 @@
 mod tests {
     use crate::*;
     use plottery_lib::{
-        Angle, ColorRgb, Easing, Margin, NoiseScale, NoiseSettings, NoiseType, Paper, Range, V2i,
-        V2,
+        Angle, BundledFont, ColorRgb, Easing, Margin, NoiseScale, NoiseSettings, NoiseType, Paper,
+        Range, V2i, V2,
     };
 
     #[derive(PlotteryEnum, Debug, Clone, Copy, PartialEq)]
@@ -62,6 +62,9 @@ mod tests {
         color: ColorRgb,
         #[value(V2i::new(4, 6))]
         cells: V2i,
+        #[value(BundledFont::HersheyScript)]
+        font: BundledFont,
+        default_font: BundledFont,
     }
 
     #[test]
@@ -167,6 +170,8 @@ mod tests {
             easing: Easing::s_curve(0.4),
             color: ColorRgb::new(0.2, 0.4, 0.6),
             cells: V2i::new(-1, 9),
+            font: BundledFont::Zniko,
+            default_font: BundledFont::EmsBird,
         };
 
         let round_tripped = Params::new_from_list(params.to_params_list());
@@ -195,6 +200,8 @@ mod tests {
         assert_eq!(params.easing, Easing::power(-0.5));
         assert_eq!(params.color, ColorRgb::new(1.0, 0.0, 0.0));
         assert_eq!(params.cells, V2i::new(4, 6));
+        assert_eq!(params.font, BundledFont::HersheyScript);
+        assert_eq!(params.default_font, BundledFont::EmsReadability);
     }
 
     #[test]
@@ -210,6 +217,13 @@ mod tests {
         let value = ProjectParamValue::Enum(ProjectParamEnum::new("Squares", &["Lines"]));
         let err = Mode::from_param_value(&value).unwrap_err();
         assert!(format!("{err:#}").contains("Squares"), "{err:#}");
+    }
+
+    #[test]
+    fn unknown_font_is_an_error() {
+        let value = ProjectParamValue::Font("Comic".to_string());
+        let err = BundledFont::from_param_value(&value).unwrap_err();
+        assert!(format!("{err:#}").contains("Comic"), "{err:#}");
     }
 
     #[test]

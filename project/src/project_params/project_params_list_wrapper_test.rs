@@ -253,4 +253,21 @@ mod tests {
         let combined = ProjectParamsListWrapper::new_combined(&old, &new);
         assert_eq!(combined.list, old);
     }
+
+    #[test]
+    fn test_combine_font_keeps_known_and_resets_removed_name() {
+        let font = |name: &str| ProjectParamValue::Font(name.to_string());
+        let old = vec![
+            ProjectParam::new("kept", font("EmsBird")),
+            ProjectParam::new("removed", font("NoLongerBundled")),
+        ];
+        let new = vec![
+            ProjectParam::new("kept", font("EmsReadability")),
+            ProjectParam::new("removed", font("EmsReadability")),
+        ];
+
+        let combined = ProjectParamsListWrapper::new_combined(&old, &new);
+        let values: Vec<_> = combined.list.into_iter().map(|p| p.value).collect();
+        assert_eq!(values, vec![font("EmsBird"), font("EmsReadability")]);
+    }
 }

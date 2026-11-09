@@ -65,6 +65,14 @@ macro_rules! bundled_fonts {
         impl BundledFont {
             pub const ALL: &'static [BundledFont] = &[$(BundledFont::$variant),*];
 
+            /// Variant name, stable across reorderings; used to store the font in params.
+            pub fn name(self) -> &'static str {
+                match self { $(Self::$variant => stringify!($variant),)* }
+            }
+            pub fn from_name(name: &str) -> Option<BundledFont> {
+                match name { $(stringify!($variant) => Some(Self::$variant),)* _ => None }
+            }
+
             pub fn file_name(self) -> &'static str {
                 match self { $(Self::$variant => $file,)* }
             }
@@ -154,3 +162,6 @@ bundled_fonts! {
     MistralSingleLine: "MistralSingleLine-Regular.otf", Outline, "Mistral SingleLine OTF-SVG Regular", A_MISTRAL, "https://github.com/isdat-type/Mistral-SingleLine", Ofl;
     Zniko: "Znikoslsvginot8.ttf", Outline, "ZnikoSLSVGinOT-8", A_GLUK, "http://www.glukfonts.pl", Ofl;
 }
+
+#[cfg(test)]
+mod lib_test;

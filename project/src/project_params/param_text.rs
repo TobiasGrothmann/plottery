@@ -3,7 +3,7 @@
 use std::str::FromStr;
 
 use anyhow::{anyhow, bail, Result};
-use plottery_lib::{ColorRgb, Margin, Paper, PaperSize, V2i, V2};
+use plottery_lib::{BundledFont, ColorRgb, Margin, Paper, PaperSize, V2i, V2};
 
 use super::angle_unit::AngleUnit;
 use super::project_param::ProjectParam;
@@ -19,7 +19,7 @@ impl ProjectParamValue {
             Self::Int(val) | Self::IntRanged { val, .. } => val.to_string(),
             Self::Bool(val) => val.to_string(),
             Self::Enum(param_enum) => param_enum.selected.clone(),
-            Self::String(val) => val.clone(),
+            Self::String(val) | Self::Font(val) => val.clone(),
             Self::Angle { rad, unit } => format!(
                 "{}{}",
                 short_float(unit.from_angle(plottery_lib::Angle::from_rad(*rad))),
@@ -67,6 +67,13 @@ impl ProjectParamValue {
                 param_enum.selected = text.to_string();
             }
             Self::String(val) => *val = text.to_string(),
+            Self::Font(name) => {
+                let font = BundledFont::from_name(text).ok_or_else(|| {
+                    let names: Vec<&str> = BundledFont::ALL.iter().map(|f| f.name()).collect();
+                    anyhow!("unknown font '{text}', use one of {}", names.join(" | "))
+                })?;
+                *name = font.name().to_string();
+            }
             Self::Angle { rad, unit } => *rad = parse_angle(text, *unit)?,
             Self::V2(v) => {
                 let (x, y) = parse_pair(text, ",")?;

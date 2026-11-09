@@ -186,3 +186,94 @@
   stroke: var(--fg-0);
   stroke-width: 1.5;
 }
+
+.FontField .font-trigger {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  text-align: left;
+}
+.FontField .font-trigger .font-preview {
+  min-width: 0;
+  max-width: 100%;
+}
+.font-preview {
+  flex: none;
+  display: block;
+  overflow: visible;
+}
+.font-preview path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.font-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+.font-popover {
+  position: fixed;
+  z-index: 51;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-2);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+.font-popover .font-search {
+  flex: none;
+  width: auto;
+  margin: 6px;
+}
+.font-popover .font-list {
+  flex: 1;
+  min-height: 0;
+  padding: 0 4px 4px;
+}
+.font-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--fg-1);
+  cursor: pointer;
+  text-align: left;
+}
+.font-row .font-preview {
+  max-width: 100%;
+}
+.font-row.active {
+  background: var(--bg-3);
+  color: var(--fg-0);
+}
+.font-row.selected {
+  color: var(--accent);
+}
+.font-row.selected.active {
+  background: var(--accent-soft);
+}
+.font-row .font-name {
+  font-size: 11px;
+  color: var(--fg-2);
+}
+.font-pending {
+  height: 22px;
+  width: 60%;
+  border-radius: var(--r-sm);
+  background: var(--bg-3);
+  opacity: 0.5;
+}
+.font-empty {
+  padding: 8px;
+}

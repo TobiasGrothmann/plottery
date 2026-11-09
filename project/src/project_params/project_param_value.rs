@@ -58,6 +58,8 @@ pub enum ProjectParamValue {
     Color(ColorRgb),
     V2i(V2i),
     Svg(ProjectParamFile),
+    /// `BundledFont` variant name.
+    Font(String),
 }
 
 impl ProjectParamValue {
@@ -151,6 +153,7 @@ impl ProjectParamValue {
             ProjectParamValue::Color(_) => "color".to_string(),
             ProjectParamValue::V2i(_) => "v2i".to_string(),
             ProjectParamValue::Svg(_) => "svg".to_string(),
+            ProjectParamValue::Font(_) => "font".to_string(),
         }
     }
 
@@ -200,6 +203,7 @@ impl ProjectParamValue {
             }
             ProjectParamValue::Color(color) => color.hex(),
             ProjectParamValue::V2i(v) => format!("({}, {})", v.x, v.y),
+            ProjectParamValue::Font(name) => name.clone(),
         }
     }
 }
