@@ -65,7 +65,7 @@ pub fn PlotSettingsEditor(props: PlotSettingsEditorProps) -> Element {
                         {number_input(plot_settings, settings.head_travel_beyond_paper_cm, "Travel beyond paper in cm".to_string(), |s, v| s.head_travel_beyond_paper_cm = v)}
                         span { "cm" }
                     }
-                    span { class: "hint", "Head clearance outside the sheet" }
+                    span { class: "hint", "Extra pen travel after touching the paper" }
                 }
             }
         }
