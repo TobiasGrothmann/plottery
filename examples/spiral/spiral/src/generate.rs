@@ -1,50 +1,56 @@
 use plottery_lib::*;
 use plottery_project::*;
 
-// Every field shows up in the editor.
-// `///` comments become tooltips on the param labels.
-// `#[section("..")]` groups this field and all following ones into a collapsible section.
+// A spiral path masked to the inside of the paper margin.
 #[derive(PlotteryParams)]
 pub struct Params {
-    #[value(Seed::new(1))]
-    pub seed: Seed,
-
     /// paper size, orientation and margin
+    #[value(Paper::din_a(6).with_landscape(true))]
     pub paper: Paper,
 
-    #[section("Circles")]
-    /// each circle picks a random radius in this range
-    #[value(Range::new(0.05, 0.15))]
-    #[range(0.02, 0.35)]
-    pub circle_size: Range<f32>,
+    #[section("Spiral")]
+    /// points along the whole spiral
+    #[value(2000)]
+    #[range(100, 10000)]
+    pub num_points: i32,
 
-    /// distance between neighbouring circles in the spiral
-    #[value(0.5)]
-    #[range(0.2, 2.0)]
-    pub spacing: f32,
+    /// turns from the center to the outer end
+    #[value(10.0)]
+    #[range(1.0, 40.0)]
+    pub rotations: f32,
+
+    /// radius of the outer end in cm, the margin cuts it off
+    #[value(10.0)]
+    #[range(1.0, 20.0)]
+    pub radius: f32,
 }
 
 pub fn generate(params: Params) -> Layer {
-    params.seed.apply();
-
     let frame = params.paper.frame();
-    let inner = frame.inner_rect();
-    let spiral_center = frame.center();
-    let max_distance = inner.max_dist_to_any_corner(spiral_center);
 
-    // circles in a golden-angle spiral, keeping only those inside the frame
-    let circles = (1..)
+    // collect polar points into a path, the radius grows with every point
+    let spiral: Path = (0..params.num_points)
         .map(|i| {
-            let angle = Angle::golden_ratio() * i as f32;
-            let distance = (i as f32).sqrt() * params.spacing;
-            spiral_center + V2::polar(angle, distance)
+            let t = i as f32 / params.num_points as f32;
+            let angle = Angle::from_rotations(t * params.rotations);
+            frame.center() + V2::polar(angle, t * params.radius)
         })
-        .take_while(|pos| pos.dist(spiral_center) < max_distance)
-        .filter(|pos| inner.contains_point(*pos))
-        .map(|pos| Circle::new(pos, params.circle_size.sample()));
+        .collect();
+
+    // split the spiral at the inner rect and keep the parts inside
+    let masked = spiral.mask_brute_force(frame.inner_rect(), SampleSettings::default());
 
     let mut l = Layer::new();
-    l.push(frame.outer_rect());
-    l.push_many(circles);
+    l.push_layer(
+        Layer::new_from([frame.outer_rect()])
+            .with_name("frame")
+            .with_color(ColorRgb::gray_scale(0.6)),
+    );
+    l.push_layer(
+        masked
+            .inside
+            .with_name("spiral")
+            .with_color(ColorRgb::new(0.1, 0.25, 0.6)),
+    );
     l.with_name("root").optimize_recursive()
 }
