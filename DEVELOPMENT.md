@@ -27,6 +27,18 @@ plottery new sketches my_sketch -l home      # depends on $PLOTTERY_HOME/lib and
 
 `-l <PATH>` uses any other checkout.
 
+## Examples
+
+`examples/` holds the small projects shown in the README. They depend on this checkout by path, so they always use the current API.
+
+```sh
+cargo run -p plottery_cli -- run examples/spiral    # run one, or open its folder in the editor
+./scripts/check_examples.sh                         # clippy and a render of every example
+./scripts/check_examples.sh --images                # also rewrite examples/<name>/preview.png
+```
+
+Create a new example with `plottery new examples <name> -l ../../..`, then delete its `.git`, `.gitignore` and `AGENTS.md`. The README shows `spiral` from a hosted image, so the script writes no preview for it.
+
 ## Tests
 
 ```sh
@@ -37,7 +49,7 @@ The `lib` and `project` READMEs are their crates' docs.rs front pages, so their 
 
 ## Pre-Release Checks
 
-Before releasing, validate (tests, clippy, docs) with:
+Before releasing, validate (tests, clippy, examples, docs) with:
 
 ```sh
 ./scripts/pre_release_checks.sh

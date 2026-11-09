@@ -30,6 +30,7 @@ See `project/cargo_project_template/` for the generated project template.
 - **Transformation traits:** `lib/src/traits/` (`Translate`, `Rotate`, `Scale`, `Mirror`, `Transform`, etc.)
 - **Math utilities:** `lib/src/maths/` (angles, noise, random)
 - **Project management:** `project/src/project.rs`
+- **Example projects:** `examples/`, standalone projects with path dependencies on this checkout, shown in the README
 - **PlotteryParams macro:** `project/project_macros/`
 - **Editor UI components:** `editor/src/components/`
 - **Hardware control:** `server/src/hardware.rs`
@@ -73,3 +74,4 @@ The `lib` and `project` READMEs are included as crate docs (`include_str!`), so 
 
 - **Adding shapes:** Must implement all traits in `lib/src/traits/` and add variant to `Shape` enum in `lib/src/shapes/shape.rs`
 - **Server crate:** Hardware-specific code; `raspi` feature flag required for GPIO
+- **API changes:** Update `examples/` in the same change; `scripts/check_examples.sh` must pass
