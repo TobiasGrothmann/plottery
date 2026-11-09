@@ -47,7 +47,7 @@ pub fn generate(params: Params) -> Layer {
     let frame = params.paper.frame();
     let inner = frame.inner_rect();
     let grid = Grid::with_cell_size(inner, params.cell_size, 0.0);
-    let sample_settings = SampleSettings::new(40.0);
+    let sample_settings = SampleSettings::new(80.0);
 
     let squares = grid.iter().map(|cell| {
         // 0 at the top row, 1 at the bottom
