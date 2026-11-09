@@ -11,11 +11,10 @@ pub struct DropdownProps {
 
 #[component]
 pub fn Dropdown(props: DropdownProps) -> Element {
-    let selected = props.selected.map(|i| i.to_string()).unwrap_or_default();
+    // Select via the options: a select `value` is applied before its options exist.
     rsx! {
         select {
             class: "input select",
-            value: "{selected}",
             onchange: move |event| {
                 if let Ok(index) = event.value().parse::<usize>() {
                     props.onselect.call(index);
@@ -30,7 +29,12 @@ pub fn Dropdown(props: DropdownProps) -> Element {
                 }
             }
             for (index, option) in props.options.iter().enumerate() {
-                option { key: "{option}", value: "{index}", "{option}" }
+                option {
+                    key: "{option}",
+                    value: "{index}",
+                    selected: props.selected == Some(index),
+                    "{option}"
+                }
             }
         }
     }
