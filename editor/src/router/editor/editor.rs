@@ -104,9 +104,6 @@ fn run_status(state: &RunningState) -> Option<(Tone, &'static str)> {
         RunningState::GetParamsFailed { .. } | RunningState::RunFailed { .. } => {
             (Tone::Err, "Run failed")
         }
-        RunningState::BuildKilled { .. }
-        | RunningState::GetParamsKilled { .. }
-        | RunningState::RunKilled { .. } => (Tone::Warn, "Cancelled"),
     };
     Some(status)
 }

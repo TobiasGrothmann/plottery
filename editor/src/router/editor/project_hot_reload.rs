@@ -16,14 +16,21 @@ pub fn start_hot_reload(
     running_state: SyncSignal<RunningState>,
     console: SyncSignal<ConsoleMessages>,
 ) -> (JoinHandle<()>, FsEventWatcher) {
-    let (tx, rx) = std::sync::mpsc::channel();
-    let mut watcher = RecommendedWatcher::new(tx, Config::default()).unwrap();
+    // async channel: a blocking `recv` would hold a runtime thread and stall the runs spawned below
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    let mut watcher = RecommendedWatcher::new(
+        move |event: notify::Result<notify::Event>| {
+            let _ = tx.send(event);
+        },
+        Config::default(),
+    )
+    .unwrap();
     watcher
         .watch(&path_to_watch, RecursiveMode::Recursive)
         .unwrap();
 
     let hot_reload_handle = tokio::spawn(async move {
-        for event in rx {
+        while let Some(event) = rx.recv().await {
             match event {
                 Ok(event) => {
                     let ignore_list = [".DS_Store"];

@@ -1,3 +1,8 @@
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc,
+};
+
 use crate::router::editor::running_state::RunningState;
 use dioxus::signals::{ReadableExt, SyncSignal, WritableExt};
 use plottery_project::{
@@ -10,6 +15,8 @@ use super::{console_messages::ConsoleMessages, editor::LayerChangeWrapper};
 pub struct ProjectRunner {
     project: Project,
     cancel_tx: Option<tokio::sync::mpsc::Sender<()>>,
+    /// Id of the latest run, older runs leave the editor alone.
+    current_run: Arc<AtomicU64>,
     layer: SyncSignal<LayerChangeWrapper>,
     params: SyncSignal<ProjectParamsListWrapper>,
 }
@@ -60,19 +67,11 @@ fn stage_running(stage: RunStage) -> (&'static str, RunningState) {
     }
 }
 
-fn error_state(error: &RunError) -> RunningState {
-    let msg = error.to_string();
-    match error {
-        RunError::Failed { stage, .. } => match stage {
-            RunStage::Build => RunningState::BuildFailed { msg },
-            RunStage::GetParams => RunningState::GetParamsFailed { msg },
-            RunStage::Run => RunningState::RunFailed { msg },
-        },
-        RunError::Killed { stage } => match stage {
-            RunStage::Build => RunningState::BuildKilled { msg },
-            RunStage::GetParams => RunningState::GetParamsKilled { msg },
-            RunStage::Run => RunningState::RunKilled { msg },
-        },
+fn failed_state(stage: RunStage, msg: String) -> RunningState {
+    match stage {
+        RunStage::Build => RunningState::BuildFailed { msg },
+        RunStage::GetParams => RunningState::GetParamsFailed { msg },
+        RunStage::Run => RunningState::RunFailed { msg },
     }
 }
 
@@ -85,6 +84,7 @@ impl ProjectRunner {
         Self {
             project,
             cancel_tx: None,
+            current_run: Arc::new(AtomicU64::new(0)),
             layer,
             params,
         }
@@ -96,6 +96,8 @@ impl ProjectRunner {
         mut running_state: SyncSignal<RunningState>,
         console: SyncSignal<ConsoleMessages>,
     ) {
+        let run_id = self.current_run.fetch_add(1, Ordering::SeqCst) + 1;
+        let current_run = self.current_run.clone();
         console.read().clear();
         self.cancel_tx.take(); // cancels the previous run if it exists
 
@@ -109,8 +111,12 @@ impl ProjectRunner {
 
         console.read().info("spawning new task to run project");
         tokio::spawn(async move {
+            let is_current = || current_run.load(Ordering::SeqCst) == run_id;
             // signals are Copy, copying them keeps the closure `Fn`
             let on_event = move |event: RunEvent| {
+                if !is_current() {
+                    return;
+                }
                 let (mut running_state, mut params) = (running_state, params);
                 let (info, state) = match event {
                     RunEvent::StageStarting(stage) => stage_starting(stage),
@@ -131,6 +137,12 @@ impl ProjectRunner {
                 .build_and_run_async(release, &saved_params, on_event, cancel)
                 .await
             {
+                Err(RunError::Killed { stage }) => {
+                    console
+                        .read()
+                        .warn(format!("previous run aborted during {stage}").as_str());
+                }
+                _ if !is_current() => {}
                 Ok((_, new_layer)) => {
                     console.read().info("...updating editor");
                     running_state.set(RunningState::Updating {
@@ -144,9 +156,9 @@ impl ProjectRunner {
                     console.read().info("done");
                     running_state.set(RunningState::Idle);
                 }
-                Err(error) => {
-                    console.read().error(error.to_string().as_str());
-                    running_state.set(error_state(&error));
+                Err(RunError::Failed { stage, msg }) => {
+                    console.read().error(msg.as_str());
+                    running_state.set(failed_state(stage, msg));
                 }
             }
         });

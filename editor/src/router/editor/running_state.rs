@@ -5,15 +5,12 @@ pub enum RunningState {
     StartingBuild { msg: String },
     Building { msg: String },
     BuildFailed { msg: String },
-    BuildKilled { msg: String },
     StartingGetParams { msg: String },
     GetParams { msg: String },
     GetParamsFailed { msg: String },
-    GetParamsKilled { msg: String },
     StartingRun { msg: String },
     Running { msg: String },
     RunFailed { msg: String },
-    RunKilled { msg: String },
     Updating { msg: String },
 }
 impl RunningState {
@@ -24,9 +21,6 @@ impl RunningState {
                 | RunningState::BuildFailed { .. }
                 | RunningState::RunFailed { .. }
                 | RunningState::GetParamsFailed { .. }
-                | RunningState::BuildKilled { .. }
-                | RunningState::RunKilled { .. }
-                | RunningState::GetParamsKilled { .. }
         )
     }
     pub fn get_msg(&self) -> String {
@@ -36,16 +30,13 @@ impl RunningState {
             RunningState::StartingBuild { msg } => msg.clone(),
             RunningState::Building { msg } => msg.clone(),
             RunningState::BuildFailed { msg } => msg.clone(),
-            RunningState::BuildKilled { msg } => msg.clone(),
             RunningState::StartingRun { msg } => msg.clone(),
             RunningState::Running { msg } => msg.clone(),
             RunningState::RunFailed { msg } => msg.clone(),
-            RunningState::RunKilled { msg } => msg.clone(),
             RunningState::Updating { msg } => msg.clone(),
             RunningState::StartingGetParams { msg } => msg.clone(),
             RunningState::GetParams { msg } => msg.clone(),
             RunningState::GetParamsFailed { msg } => msg.clone(),
-            RunningState::GetParamsKilled { msg } => msg.clone(),
         }
     }
 }
