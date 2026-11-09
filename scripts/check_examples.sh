@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
-# Runs clippy on every project in examples/ and renders it with the checkout's CLI.
-# With --images, writes examples/<name>/preview.png for the README instead of a temp file.
+# Builds every project in examples/ (clippy), renders it with the checkout's CLI and compares the
+# render with the committed examples/<name>/preview.png. Fails if any output changed.
+# With --images, overwrites the previews instead, to commit after an intended change.
 
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-images=false
+update=false
 if [[ "${1:-}" == "--images" ]]; then
-    images=true
+    update=true
 fi
 
-# the README shows a hosted image for these
-hosted_images=(spiral)
-
-out_dir=$(mktemp -d)
-trap 'rm -rf "$out_dir"' EXIT
+changed_dir=target/examples/changed
+rm -rf "$changed_dir"
+mkdir -p "$changed_dir"
+changed=()
 
 for project in examples/*/; do
     project=${project%/}
@@ -24,9 +24,22 @@ for project in examples/*/; do
 
     cargo clippy -q --manifest-path "$project/$name/Cargo.toml" --target-dir target/examples -- -D warnings
 
-    out="$out_dir/$name.png"
-    if $images && [[ ! " ${hosted_images[*]} " =~ " $name " ]]; then
-        out="$project/preview.png"
+    rendered="$changed_dir/$name.png"
+    cargo run -q -p plottery_cli -- render -p "$project" "$rendered" --defaults --size 1200
+
+    if $update; then
+        mv "$rendered" "$project/preview.png"
+    elif cmp -s "$rendered" "$project/preview.png"; then
+        rm "$rendered"
+    else
+        changed+=("$name")
     fi
-    cargo run -q -p plottery_cli -- render -p "$project" "$out" --defaults --size 1200
 done
+
+if ((${#changed[@]})); then
+    echo ""
+    echo "Output changed: ${changed[*]}"
+    echo "New renders are in $changed_dir/. If the change is intended, run"
+    echo "scripts/check_examples.sh --images and commit the previews, otherwise fix the code."
+    exit 1
+fi

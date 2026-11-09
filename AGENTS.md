@@ -74,4 +74,4 @@ The `lib` and `project` READMEs are included as crate docs (`include_str!`), so 
 
 - **Adding shapes:** Must implement all traits in `lib/src/traits/` and add variant to `Shape` enum in `lib/src/shapes/shape.rs`
 - **Server crate:** Hardware-specific code; `raspi` feature flag required for GPIO
-- **API changes:** Update `examples/` in the same change; `scripts/check_examples.sh` must pass
+- **API changes:** Update `examples/` in the same change; `scripts/check_examples.sh` must pass. It fails when a render differs from the committed `preview.png`: look at `target/examples/changed/`, then fix the code or commit new previews with `--images`

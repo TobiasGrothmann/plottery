@@ -33,11 +33,13 @@ plottery new sketches my_sketch -l home      # depends on $PLOTTERY_HOME/lib and
 
 ```sh
 cargo run -p plottery_cli -- run examples/spiral    # run one, or open its folder in the editor
-./scripts/check_examples.sh                         # clippy and a render of every example
-./scripts/check_examples.sh --images                # also rewrite examples/<name>/preview.png
+./scripts/check_examples.sh                         # clippy, render, compare with the committed previews
+./scripts/check_examples.sh --images                # rewrite examples/<name>/preview.png instead
 ```
 
-Create a new example with `plottery new examples <name> -l ../../..`, then delete its `.git`, `.gitignore` and `AGENTS.md`. The README shows `spiral` from a hosted image, so the script writes no preview for it.
+The check fails when a render differs from the committed `preview.png` and keeps the new renders in `target/examples/changed/`. Look at them: if the change is intended, run `--images` and commit the previews, otherwise fix the code. The README shows `spiral` from a hosted image, its `preview.png` is only the reference.
+
+Create a new example with `plottery new examples <name> -l ../../..`, then delete its `.git`, `.gitignore` and `AGENTS.md`, and write its first preview with `--images`.
 
 ## Tests
 

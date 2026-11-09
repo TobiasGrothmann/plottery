@@ -23,7 +23,7 @@ cargo clippy --workspace -- -D warnings
 echo -e "${GREEN}✓ Clippy passed${NC}"
 echo ""
 
-echo -e "${YELLOW}Checking examples...${NC}"
+echo -e "${YELLOW}Building, rendering and comparing examples...${NC}"
 "$(dirname "$0")/check_examples.sh"
 echo -e "${GREEN}✓ Examples passed${NC}"
 echo ""
