@@ -23,6 +23,11 @@ cargo clippy --workspace -- -D warnings
 echo -e "${GREEN}✓ Clippy passed${NC}"
 echo ""
 
+echo -e "${YELLOW}Building, rendering and comparing examples...${NC}"
+"$(dirname "$0")/check_examples.sh"
+echo -e "${GREEN}✓ Examples passed${NC}"
+echo ""
+
 echo -e "${YELLOW}Checking documentation...${NC}"
 RUSTDOCFLAGS='-D warnings -D rustdoc::broken_intra_doc_links' cargo doc --workspace --no-deps
 echo -e "${GREEN}✓ Documentation valid${NC}"

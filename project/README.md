@@ -8,6 +8,8 @@ Creates, builds and runs **Plottery** projects, and defines their parameters. A 
 
 Create one with the [editor](https://github.com/TobiasGrothmann/plottery/tree/main/editor) or `plottery new` from the [CLI](https://crates.io/crates/plottery_cli).
 
+Complete example projects with rendered previews are in [`examples/`](https://github.com/TobiasGrothmann/plottery/tree/main/examples).
+
 ## Generate
 
 `src/generate.rs` turns a `Params` struct into a `Layer`:

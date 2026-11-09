@@ -9,3 +9,6 @@ editor/dist/
 todo.md
 
 copy.sh
+
+examples/*/resources/
+examples/**/Cargo.lock
