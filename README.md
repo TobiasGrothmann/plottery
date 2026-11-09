@@ -91,7 +91,7 @@ Run it in the [editor](./editor), with `plottery run`, or with `cargo run svg` t
 <a href="./examples/tone_ramp"><img src="./examples/tone_ramp/preview.png" width="16%" /></a>
 
 * [**spiral**](./examples/spiral/spiral/src/generate.rs): a path collected from polar points, masked to the margin, in named and colored sublayers.
-* [**scribbles**](./examples/scribbles/scribbles/src/generate.rs): squares that dissolve into scribbles, with a seed, a noise param and random ranges.
+* [**scribbles**](./examples/scribbles/scribbles/src/generate.rs): squares that dissolve into scribbles, with a seed, a noise param, an easing curve and random ranges.
 * [**pebbles**](./examples/pebbles/pebbles/src/generate.rs): closed Hobby splines through random points, with rings inside.
 * [**poster**](./examples/poster/poster/src/generate.rs): a title fitted to the page width and a wrapped paragraph, fonts and text set in the editor.
 * [**tone_ramp**](./examples/tone_ramp/tone_ramp/src/generate.rs): rows spaced by an easing curve, a style enum, sections and an optional border.

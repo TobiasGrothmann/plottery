@@ -36,10 +36,9 @@ pub struct Params {
     #[range(0.0, 3.0)]
     pub strength: f32,
 
-    /// how quickly the squares dissolve, 1 is linear from top to bottom
-    #[value(2.0)]
-    #[range(0.5, 5.0)]
-    pub falloff: f32,
+    /// how the dissolving builds up from the top row to the bottom row
+    #[value(Easing::from_exponent(2.0))]
+    pub falloff: Easing,
 }
 
 pub fn generate(params: Params) -> Layer {
@@ -52,7 +51,8 @@ pub fn generate(params: Params) -> Layer {
 
     let squares = grid.iter().map(|cell| {
         // 0 at the top row, 1 at the bottom
-        let t = ((inner.tl().y - cell.center().y) / inner.height()).powf(params.falloff);
+        let depth = (inner.tl().y - cell.center().y) / inner.height();
+        let t = params.falloff.apply(depth);
         let turn = Angle::from_rotations(params.turn.sample() * t);
         Rect::new_from_center(cell.center(), cell.size() * params.square_size)
             .rotated(turn)
