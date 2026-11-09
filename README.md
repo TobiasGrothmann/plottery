@@ -54,53 +54,24 @@ A project is a [regular cargo package](./project) that depends on **Plottery**. 
 plottery new /path/to/folder awesome_project
 ```
 
-Its `src/generate.rs` turns a `Params` struct into a `Layer`. This is what `plottery new` creates:
+Its `src/generate.rs` turns a `Params` struct into a `Layer`:
 
 ```rust
 use plottery_lib::*;
 use plottery_project::*;
 
-// Every field shows up in the editor.
-// `///` comments become tooltips on the param labels.
-// `#[section("..")]` groups this field and all following ones into a collapsible section.
 #[derive(PlotteryParams)]
 pub struct Params {
-    #[value(Seed::new(1))]
-    pub seed: Seed,
-
-    /// paper size, orientation and margin
     pub paper: Paper,
-
-    #[section("Circles")]
-    /// each circle picks a random radius in this range
-    #[value(Range::new(0.05, 0.15))]
-    #[range(0.02, 0.35)]
-    pub circle_size: Range<f32>,
-
-    /// distance between neighbouring circles in the spiral
-    #[value(0.5)]
-    #[range(0.2, 2.0)]
-    pub spacing: f32,
+    #[value(12)]
+    #[range(1, 50)]
+    pub circles: i32,
 }
 
 pub fn generate(params: Params) -> Layer {
-    params.seed.apply();
-
     let frame = params.paper.frame();
-    let inner = frame.inner_rect();
-    let spiral_center = frame.center();
-    let max_distance = inner.max_dist_to_any_corner(spiral_center);
-
-    // circles in a golden-angle spiral, keeping only those inside the frame
-    let circles = (1..)
-        .map(|i| {
-            let angle = Angle::golden_ratio() * i as f32;
-            let distance = (i as f32).sqrt() * params.spacing;
-            spiral_center + V2::polar(angle, distance)
-        })
-        .take_while(|pos| pos.dist(spiral_center) < max_distance)
-        .filter(|pos| inner.contains_point(*pos))
-        .map(|pos| Circle::new(pos, params.circle_size.sample()));
+    let step = frame.inner_rect().width() * 0.5 / params.circles as f32;
+    let circles = (1..=params.circles).map(|i| Circle::new(frame.center(), step * i as f32));
 
     let mut l = Layer::new();
     l.push(frame.outer_rect());
@@ -111,9 +82,25 @@ pub fn generate(params: Params) -> Layer {
 
 Run it in the [editor](./editor), with `plottery run`, or with `cargo run svg` to open the result as `.svg`.
 
+### Examples
+
+<a href="./examples/spiral"><img src="https://github.com/user-attachments/assets/8aa40c30-4c36-498a-87de-ca9f2cc3fdd3" width="32%" /></a>
+<a href="./examples/scribbles"><img src="./examples/scribbles/preview.png" width="16%" /></a>
+<a href="./examples/pebbles"><img src="./examples/pebbles/preview.png" width="16%" /></a>
+<a href="./examples/poster"><img src="./examples/poster/preview.png" width="16%" /></a>
+<a href="./examples/tone_ramp"><img src="./examples/tone_ramp/preview.png" width="16%" /></a>
+
+* [**spiral**](./examples/spiral/spiral/src/generate.rs): a path collected from polar points, masked to the margin, in named and colored sublayers.
+* [**scribbles**](./examples/scribbles/scribbles/src/generate.rs): squares that dissolve into scribbles, with a seed, a noise param and random ranges.
+* [**pebbles**](./examples/pebbles/pebbles/src/generate.rs): closed Hobby splines through random points, with rings inside.
+* [**poster**](./examples/poster/poster/src/generate.rs): a title fitted to the page width and a wrapped paragraph, fonts and text set in the editor.
+* [**tone_ramp**](./examples/tone_ramp/tone_ramp/src/generate.rs): rows spaced by an easing curve, a style enum, sections and an optional border.
+
+Every example is a complete project that builds against this repository: in a clone, open its folder in the editor or run `plottery run examples/spiral`.
+
 ### Parameters
 
-Every field of `Params` shows up in the editor. `#[value(..)]` sets the default, `#[range(min, max)]` shows a slider, `#[section("..")]` groups fields and `///` comments become tooltips. All attributes and supported types are listed in the [project README](./project/README.md#parameters).
+Every field of `Params` shows up in the editor. `#[value(..)]` sets the default, `#[range(min, max)]` shows a slider, `#[section("..")]` groups fields and `///` comments become tooltips. All attributes and supported types are listed in the [project README](./project/README.md#parameters), and [tone_ramp](./examples/tone_ramp/tone_ramp/src/generate.rs) uses most of them.
 
 # Text & Fonts
 
@@ -131,7 +118,7 @@ let text = Text::new("Hello plotter", &font)
 l.push_layer(text);
 ```
 
-Anchoring to a rect, wrapping, justify, fitting and rotation are shown in the [text layout samples](./lib/samples/text/README.md). `Font::load` reads SVG, TTF and OTF files, `Font::load_single_line` keeps the strokes of single-line TrueType fonts open, and `Font::system("Helvetica")` finds an installed font. All 65 bundled fonts are shown in the [fonts README](./fonts/README.md).
+Anchoring to a rect, wrapping, justify, fitting and rotation are shown in the [text layout samples](./lib/samples/text/README.md). `Font::load` reads SVG, TTF and OTF files, `Font::load_single_line` keeps the strokes of single-line TrueType fonts open, and `Font::system("Helvetica")` finds an installed font. The [poster](./examples/poster/poster/src/generate.rs) example picks its fonts and text in the editor. All 65 bundled fonts are shown in the [fonts README](./fonts/README.md).
 
 <img src="./fonts/samples/HersheyScript.svg" width="49%" /> <img src="./fonts/samples/EmsReadability.svg" width="49%" />
 <img src="./fonts/samples/ReliefSingleLine.svg" width="49%" /> <img src="./fonts/samples/HersheyGothicEnglish.svg" width="49%" />
