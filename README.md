@@ -84,23 +84,21 @@ Run it in the [editor](./editor), with `plottery run`, or with `cargo run svg` t
 
 ### Examples
 
-<a href="./examples/spiral"><img src="https://github.com/user-attachments/assets/8aa40c30-4c36-498a-87de-ca9f2cc3fdd3" width="32%" /></a>
-<a href="./examples/scribbles"><img src="./examples/scribbles/preview.png" width="16%" /></a>
-<a href="./examples/pebbles"><img src="./examples/pebbles/preview.png" width="16%" /></a>
-<a href="./examples/poster"><img src="./examples/poster/preview.png" width="16%" /></a>
-<a href="./examples/tone_ramp"><img src="./examples/tone_ramp/preview.png" width="16%" /></a>
+<a href="./examples/spiral"><img src="https://github.com/user-attachments/assets/8aa40c30-4c36-498a-87de-ca9f2cc3fdd3" width="38%" /></a>
+<a href="./examples/scribbles"><img src="./examples/scribbles/preview.png" width="19%" /></a>
+<a href="./examples/pebbles"><img src="./examples/pebbles/preview.png" width="19%" /></a>
+<a href="./examples/poster"><img src="./examples/poster/preview.png" width="19%" /></a>
 
 * [**spiral**](./examples/spiral/spiral/src/generate.rs): a path collected from polar points, masked to the margin, in named and colored sublayers.
 * [**scribbles**](./examples/scribbles/scribbles/src/generate.rs): squares that dissolve into scribbles, with a seed, a noise param, an easing curve and random ranges.
 * [**pebbles**](./examples/pebbles/pebbles/src/generate.rs): closed Hobby splines through random points, with rings inside.
 * [**poster**](./examples/poster/poster/src/generate.rs): a title fitted to the page width and a wrapped paragraph, fonts and text set in the editor.
-* [**tone_ramp**](./examples/tone_ramp/tone_ramp/src/generate.rs): rows spaced by an easing curve, a style enum, sections and an optional border.
 
 Every example is a complete project that builds against this repository: in a clone, open its folder in the editor or run `plottery run examples/spiral`.
 
 ### Parameters
 
-Every field of `Params` shows up in the editor. `#[value(..)]` sets the default, `#[range(min, max)]` shows a slider, `#[section("..")]` groups fields and `///` comments become tooltips. All attributes and supported types are listed in the [project README](./project/README.md#parameters), and [tone_ramp](./examples/tone_ramp/tone_ramp/src/generate.rs) uses most of them.
+Every field of `Params` shows up in the editor. `#[value(..)]` sets the default, `#[range(min, max)]` shows a slider, `#[section("..")]` groups fields and `///` comments become tooltips. All attributes and supported types are listed in the [project README](./project/README.md#parameters), and the [examples](#examples) use many of them.
 
 # Text & Fonts
 
