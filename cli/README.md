@@ -14,6 +14,7 @@ plottery params                                   # the params with the editor's
 plottery params --set size=12                     # preview an override
 plottery render /tmp/a.png /tmp/a.svg --set size=12  # render, print length, travel and bounds
 plottery run                                      # like the editor's Run button
+plottery open                                     # open the project in the editor
 ```
 
 | Command | |
@@ -21,6 +22,7 @@ plottery run                                      # like the editor's Run button
 | `new <PATH> <NAME> [-l cratesio\|home\|PATH]` | create a project |
 | `build [PROJECT]` | build the project |
 | `run [PROJECT]` | build and run with the saved params, update the editor files |
+| `open [PROJECT]` | open the project in the Plottery Editor (macOS) |
 | `params [PROJECT] [--defaults] [--set NAME=VALUE]...` | print the params, one `--set` target per line |
 | `render <OUT>... [--defaults] [--set NAME=VALUE]... [--size PX] [--update-editor]` | render to `.png` and `.svg` files |
 | `set-home <PATH>` | set `PLOTTERY_HOME` for `new -l home` |

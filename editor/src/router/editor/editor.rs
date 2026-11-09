@@ -145,8 +145,20 @@ impl PartialEq for LayerChangeWrapper {
     }
 }
 
+/// Keyed by project, so switching projects remounts instead of keeping the old one loaded.
 #[component]
 pub fn Editor(project_path: Vec<String>) -> Element {
+    let key = project_path.join("/");
+    // dioxus only honours keys in lists, so a one-item list remounts on a new project.
+    rsx! {
+        for key in std::iter::once(key) {
+            ProjectEditor { key: "{key}", project_path: project_path.clone() }
+        }
+    }
+}
+
+#[component]
+fn ProjectEditor(project_path: Vec<String>) -> Element {
     let loaded = use_hook(|| project_from_segments(&project_path).map_err(|e| e.to_string()));
     let nav = use_navigator();
     let RemoteOpen(mut remote_open) = use_context::<RemoteOpen>();

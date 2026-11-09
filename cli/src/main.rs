@@ -1,5 +1,6 @@
 mod discovery;
 mod discovery_test;
+mod editor_app;
 mod params;
 mod stats;
 
@@ -104,6 +105,11 @@ enum Command {
         #[command(flatten)]
         project: ProjectArg,
     },
+    #[command(about = "Open the project in the Plottery Editor")]
+    Open {
+        #[command(flatten)]
+        project: ProjectArg,
+    },
     #[command(
         about = "Print the params with the editor's saved values, one `--set` target per line"
     )]
@@ -154,7 +160,8 @@ Typical loop inside a project folder:
   plottery build                                  compile, show warnings
   plottery params                                 the user's param values
   plottery render /tmp/a.png --set size=12        render with an override, print stats
-  plottery run ~/art/labyrinth                    run a project from anywhere";
+  plottery run ~/art/labyrinth                    run a project from anywhere
+  plottery open                                   open the project in the editor";
 
 #[derive(Parser, Debug)]
 #[command(
@@ -283,6 +290,23 @@ pub fn main() -> Result<()> {
                 project.config.name
             );
             println!("{}", stats::format_stats(&layer, &params.list));
+        }
+        Command::Open { project } => {
+            let project = project.find()?;
+            let Some(app) = editor_app::find_editor_app() else {
+                bail!("Plottery Editor not found in /Applications or ~/Applications. Install it with: curl -fsSL https://raw.githubusercontent.com/TobiasGrothmann/plottery/main/scripts/install_macos.sh | bash");
+            };
+            let config_path = std::path::absolute(project.get_project_config_path())?;
+            let status = std::process::Command::new("open")
+                .arg("-a")
+                .arg(&app)
+                .arg(&config_path)
+                .status()
+                .context("Failed to run `open`")?;
+            if !status.success() {
+                bail!("`open -a {}` failed ({status})", app.display());
+            }
+            println!("Opened '{}' in the editor", project.config.name);
         }
         Command::Params { project, params } => {
             let project = project.find()?;
