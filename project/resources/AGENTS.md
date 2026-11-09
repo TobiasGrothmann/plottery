@@ -136,7 +136,11 @@ changing its type or range resets it to the default. Moving it to another sectio
 ## Conventions
 
 - Units are centimetres. The origin is bottom-left and y points up; the svg export flips it.
-- `Paper` defaults to A4 portrait with a 10% margin. Draw inside `params.paper.frame()`.
+- `Paper` defaults to A4 portrait with a 10% margin. `params.paper.frame()` has two rects:
+  `outer_rect()` is the paper edge, where an optional cut line goes (a `draw_frame: bool` param);
+  `inner_rect()` is the drawing area, and the margin between them is the only gap. Lay the drawing
+  out for the inner rect, then `fit_inside_mut(frame.inner_rect(), Alignment::Center)` the finished
+  layer to catch overhangs. Don't add padding or extra border params.
 - Pen plotters only draw lines. Fills are hatching, and overlapping strokes are drawn twice.
 - Plot time matters. Every pen lift costs time, many tiny segments are slow, and the pen slows at
   corners. Join paths with `combine_shapes_recursive`, thin them with `reduce_points_recursive`, and
