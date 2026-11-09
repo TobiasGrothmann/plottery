@@ -1,0 +1,10 @@
+[workspace]
+
+[package]
+name = "poster"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+plottery_lib = { path = "../../../lib" }
+plottery_project = { path = "../../../project" }
