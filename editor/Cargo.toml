@@ -8,7 +8,7 @@ license.workspace = true
 categories.workspace = true
 repository.workspace = true
 keywords.workspace = true
-exclude = ["dioxusin"]
+exclude = ["dioxusin", "screenshots"]
 
 [package.metadata.bundle]
 name = "Plottery Editor"

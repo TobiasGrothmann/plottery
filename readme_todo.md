@@ -2,7 +2,7 @@
 
 ## Screenshots
 
-- [ ] Run `./scripts/editor_screenshots.sh` (editor closed, terminal needs Screen Recording permission). `WAIT=15` if the preview isn't loaded yet.
+- [ ] Take `editor/screenshots/browser.png` (projects browser) and `editor.png` (a project open) by hand.
 - [ ] Check `editor/screenshots/browser.png` and `editor.png`, then commit them. Both READMEs already link them:
   - `README.md` → `editor/screenshots/editor.png`
   - `editor/README.md` → `editor.png` and `browser.png`

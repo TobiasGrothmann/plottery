@@ -35,14 +35,6 @@ cargo test --workspace
 
 The `lib` and `project` READMEs are their crates' docs.rs front pages, so their code blocks run as doctests too. Links in them must be absolute GitHub URLs, docs.rs does not resolve relative ones.
 
-## Editor screenshots
-
-```sh
-./scripts/editor_screenshots.sh [PROJECT]
-```
-
-Writes `editor/screenshots/browser.png` and `editor/screenshots/editor.png` from the installed `PlotteryEditor.app` at a fixed window size. Without `PROJECT` it shows a fresh template project. Your editor state is restored afterwards. The terminal needs the macOS Screen Recording permission.
-
 ## Pre-Release Checks
 
 Before releasing, validate (tests, clippy, docs) with:
