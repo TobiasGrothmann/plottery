@@ -2,8 +2,8 @@
 
 ## Screenshots
 
-- [ ] Take `editor/screenshots/browser.png` (projects browser) and `editor.png` (a project open) by hand.
-- [ ] Check `editor/screenshots/browser.png` and `editor.png`, then commit them. Both READMEs already link them:
+- [x] Take `editor/screenshots/browser.png` (projects browser) and `editor.png` (a project open) by hand.
+- [x] Check `editor/screenshots/browser.png` and `editor.png`, then commit them. Both READMEs already link them:
   - `README.md` → `editor/screenshots/editor.png`
   - `editor/README.md` → `editor.png` and `browser.png`
 
