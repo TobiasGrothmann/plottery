@@ -1,4 +1,6 @@
-use std::{cmp::Ordering, collections::HashMap};
+use std::cmp::Ordering;
+
+use rustc_hash::FxHashMap;
 
 use crate::V2;
 
@@ -16,7 +18,7 @@ struct Entry<T> {
 #[derive(Debug, Clone)]
 pub struct SpatialGrid<T> {
     cell_size: f32,
-    cells: HashMap<Cell, Vec<Entry<T>>>,
+    cells: FxHashMap<Cell, Vec<Entry<T>>>,
     // bounds of all cells ever filled, they limit the search rings of `nearest`
     min_cell: Cell,
     max_cell: Cell,
@@ -33,7 +35,7 @@ impl<T> SpatialGrid<T> {
         );
         Self {
             cell_size,
-            cells: HashMap::new(),
+            cells: FxHashMap::default(),
             min_cell: (i64::MAX, i64::MAX),
             max_cell: (i64::MIN, i64::MIN),
             len: 0,

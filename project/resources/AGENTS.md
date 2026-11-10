@@ -111,6 +111,7 @@ Check here before writing your own helper. Paths are in `plottery_lib/src/`; the
 | float helpers: `lerp`, `linlin`, `sin01`, `cos01`, `clamp01`; evenly spaced steps `fractions`, `linspace` | `maths/float.rs` |
 | perlin, simplex and worley noise, scaled per cm or per paper | `maths/noise.rs` |
 | random helpers and seeding | `maths/random.rs`, `maths/thread_local.rs` |
+| evenly spaced random points (blue noise), uniform or following a density function | `PoissonDisk` in `generate/poisson_disk.rs` |
 | Voronoi diagrams with relaxation | `generate/voronoi.rs` |
 | contour lines of a 2D function (marching squares) | `generate/func_2d/` |
 | images as brightness or darkness fields, histograms, equalizing | `sampling/` |

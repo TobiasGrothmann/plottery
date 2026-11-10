@@ -118,6 +118,31 @@ let blur = Blur::new(0.05) // pen width in cm
 let blurred = rings.blur(&blur);
 ```
 
+## Points
+
+`PoissonDisk` spreads random points evenly, like blue noise. The spacing can follow a density
+function, and a few steps of weighted Lloyd relaxation smooth the result for stippling.
+
+```rust
+use plottery_lib::*;
+
+seed(1);
+let frame = Frame::new_xy(V2::a6(), 1.0);
+let bounds = frame.inner_rect();
+
+// no two points closer than 0.3 cm
+let even = PoissonDisk::new(bounds, 0.3).points();
+
+// denser where the noise is high: 0.1 cm apart at density 1, 0.5 cm at density 0
+let noise = Noise::perlin().frequency(0.3);
+let points = PoissonDisk::new(bounds, 0.1)
+    .with_density_fn(0.5, noise.as_fn())
+    .points();
+let smooth = Voronoi::new(&points, bounds).relax_weighted(2, noise.as_fn()).sites();
+
+let dots: Layer = smooth.iter().map(|p| Circle::new_shape(*p, 0.03)).collect();
+```
+
 ## Text
 
 Text is drawn with single-line fonts. 65 of them are bundled via [`plottery_fonts`](https://crates.io/crates/plottery_fonts). Layout, wrapping and fitting are shown in the [text samples](https://github.com/TobiasGrothmann/plottery/blob/main/lib/samples/text/README.md).

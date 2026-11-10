@@ -23,4 +23,5 @@ pub use random::*;
 pub use range::*;
 #[cfg(test)]
 pub(crate) use thread_local::seed_for_test;
+pub(crate) use thread_local::RNG;
 pub use thread_local::{seed, seed_random};
