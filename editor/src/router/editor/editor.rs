@@ -19,6 +19,7 @@ use crate::{
             param_tree::{get_param_value_mut_by_path, leaf_value_mut},
             params_editor::ParamsEditor,
         },
+        params_file::ParamsFile,
         pick_target::PickTarget,
         plot_settings_editor::plot_settings_editor::PlotSettingsEditor,
         project_hot_reload::start_hot_reload,
@@ -324,11 +325,15 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
 
     // hooks for changes in project
     // params
-    use_effect(move || {
-        if let Err(e) = project().save_editor_params(&project_params()) {
-            tracing::error!("Failed to write project params to file: {:?}", e);
-        }
-    });
+    let params_file = use_hook(|| ParamsFile::new(project()));
+    {
+        let params_file = params_file.clone();
+        use_effect(move || {
+            if let Err(e) = params_file.save(&project_params()) {
+                tracing::error!("Failed to write project params to file: {:?}", e);
+            }
+        });
+    }
     // plot settings
     use_effect(move || {
         let plot_settings_binary =
@@ -427,12 +432,23 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
             return;
         }
         if enabled {
+            // pick up changes made while hot reload was off, the run below would overwrite them
+            match params_file.read_external() {
+                Ok(Some(params)) => {
+                    let mut project_params = project_params;
+                    project_params.set(params);
+                }
+                Ok(None) => {}
+                Err(e) => tracing::error!("Failed to read params from file: {:?}", e),
+            }
             let (handle, watcher) = start_hot_reload(
                 hot_reload_path_to_watch.clone(),
                 release,
                 project_runner(),
                 running_state,
                 console,
+                params_file.clone(),
+                project_params,
             );
             hot_reload_join_handle.set(Some(handle));
             hot_reload_watcher.set(Some(watcher));

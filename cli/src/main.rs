@@ -120,6 +120,22 @@ enum Command {
         params: ParamArgs,
     },
     #[command(
+        about = "Change the user's saved param values, like editing them in the editor",
+        long_about = "Change the user's saved param values, like editing them in the editor.\n\nAn open editor with hot reload on picks them up and reruns. Otherwise `plottery run` updates the editor's drawing."
+    )]
+    Set {
+        #[arg(
+            required_unless_present = "defaults",
+            value_name = "NAME=VALUE",
+            help = "Syntax as printed by `plottery params`, e.g. size=12.5 glow.radius=2 points.0=1,2"
+        )]
+        assignments: Vec<String>,
+        #[command(flatten)]
+        project: ProjectFlag,
+        #[arg(long, help = "Reset all params to the code's defaults first")]
+        defaults: bool,
+    },
+    #[command(
         about = "Render to png and/or svg files and print drawing stats",
         long_about = "Render to png and/or svg files and print drawing stats.\n\nUses the editor's saved param values unless --defaults or --set say otherwise. These never change the saved values, except with --update-editor, which saves exactly what was rendered."
     )]
@@ -160,6 +176,7 @@ Typical loop inside a project folder:
   plottery build                                  compile, show warnings
   plottery params                                 the user's param values
   plottery render /tmp/a.png --set size=12        render with an override, print stats
+  plottery set size=12                            change the user's values
   plottery run ~/art/labyrinth                    run a project from anywhere
   plottery open                                   open the project in the editor";
 
@@ -228,19 +245,23 @@ fn load_editor_params(project: &Project) -> Result<ProjectParamsListWrapper> {
     })
 }
 
+fn parse_assignments(assignments: &[String]) -> Result<Vec<(&str, &str)>> {
+    assignments
+        .iter()
+        .map(|assignment| {
+            assignment
+                .split_once('=')
+                .with_context(|| format!("'{assignment}' needs the form NAME=VALUE"))
+        })
+        .collect()
+}
+
 /// Builds, then returns the params to use (saved or defaults, plus `--set`s) and the defaults.
 fn build_and_resolve_params(
     project: &Project,
     args: &ParamArgs,
 ) -> Result<(ProjectParamsListWrapper, ProjectParamsListWrapper)> {
-    let overrides = args
-        .set
-        .iter()
-        .map(|set| {
-            set.split_once('=')
-                .with_context(|| format!("--set '{set}' needs the form NAME=VALUE"))
-        })
-        .collect::<Result<Vec<_>>>()?;
+    let overrides = parse_assignments(&args.set)?;
 
     let defaults = block_on(project.build_and_get_params_async(RELEASE, print_event, pending()))?;
     let mut params = if args.defaults {
@@ -312,6 +333,34 @@ pub fn main() -> Result<()> {
             let project = project.find()?;
             let (params, defaults) = build_and_resolve_params(&project, &params)?;
             println!("{}", params::format_params(&params.list, &defaults.list));
+        }
+        Command::Set {
+            assignments,
+            project,
+            defaults: reset,
+        } => {
+            let assignments = parse_assignments(&assignments)?;
+            let project = find_project(project.project)?;
+            let (before, defaults) = build_and_resolve_params(
+                &project,
+                &ParamArgs {
+                    defaults: false,
+                    set: Vec::new(),
+                },
+            )?;
+            let mut after = if reset {
+                defaults.clone()
+            } else {
+                before.clone()
+            };
+            for (name, value) in assignments {
+                after.set(name, value)?;
+            }
+            project.save_editor_params(&after)?;
+            println!(
+                "{}",
+                params::format_changes(&before.list, &after.list, &defaults.list)
+            );
         }
         Command::Render {
             outputs,

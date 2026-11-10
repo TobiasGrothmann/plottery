@@ -15,6 +15,7 @@ plottery build                                    # compile, show warnings
 plottery params                                   # the params with the editor's saved values
 plottery params --set size=12                     # preview an override
 plottery render /tmp/a.png /tmp/a.svg --set size=12  # render, print length, travel and bounds
+plottery set size=12 glow.radius=2                # change the saved values, the editor reruns with hot reload on
 plottery run                                      # like the editor's Run button
 plottery open                                     # open the project in the editor
 ```

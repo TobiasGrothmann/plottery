@@ -383,8 +383,12 @@ impl Project {
         }
     }
 
+    /// Writes a temp file and renames it, so a watching editor never reads half a file.
     pub fn save_editor_params(&self, params: &ProjectParamsListWrapper) -> Result<()> {
-        std::fs::write(self.get_editor_params_path(), bincode::serialize(params)?)?;
+        let path = self.get_editor_params_path();
+        let temp_path = path.with_extension("plotp.tmp");
+        std::fs::write(&temp_path, bincode::serialize(params)?)?;
+        std::fs::rename(temp_path, path)?;
         Ok(())
     }
 

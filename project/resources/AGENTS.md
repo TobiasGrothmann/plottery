@@ -44,6 +44,7 @@ plottery build                                    # compile, shows warnings
 plottery params                                   # the user's param values
 plottery render /tmp/{{project-name}}.png         # render to look at, prints stats
 plottery render /tmp/a.png /tmp/a.svg --set size=12 --set glow.radius=2   # try other values
+plottery set size=12 glow.radius=2                # change the user's values, like the editor
 plottery run                                      # like the editor's Run button
 ```
 
@@ -59,6 +60,9 @@ and runs with the user's param values, so a render shows what the user sees.
   options `on`/`off`. File paths are relative to the project root.
 - `--set` and `--defaults` (the code's `#[value]`s) apply to that one command and never change the
   user's saved values. Use `params --set ...` to check an override before rendering.
+- `plottery set NAME=VALUE...` changes the user's saved values and prints the changed lines. Use it only
+  when the user asks for new values, not to try things out. An open editor with hot reload on picks
+  them up and reruns. `set --defaults` resets all params to the code's `#[value]`s.
 - `render` writes `.png` (white, `--size` px on the long side, default 1600) and `.svg` files and prints
   shape count, draw and travel length, and the bounds against the paper frame.
 - `plottery run` and `render --update-editor` write the result into `resources/` for the editor.

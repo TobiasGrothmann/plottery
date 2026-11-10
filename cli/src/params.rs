@@ -1,4 +1,5 @@
 use plottery_project::{ProjectParam, ProjectParamValue as Value};
+use std::collections::HashSet;
 
 /// One printed line: a param or nested field addressed by its dotted path.
 struct Row<'a> {
@@ -26,6 +27,26 @@ pub fn format_params(params: &[ProjectParam], defaults: &[ProjectParam]) -> Stri
         lines.push(format_row(row));
     }
     lines.join("\n")
+}
+
+/// The lines of `format_params` that differ after a change, or `No changes`.
+pub fn format_changes(
+    before: &[ProjectParam],
+    after: &[ProjectParam],
+    defaults: &[ProjectParam],
+) -> String {
+    let before = format_params(before, defaults);
+    let before: HashSet<&str> = before.lines().collect();
+    let after = format_params(after, defaults);
+    let changed: Vec<&str> = after
+        .lines()
+        .filter(|line| !line.starts_with("# ") && !before.contains(line))
+        .collect();
+    if changed.is_empty() {
+        "No changes".to_string()
+    } else {
+        changed.join("\n")
+    }
 }
 
 fn push_list<'a>(

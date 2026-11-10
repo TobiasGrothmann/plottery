@@ -4,6 +4,8 @@ pub mod editor;
 pub mod external_editor_button;
 pub mod layer_editor;
 pub mod params_editor;
+pub mod params_file;
+mod params_file_test;
 pub mod pick_target;
 pub mod plot_settings_editor;
 pub mod project_hot_reload;
