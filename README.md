@@ -16,17 +16,17 @@
 
 <br/>
 
-<img src="https://github.com/user-attachments/assets/2c9b8785-5c05-45ed-a600-78e6745d751b" width="24%" />
-<img src="https://github.com/user-attachments/assets/35af3c86-744a-43a0-8ceb-d81f6b636df1" width="24%" />
-<img src="https://github.com/user-attachments/assets/3a7c9629-53da-4e5b-b066-5aa1c4d690da" width="24%" />
-<img src="https://github.com/user-attachments/assets/158e20c1-e47e-4761-9cd7-4c19440e6218" width="24%" />
-<img src="https://github.com/user-attachments/assets/9eef5667-a12d-4828-9d7a-542f53a05553" width="32%" />
-<img src="https://github.com/user-attachments/assets/53f7fe21-4cd4-425b-8ca7-b8774c218d3d" width="32%" />
-<img src="https://github.com/user-attachments/assets/7a70875e-5313-44c5-974e-9132feb5af13" width="32%" />
-<img src="https://github.com/user-attachments/assets/1fb9d9f2-1a31-43c6-90ea-fab8513b320d" width="24%" />
-<img src="https://github.com/user-attachments/assets/c6d8ca23-a703-401a-9c68-6b9d021d3309" width="24%" />
-<img src="https://github.com/user-attachments/assets/6a951a31-559c-42c3-b04e-73137538b988" width="24%" />
-<img src="https://github.com/user-attachments/assets/ee24c85c-e22a-4ca7-8d91-6314b1ffe7de" width="24%" />
+<img alt="Pen plotter drawing of a gold maze-like line pattern on black paper" src="https://github.com/user-attachments/assets/2c9b8785-5c05-45ed-a600-78e6745d751b" width="24%" />
+<img alt="Pen plotter drawing of a Sierpinski triangle in a peach-to-pink gradient" src="https://github.com/user-attachments/assets/35af3c86-744a-43a0-8ceb-d81f6b636df1" width="24%" />
+<img alt="Three framed pen plotter drawings on a sunlit wall" src="https://github.com/user-attachments/assets/3a7c9629-53da-4e5b-b066-5aa1c4d690da" width="24%" />
+<img alt="Pen plotter drawing of flowing curved strokes in pink, orange and blue" src="https://github.com/user-attachments/assets/158e20c1-e47e-4761-9cd7-4c19440e6218" width="24%" />
+<img alt="Pen plotter drawings of nested rounded line patterns in blue and pink" src="https://github.com/user-attachments/assets/9eef5667-a12d-4828-9d7a-542f53a05553" width="32%" />
+<img alt="Pen plotter drawing of a grid of hatched squares in pink, orange and blue" src="https://github.com/user-attachments/assets/53f7fe21-4cd4-425b-8ca7-b8774c218d3d" width="32%" />
+<img alt="Close-up of a pen plotter drawing of overlapping looped lines in black, pink and cyan" src="https://github.com/user-attachments/assets/7a70875e-5313-44c5-974e-9132feb5af13" width="32%" />
+<img alt="Four pen plotter cards with black looping ring patterns around different centre shapes" src="https://github.com/user-attachments/assets/1fb9d9f2-1a31-43c6-90ea-fab8513b320d" width="24%" />
+<img alt="Stippled white concentric rings plotted on black paper" src="https://github.com/user-attachments/assets/c6d8ca23-a703-401a-9c68-6b9d021d3309" width="24%" />
+<img alt="Pen plotter drawing of a grid of square tiles with different line and curve patterns" src="https://github.com/user-attachments/assets/6a951a31-559c-42c3-b04e-73137538b988" width="24%" />
+<img alt="Framed black pen plotter drawing of a swirling form made of many fine lines" src="https://github.com/user-attachments/assets/ee24c85c-e22a-4ca7-8d91-6314b1ffe7de" width="24%" />
 
 <br/>
 
@@ -44,7 +44,7 @@ CLI only: `cargo install plottery_cli`.
 
 The [editor](./editor) lets you manage, preview and run **Plottery** projects.
 
-<img width="100%" src="./editor/screenshots/editor.png" />
+<img alt="Plottery editor with parameter sliders, a Truchet tile preview, layers and a build console" width="100%" src="./editor/screenshots/editor.png" />
 
 # Projects
 
@@ -84,10 +84,10 @@ Run it in the [editor](./editor), with `plottery run`, or with `cargo run svg` t
 
 ### Examples
 
-<a href="./examples/spiral"><img src="https://github.com/user-attachments/assets/8aa40c30-4c36-498a-87de-ca9f2cc3fdd3" width="38%" /></a>
-<a href="./examples/scribbles"><img src="./examples/scribbles/preview.png" width="19%" /></a>
-<a href="./examples/pebbles"><img src="./examples/pebbles/preview.png" width="19%" /></a>
-<a href="./examples/poster"><img src="./examples/poster/preview.png" width="19%" /></a>
+<a href="./examples/spiral"><img alt="Spiral example: one continuous blue spiral line" src="https://github.com/user-attachments/assets/8aa40c30-4c36-498a-87de-ca9f2cc3fdd3" width="38%" /></a>
+<a href="./examples/scribbles"><img alt="Scribbles example: a grid of squares that get more scribbled towards the bottom" src="./examples/scribbles/preview.png" width="19%" /></a>
+<a href="./examples/pebbles"><img alt="Pebbles example: rows of pebble shapes filled with concentric contour lines" src="./examples/pebbles/preview.png" width="19%" /></a>
+<a href="./examples/poster"><img alt="Poster example: the word Plottery in a single-line script font above a paragraph of text" src="./examples/poster/preview.png" width="19%" /></a>
 
 * [**spiral**](./examples/spiral/spiral/src/generate.rs): a path collected from polar points, masked to the margin, in named and colored sublayers. Its center is set by clicking the drawing, its direction by an enum.
 * [**scribbles**](./examples/scribbles/scribbles/src/generate.rs): squares that dissolve into scribbles, with a seed, a noise param, an easing curve and random ranges.
@@ -118,8 +118,8 @@ l.push_layer(text);
 
 Anchoring to a rect, wrapping, justify, fitting and rotation are shown in the [text layout samples](./lib/samples/text/README.md). `Font::load` reads SVG, TTF and OTF files, `Font::load_single_line` keeps the strokes of single-line TrueType fonts open, and `Font::system("Helvetica")` finds an installed font. The [poster](./examples/poster/poster/src/generate.rs) example picks its fonts and text in the editor. All 65 bundled fonts are shown in the [fonts README](./fonts/README.md).
 
-<img src="./fonts/samples/HersheyScript.svg" width="49%" /> <img src="./fonts/samples/EmsReadability.svg" width="49%" />
-<img src="./fonts/samples/ReliefSingleLine.svg" width="49%" /> <img src="./fonts/samples/HersheyGothicEnglish.svg" width="49%" />
+<img alt="Hershey Script single-line font sample" src="./fonts/samples/HersheyScript.svg" width="49%" /> <img alt="EMS Readability single-line font sample" src="./fonts/samples/EmsReadability.svg" width="49%" />
+<img alt="Relief Single Line font sample" src="./fonts/samples/ReliefSingleLine.svg" width="49%" /> <img alt="Hershey Gothic English single-line font sample" src="./fonts/samples/HersheyGothicEnglish.svg" width="49%" />
 
 # Development
 

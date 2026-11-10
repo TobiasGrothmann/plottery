@@ -7,7 +7,7 @@ version.workspace = true
 authors.workspace = true
 categories.workspace = true
 repository.workspace = true
-keywords.workspace = true
+keywords = ["fonts", "hershey", "single-line", "plotter", "svg"]
 include = ["src/**", "fonts/**", "LICENSES/**", "Cargo.toml", "README.md"]
 
 [dependencies]

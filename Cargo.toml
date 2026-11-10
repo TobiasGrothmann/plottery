@@ -14,7 +14,7 @@ categories = [
     "mathematics",
     "multimedia::images",
 ]
-keywords = ["plottery", "plotter", "generative", "art"]
+keywords = ["plotter", "pen-plotter", "generative-art", "creative-coding", "svg"]
 
 
 # Dioxus
