@@ -880,6 +880,36 @@ mod test_layer {
     }
 
     #[test]
+    fn combine_shapes_shuffled_loop() {
+        let n = 64;
+        let corner = |i: usize| V2::polar(Angle::from_rotations(i as f32 / n as f32), 1.0);
+        let chords = (0..n).map(|k| (k * 37) % n).map(|i| {
+            let chord = Path::new_from([corner(i), corner((i + 1) % n)]);
+            if i % 2 == 0 {
+                chord.reverse()
+            } else {
+                chord
+            }
+        });
+
+        let combined = Layer::new_from(chords).combine_shapes_flat(None);
+        assert_eq!(combined.len(), 1);
+        let path = combined.paths().next().unwrap();
+        assert!(path.is_closed());
+        assert_eq!(path.len(), n + 1);
+    }
+
+    #[test]
+    fn combine_shapes_within_epsilon() {
+        let a = Layer::new_from([
+            Path::new_from([V2::new(0.0, 0.0), V2::new(0.999_998, 0.0)]),
+            Path::new_from([V2::new(1.000_002, 0.0), V2::new(2.0, 0.0)]),
+            Path::new_from([V2::new(5.0, 5.0), V2::new(6.0, 5.0)]),
+        ]);
+        assert_eq!(a.combine_shapes_flat(None).len(), 2);
+    }
+
+    #[test]
     fn recursive_iteration_extend_and_flat_map() {
         let mut inner = Layer::new();
         inner.push(Path::new_from([V2::new(0.0, 0.0), V2::new(4.0, 0.0)]));

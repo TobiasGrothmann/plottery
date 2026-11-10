@@ -21,7 +21,7 @@ use crate::{
 };
 
 use super::{
-    path_end::PathEnd,
+    combine_paths::combine_paths,
     svg_path_data::parse_svg_path_data,
     svg_transform::{iter_svg_f32_tokens, parse_svg_transform_attr},
     ColorRgb, Inheritable, LayerProps, LayerPropsInheritable,
@@ -591,7 +591,7 @@ impl Layer {
     }
 
     /// Returns a new `Layer` with [`Shape`]s that start/end at another [`Shape`]'s start/end combined into a single [`Path`].
-    /// This is done until no more shapes can be combined, recursively for all sublayers individually.
+    /// Recursive for all sublayers individually.
     ///
     /// `max_angle_delta` is the maximum angle difference between the start/end points of the two shapes that will still be combined. Set to `None` to ignore angles.
     #[must_use]
@@ -599,8 +599,7 @@ impl Layer {
         let (combineable, noncombineable) =
             Layer::group_shapes_combineable_noncombineable(self.shapes.iter());
 
-        let shapes: Vec<Shape> = self
-            .combine_shapes_flat_iterate_until_no_effect(combineable, &max_angle_delta)
+        let shapes: Vec<Shape> = combine_paths(combineable, max_angle_delta)
             .into_iter()
             .map(|path| path.into())
             .chain(noncombineable)
@@ -623,8 +622,7 @@ impl Layer {
         let (combineable, noncombineable) =
             Layer::group_shapes_combineable_noncombineable(self.iter());
 
-        let shapes: Vec<Shape> = self
-            .combine_shapes_flat_iterate_until_no_effect(combineable, &max_angle_delta)
+        let shapes: Vec<Shape> = combine_paths(combineable, max_angle_delta)
             .into_iter()
             .map(|path| path.into())
             .chain(noncombineable)
@@ -657,115 +655,6 @@ impl Layer {
             }
         }
         (combineable, noncombineable)
-    }
-    fn combine_shapes_flat_iterate_until_no_effect(
-        &self,
-        mut paths: Vec<Path>,
-        max_angle_delta: &Option<Angle>,
-    ) -> Vec<Path> {
-        let mut last_num_paths = paths.len();
-        loop {
-            paths = self.combine_shapes_flat_iterate(&paths, max_angle_delta);
-            if last_num_paths <= paths.len() || paths.len() == 1 {
-                return paths;
-            }
-            last_num_paths = paths.len();
-        }
-    }
-    fn prepend_paths(path_candidate: &Path, reverse_candidate: bool, current_path: &Path) -> Path {
-        let candidate_points = path_candidate.get_points_ref();
-        let current_points = current_path.get_points_ref();
-        let mut points =
-            Vec::with_capacity(candidate_points.len() + current_points.len().saturating_sub(1));
-
-        if reverse_candidate {
-            points.extend(candidate_points.iter().rev().copied());
-        } else {
-            points.extend(candidate_points.iter().copied());
-        }
-        points.extend(current_points.iter().skip(1).copied());
-
-        Path::new_from(points)
-    }
-
-    fn combine_shapes_flat_iterate(
-        &self,
-        paths: &[Path],
-        max_angle_delta: &Option<Angle>,
-    ) -> Vec<Path> {
-        let mut combined_paths = Vec::new();
-
-        // iterate paths, combine
-        let mut mask = vec![false; paths.len()];
-        let mut current_path = Path::new();
-        let mut current_path_start = PathEnd {
-            point: V2::new(0.0, 0.0),
-            angle: Angle::zero(),
-        };
-        let mut current_path_end = PathEnd {
-            point: V2::new(0.0, 0.0),
-            angle: Angle::zero(),
-        };
-
-        for (i, path) in paths.iter().enumerate() {
-            if mask[i] {
-                continue;
-            }
-
-            // start new path
-            if current_path.is_empty() {
-                current_path.push_many(path.get_points_ref());
-                current_path_start = PathEnd::from_path_start(path);
-                current_path_end = PathEnd::from_path_end(path);
-                mask[i] = true;
-            }
-
-            for (j, path_candidate) in paths.iter().enumerate().skip(i + 1) {
-                if mask[j] {
-                    continue;
-                }
-
-                let start = PathEnd::from_path_start(path_candidate);
-                let end = PathEnd::from_path_end(path_candidate);
-
-                if current_path_end.is_compatible(&start, max_angle_delta) {
-                    // regular append
-                    // current_start -> current_end -> # -> start -> end
-                    current_path.push_many(path_candidate.get_points_ref().iter().skip(1));
-
-                    current_path_end = end;
-                    mask[j] = true;
-                } else if current_path_end.is_compatible(&end.flipped(), max_angle_delta) {
-                    // reverse candidate and append
-                    // current_start -> current_end -> # -> end -> start
-                    current_path.push_many(path_candidate.get_points_ref().iter().rev().skip(1));
-
-                    current_path_end = start.flipped();
-                    mask[j] = true;
-                } else if current_path_start.is_compatible(&end, max_angle_delta) {
-                    // regular prepend
-                    // start -> end -> # -> current_start -> current_end
-                    current_path = Self::prepend_paths(path_candidate, false, &current_path);
-
-                    current_path_start = start;
-                    mask[j] = true;
-                } else if current_path_start.is_compatible(&start.flipped(), max_angle_delta) {
-                    // reverse candidate and prepend
-                    // end -> start -> # -> current_start -> current_end
-                    current_path = Self::prepend_paths(path_candidate, true, &current_path);
-
-                    current_path_start = end.flipped();
-                    mask[j] = true;
-                }
-            }
-
-            if !current_path.is_empty() {
-                combined_paths.push(current_path);
-                current_path = Path::new();
-            }
-        }
-
-        combined_paths
     }
 
     /// Map a function recursively to all [`Shape`]s in the `Layer` and its sublayers.

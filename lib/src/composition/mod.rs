@@ -1,6 +1,7 @@
 mod color;
 pub mod color_names;
 mod color_test;
+mod combine_paths;
 pub mod frame;
 mod frame_test;
 pub mod grid;
