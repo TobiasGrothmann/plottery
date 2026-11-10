@@ -28,9 +28,9 @@ mod tests {
         let expected = ProjectParamsListWrapper::new(vec![
             ProjectParam::new("a_1", ProjectParamValue::Float(0.0)), // should stay
             ProjectParam::new("a_2_renamed", ProjectParamValue::Float(0.0)), // added in struct order
-            ProjectParam::new("b", ProjectParamValue::Int(0)),       // should not change value
-            ProjectParam::new("c", ProjectParamValue::Float(1.0)),   // should change type and value
-                                                                     // a_2 and a_3 should be removed
+            ProjectParam::new("b", ProjectParamValue::Int(0)), // should not change value
+            ProjectParam::new("c", ProjectParamValue::Float(1.0)), // should change type and value
+                                                               // a_2 and a_3 should be removed
         ]);
 
         let combined = ProjectParamsListWrapper::new_combined(&old.list, &new.list);

@@ -91,7 +91,11 @@ impl Paper {
             PaperSize::DinA(number) => V2::din_a(number.min(10)),
             PaperSize::DinB(number) => V2::din_b(number.min(10)),
             PaperSize::Custom(size) => {
-                return if self.landscape { size.swap_axes() } else { size };
+                return if self.landscape {
+                    size.swap_axes()
+                } else {
+                    size
+                };
             }
         };
         let (short, long) = (raw.min_axis(), raw.max_axis());
