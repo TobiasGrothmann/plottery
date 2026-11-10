@@ -338,7 +338,7 @@ mod test_layer {
 
         let temp_dir = tempfile::tempdir().unwrap();
         let svg_path = temp_dir.path().join("test.svg");
-        l.write_svg(svg_path.clone(), 100.0).unwrap();
+        l.write_svg(svg_path.clone()).unwrap();
 
         // load svg and check
         let mut svg_content = String::new();
@@ -384,7 +384,7 @@ mod test_layer {
 
         let temp_dir = tempfile::tempdir().unwrap();
         let svg_path = temp_dir.path().join("test_import.svg");
-        l.write_svg(svg_path.clone(), 1.0).unwrap();
+        l.write_svg(svg_path.clone()).unwrap();
 
         let imported = Layer::new_from_svg(&svg_path).unwrap();
         assert_eq!(imported.len(), 2);

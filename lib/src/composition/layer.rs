@@ -27,6 +27,9 @@ use super::{
     ColorRgb, Inheritable, LayerProps, LayerPropsInheritable,
 };
 
+/// SVG exports use millimetres as user units.
+const SVG_UNITS_PER_CM: f32 = 10.0;
+
 /// `Layer` represents a tree of [`Shape`]s by holding a list of [`Shape`]s and other `Layer`s.
 ///
 /// ### Example
@@ -214,27 +217,25 @@ impl Layer {
         self.shapes.is_empty() && self.sublayers.is_empty()
     }
 
-    /// Return the layer converted into a [`svg::Document`].
-    /// Some adjustments are made, like flipping the y-axis and optinally scaling the shapes.
-    /// Sublayers are grouped with an svg `<g>` tag.
-    pub fn to_svg(&self, scale: f32) -> Document {
+    /// Return the layer as a real-size [`svg::Document`] in mm, y-axis flipped, sublayers as `<g>`.
+    pub fn to_svg(&self) -> Document {
         let prepared = self.get_prepared_for_svg();
 
         let Some(bounding_box) = prepared.bounding_box() else {
             return Document::new();
         };
         // The view box follows the content so shapes below or left of the origin stay visible.
-        let origin: V2 = bounding_box.bl() * scale;
-        let size: V2 = bounding_box.size() * scale;
+        let origin: V2 = bounding_box.bl() * SVG_UNITS_PER_CM;
+        let size: V2 = bounding_box.size() * SVG_UNITS_PER_CM;
 
         Document::new()
             .set("viewBox", (origin.x, origin.y, size.x, size.y))
-            .set("width", size.x)
-            .set("height", size.y)
+            .set("width", format!("{}mm", size.x))
+            .set("height", format!("{}mm", size.y))
             // Round like a real pen tip; the default miter join spikes at sharp corners.
             .set("stroke-linejoin", "round")
             .set("stroke-linecap", "round")
-            .add(prepared.get_svg_group(scale, &LayerPropsInheritable::default()))
+            .add(prepared.get_svg_group(&LayerPropsInheritable::default()))
     }
     fn get_prepared_for_svg(&self) -> Layer {
         let bounding_box = self.bounding_box();
@@ -245,7 +246,7 @@ impl Layer {
 
         self.map_recursive(|shape| shape.mirror_y().translate(bounding_box.size().only_y()))
     }
-    fn get_svg_group(&self, scale: f32, parent_props: &LayerPropsInheritable) -> Group {
+    fn get_svg_group(&self, parent_props: &LayerPropsInheritable) -> Group {
         let props_inheritable = parent_props.overwrite_with(&self.props_inheritable);
 
         let mut group = Group::new();
@@ -253,35 +254,31 @@ impl Layer {
             group = group.set("id", name.as_str());
         }
 
-        for shape_svg in self.get_shapes_as_svg_nodes(scale, &props_inheritable) {
+        for shape_svg in self.get_shapes_as_svg_nodes(&props_inheritable) {
             group = group.add(shape_svg);
         }
         for sublayer_svg in self
             .sublayers
             .iter()
-            .map(|sublayer| sublayer.get_svg_group(scale, &props_inheritable))
+            .map(|sublayer| sublayer.get_svg_group(&props_inheritable))
         {
             group = group.add(sublayer_svg);
         }
         group
     }
-    fn get_shapes_as_svg_nodes(
-        &self,
-        scale: f32,
-        props: &LayerPropsInheritable,
-    ) -> Vec<Box<dyn Node>> {
+    fn get_shapes_as_svg_nodes(&self, props: &LayerPropsInheritable) -> Vec<Box<dyn Node>> {
         let fill = "none";
         let stroke = props.color.unwrap().hex();
-        let stroke_width = props.pen_width_cm.unwrap() * scale;
+        let stroke_width = props.pen_width_cm.unwrap() * SVG_UNITS_PER_CM;
 
         let mut nodes: Vec<Box<dyn Node>> = Vec::with_capacity(self.shapes.len());
         for shape in &self.shapes {
             match shape {
                 Shape::Circle(c) => nodes.push(Box::new(
                     svg::node::element::Circle::new()
-                        .set("cx", c.center.x * scale)
-                        .set("cy", c.center.y * scale)
-                        .set("r", c.radius * scale)
+                        .set("cx", c.center.x * SVG_UNITS_PER_CM)
+                        .set("cy", c.center.y * SVG_UNITS_PER_CM)
+                        .set("r", c.radius * SVG_UNITS_PER_CM)
                         .set("fill", fill)
                         .set("stroke", stroke.clone())
                         .set("stroke-width", stroke_width),
@@ -291,10 +288,10 @@ impl Layer {
                     let size = r.size();
                     nodes.push(Box::new(
                         svg::node::element::Rectangle::new()
-                            .set("x", bl.x * scale)
-                            .set("y", bl.y * scale)
-                            .set("width", size.x * scale)
-                            .set("height", size.y * scale)
+                            .set("x", bl.x * SVG_UNITS_PER_CM)
+                            .set("y", bl.y * SVG_UNITS_PER_CM)
+                            .set("width", size.x * SVG_UNITS_PER_CM)
+                            .set("height", size.y * SVG_UNITS_PER_CM)
                             .set("fill", fill)
                             .set("stroke", stroke.clone())
                             .set("stroke-width", stroke_width),
@@ -306,11 +303,10 @@ impl Layer {
                         continue;
                     }
                     let mut data = Data::new();
-                    data = data.move_to((points[0] * scale).as_tuple());
-                    data = points
-                        .iter()
-                        .skip(1)
-                        .fold(data, |data, point| data.line_to((point * scale).as_tuple()));
+                    data = data.move_to((points[0] * SVG_UNITS_PER_CM).as_tuple());
+                    data = points.iter().skip(1).fold(data, |data, point| {
+                        data.line_to((point * SVG_UNITS_PER_CM).as_tuple())
+                    });
 
                     if points.first().unwrap() == points.last().unwrap() {
                         data = data.close();
@@ -328,8 +324,8 @@ impl Layer {
         nodes
     }
     /// Save a converted version of this layer to an .svg file. see [`Layer::to_svg`].
-    pub fn write_svg(&self, path: PathBuf, scale: f32) -> Result<()> {
-        let document = self.to_svg(scale);
+    pub fn write_svg(&self, path: PathBuf) -> Result<()> {
+        let document = self.to_svg();
         svg::save(path.to_str().unwrap(), &document)?;
         Ok(())
     }

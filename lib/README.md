@@ -68,7 +68,7 @@ l.push(frame.outer_rect());
 l.push_layer(circles);
 
 let l = l.with_name("root").optimize_recursive();
-l.write_svg(std::env::temp_dir().join("circles.svg"), 10.0)
+l.write_svg(std::env::temp_dir().join("circles.svg"))
     .expect("svg");
 ```
 

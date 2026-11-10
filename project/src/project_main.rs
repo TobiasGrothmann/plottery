@@ -13,7 +13,6 @@ use crate::project_params_list_wrapper::ProjectParamsListWrapper;
 enum RunCommand {
     Svg {
         path: Option<String>,
-        scale: Option<f32>,
     },
     StdOut {
         #[arg(long, short)]
@@ -52,33 +51,29 @@ where
 {
     let args = Args::parse();
     match args.command {
-        RunCommand::Svg { path, scale } => {
-            let scale = scale.unwrap_or(10.0);
-
-            match path {
-                Some(path_string) => {
-                    let path = PathBuf::from(&path_string);
-                    if path.is_dir() {
-                        panic!(
-                            "Failed to write .svg - Path '{}' is a directory.",
-                            path_string
-                        );
-                    }
-                    let art = generate_function(P::new_with_defaults());
-                    art.write_svg(path, scale)?;
+        RunCommand::Svg { path } => match path {
+            Some(path_string) => {
+                let path = PathBuf::from(&path_string);
+                if path.is_dir() {
+                    panic!(
+                        "Failed to write .svg - Path '{}' is a directory.",
+                        path_string
+                    );
                 }
-                None => {
-                    let path = std::env::temp_dir().join("temp_cli.svg");
-                    let art = generate_function(P::new_with_defaults());
-                    art.write_svg(path.clone(), scale)?;
-
-                    open::that_in_background(path)
-                        .join()
-                        .expect("Failed to join background process for opening SVG")
-                        .expect("Failed to open SVG file in default viewer");
-                }
+                let art = generate_function(P::new_with_defaults());
+                art.write_svg(path)?;
             }
-        }
+            None => {
+                let path = std::env::temp_dir().join("temp_cli.svg");
+                let art = generate_function(P::new_with_defaults());
+                art.write_svg(path.clone())?;
+
+                open::that_in_background(path)
+                    .join()
+                    .expect("Failed to join background process for opening SVG")
+                    .expect("Failed to open SVG file in default viewer");
+            }
+        },
         RunCommand::StdOut { piped_params } => {
             let wait_for_stdin = piped_params.unwrap_or(false);
 

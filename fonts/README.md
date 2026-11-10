@@ -15,7 +15,7 @@ let font = Font::bundled(BundledFont::HersheySans);
 let layer = Text::new("Hello plotter", &font)
     .size(2.0) // em height in cm
     .to_layer(SampleSettings::default())?;
-layer.write_svg("hello.svg".into(), 10.0)?;
+layer.write_svg("hello.svg".into())?;
 ```
 
 ## Usage without Plottery

@@ -358,12 +358,12 @@ impl Project {
     }
 
     pub fn write_svg(&self, path: PathBuf, layer: &Layer) -> Result<()> {
-        layer.write_svg(path, 10.0)
+        layer.write_svg(path)
     }
 
     /// Writes a PNG on white, its longest side `max_size` pixels.
     pub fn write_png(&self, path: PathBuf, layer: &Layer, max_size: u32) -> Result<()> {
-        let svg_data = layer.to_svg(10.0).to_string();
+        let svg_data = layer.to_svg().to_string();
         render_svg_to_png(
             svg_data.as_bytes(),
             &path,
@@ -407,7 +407,7 @@ impl Project {
     ) -> Result<()> {
         self.save_editor_params(params)?;
         self.save_editor_layer(layer)?;
-        self.save_editor_preview(&layer.to_svg(10.0).to_string())
+        self.save_editor_preview(&layer.to_svg().to_string())
     }
 
     pub fn write_editor_thumbnail(&self, svg_data: &[u8]) -> Result<()> {
