@@ -10,7 +10,7 @@ pub const HISTOGRAM_BINS: usize = 256;
 /// ### Example
 /// ```
 /// # use plottery_lib::*;
-/// let noise = Noise::simplex();
+/// let noise = Noise::simplex().seed(1);
 /// let bounds = Rect::new(V2::zero(), V2::new(100.0, 50.0));
 /// let histogram = Histogram::sample_field(bounds, 128, noise.as_fn());
 /// let median = histogram.median();

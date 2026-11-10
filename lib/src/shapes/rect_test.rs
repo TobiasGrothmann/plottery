@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod test_rect {
     use crate::{
+        maths::seed_for_test,
         traits::{ClosestPoint, Scale},
         Angle, Plottable, Rect, Rotate90, SampleSettings, LARGE_EPSILON, V2,
     };
@@ -118,6 +119,7 @@ mod test_rect {
 
     #[test]
     fn helpers() {
+        let _rng = seed_for_test(1);
         let r = Rect::new(V2::new(1.0, 2.0), V2::new(4.0, 4.0));
         assert_eq!(r.corners(), [r.bl(), r.tl(), r.tr(), r.br()]);
         assert_eq!(r.edges()[3].to, r.bl());

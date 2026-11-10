@@ -2,6 +2,8 @@
 mod test_shape {
     use itertools::Itertools;
 
+    use rand::{rngs::StdRng, Rng, SeedableRng};
+
     use crate::{Circle, Path, Plottable, Rect, SampleSettings, V2};
 
     #[test]
@@ -139,17 +141,16 @@ mod test_shape {
         let center = V2::new(3.0, 3.0);
         let radius = 0.5;
         let mask = Circle::new_shape(center, radius);
-        let mut p: Path = Path::new();
-
-        for _ in 0..200 {
-            p.push(
+        let mut rng = StdRng::seed_from_u64(1);
+        let p: Path = (0..200)
+            .map(|_| {
                 center - V2::xy(radius * 2.0)
                     + V2::new(
-                        radius * rand::random::<f32>() * 4.0,
-                        radius * rand::random::<f32>() * 4.0,
-                    ),
-            );
-        }
+                        radius * rng.gen::<f32>() * 4.0,
+                        radius * rng.gen::<f32>() * 4.0,
+                    )
+            })
+            .collect();
 
         let masked = p.mask_geo(&mask, SampleSettings::default());
 
