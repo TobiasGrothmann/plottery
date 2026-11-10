@@ -5209,6 +5209,7 @@ dependencies = [
  "rand 0.8.6",
  "rand_distr",
  "rayon",
+ "rustc-hash 2.1.2",
  "serde",
  "skrifa",
  "svg",
