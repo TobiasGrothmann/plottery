@@ -29,7 +29,7 @@ A **Plottery Project** is a user-created artwork generator: a standalone Cargo p
 - **Layers, paper, frame, grids, colors:** `lib/src/composition/`
 - **Transformation traits:** `lib/src/traits/`
 - **Math:** `lib/src/maths/` (angles, noise, random, easing, ranges)
-- **Generators (Voronoi, marching squares):** `lib/src/generate/`
+- **Generators (Voronoi, Poisson disk, marching squares):** `lib/src/generate/`
 - **Image sampling:** `lib/src/sampling/`
 - **Effects (blur, hatch):** `lib/src/effects/`
 - **Text & fonts:** `lib/src/text/`, font data in `fonts/fonts/`, credits in `fonts/LICENSES/CREDITS.md`
@@ -57,6 +57,8 @@ A **Plottery Project** is a user-created artwork generator: a standalone Cargo p
 ## Testing
 
 Write tests for real logic, algorithms and fixed bugs, not for one-line helpers or trivial delegations.
+
+Tests are deterministic. Random test data comes from a seeded `StdRng::seed_from_u64(n)`. Tests that use the lib's global rng (`rand_*`, `V2::random_*`, unseeded noise, `seed()`) start with `let _rng = seed_for_test(n);` from `lib/src/maths/thread_local.rs`. It holds a lock so parallel tests don't interleave.
 
 Before finishing a change:
 
