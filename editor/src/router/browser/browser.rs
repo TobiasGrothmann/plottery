@@ -24,10 +24,13 @@ use crate::{
     util::editor_route,
 };
 
-fn pick_root_folder() -> Option<PathBuf> {
-    rfd::FileDialog::new()
+async fn pick_root_folder() -> Option<PathBuf> {
+    rfd::AsyncFileDialog::new()
         .set_title("Pick a folder to watch for Plottery projects")
+        .set_parent(&*dioxus::desktop::window().window)
         .pick_folder()
+        .await
+        .map(|folder| folder.path().to_path_buf())
 }
 
 fn project_count_label(count: usize) -> String {
@@ -60,12 +63,14 @@ pub fn Browser() -> Element {
 
     let nav = use_navigator();
     let mut show_new_project = use_signal(|| false);
-    let mut add_root = move || {
-        if let Some(folder) = pick_root_folder() {
-            let mut state = app_state.write();
-            state.add_root(folder.clone());
-            state.selected_folder = Some(folder);
-        }
+    let add_root = move || {
+        spawn(async move {
+            if let Some(folder) = pick_root_folder().await {
+                let mut state = app_state.write();
+                state.add_root(folder.clone());
+                state.selected_folder = Some(folder);
+            }
+        });
     };
     let mut select_folder = move |path: PathBuf| {
         app_state.write().selected_folder = Some(path);

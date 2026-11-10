@@ -11,7 +11,7 @@ use crate::{
 
 use dioxus::prelude::*;
 use plottery_project::{LibSource, Project};
-use rfd::FileDialog;
+use rfd::AsyncFileDialog;
 
 fn validate_form(
     target_folder: &str,
@@ -164,9 +164,13 @@ pub fn NewProjectModal(open: Signal<bool>, on_created: EventHandler<()>) -> Elem
                                 icon: IconName::Folder,
                                 label: "Choose folder",
                                 variant: Variant::Secondary,
-                                onclick: move |_| {
-                                    if let Some(path) = FileDialog::new().pick_folder() {
-                                        target_folder.set(path.to_string_lossy().to_string());
+                                onclick: move |_| async move {
+                                    let picked = AsyncFileDialog::new()
+                                        .set_parent(&*dioxus::desktop::window().window)
+                                        .pick_folder()
+                                        .await;
+                                    if let Some(folder) = picked {
+                                        target_folder.set(folder.path().to_string_lossy().to_string());
                                     }
                                 },
                             }

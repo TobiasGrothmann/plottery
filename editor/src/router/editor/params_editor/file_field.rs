@@ -7,7 +7,7 @@ use anyhow::Result;
 use dioxus::prelude::*;
 use dioxus_logger::tracing;
 use plottery_project::{file_name_of, project_param_value::ProjectParamValue, ProjectParamFile};
-use rfd::FileDialog;
+use rfd::AsyncFileDialog;
 
 use crate::{
     components::{
@@ -99,7 +99,7 @@ pub fn FileField(props: LeafProps) -> Element {
     };
     let mut copy_mode = use_signal(|| true);
     let mut downscale = use_signal(|| true);
-    let mut import_error = use_signal_sync(|| None::<String>);
+    let mut import_error = use_signal(|| None::<String>);
 
     let noun = kind.noun();
     let current = file.path.clone();
@@ -144,25 +144,28 @@ pub fn FileField(props: LeafProps) -> Element {
                 size: Size::Sm,
                 icon: IconName::Image,
                 onclick: move |_| {
-                    let Some(picked) = FileDialog::new()
-                        .add_filter(format!("{noun}s"), kind.extensions())
-                        .pick_file()
-                        else {
-                        return;
-                    };
-                    import_error.set(None);
-                    if !copy_mode() {
-                        edit_file(
-                            &choose_props,
-                            kind,
-                            |file| { file.set(Some(picked.to_string_lossy().to_string())) },
-                        );
-                        return;
-                    }
-                    let project_dir = project_dir.clone();
                     let props = choose_props.clone();
-                    let downscale = downscale();
-                    tokio::spawn(async move {
+                    let project_dir = project_dir.clone();
+                    async move {
+                        let Some(picked) = AsyncFileDialog::new()
+                            .add_filter(format!("{noun}s"), kind.extensions())
+                            .set_parent(&*dioxus::desktop::window().window)
+                            .pick_file()
+                            .await
+                            else {
+                            return;
+                        };
+                        let picked = picked.path().to_path_buf();
+                        import_error.set(None);
+                        if !copy_mode() {
+                            edit_file(
+                                &props,
+                                kind,
+                                |file| { file.set(Some(picked.to_string_lossy().to_string())) },
+                            );
+                            return;
+                        }
+                        let downscale = downscale();
                         let result = tokio::task::spawn_blocking(move || {
                                 kind.import(&project_dir, &picked, downscale)
                             })
@@ -171,13 +174,11 @@ pub fn FileField(props: LeafProps) -> Element {
                             Ok(Ok(stored)) => edit_file(&props, kind, |file| file.set(Some(stored))),
                             Ok(Err(e)) => {
                                 tracing::error!("Failed to import {}: {:?}", noun, e);
-                                if let Ok(mut err) = import_error.try_write() {
-                                    *err = Some(format!("{e:#}"));
-                                }
+                                import_error.set(Some(format!("{e:#}")));
                             }
                             Err(e) => tracing::error!("File import task failed: {:?}", e),
                         }
-                    });
+                    }
                 },
                 "Choose…"
             }
