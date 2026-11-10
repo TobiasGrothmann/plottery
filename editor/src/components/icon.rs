@@ -102,7 +102,11 @@ fn children(name: IconName) -> Element {
             circle { cx: "9", cy: "10", r: "2" }
             path { d: "M21 16l-5-5-9 9" }
         },
-        IconName::Plotter => rsx! { {frame()} path { d: "M3 9h18M12 9v5M9.5 14h5" } },
+        IconName::Plotter => rsx! {
+            {frame()}
+            path { d: "M3 10h8.8M16.2 10H21M14 4v3.8M14 12.2V20" }
+            circle { cx: "14", cy: "10", r: "2.2" }
+        },
         IconName::Fit => rsx! { path { d: "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" } },
         IconName::Alert => rsx! {
             circle { cx: "12", cy: "12", r: "9" }

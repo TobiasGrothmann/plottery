@@ -1,29 +1,50 @@
-.remote_rows {
+.remote_sections {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 20px;
 }
 
-.remote_row {
+.remote_section {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.remote_label {
-  width: 72px;
-  flex: none;
-  font-size: 12px;
-  font-weight: 500;
+.remote_section > .caps {
+  font-size: 13px;
   color: var(--fg-1);
 }
 
-.remote_value {
-  min-width: 56px;
-  text-align: right;
+.remote_grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 104px;
+  gap: 8px;
+  align-items: center;
 }
 
-.remote_input {
-  flex: none;
-  width: 88px;
+.remote_field .input {
+  padding-right: 28px;
+}
+
+.affix .remote_unit {
+  left: auto;
+  right: 8px;
+}
+
+.remote_readout {
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--bg-2);
+}
+
+.remote_readout .mono {
+  left: 20px;
+  color: var(--fg-0);
+  pointer-events: auto;
+}
+
+.remote_abort {
+  color: var(--err);
+  border-color: var(--err);
 }
