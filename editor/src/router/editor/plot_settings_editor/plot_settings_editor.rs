@@ -52,17 +52,7 @@ pub fn PlotSettingsEditor(props: PlotSettingsEditorProps) -> Element {
     rsx! {
         style { { include_str!("plot_settings_editor.css") } }
         section { class: "fsection",
-            span { class: "caps", "Motion" }
-            div { class: "fgrid",
-                label { class: "flabel",
-                    "Corner slowdown power"
-                    {number_input(plot_settings, settings.corner_slowdown_power, "Corner slowdown power".to_string(), |s, v| s.corner_slowdown_power = v)}
-                    span { class: "hint", "Lower is slower in corners" }
-                }
-            }
-        }
-        section { class: "fsection",
-            span { class: "caps", "Speeds" }
+            span { class: "caps", "XY" }
             div { class: "ftable",
                 span {}
                 span { class: "hint", "Min" }
@@ -78,20 +68,33 @@ pub fn PlotSettingsEditor(props: PlotSettingsEditorProps) -> Element {
                     |s, v| s.speed_travel.max = v,
                     |s, v| s.speed_travel.accelleration_distance = v,
                 ])}
-                {speed_row(plot_settings, "Head down", &settings.speed_head_down, [
+            }
+            div { class: "fgrid",
+                label { class: "flabel",
+                    "Corner slowdown power"
+                    {number_input(plot_settings, settings.corner_slowdown_power, "Corner slowdown power".to_string(), |s, v| s.corner_slowdown_power = v)}
+                    span { class: "hint", "Lower is slower in corners" }
+                }
+            }
+        }
+        section { class: "fsection",
+            span { class: "caps", "Head" }
+            div { class: "ftable",
+                span {}
+                span { class: "hint", "Min" }
+                span { class: "hint", "Max" }
+                span { class: "hint", "Accel. distance" }
+                {speed_row(plot_settings, "Down", &settings.speed_head_down, [
                     |s, v| s.speed_head_down.min = v,
                     |s, v| s.speed_head_down.max = v,
                     |s, v| s.speed_head_down.accelleration_distance = v,
                 ])}
-                {speed_row(plot_settings, "Head up", &settings.speed_head_up, [
+                {speed_row(plot_settings, "Up", &settings.speed_head_up, [
                     |s, v| s.speed_head_up.min = v,
                     |s, v| s.speed_head_up.max = v,
                     |s, v| s.speed_head_up.accelleration_distance = v,
                 ])}
             }
-        }
-        section { class: "fsection",
-            span { class: "caps", "Head" }
             div { class: "fgrid",
                 label { class: "flabel",
                     "Extra head travel"
