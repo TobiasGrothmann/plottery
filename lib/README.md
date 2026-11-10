@@ -92,6 +92,26 @@ let mut l = Layer::new();
 l.push_layer_flat(masked.inside);
 ```
 
+## Blur
+
+`Blur` scatters strokes into fuzzy fragments and dots, like a drawing out of focus. The amount is a
+distance in cm and can change along each shape.
+
+```rust
+use plottery_lib::*;
+
+let frame = Frame::new_xy(V2::a6(), 1.0);
+let rings: Layer = (1..12)
+    .map(|i| Circle::new_shape(frame.center(), i as f32 * 0.4))
+    .collect();
+
+let focus = frame.center().y;
+let blur = Blur::new(0.05) // pen width in cm
+    .with_amount_fn(move |sample| 0.08 * (sample.point.y - focus).abs())
+    .with_seed(1);
+let blurred = rings.blur(&blur);
+```
+
 ## Text
 
 Text is drawn with single-line fonts. 65 of them are bundled via [`plottery_fonts`](https://crates.io/crates/plottery_fonts). Layout, wrapping and fitting are shown in the [text samples](https://github.com/TobiasGrothmann/plottery/blob/main/lib/samples/text/README.md).

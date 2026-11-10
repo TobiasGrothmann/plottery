@@ -1,4 +1,4 @@
-use crate::{Angle, Layer, Line, LineIntersection, Path, Shape, LARGE_EPSILON, V2};
+use crate::{Angle, Blur, Layer, Line, LineIntersection, Path, Shape, LARGE_EPSILON, V2};
 
 use geo::BooleanOps;
 use geo_types::{LineString, MultiLineString, Polygon};
@@ -169,6 +169,12 @@ pub trait Plottable: Clone + Into<Shape> {
             layer.push(current);
         }
         layer
+    }
+
+    /// Scatters the shape into fuzzy fragments and dots, see [`Blur`].
+    #[must_use]
+    fn blur(&self, blur: &Blur) -> Layer {
+        blur.blur_shape(self)
     }
 
     /// Like [`get_points_oversampled`](Plottable::get_points_oversampled), paired with the distance along the shape.

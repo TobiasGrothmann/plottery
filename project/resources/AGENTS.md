@@ -96,6 +96,7 @@ Check here before writing your own helper. Paths are in `plottery_lib/src/`; the
 | intersection and containment tests | `intersects_*` and `contains_*` in `shapes/`, `geometry/line.rs` |
 | per shape: clip by a mask, resample, dash, distort, reduce points | `traits/plottable.rs`, implemented by every shape |
 | per layer: map, filter, distort, dash, combine shapes, reduce points, optimize, flatten, color, pen width | `composition/layer.rs` |
+| out-of-focus look: scatter strokes into fuzzy fragments and dots, `.blur(&Blur)` on shapes and layers | `effects/blur.rs` |
 | loading an svg as a `Layer` | `Layer::new_from_svg` in `composition/layer.rs` |
 | translate, rotate, scale, mirror, fit into a rect, bounding box, closest point | `traits/` |
 | `V2`, `V2i`, `Line`, `TransformMatrix`; `.sum()` and `.average()` over points | `geometry/` |

@@ -16,7 +16,7 @@ use svg::{
 use crate::{
     geometry::TransformMatrix,
     traits::{Fit, Scale, Scale2D, Transform, Translate},
-    Angle, BoundingBox, Circle, Masked, Mirror, Path, Plottable, Rect, Rotate, Rotate90,
+    Angle, Blur, BoundingBox, Circle, Masked, Mirror, Path, Plottable, Rect, Rotate, Rotate90,
     SampleSettings, Shape, V2,
 };
 
@@ -766,6 +766,12 @@ impl Layer {
         F: Fn(V2, bool, f32, f32) -> f32 + Send + Sync,
     {
         self.flat_map_recursive(|shape| shape.dash_fn(sample_settings, &f))
+    }
+
+    /// Blurs every shape, keeping sublayers and props. see [`Blur`].
+    #[must_use]
+    pub fn blur(&self, blur: &Blur) -> Self {
+        blur.blur_layer(self)
     }
 
     /// Create a new [`Layer`] with the [`Shape`]s in the `Layer` and its sublayers filtered with a predicate function.

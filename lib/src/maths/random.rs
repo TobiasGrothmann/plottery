@@ -59,6 +59,11 @@ pub fn rand_choice<T>(items: &[T]) -> &T {
         .expect("slice is not empty")
 }
 
+/// Seed for a generator of its own, drawn from the global RNG.
+pub(crate) fn rand_seed() -> u64 {
+    RNG.lock().expect("Failed to acquire RNG lock").gen()
+}
+
 /// random boolean with given `chance` of being true
 pub fn coin(chance: f32) -> bool {
     RNG.lock().expect("Failed to acquire RNG lock").gen::<f32>() < chance
