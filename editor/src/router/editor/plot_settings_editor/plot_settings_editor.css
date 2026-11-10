@@ -22,3 +22,8 @@
 .flabel-end {
   grid-column: 2;
 }
+
+.fsection > .caps {
+  font-size: 13px;
+  color: var(--fg-1);
+}
