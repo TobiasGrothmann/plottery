@@ -515,7 +515,7 @@ impl Plottable for Path {
 
     fn contains_point(&self, point: V2) -> bool {
         let mut inside = false;
-        for (from, to) in self.points.iter().tuple_windows() {
+        for (from, to) in self.points.iter().circular_tuple_windows() {
             let crosses_horizontal_line_through_point = (from.y > point.y) != (to.y > point.y);
             let intersec_right_of_point =
                 point.x < (to.x - from.x) * (point.y - from.y) / (to.y - from.y) + from.x;

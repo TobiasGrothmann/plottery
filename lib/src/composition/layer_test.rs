@@ -977,4 +977,14 @@ mod test_layer {
         assert_eq!(l.shapes[1], o2.shapes[2]);
         assert_eq!(l.shapes[2], o2.shapes[1]);
     }
+
+    #[test]
+    fn optimize_continues_from_exit_end() {
+        let a = Path::new_shape_from(vec![V2::new(1.0, 0.0), V2::new(10.0, 0.0)]);
+        let b = Path::new_shape_from(vec![V2::new(10.0, 1.0), V2::new(20.0, 1.0)]);
+        let c = Path::new_shape_from(vec![V2::new(0.0, 2.0), V2::new(-10.0, 2.0)]);
+        let l = Layer::new_from(vec![c.clone(), b.clone(), a.clone()]);
+
+        assert_eq!(l.optimize().shapes, vec![a, b, c]);
+    }
 }

@@ -335,6 +335,26 @@ mod test_path {
     }
 
     #[test]
+    fn contains_point_open_path_uses_closing_edge() {
+        let open = Path::new_from(vec![
+            V2::new(0.0, 0.0),
+            V2::new(10.0, 0.0),
+            V2::new(10.0, 10.0),
+        ]);
+        let closed = Path::new_from(vec![
+            V2::new(0.0, 0.0),
+            V2::new(10.0, 0.0),
+            V2::new(10.0, 10.0),
+            V2::new(0.0, 0.0),
+        ]);
+
+        for p in [&open, &closed] {
+            assert!(!p.contains_point(V2::new(1.0, 2.0)));
+            assert!(p.contains_point(V2::new(5.0, 2.0)));
+        }
+    }
+
+    #[test]
     fn contains_point_2() {
         let p = Path::new_from(vec![
             V2::new(0.0, 0.0),

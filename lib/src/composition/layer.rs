@@ -940,30 +940,31 @@ impl Layer {
         while !unused_items_indices.is_empty() {
             let mut best_distance = f32::INFINITY;
             let mut best_index = 0;
-            let mut reversed = false;
+            let mut entered_at_start = false;
 
             for unused_i in unused_items_indices.iter() {
                 let dist_to_start = starts_and_ends[*unused_i].0.dist_squared(pos);
                 let dist_to_end = starts_and_ends[*unused_i].1.dist_squared(pos);
 
                 if dist_to_start < best_distance {
-                    reversed = true;
+                    entered_at_start = true;
                     best_distance = dist_to_start;
                     best_index = *unused_i;
                 }
                 if dist_to_end < best_distance {
-                    reversed = false;
+                    entered_at_start = false;
                     best_distance = dist_to_end;
                     best_index = *unused_i;
                 }
             }
 
             optimized.push(self.shapes[best_index].clone());
-            if reversed {
-                pos = starts_and_ends[best_index].0;
+            // the pen leaves from the end it did not enter at
+            pos = if entered_at_start {
+                starts_and_ends[best_index].1
             } else {
-                pos = starts_and_ends[best_index].1;
-            }
+                starts_and_ends[best_index].0
+            };
             unused_items_indices.remove(&best_index);
         }
 
