@@ -1,5 +1,5 @@
 use crate::{
-    traits::bounds_may_touch, Angle, Blur, BoundingBox, Layer, Line, LineIntersection, Path, Rect,
+    traits::bounds_may_touch, Angle, Blur, BoundingBox, Hatch, Layer, Line, LineIntersection, Path, Rect,
     Shape, LARGE_EPSILON, V2,
 };
 
@@ -178,6 +178,12 @@ pub trait Plottable: Clone + Into<Shape> + BoundingBox {
     #[must_use]
     fn blur(&self, blur: &Blur) -> Layer {
         blur.blur_shape(self)
+    }
+
+    /// Fills the shape's points as one ring with border-following zigzags, see [`Hatch`].
+    #[must_use]
+    fn hatch(&self, hatch: &Hatch) -> Layer {
+        hatch.hatch_shape(self)
     }
 
     /// Like [`get_points_oversampled`](Plottable::get_points_oversampled), paired with the distance along the shape.

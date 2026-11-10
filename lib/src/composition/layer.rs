@@ -16,7 +16,7 @@ use svg::{
 use crate::{
     geometry::TransformMatrix,
     traits::{Fit, Scale, Scale2D, Transform, Translate},
-    Angle, Blur, BoundingBox, Circle, Masked, Mirror, Path, Plottable, Rect, Rotate, Rotate90,
+    Angle, Blur, BoundingBox, Hatch, Circle, Masked, Mirror, Path, Plottable, Rect, Rotate, Rotate90,
     SampleSettings, Shape, SpatialGrid, V2,
 };
 
@@ -765,6 +765,12 @@ impl Layer {
     #[must_use]
     pub fn blur(&self, blur: &Blur) -> Self {
         blur.blur_layer(self)
+    }
+
+    /// Fills all closed shapes as one even-odd region, so holes work and overlaps cancel out. Open shapes are skipped, see [`Hatch`].
+    #[must_use]
+    pub fn hatch(&self, hatch: &Hatch) -> Self {
+        hatch.hatch_layer(self)
     }
 
     /// Create a new [`Layer`] with the [`Shape`]s in the `Layer` and its sublayers filtered with a predicate function.

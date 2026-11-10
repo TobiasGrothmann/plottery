@@ -96,6 +96,7 @@ Check here before writing your own helper. Paths are in `plottery_lib/src/`; the
 |------|-------|
 | `Circle`, `Rect`, `Path`, arcs, rounded corners, the `Shape` enum | `shapes/` |
 | hatched fills: spiral, criss-cross, towards the center | `filled_*` on `Rect` and `Circle` |
+| fill closed shapes with border-following zigzags, holes included: `.hatch(&Hatch)` on shapes and layers | `effects/hatch.rs` |
 | smooth curves: Bézier, Hobby splines through points, a spline builder | `shapes/spline/` |
 | intersection and containment tests | `intersects_*` and `contains_*` in `shapes/`, `geometry/line.rs` |
 | per shape: clip by a mask, resample, dash, distort, reduce points | `traits/plottable.rs`, implemented by every shape |

@@ -31,6 +31,7 @@ A **Plottery Project** is a user-created artwork generator: a standalone Cargo p
 - **Math:** `lib/src/maths/` (angles, noise, random, easing, ranges)
 - **Generators (Voronoi, marching squares):** `lib/src/generate/`
 - **Image sampling:** `lib/src/sampling/`
+- **Effects (blur, hatch):** `lib/src/effects/`
 - **Text & fonts:** `lib/src/text/`, font data in `fonts/fonts/`, credits in `fonts/LICENSES/CREDITS.md`
 - **Project management:** `project/src/project.rs`
 - **Param types:** `project/src/project_params/`
