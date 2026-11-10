@@ -18,3 +18,7 @@
   padding-left: 8px;
   padding-right: 28px;
 }
+
+.flabel-end {
+  grid-column: 2;
+}

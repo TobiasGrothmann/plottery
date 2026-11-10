@@ -70,7 +70,7 @@ pub fn PlotSettingsEditor(props: PlotSettingsEditorProps) -> Element {
                 ])}
             }
             div { class: "fgrid",
-                label { class: "flabel",
+                label { class: "flabel flabel-end",
                     "Corner slowdown power"
                     {number_input(plot_settings, settings.corner_slowdown_power, "Corner slowdown power".to_string(), |s, v| s.corner_slowdown_power = v)}
                     span { class: "hint", "Lower is slower in corners" }
@@ -96,7 +96,7 @@ pub fn PlotSettingsEditor(props: PlotSettingsEditorProps) -> Element {
                 ])}
             }
             div { class: "fgrid",
-                label { class: "flabel",
+                label { class: "flabel flabel-end",
                     "Extra head travel"
                     span { class: "affix affix-end",
                         {number_input(plot_settings, settings.head_travel_beyond_paper_cm, "Extra head travel in cm".to_string(), |s, v| s.head_travel_beyond_paper_cm = v)}
