@@ -40,7 +40,10 @@ fn speed_row(
         span { class: "ftable-label", "{label}" }
         {number_input(plot_settings, speed.min, format!("{label} min"), set_min)}
         {number_input(plot_settings, speed.max, format!("{label} max"), set_max)}
-        {number_input(plot_settings, speed.accelleration_distance, format!("{label} acceleration distance"), set_accel)}
+        span { class: "affix affix-end",
+            {number_input(plot_settings, speed.accelleration_distance, format!("{label} acceleration distance in cm"), set_accel)}
+            span { "cm" }
+        }
     }
 }
 
