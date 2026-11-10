@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{collections::BTreeSet, path::PathBuf, rc::Rc};
 
 use dioxus::prelude::*;
 use dioxus_router::hooks::use_navigator;
@@ -12,16 +12,16 @@ use crate::{
     },
     model::{
         app_state::AppState,
-        folder_tree::{build_tree, find_closest_in_forest},
+        folder_tree::{build_tree, find_closest_in_forest, FolderNode},
     },
     router::browser::{
         bottom_bar::BottomBar,
-        browser_hooks::{use_scroll_restore, use_thumbnail_generation},
+        browser_hooks::{use_scroll_restore, use_thumbnail_generation, SEARCH_QUERY},
         folder_tree::FolderTree,
         project_grid::ProjectGrid,
     },
     router::project_add::project_create::NewProjectModal,
-    util::editor_route,
+    util::{editor_route, fuzzy::fuzzy_matches},
 };
 
 async fn pick_root_folder() -> Option<PathBuf> {
@@ -33,10 +33,10 @@ async fn pick_root_folder() -> Option<PathBuf> {
         .map(|folder| folder.path().to_path_buf())
 }
 
-fn project_count_label(count: usize) -> String {
+fn count_label(count: usize, singular: &str, plural: &str) -> String {
     match count {
-        1 => "1 project".to_string(),
-        n => format!("{n} projects"),
+        1 => format!("1 {singular}"),
+        n => format!("{n} {plural}"),
     }
 }
 
@@ -63,6 +63,7 @@ pub fn Browser() -> Element {
 
     let nav = use_navigator();
     let mut show_new_project = use_signal(|| false);
+    let mut search_input = use_signal(|| None::<Rc<MountedData>>);
     let add_root = move || {
         spawn(async move {
             if let Some(folder) = pick_root_folder().await {
@@ -73,6 +74,7 @@ pub fn Browser() -> Element {
         });
     };
     let mut select_folder = move |path: PathBuf| {
+        SEARCH_QUERY.write().clear();
         app_state.write().selected_folder = Some(path);
         scroll.scroll_to_top();
     };
@@ -102,26 +104,69 @@ pub fn Browser() -> Element {
     let tile_size = state.tile_size;
     drop(state);
 
+    let query_now = SEARCH_QUERY();
+    let query = query_now.trim();
+    // While searching, every root shows its matches. Waits for the first scan so an empty tree
+    // doesn't flash "no matches".
+    let results: Option<Vec<FolderNode>> = (!query.is_empty() && !first_load).then(|| {
+        tree.iter()
+            .filter_map(|root| root.filtered(|p| fuzzy_matches(&p.config.name, query)))
+            .collect()
+    });
+
     let status = if is_scanning {
         "scanning…".to_string()
+    } else if let Some(results) = &results {
+        let count = results.iter().map(FolderNode::project_count).sum();
+        count_label(count, "match", "matches")
     } else {
         selected_node
             .as_ref()
-            .map(|n| project_count_label(n.project_count()))
+            .map(|n| count_label(n.project_count(), "project", "projects"))
             .unwrap_or_default()
     };
     let detail = selected_node
         .as_ref()
+        .filter(|_| results.is_none())
         .map(|n| n.path.to_string_lossy().to_string());
 
     rsx! {
         style { { include_str!("./browser.css") } }
-        div { class: "Browser",
+        div {
+            class: "Browser",
+            tabindex: "-1",
+            onmounted: move |event| async move {
+                let _ = event.data().set_focus(true).await;
+            },
+            onkeydown: move |event| {
+                let modifiers = event.modifiers();
+                let command = modifiers.meta() || modifiers.ctrl();
+                let f = matches!(event.key(), Key::Character(ref key) if key.eq_ignore_ascii_case("f"));
+                if command && f && !show_new_project() {
+                    event.prevent_default();
+                    if let Some(input) = search_input.peek().clone() {
+                        spawn(async move {
+                            let _ = input.set_focus(true).await;
+                        });
+                    }
+                }
+            },
             header { class: "app-header",
                 div { class: "hgroup",
                     h1 { "Projects" }
                 }
-                div {}
+                input {
+                    r#type: "search",
+                    class: "input browser_search",
+                    placeholder: "Search projects",
+                    "aria-label": "Search projects by name",
+                    value: "{query_now}",
+                    onmounted: move |event| search_input.set(Some(event.data())),
+                    oninput: move |event| {
+                        *SEARCH_QUERY.write() = event.value();
+                        scroll.scroll_to_top();
+                    },
+                }
                 div { class: "hgroup end",
                     IconButton {
                         icon: IconName::Refresh,
@@ -181,6 +226,26 @@ pub fn Browser() -> Element {
                                 icon: IconName::Folder,
                                 onclick: move |_| add_root(),
                                 "Watch a folder"
+                            }
+                        }
+                    } else if let Some(results) = results {
+                        if results.is_empty() {
+                            div { class: "browser_empty",
+                                p { "No project matches “{query}”" }
+                            }
+                        }
+                        // Sections are always expanded while searching so collapsed ones can't hide hits.
+                        for node in results {
+                            ProjectGrid {
+                                key: "{node.path.to_string_lossy()}",
+                                node,
+                                thumbnail_generation: thumbnail_generation(),
+                                collapsed: BTreeSet::new(),
+                                on_open: move |project: Project| {
+                                    nav.push(editor_route(&project));
+                                },
+                                on_select_folder: move |path: PathBuf| select_folder(path),
+                                on_toggle_section: move |_| {},
                             }
                         }
                     } else if let Some(node) = selected_node {

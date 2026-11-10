@@ -63,6 +63,23 @@ impl FolderNode {
                 .sum::<usize>()
     }
 
+    /// A copy with only the kept projects, or `None` if no project is kept.
+    pub fn filtered(&self, keep: impl Fn(&Project) -> bool + Copy) -> Option<FolderNode> {
+        let projects: Vec<Project> = self.projects.iter().filter(|p| keep(p)).cloned().collect();
+        let children: Vec<FolderNode> = self
+            .children
+            .iter()
+            .filter_map(|c| c.filtered(keep))
+            .collect();
+        (!projects.is_empty() || !children.is_empty()).then(|| FolderNode {
+            path: self.path.clone(),
+            label: self.label.clone(),
+            is_root: self.is_root,
+            children,
+            projects,
+        })
+    }
+
     #[cfg(test)]
     pub fn find(&self, path: &Path) -> Option<&FolderNode> {
         if self.path == path {

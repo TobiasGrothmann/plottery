@@ -51,3 +51,15 @@
   gap: 16px;
   color: var(--fg-2);
 }
+
+.Browser:focus {
+  outline: none;
+}
+
+.browser_search {
+  width: 320px;
+}
+
+.browser_main .ProjectGrid ~ .ProjectGrid {
+  margin-top: 16px;
+}

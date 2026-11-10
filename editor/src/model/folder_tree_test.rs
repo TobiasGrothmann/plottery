@@ -103,6 +103,37 @@ mod tests {
     }
 
     #[test]
+    fn filtered_keeps_matches_and_prunes_empty_folders() {
+        let forest = build_tree(
+            &roots(&["/r"]),
+            &[
+                project("/r/keep_a"),
+                project("/r/drop_a"),
+                project("/r/a/keep_b"),
+                project("/r/a/drop_b"),
+                project("/r/c/drop_c"),
+            ],
+        );
+        let filtered = forest[0]
+            .filtered(|p| p.config.name.starts_with("keep"))
+            .unwrap();
+        assert!(filtered.is_root);
+        assert_eq!(filtered.project_count(), 2);
+        assert_eq!(filtered.projects[0].config.name, "keep_a");
+        let children: Vec<&str> = filtered.children.iter().map(|c| c.label.as_str()).collect();
+        assert_eq!(children, vec!["a"]);
+        assert_eq!(filtered.children[0].projects[0].config.name, "keep_b");
+    }
+
+    #[test]
+    fn filtered_without_hits_is_none() {
+        let forest = build_tree(&roots(&["/r"]), &[project("/r/p"), project("/r/a/q")]);
+        assert!(forest[0].filtered(|_| false).is_none());
+        let empty = build_tree(&roots(&["/r"]), &[]);
+        assert!(empty[0].filtered(|_| true).is_none());
+    }
+
+    #[test]
     fn find_closest_falls_back_to_ancestor() {
         let forest = build_tree(&roots(&["/r"]), &[project("/r/a/b/p")]);
         let node = find_closest_in_forest(&forest, Path::new("/r/a/b/gone")).unwrap();

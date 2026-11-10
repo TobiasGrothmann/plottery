@@ -10,6 +10,9 @@ use plottery_project::{Project, ScanResult};
 /// Scroll offset of the project grid, kept across navigation so going back lands where you left.
 static SCROLL_TOP: GlobalSignal<f64> = Signal::global(|| 0.0);
 
+/// Project search query, kept across navigation but not across restarts.
+pub static SEARCH_QUERY: GlobalSignal<String> = Signal::global(String::new);
+
 /// Renders missing or outdated thumbnails after each scan. The returned counter is bumped when new
 /// thumbnails were written so cards re-check their files.
 pub fn use_thumbnail_generation(scan: Resource<ScanResult>) -> Signal<u32> {
