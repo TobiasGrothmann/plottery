@@ -1,5 +1,5 @@
 use crate::{
-    traits::{ClosestPoint, Fit, Scale, Scale2D, Translate},
+    traits::{bounds_may_touch, ClosestPoint, Fit, Scale, Scale2D, Translate},
     Angle, BoundingBox, Circle, Containment, Line, LineIntersection, Mirror, Path, Plottable,
     PointLineRelation, Rotate, Rotate90, SampleSettings, Shape, LARGE_EPSILON, V2,
 };
@@ -298,6 +298,14 @@ impl Rect {
         points
     }
 
+    /// True if the rects share at least one point, edges included.
+    pub fn overlaps(&self, other: &Rect) -> bool {
+        self.bot_left.x <= other.top_right.x
+            && other.bot_left.x <= self.top_right.x
+            && self.bot_left.y <= other.top_right.y
+            && other.bot_left.y <= self.top_right.y
+    }
+
     pub fn intersects_rect(&self, other: &Rect) -> bool {
         let self_edges = [
             (self.bl(), self.tl()),
@@ -387,10 +395,10 @@ impl Rect {
     }
 
     pub fn contains_path(&self, other: &Path) -> Containment {
-        let other_points_closed = other.points_closed();
-        if other_points_closed.is_empty() {
+        if !bounds_may_touch(self, other) {
             return Containment::None;
         }
+        let other_points_closed = other.points_closed();
 
         if other_points_closed
             .iter()

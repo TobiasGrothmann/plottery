@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::f32::consts::PI;
 
 use crate::{
-    traits::{ClosestPoint, Fit, Mirror, Scale, Translate},
+    traits::{bounds_may_touch, ClosestPoint, Fit, Mirror, Scale, Translate},
     Angle, BoundingBox, Containment, Path, Plottable, Rect, Rotate, Rotate90, SampleSettings,
     Shape, LARGE_EPSILON, V2,
 };
@@ -287,10 +287,10 @@ impl Circle {
     }
 
     pub fn contains_path(&self, other: &Path) -> Containment {
-        let other_points_closed = other.points_closed();
-        if other_points_closed.is_empty() {
+        if !bounds_may_touch(self, other) {
             return Containment::None;
         }
+        let other_points_closed = other.points_closed();
 
         let radius_squared = self.radius.powi(2);
         if other_points_closed

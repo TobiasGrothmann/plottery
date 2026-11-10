@@ -101,6 +101,16 @@ mod test_shape {
     }
 
     #[test]
+    fn intersects_path_keeps_touch_tolerance_across_bounding_boxes() {
+        // boxes are apart by less than LARGE_EPSILON, which the segment test still counts as touching
+        let vertical = Path::new_from(vec![V2::new(0.0, 0.0), V2::new(0.0, 1.0)]);
+        let horizontal = Path::new_from(vec![V2::new(0.000_005, 0.5), V2::new(1.0, 0.5)]);
+
+        assert!(vertical.intersects_path(&horizontal));
+        assert!(horizontal.intersects_path(&vertical));
+    }
+
+    #[test]
     fn intersects_shape_dispatch() {
         let rect = Shape::Rect(Rect::new(V2::new(0.0, 0.0), V2::new(2.0, 2.0)));
         let touching_circle = Shape::Circle(Circle::new(V2::new(2.5, 1.0), 0.5));

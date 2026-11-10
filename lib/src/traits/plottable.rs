@@ -1,4 +1,7 @@
-use crate::{Angle, Blur, Layer, Line, LineIntersection, Path, Shape, LARGE_EPSILON, V2};
+use crate::{
+    traits::bounds_may_touch, Angle, Blur, BoundingBox, Layer, Line, LineIntersection, Path, Rect,
+    Shape, LARGE_EPSILON, V2,
+};
 
 use geo::BooleanOps;
 use geo_types::{LineString, MultiLineString, Polygon};
@@ -46,7 +49,7 @@ pub struct Masked {
     pub outside: Layer,
 }
 
-pub trait Plottable: Clone + Into<Shape> {
+pub trait Plottable: Clone + Into<Shape> + BoundingBox {
     fn get_points(&self, _: SampleSettings) -> Vec<V2>;
     fn get_points_from(
         &self,
@@ -228,6 +231,12 @@ pub trait Plottable: Clone + Into<Shape> {
 
     fn mask_geo<M: Into<Shape>>(&self, mask: M, sample_settings: SampleSettings) -> Masked {
         let mask: Shape = mask.into();
+        if misses_mask(self, &mask) {
+            return Masked {
+                inside: Layer::new(),
+                outside: Layer::new_from([self.to_path(sample_settings)]),
+            };
+        }
         let shape_geo = self.as_geo_multi_line_string(sample_settings);
         let mask_geo = mask.as_geo_polygon(sample_settings);
 
@@ -253,6 +262,9 @@ pub trait Plottable: Clone + Into<Shape> {
 
     fn mask_geo_inside<M: Into<Shape>>(&self, mask: M, sample_settings: SampleSettings) -> Layer {
         let mask: Shape = mask.into();
+        if misses_mask(self, &mask) {
+            return Layer::new();
+        }
         let shape_geo = self.as_geo_multi_line_string(sample_settings);
         let mask_geo = mask.as_geo_polygon(sample_settings);
 
@@ -265,6 +277,9 @@ pub trait Plottable: Clone + Into<Shape> {
 
     fn mask_geo_outside<M: Into<Shape>>(&self, mask: M, sample_settings: SampleSettings) -> Layer {
         let mask: Shape = mask.into();
+        if misses_mask(self, &mask) {
+            return Layer::new_from([self.to_path(sample_settings)]);
+        }
         let shape_geo = self.as_geo_multi_line_string(sample_settings);
         let mask_geo = mask.as_geo_polygon(sample_settings);
 
@@ -277,6 +292,12 @@ pub trait Plottable: Clone + Into<Shape> {
 
     fn mask_brute_force<M: Into<Shape>>(&self, mask: M, sample_settings: SampleSettings) -> Masked {
         let mask: Shape = mask.into();
+        if misses_mask(self, &mask) {
+            return Masked {
+                inside: Layer::new(),
+                outside: self.to_layer(),
+            };
+        }
         let points_shape = self.get_points_oversampled(sample_settings);
 
         let mut inside = Layer::new();
@@ -331,24 +352,29 @@ pub trait Plottable: Clone + Into<Shape> {
         sample_settings: SampleSettings,
     ) -> Masked {
         let mask: Shape = mask.into();
+        if misses_mask(self, &mask) {
+            return Masked {
+                inside: Layer::new(),
+                outside: Layer::new_from([self.to_path(sample_settings)]),
+            };
+        }
+        let Some(mask_bounds) = mask.bounding_box() else {
+            return Masked::default();
+        };
         let segments_mask = mask.get_line_segments(sample_settings);
 
         // perturb the path to avoid points on the mask lines
-        let mut perturbed_path = Path::new();
-        for point in self.get_points(sample_settings) {
-            let mut perturbed_point = point;
-            loop {
-                let (is_on_mask_line, line_angle) =
-                    is_point_on_mask_line(perturbed_point, &segments_mask, 0.1);
-                if is_on_mask_line {
-                    perturbed_point += V2::polar(line_angle + Angle::quarter_rotation(), 0.05);
-                    continue;
+        let perturbed_path: Path = self
+            .get_points(sample_settings)
+            .into_iter()
+            .map(|point| {
+                if bounds_may_touch(&Rect::new(point, point), &mask_bounds) {
+                    perturb_off_mask_lines(point, &segments_mask)
+                } else {
+                    point
                 }
-
-                break;
-            }
-            perturbed_path.push(perturbed_point);
-        }
+            })
+            .collect();
 
         let segments_shape: Vec<_> = perturbed_path.get_line_segments(sample_settings);
         let mut inside = Layer::new();
@@ -361,7 +387,8 @@ pub trait Plottable: Clone + Into<Shape> {
 
         // switch inside to outside on each intersection
         for segment in segments_shape {
-            let intersections_sorted = get_intersections_sorted(&segment, &segments_mask);
+            let intersections_sorted =
+                get_intersections_sorted(&segment, &segments_mask, &mask_bounds);
 
             for intersection in intersections_sorted {
                 current_part.push(intersection);
@@ -392,7 +419,17 @@ pub trait Plottable: Clone + Into<Shape> {
     }
 }
 
-fn get_intersections_sorted(segment: &Line, segments_mask: &[Line]) -> Vec<V2> {
+/// True if the shape has points and its bounding box is clear of the mask's.
+fn misses_mask(shape: &impl BoundingBox, mask: &Shape) -> bool {
+    shape
+        .bounding_box()
+        .is_some_and(|bounds| !bounds_may_touch(&bounds, mask))
+}
+
+fn get_intersections_sorted(segment: &Line, segments_mask: &[Line], mask_bounds: &Rect) -> Vec<V2> {
+    if !bounds_may_touch(segment, mask_bounds) {
+        return Vec::new();
+    }
     segments_mask
         .iter()
         .map(|segment_mask| segment.intersection(*segment_mask))
@@ -402,6 +439,16 @@ fn get_intersections_sorted(segment: &Line, segments_mask: &[Line]) -> Vec<V2> {
         })
         .sorted_by_cached_key(|point| point.dist_squared(segment.from).to_bits())
         .collect()
+}
+
+fn perturb_off_mask_lines(mut point: V2, segments_mask: &[Line]) -> V2 {
+    loop {
+        let (is_on_mask_line, line_angle) = is_point_on_mask_line(point, segments_mask, 0.1);
+        if !is_on_mask_line {
+            return point;
+        }
+        point += V2::polar(line_angle + Angle::quarter_rotation(), 0.05);
+    }
 }
 
 fn is_point_on_mask_line(point: V2, segments_mask: &[Line], epsilon: f64) -> (bool, Angle) {

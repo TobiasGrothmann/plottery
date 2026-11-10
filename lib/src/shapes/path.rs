@@ -11,7 +11,7 @@ use std::{
 
 use crate::{
     geometry::TransformMatrix,
-    traits::{ClosestPoint, Fit, Scale, Scale2D, Transform, Translate},
+    traits::{bounds_may_touch, ClosestPoint, Fit, Scale, Scale2D, Transform, Translate},
     Angle, BoundingBox, Circle, Containment, Line, LineIntersection, Mirror, Plottable,
     PointLineRelation, Rect, Rotate, Rotate90, SampleSettings, Shape, V2,
 };
@@ -209,7 +209,7 @@ impl Path {
     }
 
     pub fn intersects_circle(&self, other: &Circle) -> bool {
-        if self.points.is_empty() {
+        if !bounds_may_touch(self, other) {
             return false;
         }
 
@@ -231,7 +231,7 @@ impl Path {
     }
 
     pub fn intersects_rect(&self, other: &Rect) -> bool {
-        if self.points.is_empty() {
+        if !bounds_may_touch(self, other) {
             return false;
         }
 
@@ -251,7 +251,7 @@ impl Path {
     }
 
     pub fn intersects_path(&self, other: &Path) -> bool {
-        if self.points.is_empty() || other.points.is_empty() {
+        if !bounds_may_touch(self, other) {
             return false;
         }
 
@@ -311,6 +311,9 @@ impl Path {
     }
 
     pub fn contains_circle(&self, other: &Circle) -> Containment {
+        if !bounds_may_touch(self, other) {
+            return Containment::None;
+        }
         let self_points = self.points_closed();
         if self_points.len() < 2 {
             return Containment::None;
@@ -363,6 +366,9 @@ impl Path {
     }
 
     pub fn contains_rect(&self, other: &Rect) -> Containment {
+        if !bounds_may_touch(self, other) {
+            return Containment::None;
+        }
         let self_points = self.points_closed();
         if self_points.len() < 2 {
             return Containment::None;
@@ -404,6 +410,9 @@ impl Path {
     }
 
     pub fn contains_path(&self, other: &Path) -> Containment {
+        if !bounds_may_touch(self, other) {
+            return Containment::None;
+        }
         let self_points = self.points_closed();
         let other_points = other.points_closed();
         if self_points.len() < 2 || other_points.len() < 2 {

@@ -165,4 +165,24 @@ mod test_shape {
             }
         }
     }
+
+    #[test]
+    fn mask_by_intersections_splits_where_segments_cross_the_mask() {
+        let mask = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
+        // long segments far from the mask on both ends, one crossing it
+        let path = Path::new_from(vec![
+            V2::new(-20.0, 30.0),
+            V2::new(-10.0, 0.5),
+            V2::new(10.0, 0.5),
+            V2::new(20.0, -30.0),
+        ]);
+
+        let masked = path.mask_by_intersections(mask, SampleSettings::default());
+        assert_eq!(masked.inside.len(), 1);
+        assert_eq!(masked.outside.len(), 2);
+
+        let inside = masked.inside.shapes[0].get_points(SampleSettings::default());
+        assert!(inside.first().unwrap().dist(V2::new(0.0, 0.5)) < 0.001);
+        assert!(inside.last().unwrap().dist(V2::new(1.0, 0.5)) < 0.001);
+    }
 }
