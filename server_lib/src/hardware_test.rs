@@ -108,7 +108,7 @@ mod tests {
         let flag = Arc::new(AtomicBool::new(false));
         let executor = AbortingExecutor {
             steps: [0, 0],
-            abort_after: 100,
+            abort_after: 120,
             flag: flag.clone(),
         };
         let mut hardware = Hardware::new(profile, executor).with_abort_flag(flag);
@@ -123,7 +123,8 @@ mod tests {
         );
 
         let [x, y] = hardware.executor().steps;
-        assert_eq!(x + y, 100);
+        // The flag rises at step 120; the next check, every 50 steps, is at 150.
+        assert_eq!(x + y, 150);
         let step_cm = profile.dist_per_step_axis_cm;
         assert_eq!(
             hardware.get_pos(),

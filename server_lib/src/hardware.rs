@@ -10,6 +10,9 @@ use crate::{
     Axis,
 };
 
+/// XY moves check the abort flag once per this many steps.
+const ABORT_CHECK_STEPS: i32 = 50;
+
 pub trait HardwareExecutor {
     fn set_dir(&mut self, axis: Axis, forward: bool);
     fn step(&mut self, axis: Axis);
@@ -126,7 +129,7 @@ impl<E: HardwareExecutor> Hardware<E> {
         let path_factor = (movement_abs.x as f64).hypot(movement_abs.y as f64) / total_steps as f64;
 
         while stepped_x < movement_abs.x || stepped_y < movement_abs.y {
-            if self.aborted() {
+            if (stepped_x + stepped_y) % ABORT_CHECK_STEPS == 0 && self.aborted() {
                 return;
             }
             let moved_fraction = (stepped_x as f32 + stepped_y as f32) / total_steps as f32;

@@ -285,6 +285,12 @@ travel, so an abort during travel does not lower the pen before the
 draw loop sees the flag. The cleanup enables motors before lifting, in
 case the abort landed during a task that had disabled them.
 
+2026-11-10: `move_steps` checks the flag every 50 steps
+(`ABORT_CHECK_STEPS`), not every step: at most 0.44 mm of line, 10 ms at
+full speed, 110 ms at the slowest draw speed. `install_service_from_local.sh`
+turns Wi-Fi power save off through a NetworkManager drop-in, so requests to
+the Pi, Abort included, do not wait for the radio to wake up.
+
 ### 0.7 Crash safety
 
 - `plottery.service`: `ExecStopPost=` running `pinctrl set <pin> op dh` for

@@ -31,6 +31,17 @@ trap 'rm -f "$RENDERED_FILE"' EXIT
 
 sed "s|{{USER_NAME}}|$CURRENT_USER|g" "$SERVICE_TEMPLATE" > "$RENDERED_FILE"
 
+# Wi-Fi power save delays requests to the Pi, Abort included. NetworkManager
+# re-applies its own setting on every reconnect, so it is set there (2 = off).
+if systemctl is-active --quiet NetworkManager; then
+  printf '[connection]\nwifi.powersave = 2\n' |
+    sudo tee /etc/NetworkManager/conf.d/plottery-wifi-powersave.conf >/dev/null
+  sudo nmcli general reload conf
+  sudo iw dev wlan0 set power_save off 2>/dev/null || true
+else
+  echo "Warning: NetworkManager is not running, Wi-Fi power save left unchanged." >&2
+fi
+
 sudo install -m 644 "$RENDERED_FILE" "$SERVICE_FILE"
 sudo systemctl daemon-reload
 sudo systemctl enable "$SERVICE_NAME"
