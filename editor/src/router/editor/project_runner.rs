@@ -1,20 +1,22 @@
 use std::sync::{
     atomic::{AtomicU64, Ordering},
-    Arc,
+    Arc, Mutex,
 };
 
 use crate::router::editor::running_state::RunningState;
 use dioxus::signals::{ReadableExt, SyncSignal, WritableExt};
+use dioxus_logger::tracing;
 use plottery_project::{
     project_params_list_wrapper::ProjectParamsListWrapper, Project, RunError, RunEvent, RunStage,
 };
 
 use super::{console_messages::ConsoleMessages, editor::LayerChangeWrapper};
 
+/// Clones share the run state, so hot reload and the UI cancel each other's runs.
 #[derive(Clone)]
 pub struct ProjectRunner {
     project: Project,
-    cancel_tx: Option<tokio::sync::mpsc::Sender<()>>,
+    cancel_tx: Arc<Mutex<Option<tokio::sync::mpsc::Sender<()>>>>,
     /// Id of the latest run, older runs leave the editor alone.
     current_run: Arc<AtomicU64>,
     layer: SyncSignal<LayerChangeWrapper>,
@@ -75,6 +77,32 @@ fn failed_state(stage: RunStage, msg: String) -> RunningState {
     }
 }
 
+/// Signals can be dropped while a run is in flight, e.g. after leaving the editor.
+fn log(console: SyncSignal<ConsoleMessages>, write: impl FnOnce(&ConsoleMessages)) {
+    if let Ok(console) = console.try_read() {
+        write(&console);
+    }
+}
+
+fn set_state(mut running_state: SyncSignal<RunningState>, state: RunningState) {
+    if let Ok(mut current) = running_state.try_write() {
+        *current = state;
+    }
+}
+
+/// Starts a run of the editor's project, cancelling the previous one.
+pub fn trigger_run(
+    project_runner: SyncSignal<ProjectRunner>,
+    running_state: SyncSignal<RunningState>,
+    console: SyncSignal<ConsoleMessages>,
+    release: bool,
+) {
+    match project_runner.try_read() {
+        Ok(runner) => runner.trigger_run_project(release, running_state, console),
+        Err(e) => tracing::error!("Project runner unavailable: {:?}", e),
+    }
+}
+
 impl ProjectRunner {
     pub fn new(
         project: Project,
@@ -83,7 +111,7 @@ impl ProjectRunner {
     ) -> Self {
         Self {
             project,
-            cancel_tx: None,
+            cancel_tx: Arc::new(Mutex::new(None)),
             current_run: Arc::new(AtomicU64::new(0)),
             layer,
             params,
@@ -91,43 +119,58 @@ impl ProjectRunner {
     }
 
     pub fn trigger_run_project(
-        &mut self,
+        &self,
         release: bool,
-        mut running_state: SyncSignal<RunningState>,
+        running_state: SyncSignal<RunningState>,
         console: SyncSignal<ConsoleMessages>,
     ) {
+        set_state(
+            running_state,
+            RunningState::Preparing {
+                msg: "preparing".to_string(),
+            },
+        );
         let run_id = self.current_run.fetch_add(1, Ordering::SeqCst) + 1;
         let current_run = self.current_run.clone();
-        console.read().clear();
-        self.cancel_tx.take(); // cancels the previous run if it exists
+        log(console, |c| c.clear());
 
         let (cancel_tx, mut cancel_rx) = tokio::sync::mpsc::channel::<()>(1);
-        self.cancel_tx = Some(cancel_tx);
+        // replacing the sender drops the previous one, which cancels its run
+        *self
+            .cancel_tx
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(cancel_tx);
         let project = self.project.clone();
 
-        let mut layer = self.layer;
+        let layer = self.layer;
         let params = self.params;
-        let saved_params = params.read().list.clone();
+        let Ok(saved_params) = params.try_read().map(|p| p.list.clone()) else {
+            return;
+        };
 
-        console.read().info("spawning new task to run project");
+        log(console, |c| c.info("spawning new task to run project"));
         tokio::spawn(async move {
             let is_current = || current_run.load(Ordering::SeqCst) == run_id;
-            // signals are Copy, copying them keeps the closure `Fn`
             let on_event = move |event: RunEvent| {
                 if !is_current() {
                     return;
                 }
-                let (mut running_state, mut params) = (running_state, params);
                 let (info, state) = match event {
                     RunEvent::StageStarting(stage) => stage_starting(stage),
                     RunEvent::StageRunning(stage) => stage_running(stage),
                     RunEvent::Output(line) => {
-                        return console.read().project_message(line.as_str());
+                        return log(console, |c| c.project_message(line.as_str()));
                     }
-                    RunEvent::ParamsMerged(merged) => return params.set(merged),
+                    RunEvent::ParamsMerged(merged) => {
+                        let mut params = params;
+                        if let Ok(mut current) = params.try_write() {
+                            *current = merged;
+                        }
+                        return;
+                    }
                 };
-                console.read().info(info);
-                running_state.set(state);
+                log(console, |c| c.info(info));
+                set_state(running_state, state);
             };
             let cancel = async move {
                 cancel_rx.recv().await;
@@ -138,27 +181,30 @@ impl ProjectRunner {
                 .await
             {
                 Err(RunError::Killed { stage }) => {
-                    console
-                        .read()
-                        .warn(format!("previous run aborted during {stage}").as_str());
+                    log(console, |c| {
+                        c.warn(format!("previous run aborted during {stage}").as_str())
+                    });
                 }
                 _ if !is_current() => {}
                 Ok((_, new_layer)) => {
-                    console.read().info("...updating editor");
-                    running_state.set(RunningState::Updating {
-                        msg: "updating editor".to_string(),
-                    });
-                    let change_counter = layer.read().change_counter;
-                    layer.set(LayerChangeWrapper {
-                        layer: Some(new_layer),
-                        change_counter: change_counter + 1,
-                    });
-                    console.read().info("done");
-                    running_state.set(RunningState::Idle);
+                    log(console, |c| c.info("...updating editor"));
+                    set_state(
+                        running_state,
+                        RunningState::Updating {
+                            msg: "updating editor".to_string(),
+                        },
+                    );
+                    let mut layer = layer;
+                    if let Ok(mut current) = layer.try_write() {
+                        current.layer = Some(new_layer);
+                        current.change_counter += 1;
+                    }
+                    log(console, |c| c.info("done"));
+                    set_state(running_state, RunningState::Idle);
                 }
                 Err(RunError::Failed { stage, msg }) => {
-                    console.read().error(msg.as_str());
-                    running_state.set(failed_state(stage, msg));
+                    log(console, |c| c.error(msg.as_str()));
+                    set_state(running_state, failed_state(stage, msg));
                 }
             }
         });

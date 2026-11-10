@@ -22,7 +22,7 @@ use crate::{
         pick_target::PickTarget,
         plot_settings_editor::plot_settings_editor::PlotSettingsEditor,
         project_hot_reload::start_hot_reload,
-        project_runner::ProjectRunner,
+        project_runner::{trigger_run, ProjectRunner},
         running_state::RunningState,
     },
     routes::Route,
@@ -42,10 +42,9 @@ use plottery_server_lib::{
 };
 use std::{
     path::{Path, PathBuf},
-    sync::Arc,
     time::Duration,
 };
-use tokio::{sync::Mutex, task::JoinHandle};
+use tokio::task::JoinHandle;
 
 fn is_gitkraken_installed() -> bool {
     which::which("GitKraken").is_ok()
@@ -375,28 +374,10 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
     });
 
     // running project
-    let mut running_state = use_signal_sync(|| RunningState::Idle);
-    let project_runner = use_signal_sync(|| {
-        Arc::new(Mutex::new(ProjectRunner::new(
-            project().clone(),
-            layer,
-            project_params,
-        )))
-    });
-    let mut trigger_run = move || {
-        running_state.set(RunningState::Preparing {
-            msg: "preparing".to_string(),
-        });
-        match project_runner().try_lock() {
-            Ok(mut runner) => runner.trigger_run_project(release, running_state, console),
-            Err(e) => {
-                tracing::error!("Error preparing to run: {:?}", e);
-                running_state.set(RunningState::RunFailed {
-                    msg: format!("Error preparing to run: {}", e),
-                });
-            }
-        }
-    };
+    let running_state = use_signal_sync(|| RunningState::Idle);
+    let project_runner =
+        use_signal_sync(|| ProjectRunner::new(project().clone(), layer, project_params));
+    let trigger_run = move || trigger_run(project_runner, running_state, console, release);
 
     let mut preview_zoom = use_signal(PreviewZoom::default);
     let mut fullscreen = use_signal(|| false);
@@ -449,7 +430,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
             let (handle, watcher) = start_hot_reload(
                 hot_reload_path_to_watch.clone(),
                 release,
-                project_runner().clone(),
+                project_runner(),
                 running_state,
                 console,
             );

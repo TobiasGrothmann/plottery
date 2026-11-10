@@ -1,9 +1,9 @@
-use std::{path::PathBuf, sync::Arc};
+use std::path::PathBuf;
 
 use dioxus::signals::SyncSignal;
 use dioxus_logger::tracing;
 use notify::{Config, FsEventWatcher, RecommendedWatcher, RecursiveMode, Watcher};
-use tokio::{sync::Mutex, task::JoinHandle};
+use tokio::task::JoinHandle;
 
 use super::{
     console_messages::ConsoleMessages, project_runner::ProjectRunner, running_state::RunningState,
@@ -12,7 +12,7 @@ use super::{
 pub fn start_hot_reload(
     path_to_watch: PathBuf,
     release: bool,
-    project_runner: Arc<Mutex<ProjectRunner>>,
+    project_runner: ProjectRunner,
     running_state: SyncSignal<RunningState>,
     console: SyncSignal<ConsoleMessages>,
 ) -> (JoinHandle<()>, FsEventWatcher) {
@@ -62,11 +62,7 @@ pub fn start_hot_reload(
                     }
 
                     tracing::info!("Hot reload triggered");
-                    project_runner.lock().await.trigger_run_project(
-                        release,
-                        running_state,
-                        console,
-                    );
+                    project_runner.trigger_run_project(release, running_state, console);
                 }
                 Err(e) => tracing::error!("Hot reload error: {:?}", e),
             }

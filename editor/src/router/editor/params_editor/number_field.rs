@@ -4,12 +4,11 @@ use plottery_project::{
     project_param::ProjectParam, project_param_value::ProjectParamValue,
     project_params_list_wrapper::ProjectParamsListWrapper,
 };
-use std::sync::Arc;
-use tokio::sync::Mutex;
 
 use crate::router::editor::{
-    console_messages::ConsoleMessages, params_editor::param_tree::get_param_value_mut_by_path,
-    params_editor::params_editor::trigger_run, project_runner::ProjectRunner,
+    console_messages::ConsoleMessages,
+    params_editor::param_tree::get_param_value_mut_by_path,
+    project_runner::{trigger_run, ProjectRunner},
     running_state::RunningState,
 };
 
@@ -18,7 +17,7 @@ pub struct NumberFieldProps {
     param: ProjectParam,
     path: Vec<String>,
     project_params: SyncSignal<ProjectParamsListWrapper>,
-    project_runner: SyncSignal<Arc<Mutex<ProjectRunner>>>,
+    project_runner: SyncSignal<ProjectRunner>,
     running_state: SyncSignal<RunningState>,
     console: SyncSignal<ConsoleMessages>,
     release: bool,

@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::path::PathBuf;
 
 use dioxus::prelude::*;
 use dioxus_logger::tracing;
@@ -7,7 +7,6 @@ use plottery_project::{
     project_param_struct::ProjectParamStruct, project_param_value::ProjectParamValue,
     project_param_vec::ProjectParamVec, project_params_list_wrapper::ProjectParamsListWrapper,
 };
-use tokio::sync::Mutex;
 
 use crate::components::{
     icon::{Icon, IconName},
@@ -35,7 +34,7 @@ use crate::router::editor::{
         string_field::StringField,
         v2_field::V2Field,
     },
-    project_runner::ProjectRunner,
+    project_runner::{trigger_run, ProjectRunner},
     running_state::RunningState,
 };
 
@@ -43,7 +42,7 @@ use crate::router::editor::{
 pub struct ParamsEditorProps {
     project_dir: PathBuf,
     project_params: SyncSignal<ProjectParamsListWrapper>,
-    project_runner: SyncSignal<Arc<Mutex<ProjectRunner>>>,
+    project_runner: SyncSignal<ProjectRunner>,
     running_state: SyncSignal<RunningState>,
     console: SyncSignal<ConsoleMessages>,
     release: bool,
@@ -56,7 +55,7 @@ pub struct LeafProps {
     pub path: Vec<String>,
     pub project_dir: PathBuf,
     pub project_params: SyncSignal<ProjectParamsListWrapper>,
-    pub project_runner: SyncSignal<Arc<Mutex<ProjectRunner>>>,
+    pub project_runner: SyncSignal<ProjectRunner>,
     pub running_state: SyncSignal<RunningState>,
     pub console: SyncSignal<ConsoleMessages>,
     pub release: bool,
@@ -112,30 +111,11 @@ impl LeafProps {
     }
 }
 
-pub(crate) fn trigger_run(
-    project_runner: SyncSignal<Arc<Mutex<ProjectRunner>>>,
-    mut running_state: SyncSignal<RunningState>,
-    console: SyncSignal<ConsoleMessages>,
-    release: bool,
-) {
-    match project_runner.read().try_lock() {
-        Ok(mut runner) => {
-            runner.trigger_run_project(release, running_state, console);
-        }
-        Err(e) => {
-            tracing::error!("Error preparing to run: {:?}", e);
-            running_state.set(RunningState::RunFailed {
-                msg: format!("Error preparing to run: {}", e),
-            });
-        }
-    }
-}
-
 fn set_optional_enabled(
     path: &[String],
     enabled: bool,
     mut project_params: SyncSignal<ProjectParamsListWrapper>,
-    project_runner: SyncSignal<Arc<Mutex<ProjectRunner>>>,
+    project_runner: SyncSignal<ProjectRunner>,
     running_state: SyncSignal<RunningState>,
     console: SyncSignal<ConsoleMessages>,
     release: bool,
@@ -160,7 +140,7 @@ fn set_optional_enabled(
 fn add_vec_item(
     path: &[String],
     mut project_params: SyncSignal<ProjectParamsListWrapper>,
-    project_runner: SyncSignal<Arc<Mutex<ProjectRunner>>>,
+    project_runner: SyncSignal<ProjectRunner>,
     running_state: SyncSignal<RunningState>,
     console: SyncSignal<ConsoleMessages>,
     release: bool,
@@ -200,7 +180,7 @@ fn remove_vec_item(
     path: &[String],
     index: usize,
     mut project_params: SyncSignal<ProjectParamsListWrapper>,
-    project_runner: SyncSignal<Arc<Mutex<ProjectRunner>>>,
+    project_runner: SyncSignal<ProjectRunner>,
     running_state: SyncSignal<RunningState>,
     console: SyncSignal<ConsoleMessages>,
     release: bool,

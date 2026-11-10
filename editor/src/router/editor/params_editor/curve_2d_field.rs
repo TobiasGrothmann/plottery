@@ -5,15 +5,12 @@ use plottery_project::{
     project_param::ProjectParam, project_param_value::ProjectParamValue,
     project_params_list_wrapper::ProjectParamsListWrapper,
 };
-use std::sync::Arc;
-use tokio::sync::Mutex;
 
 use crate::router::editor::{
     console_messages::ConsoleMessages,
     params_editor::param_tree::{get_param_value_by_path, get_param_value_mut_by_path},
-    params_editor::params_editor::trigger_run,
     params_editor::widgets::slider_input::ALT_SPEED_FACTOR,
-    project_runner::ProjectRunner,
+    project_runner::{trigger_run, ProjectRunner},
     running_state::RunningState,
 };
 
@@ -66,7 +63,7 @@ pub struct Curve2DNormProps {
     param: ProjectParam,
     path: Vec<String>,
     project_params: SyncSignal<ProjectParamsListWrapper>,
-    project_runner: SyncSignal<Arc<Mutex<ProjectRunner>>>,
+    project_runner: SyncSignal<ProjectRunner>,
     running_state: SyncSignal<RunningState>,
     console: SyncSignal<ConsoleMessages>,
     release: bool,
