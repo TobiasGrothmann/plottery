@@ -27,3 +27,7 @@
   font-size: 13px;
   color: var(--fg-1);
 }
+
+.affix-wide .input {
+  padding-right: 40px;
+}

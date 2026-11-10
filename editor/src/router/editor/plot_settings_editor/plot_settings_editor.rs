@@ -38,8 +38,14 @@ fn speed_row(
 ) -> Element {
     rsx! {
         span { class: "ftable-label", "{label}" }
-        {number_input(plot_settings, speed.min, format!("{label} min"), set_min)}
-        {number_input(plot_settings, speed.max, format!("{label} max"), set_max)}
+        span { class: "affix affix-end affix-wide",
+            {number_input(plot_settings, speed.min, format!("{label} min in cm/s"), set_min)}
+            span { "cm/s" }
+        }
+        span { class: "affix affix-end affix-wide",
+            {number_input(plot_settings, speed.max, format!("{label} max in cm/s"), set_max)}
+            span { "cm/s" }
+        }
         span { class: "affix affix-end",
             {number_input(plot_settings, speed.accelleration_distance, format!("{label} acceleration distance in cm"), set_accel)}
             span { "cm" }
