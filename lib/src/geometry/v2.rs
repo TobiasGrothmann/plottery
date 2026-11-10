@@ -726,9 +726,9 @@ where
     I::Item: Into<V2>,
 {
     fn average(self) -> Option<V2> {
-        let (sum, count) = self
-            .into_iter()
-            .fold((V2::zero(), 0), |(sum, count), p| (sum + p.into(), count + 1));
+        let (sum, count) = self.into_iter().fold((V2::zero(), 0), |(sum, count), p| {
+            (sum + p.into(), count + 1)
+        });
         (count > 0).then(|| sum / count as f32)
     }
 }
