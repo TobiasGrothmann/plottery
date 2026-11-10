@@ -219,13 +219,15 @@ impl Layer {
 
     /// Return the layer as a real-size [`svg::Document`] in mm, y-axis flipped, sublayers as `<g>`.
     pub fn to_svg(&self) -> Document {
-        let prepared = self.get_prepared_for_svg();
-
-        let Some(bounding_box) = prepared.bounding_box() else {
+        let Some(bounding_box) = self.bounding_box() else {
             return Document::new();
         };
+        let height = bounding_box.size().only_y();
+        let prepared = self.map_recursive(|shape| shape.mirror_y().translate(height));
+
         // The view box follows the content so shapes below or left of the origin stay visible.
-        let origin: V2 = bounding_box.bl() * SVG_UNITS_PER_CM;
+        let flipped_bl = V2::new(bounding_box.bl().x, height.y - bounding_box.tr().y);
+        let origin: V2 = flipped_bl * SVG_UNITS_PER_CM;
         let size: V2 = bounding_box.size() * SVG_UNITS_PER_CM;
 
         Document::new()
@@ -236,15 +238,6 @@ impl Layer {
             .set("stroke-linejoin", "round")
             .set("stroke-linecap", "round")
             .add(prepared.get_svg_group(&LayerPropsInheritable::default()))
-    }
-    fn get_prepared_for_svg(&self) -> Layer {
-        let bounding_box = self.bounding_box();
-        if bounding_box.is_none() {
-            return Layer::new();
-        }
-        let bounding_box = bounding_box.unwrap();
-
-        self.map_recursive(|shape| shape.mirror_y().translate(bounding_box.size().only_y()))
     }
     fn get_svg_group(&self, parent_props: &LayerPropsInheritable) -> Group {
         let props_inheritable = parent_props.overwrite_with(&self.props_inheritable);
