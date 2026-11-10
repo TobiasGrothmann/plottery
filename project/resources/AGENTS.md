@@ -98,10 +98,11 @@ Check here before writing your own helper. Paths are in `plottery_lib/src/`; the
 | per layer: map, filter, distort, dash, combine shapes, reduce points, optimize, flatten, color, pen width | `composition/layer.rs` |
 | loading an svg as a `Layer` | `Layer::new_from_svg` in `composition/layer.rs` |
 | translate, rotate, scale, mirror, fit into a rect, bounding box, closest point | `traits/` |
-| `V2`, `V2i`, `Line`, `TransformMatrix` | `geometry/` |
+| `V2`, `V2i`, `Line`, `TransformMatrix`; `.sum()` and `.average()` over points | `geometry/` |
 | `Paper` (DIN A/B, custom, landscape, margin), `Frame` | `composition/paper.rs`, `composition/frame.rs` |
 | grids, hex grids, colors and color names | `composition/` |
 | `Angle` with constants like `golden_angle`, `Range`, easing | `maths/` |
+| float helpers: `lerp`, `linlin`, `sin01`, `cos01`, `clamp01`; evenly spaced steps `fractions`, `linspace` | `maths/float.rs` |
 | perlin, simplex and worley noise, scaled per cm or per paper | `maths/noise.rs` |
 | random helpers and seeding | `maths/random.rs`, `maths/thread_local.rs` |
 | Voronoi diagrams with relaxation | `generate/voronoi.rs` |

@@ -715,6 +715,30 @@ impl<'a> Sum<&'a V2> for V2 {
     }
 }
 
+pub trait Average {
+    /// Mean of all points (`V2`, `V2i`, or references to them), `None` if there are none.
+    fn average(self) -> Option<V2>;
+}
+
+impl<I> Average for I
+where
+    I: IntoIterator,
+    I::Item: Into<V2>,
+{
+    fn average(self) -> Option<V2> {
+        let (sum, count) = self
+            .into_iter()
+            .fold((V2::zero(), 0), |(sum, count), p| (sum + p.into(), count + 1));
+        (count > 0).then(|| sum / count as f32)
+    }
+}
+
+impl From<&V2> for V2 {
+    fn from(v: &V2) -> Self {
+        *v
+    }
+}
+
 impl From<Point2<f32>> for V2 {
     fn from(point: Point2<f32>) -> Self {
         Self::new(point.x, point.y)

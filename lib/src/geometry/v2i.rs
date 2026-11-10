@@ -48,6 +48,12 @@ impl From<V2i> for V2 {
     }
 }
 
+impl From<&V2i> for V2 {
+    fn from(v: &V2i) -> Self {
+        v.to_float()
+    }
+}
+
 impl ops::Add for V2i {
     type Output = V2i;
     fn add(self, rhs: V2i) -> V2i {
