@@ -3,7 +3,7 @@ use bincode::{deserialize_from, serialize};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use std::{collections::BTreeSet, fs::File, io::Write, iter::FromIterator, path::PathBuf, vec};
+use std::{fs::File, io::Write, iter::FromIterator, path::PathBuf, vec};
 use svg::{
     node::{
         element::{path::Data, tag::Type as SvgTagType, Group},
@@ -17,7 +17,7 @@ use crate::{
     geometry::TransformMatrix,
     traits::{Fit, Scale, Scale2D, Transform, Translate},
     Angle, Blur, BoundingBox, Circle, Masked, Mirror, Path, Plottable, Rect, Rotate, Rotate90,
-    SampleSettings, Shape, V2,
+    SampleSettings, Shape, SpatialGrid, V2,
 };
 
 use super::{
@@ -923,45 +923,26 @@ impl Layer {
             .map(Self::optimize_shape_start_end)
             .collect();
 
-        let mut unused_items_indices: BTreeSet<usize> = (0..self.shapes.len()).collect();
+        // each shape is in the grid twice, at its start and at its end
+        let mut ends: SpatialGrid<(usize, bool)> = starts_and_ends
+            .iter()
+            .enumerate()
+            .flat_map(|(i, &(start, end))| [(start, (i, true)), (end, (i, false))])
+            .collect();
 
         let mut pos = V2::zero();
-        let mut optimized = Layer::with_capacity(self.shapes.len())
-            .with_props_inheritable(self.props_inheritable.clone())
-            .with_props(self.props.clone());
-
-        while !unused_items_indices.is_empty() {
-            let mut best_distance = f32::INFINITY;
-            let mut best_index = 0;
-            let mut entered_at_start = false;
-
-            for unused_i in unused_items_indices.iter() {
-                let dist_to_start = starts_and_ends[*unused_i].0.dist_squared(pos);
-                let dist_to_end = starts_and_ends[*unused_i].1.dist_squared(pos);
-
-                if dist_to_start < best_distance {
-                    entered_at_start = true;
-                    best_distance = dist_to_start;
-                    best_index = *unused_i;
-                }
-                if dist_to_end < best_distance {
-                    entered_at_start = false;
-                    best_distance = dist_to_end;
-                    best_index = *unused_i;
-                }
-            }
-
-            optimized.push(self.shapes[best_index].clone());
+        let shapes = std::iter::from_fn(|| {
+            let (_, &(index, entered_at_start)) = ends.nearest(pos)?;
+            let (start, end) = starts_and_ends[index];
+            ends.remove(start, &(index, true));
+            ends.remove(end, &(index, false));
             // the pen leaves from the end it did not enter at
-            pos = if entered_at_start {
-                starts_and_ends[best_index].1
-            } else {
-                starts_and_ends[best_index].0
-            };
-            unused_items_indices.remove(&best_index);
-        }
-
-        optimized
+            pos = if entered_at_start { end } else { start };
+            Some(self.shapes[index].clone())
+        });
+        Layer::new_from(shapes)
+            .with_props_inheritable(self.props_inheritable.clone())
+            .with_props(self.props.clone())
     }
 
     /// Applies the same optimization like [`Layer::optimize`], recursively for all sublayers.

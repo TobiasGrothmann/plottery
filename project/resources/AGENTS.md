@@ -100,6 +100,7 @@ Check here before writing your own helper. Paths are in `plottery_lib/src/`; the
 | loading an svg as a `Layer` | `Layer::new_from_svg` in `composition/layer.rs` |
 | translate, rotate, scale, mirror, fit into a rect, bounding box, closest point | `traits/` |
 | `V2`, `V2i`, `Line`, `TransformMatrix`; `.sum()` and `.average()` over points | `geometry/` |
+| fast neighbour queries over many points: all within a radius, nearest; instead of comparing all pairs | `SpatialGrid` in `geometry/spatial_grid.rs` |
 | `Paper` (DIN A/B, custom, landscape, margin), `Frame` | `composition/paper.rs`, `composition/frame.rs` |
 | grids, hex grids, colors and color names | `composition/` |
 | `Angle` with constants like `golden_angle`, `Range`, easing | `maths/` |

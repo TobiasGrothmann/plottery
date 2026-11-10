@@ -1,5 +1,7 @@
 pub mod line;
 mod line_test;
+pub mod spatial_grid;
+mod spatial_grid_test;
 pub mod transform_matrix;
 pub mod transform_matrix_builder;
 mod transform_matrix_test;
@@ -9,6 +11,7 @@ mod v2_test;
 pub mod v2i;
 
 pub use line::*;
+pub use spatial_grid::*;
 pub use transform_matrix::*;
 pub use transform_matrix_builder::*;
 pub use v2::*;
