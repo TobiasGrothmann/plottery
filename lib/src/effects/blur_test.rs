@@ -128,8 +128,8 @@ mod test_blur {
 
         let gaussian = mean(&|g| Scatter::Gaussian.unit_offset(g).length_squared());
         assert!((gaussian - 2.0).abs() < 0.06, "E|d|² = {gaussian}");
-        let otter = mean(&|g| Scatter::Otter.unit_offset(g).length());
-        assert!((otter - (2.0 / PI).sqrt()).abs() < 0.02, "E|d| = {otter}");
+        let radial = mean(&|g| Scatter::Radial.unit_offset(g).length());
+        assert!((radial - (2.0 / PI).sqrt()).abs() < 0.02, "E|d| = {radial}");
     }
 
     #[test]

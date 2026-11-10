@@ -10,7 +10,7 @@ use crate::{
 use super::{blur_cull::cull_dots, blur_noise::gaussian_noise};
 
 const DEFAULT_DENSITY: f32 = 1.9;
-/// Otter's 0.01 cm dot at a 0.5 mm pen.
+/// A 0.1 mm dot with a 0.5 mm pen.
 const DOT_RADIUS_PER_PEN_WIDTH: f32 = 0.2;
 const MIN_PEN_WIDTH: f32 = 0.005;
 const MIN_DENSITY: f32 = 0.1;
@@ -31,10 +31,10 @@ pub struct BlurSample {
 /// How [`Blur`] scatters a sample by its amount σ.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Scatter {
-    /// Random direction, distance `|N(0, σ)|`, like otter's blur.
+    /// Random direction, distance `|N(0, σ)|`. Keeps more samples close to the stroke.
     #[default]
-    Otter,
-    /// `N(0, σ)` on each axis, a true gaussian blur. Spreads wider than `Otter` at the same σ.
+    Radial,
+    /// `N(0, σ)` on each axis, a true gaussian blur. Spreads wider than `Radial` at the same σ.
     Gaussian,
 }
 

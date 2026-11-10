@@ -50,7 +50,7 @@ impl Scatter {
     pub(super) fn unit_offset(self, g: V2) -> V2 {
         match self {
             Scatter::Gaussian => g,
-            Scatter::Otter => {
+            Scatter::Radial => {
                 let r = f64::from(g.x).hypot(f64::from(g.y));
                 if r == 0.0 {
                     return V2::zero();
