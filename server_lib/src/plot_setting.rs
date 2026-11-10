@@ -10,7 +10,7 @@ pub struct SpeedRange {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlotSettings {
     pub corner_slowdown_power: f32, // the lower the slower
-    pub head_travel_beyond_paper_cm: f32, // extra pen travel after touching the paper
+    pub head_travel_beyond_paper_cm: f32, // extra head travel after the pen touches the paper
 
     pub speed_draw: SpeedRange,
     pub speed_travel: SpeedRange,

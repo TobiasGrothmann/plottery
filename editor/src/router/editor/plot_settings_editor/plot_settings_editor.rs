@@ -59,14 +59,6 @@ pub fn PlotSettingsEditor(props: PlotSettingsEditorProps) -> Element {
                     {number_input(plot_settings, settings.corner_slowdown_power, "Corner slowdown power".to_string(), |s, v| s.corner_slowdown_power = v)}
                     span { class: "hint", "Lower is slower in corners" }
                 }
-                label { class: "flabel",
-                    "Travel beyond paper"
-                    span { class: "affix affix-end",
-                        {number_input(plot_settings, settings.head_travel_beyond_paper_cm, "Travel beyond paper in cm".to_string(), |s, v| s.head_travel_beyond_paper_cm = v)}
-                        span { "cm" }
-                    }
-                    span { class: "hint", "Extra pen travel after touching the paper" }
-                }
             }
         }
         section { class: "fsection",
@@ -96,6 +88,19 @@ pub fn PlotSettingsEditor(props: PlotSettingsEditorProps) -> Element {
                     |s, v| s.speed_head_up.max = v,
                     |s, v| s.speed_head_up.accelleration_distance = v,
                 ])}
+            }
+        }
+        section { class: "fsection",
+            span { class: "caps", "Head" }
+            div { class: "fgrid",
+                label { class: "flabel",
+                    "Extra head travel"
+                    span { class: "affix affix-end",
+                        {number_input(plot_settings, settings.head_travel_beyond_paper_cm, "Extra head travel in cm".to_string(), |s, v| s.head_travel_beyond_paper_cm = v)}
+                        span { "cm" }
+                    }
+                    span { class: "hint", "Head moves this much further after the pen touches the paper" }
+                }
             }
         }
     }
