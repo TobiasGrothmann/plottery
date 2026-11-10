@@ -1,6 +1,7 @@
+use std::io::{BufRead, Cursor, Seek};
 use std::path::Path as FilePath;
 
-use ::image::RgbImage;
+use ::image::{DynamicImage, ImageDecoder, ImageReader, RgbImage};
 use anyhow::{Context, Result};
 
 use crate::{Alignment, ColorRgb, Fit, Histogram, Rect, V2i, V2};
@@ -24,16 +25,25 @@ pub struct Image {
 }
 
 impl Image {
-    /// Loads a png or jpeg. Initially one pixel is one unit, with the bottom left at the origin.
+    /// Loads a png or jpeg, upright per EXIF. Initially one pixel is one unit, with the bottom left at the origin.
     pub fn load(path: impl AsRef<FilePath>) -> Result<Self> {
-        let image = ::image::open(&path)
-            .with_context(|| format!("Failed to load image {}", path.as_ref().display()))?;
-        Ok(Self::from_rgb(image.to_rgb8()))
+        let path = path.as_ref();
+        ImageReader::open(path)
+            .map_err(anyhow::Error::from)
+            .and_then(Self::decode)
+            .with_context(|| format!("Failed to load image {}", path.display()))
     }
 
-    /// Decodes a png or jpeg from memory.
+    /// Decodes a png or jpeg from memory, upright per EXIF.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
-        let image = ::image::load_from_memory(bytes).context("Failed to decode image")?;
+        Self::decode(ImageReader::new(Cursor::new(bytes))).context("Failed to decode image")
+    }
+
+    fn decode(reader: ImageReader<impl BufRead + Seek>) -> Result<Self> {
+        let mut decoder = reader.with_guessed_format()?.into_decoder()?;
+        let orientation = decoder.orientation()?;
+        let mut image = DynamicImage::from_decoder(decoder)?;
+        image.apply_orientation(orientation);
         Ok(Self::from_rgb(image.to_rgb8()))
     }
 

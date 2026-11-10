@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
-use image::imageops::FilterType;
+use image::{imageops::FilterType, DynamicImage, ImageDecoder, ImageReader};
 
 /// Longest side after downscaling.
 pub const DOWNSCALE_MAX_PX: u32 = 2000;
@@ -59,8 +59,9 @@ fn import_bytes(project_dir: &Path, dir: &str, source: &Path, bytes: &[u8]) -> R
 
 /// Re-encodes the image with its longest side at most [`DOWNSCALE_MAX_PX`]. Images that are
 /// already small are returned unchanged, so lossy jpegs are not re-encoded needlessly.
+/// Resized images are turned upright first, since the re-encode drops EXIF.
 fn downscaled_bytes(source: &Path) -> Result<Vec<u8>> {
-    let image = image::open(source)
+    let image = open_upright(source)
         .with_context(|| format!("Failed to open image {}", source.display()))?;
     if image.width().max(image.height()) <= DOWNSCALE_MAX_PX {
         return read(source);
@@ -72,6 +73,16 @@ fn downscaled_bytes(source: &Path) -> Result<Vec<u8>> {
         .write_to(&mut out, format)
         .context("Failed to encode downscaled image")?;
     Ok(out.into_inner())
+}
+
+fn open_upright(source: &Path) -> Result<DynamicImage> {
+    let mut decoder = ImageReader::open(source)?
+        .with_guessed_format()?
+        .into_decoder()?;
+    let orientation = decoder.orientation()?;
+    let mut image = DynamicImage::from_decoder(decoder)?;
+    image.apply_orientation(orientation);
+    Ok(image)
 }
 
 /// `name.ext`, or `name_1.ext`, `name_2.ext`, … if a different file already uses the name.
