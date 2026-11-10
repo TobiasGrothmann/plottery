@@ -150,3 +150,16 @@
   gap: 12px;
   color: var(--bg-1);
 }
+
+.center-group {
+  --pill-slot: 140px;
+  position: relative;
+  padding-right: var(--pill-slot);
+}
+.center-group > .pill {
+  position: absolute;
+  left: calc(100% - var(--pill-slot) + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
