@@ -138,22 +138,20 @@ impl Layer {
     /// Helper to set the color of the layer. see [`Layer::with_props_inheritable`].
     #[must_use]
     pub fn with_color(mut self, color: ColorRgb) -> Self {
-        self.props_inheritable = self
-            .props_inheritable
-            .overwrite_with(&Inheritable::Specified(
-                LayerPropsInheritable::inherit_all().with_color(color),
-            ));
+        self.props_inheritable =
+            Inheritable::Specified(self.own_props_inheritable().with_color(color));
         self
     }
     /// Helper to set the pen width of the layer. see [`Layer::with_props_inheritable`].
     #[must_use]
     pub fn with_pen_width_cm(mut self, pen_width_cm: f32) -> Self {
-        self.props_inheritable = self
-            .props_inheritable
-            .overwrite_with(&Inheritable::Specified(
-                LayerPropsInheritable::inherit_all().with_pen_width_cm(pen_width_cm),
-            ));
+        self.props_inheritable =
+            Inheritable::Specified(self.own_props_inheritable().with_pen_width_cm(pen_width_cm));
         self
+    }
+    /// This layer's inheritable props field by field, all `Inherit` if none are set.
+    fn own_props_inheritable(&self) -> LayerPropsInheritable {
+        LayerPropsInheritable::inherit_all().overwrite_with(&self.props_inheritable)
     }
     /// Helper to set the name of the layer. see [`Layer::with_props`].
     #[must_use]

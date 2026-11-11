@@ -8,8 +8,9 @@ mod test_layer {
 
     use crate::{
         traits::{fit::Alignment, Translate},
-        Angle, BoundingBox, Circle, Fit, FloatInterpolation, Layer, Path, Plottable, Rect, Rotate,
-        SampleSettings, Shape, ToAngle, LARGE_EPSILON, V2,
+        Angle, BoundingBox, Circle, ColorRgb, Fit, FloatInterpolation, Inheritable, Layer,
+        LayerPropsInheritable, Path, Plottable, Rect, Rotate, SampleSettings, Shape, ToAngle,
+        LARGE_EPSILON, V2,
     };
 
     #[test]
@@ -986,5 +987,22 @@ mod test_layer {
         let l = Layer::new_from(vec![c.clone(), b.clone(), a.clone()]);
 
         assert_eq!(l.optimize().shapes, vec![a, b, c]);
+    }
+
+    #[test]
+    fn with_color_and_pen_width_keep_each_other() {
+        let expected = Inheritable::Specified(LayerPropsInheritable {
+            color: Inheritable::Specified(ColorRgb::blue()),
+            pen_width_cm: Inheritable::Specified(0.1),
+        });
+        let color_first = Layer::new()
+            .with_color(ColorRgb::blue())
+            .with_pen_width_cm(0.1);
+        let width_first = Layer::new()
+            .with_pen_width_cm(0.1)
+            .with_color(ColorRgb::blue());
+
+        assert_eq!(color_first.props_inheritable, expected);
+        assert_eq!(width_first.props_inheritable, expected);
     }
 }
