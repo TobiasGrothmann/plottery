@@ -25,11 +25,24 @@
   overflow-wrap: anywhere;
 }
 
-/* Nested structs get a line above and below so neighbouring structs don't merge. */
-.ParamsEditor .sub.group:not(:first-child),
-.ParamsEditor .sub.group + .sub {
-  border-top: 1px solid var(--line);
-  padding-top: 8px;
+/* A struct inside a vec item: its name as a subheading, its fields behind a rail. */
+.ParamsEditor .sub.group {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+.ParamsEditor .sub.group > .sublabel {
+  display: block;
+  padding-bottom: 6px;
+  font-weight: 600;
+  color: var(--fg-1);
+}
+.ParamsEditor .sub.group > .sublabel::first-letter {
+  text-transform: uppercase;
+}
+.ParamsEditor .sub.group > .pctl {
+  margin-left: 3px;
+  padding-left: 8px;
+  border-left: 2px solid var(--line-2);
 }
 
 .opt-row {
@@ -45,19 +58,22 @@
   gap: 6px;
 }
 
+/* Each vec item is a card. */
 .vec-item {
   display: flex;
   align-items: flex-start;
   gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--bg-2);
 }
-.vec-item + .vec-item {
-  border-top: 1px solid var(--line);
-  padding-top: 6px;
+.vec-item .vec-item {
+  background: var(--bg-1);
 }
 .vec-index {
-  width: 16px;
+  min-width: 18px;
   flex: none;
-  text-align: right;
   font-size: 11px;
   line-height: 28px;
   color: var(--fg-2);
@@ -143,12 +159,45 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* The body hangs on a rail that drops from the header's chevron; every nesting level adds one. */
 .psection-body {
-  border-top: 1px solid var(--line);
-  padding-left: 10px;
+  margin: 0 0 6px 15px;
+  padding: 3px 0;
+  border-left: 2px solid var(--line-2);
 }
-.psection-body > .prow:last-child {
+/* Lines only between top-level groups: rows and groups inside a body have none. */
+.ParamsEditor .psection-body > .prow {
+  padding-top: 5px;
+  padding-bottom: 5px;
   border-bottom: 0;
+}
+.ParamsEditor .psection-body .psection {
+  border-bottom: 0;
+}
+
+/* Nested groups get a quiet subheading instead of the band. */
+.ParamsEditor .psection-body .psection-head {
+  background: transparent;
+}
+.ParamsEditor .psection-body .psection-head:hover {
+  background: var(--bg-2);
+}
+.ParamsEditor .psection-body .psection-toggle {
+  height: 28px;
+  color: var(--fg-1);
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.ParamsEditor .psection-body .psection-toggle:disabled {
+  color: var(--fg-2);
+}
+.ParamsEditor .psection-body .psection-title::first-letter {
+  text-transform: uppercase;
+}
+.ParamsEditor .psection-body .psection-body {
+  padding-top: 0;
+  margin-bottom: 4px;
 }
 
 /* Labels with a /// description show it as a tooltip. */

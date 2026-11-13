@@ -459,7 +459,7 @@ fn render_vec_value(
 
                     rsx! {
                         div { class: "vec-item", key: "{item_key}",
-                            span { class: "mono vec-index", "{index}" }
+                            span { class: "mono vec-index", "#{index}" }
                             div { class: "grow pctl",
                                 {render_value_without_label(param_name.clone(), item, item_path, props)}
                             }
