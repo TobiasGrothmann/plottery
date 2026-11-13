@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::{fs::File, io::Write, iter::FromIterator, path::PathBuf, vec};
 use svg::{
     node::{
-        element::{path::Data, tag::Type as SvgTagType, Group},
+        element::{path::Data, tag::Type as SvgTagType, Group, Style},
         Attributes,
     },
     parser::Event,
@@ -215,7 +215,7 @@ impl Layer {
         self.shapes.is_empty() && self.sublayers.is_empty()
     }
 
-    /// Return the layer as a real-size [`svg::Document`] in mm, y-axis flipped, sublayers as `<g>`.
+    /// Return the layer as a real-size [`svg::Document`] in mm, y-axis flipped, sublayers as `<g>`, strokes multiplied like ink.
     pub fn to_svg(&self) -> Document {
         let Some(bounding_box) = self.bounding_box() else {
             return Document::new();
@@ -235,6 +235,7 @@ impl Layer {
             // Round like a real pen tip; the default miter join spikes at sharp corners.
             .set("stroke-linejoin", "round")
             .set("stroke-linecap", "round")
+            .add(Style::new("path,circle,rect{mix-blend-mode:multiply}"))
             .add(prepared.get_svg_group(&LayerPropsInheritable::default()))
     }
     fn get_svg_group(&self, parent_props: &LayerPropsInheritable) -> Group {
