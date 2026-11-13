@@ -46,6 +46,7 @@ dioxus-timer = "0.4.1"
 which = "8.0"
 anyhow = "1.0"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+notify-rust = "4.19.0"
 
 [dev-dependencies]
 tempfile = "3.8.1"

@@ -44,12 +44,12 @@ impl Task {
 }
 
 pub async fn send_task(task: Task) -> anyhow::Result<()> {
-    let client = reqwest::Client::new();
-    let body = task.to_binary().unwrap();
-    client
-        .post(format!("{}/task", crate::server_url()))
-        .body(body)
-        .send()
-        .await?;
+    let body = task.to_binary()?;
+    let url = format!("{}/task", crate::server_url().await?);
+    let sent = crate::http_client().post(url).body(body).send().await;
+    if sent.is_err() {
+        crate::forget_server_url();
+    }
+    sent?;
     Ok(())
 }

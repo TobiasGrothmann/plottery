@@ -15,15 +15,103 @@ pub fn estimate_plot_layer_duration(
     sample_settings: SampleSettings,
     plot_settings: &PlotSettings,
 ) -> Duration {
-    let executor = TimeEstimatorExecutor::new();
-    let mut hardware = Hardware::new(HARDWARE_CONSTS.hardware_profile, executor);
+    PlotTimeline::build(layer, sample_settings, plot_settings).total()
+}
 
-    hardware.set_enabled(true);
-    plot_layer(&mut hardware, layer, sample_settings, plot_settings);
-    travel_to(&mut hardware, V2::zero(), plot_settings);
-    hardware.set_enabled(false);
+/// Steps taken and time passed since the start of a plot.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Mark {
+    steps: u64,
+    nanos: u64,
+}
 
-    hardware.executor().duration()
+impl Mark {
+    fn of(hardware: &Hardware<TimeEstimatorExecutor>) -> Self {
+        Self {
+            steps: hardware.steps(),
+            nanos: hardware.executor().nanos(),
+        }
+    }
+}
+
+/// When a plot reaches each of its shapes, estimated step-exactly before it starts.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlotTimeline {
+    /// One mark before each shape, one after the last shape and one back at the origin.
+    marks: Vec<Mark>,
+}
+
+impl PlotTimeline {
+    /// Timeline of a plot that starts at the origin with the head up.
+    pub fn build(
+        layer: &Layer,
+        sample_settings: SampleSettings,
+        plot_settings: &PlotSettings,
+    ) -> Self {
+        let hardware = Hardware::new(
+            HARDWARE_CONSTS.hardware_profile,
+            TimeEstimatorExecutor::new(),
+        );
+        Self::record(hardware, layer, sample_settings, plot_settings)
+    }
+
+    /// Timeline of a plot that starts where `machine` is. Aborting `machine` stops the build, which leaves the timeline incomplete.
+    pub fn build_from<E: HardwareExecutor>(
+        machine: &Hardware<E>,
+        layer: &Layer,
+        sample_settings: SampleSettings,
+        plot_settings: &PlotSettings,
+    ) -> Self {
+        let hardware = Hardware::at_state_of(machine, TimeEstimatorExecutor::new())
+            .with_abort_flag(machine.abort_flag());
+        Self::record(hardware, layer, sample_settings, plot_settings)
+    }
+
+    fn record(
+        mut hardware: Hardware<TimeEstimatorExecutor>,
+        layer: &Layer,
+        sample_settings: SampleSettings,
+        plot_settings: &PlotSettings,
+    ) -> Self {
+        let mut marks = Vec::with_capacity(layer.len() + 2);
+
+        hardware.set_enabled(true);
+        plot_layer(
+            &mut hardware,
+            layer,
+            sample_settings,
+            plot_settings,
+            |_, hardware| marks.push(Mark::of(hardware)),
+        );
+        marks.push(Mark::of(&hardware));
+        travel_to(&mut hardware, V2::zero(), plot_settings);
+        marks.push(Mark::of(&hardware));
+
+        Self { marks }
+    }
+
+    pub fn shapes(&self) -> u32 {
+        self.marks.len().saturating_sub(2) as u32
+    }
+
+    /// Duration of the whole plot, including the return to the origin.
+    pub fn total(&self) -> Duration {
+        Duration::from_nanos(self.marks.last().map_or(0, |mark| mark.nanos))
+    }
+
+    /// Time into the plot after `steps` steps, interpolated between the marks around it.
+    pub fn elapsed_at(&self, steps: u64) -> Duration {
+        let next = self.marks.partition_point(|mark| mark.steps <= steps);
+        let (Some(before), Some(after)) = (
+            next.checked_sub(1).and_then(|i| self.marks.get(i)),
+            self.marks.get(next),
+        ) else {
+            return self.total();
+        };
+        let fraction = (steps - before.steps) as f64 / (after.steps - before.steps) as f64;
+        let nanos = before.nanos + ((after.nanos - before.nanos) as f64 * fraction) as u64;
+        Duration::from_nanos(nanos)
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -40,9 +128,13 @@ impl TimeEstimatorExecutor {
         }
     }
 
+    fn nanos(&self) -> u64 {
+        u64::try_from(self.now_nanos).unwrap_or(u64::MAX)
+    }
+
+    #[cfg(test)]
     pub(crate) fn duration(&self) -> Duration {
-        let nanos = u64::try_from(self.now_nanos).unwrap_or(u64::MAX);
-        Duration::from_nanos(nanos)
+        Duration::from_nanos(self.nanos())
     }
 }
 

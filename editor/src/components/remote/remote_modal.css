@@ -48,3 +48,30 @@
   color: var(--err);
   border-color: var(--err);
 }
+
+.remote_plot_row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--fg-0);
+}
+
+.remote_plot_row .remote_plot_dim {
+  color: var(--fg-2);
+}
+
+.remote_progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg-3);
+  overflow: hidden;
+}
+
+.remote_progress_fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 1s linear;
+}

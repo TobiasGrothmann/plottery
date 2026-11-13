@@ -5,7 +5,7 @@ use crate::{
         image::*,
         loading_spinner::Loading,
         modal::{Modal, ModalWidth},
-        remote::RemoteOpen,
+        remote::{poke_plotter, RemoteOpen},
         resizer::{Axis, Resizer},
         ui::{Button, IconButton, PanelHeader, Size, StatusPill, Switch, Tone, Variant},
     },
@@ -27,7 +27,7 @@ use crate::{
         running_state::RunningState,
     },
     routes::Route,
-    util::{format_svg, preview_zoom::PreviewZoom},
+    util::{format_plot_duration, format_svg, preview_zoom::PreviewZoom},
 };
 use bincode::{deserialize, serialize};
 use dioxus::prelude::*;
@@ -65,27 +65,6 @@ fn is_cursor_installed() -> bool {
 
 fn is_sublime_installed() -> bool {
     which::which("subl").is_ok()
-}
-
-fn format_estimated_plot_duration(duration: Duration) -> String {
-    if duration.is_zero() {
-        return "~0m".to_string();
-    }
-
-    let total_minutes = (duration.as_secs_f64() / 60.0).ceil() as u64;
-
-    if total_minutes < 60 {
-        format!("~{}m", total_minutes.max(1))
-    } else {
-        let hours = total_minutes / 60;
-        let minutes = total_minutes % 60;
-
-        if minutes == 0 {
-            format!("~{}h", hours)
-        } else {
-            format!("~{}h {:02}m", hours, minutes)
-        }
-    }
 }
 
 /// Header pill for the run state; nothing while idle.
@@ -321,7 +300,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
     });
 
     let plot_estimate_text =
-        use_memo(move || estimated_plot_duration().map(format_estimated_plot_duration));
+        use_memo(move || estimated_plot_duration().map(|duration| format!("~{}", format_plot_duration(duration))));
 
     // hooks for changes in project
     // params
@@ -752,6 +731,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                                             sample_settings: SampleSettings::default(),
                                             plot_settings: current_plot_settings
                                         }).await;
+                                        poke_plotter();
                                         if let Err(err) = plot_result {
                                             if let Ok(console_read) = console.try_read() {
                                                 console_read.error(format!("failed to send plot: {:?}", err).as_str());

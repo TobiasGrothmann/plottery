@@ -3,15 +3,20 @@ extern crate rocket;
 
 mod gpio_executor;
 mod gpio_executor_test;
+mod job;
 mod task_handler;
 mod util;
 
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc, Mutex,
+use std::{
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    },
+    time::{Instant, SystemTime, UNIX_EPOCH},
 };
 
-use plottery_server_lib::{server_state::ServerState, task::Task, HOST_PORT};
+use job::JobState;
+use plottery_server_lib::{task::Task, Telemetry, HOST_PORT};
 use rocket::{
     data::{Limits, ToByteUnit},
     Config, State,
@@ -21,7 +26,8 @@ use tokio::sync::mpsc::{channel, Sender};
 
 struct ManagedState {
     task_sender: Sender<Task>,
-    server_state: Arc<Mutex<ServerState>>,
+    telemetry: Arc<Telemetry>,
+    job: Arc<Mutex<JobState>>,
     abort: Arc<AtomicBool>,
 }
 
@@ -41,10 +47,13 @@ async fn set_task(managed_state: &State<ManagedState>, task_data: &[u8]) {
 
 #[get("/state")]
 async fn get_state(managed_state: &State<ManagedState>) -> Vec<u8> {
+    let reading = managed_state.telemetry.read();
+    let aborting = managed_state.abort.load(Ordering::Relaxed);
     let state = managed_state
-        .server_state
+        .job
         .lock()
-        .expect("Failed to acquire server state lock");
+        .expect("Failed to acquire job state lock")
+        .snapshot(reading, aborting, Instant::now());
     state
         .to_binary()
         .expect("Failed to encode server state to binary format")
@@ -61,15 +70,21 @@ fn main() {
 
 async fn async_main() {
     let (task_sender, task_receiver) = channel::<Task>(32);
-    let server_state = Arc::new(Mutex::new(ServerState::default()));
+    let telemetry = Arc::new(Telemetry::default());
+    // Plot ids continue from the start time, so they differ from those before a restart.
+    let first_plot_id = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |since_epoch| since_epoch.as_secs() as u32);
+    let job = Arc::new(Mutex::new(JobState::new(first_plot_id)));
     let abort = Arc::new(AtomicBool::new(false));
     let managed_state = ManagedState {
         task_sender,
-        server_state: server_state.clone(),
+        telemetry: telemetry.clone(),
+        job: job.clone(),
         abort: abort.clone(),
     };
 
-    match start_server(task_receiver, server_state, abort) {
+    match start_server(task_receiver, telemetry, job, abort) {
         Ok(_) => {}
         Err(e) => {
             eprintln!("Failed to initialize hardware {:?}", e);

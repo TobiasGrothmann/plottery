@@ -1,45 +1,49 @@
-use std::time::Duration;
-
 use dioxus::prelude::*;
 use plottery_lib::V2;
 use plottery_server_lib::{
-    server_state::{request_server_state, ServerState},
-    task::send_task,
-    PlotSettings,
+    server_state::ServerState, task::send_task, Activity, PlotOutcome, PlotSettings, Task,
 };
 
-use crate::components::{
-    modal::{Modal, ModalWidth},
-    ui::{Button, StatusPill, Switch, Tone, Variant},
+use crate::{
+    components::{
+        modal::{Modal, ModalWidth},
+        remote::{poke_plotter, PlotterState, PlotterStatus},
+        ui::{Button, StatusPill, Switch, Tone, Variant},
+    },
+    util::format_plot_duration,
 };
+
+/// Sends `task` and polls the plotter right after, so the modal shows the effect.
+async fn send(task: Task) {
+    send_task(task).await.ok();
+    poke_plotter();
+}
+
+fn activity_label(activity: Activity) -> &'static str {
+    match activity {
+        Activity::Idle => "Idle",
+        Activity::Preparing => "Preparing",
+        Activity::Travelling => "Travelling",
+        Activity::Drawing => "Drawing",
+        Activity::Returning => "Returning to origin",
+        Activity::Moving => "Moving",
+        Activity::Aborting => "Aborting",
+    }
+}
 
 #[component]
 pub fn RemoteModal(open: Signal<bool>) -> Element {
-    let mut state_resource =
-        use_resource(async move || request_server_state(Some(Duration::from_millis(1000))).await);
+    let PlotterState(status) = use_context::<PlotterState>();
+    let status = status();
 
-    // Poll server state every 1200ms
-    use_future(move || async move {
-        let mut interval = tokio::time::interval(Duration::from_millis(1200));
-        loop {
-            interval.tick().await;
-            state_resource.restart();
-        }
-    });
-
-    // None while connecting, Some(None) when offline.
-    let state = state_resource
-        .value()
-        .read()
-        .as_ref()
-        .map(|result| result.as_ref().ok().copied());
-    let (tone, status) = match &state {
-        None => (Tone::Busy, "Connecting…"),
-        Some(None) => (Tone::Err, "Plotter offline"),
-        Some(Some(state)) if state.plotting => (Tone::Busy, "Plotting"),
-        Some(Some(_)) => (Tone::Ok, "Idle"),
+    let (tone, text) = match status {
+        PlotterStatus::Connecting => (Tone::Busy, "Connecting…"),
+        PlotterStatus::Offline => (Tone::Err, "Plotter offline"),
+        PlotterStatus::DifferentVersion => (Tone::Warn, "Plotter server is a different version"),
+        PlotterStatus::Online(state) if state.activity == Activity::Idle => (Tone::Ok, "Idle"),
+        PlotterStatus::Online(state) => (Tone::Busy, activity_label(state.activity)),
     };
-    let plotting = matches!(state, Some(Some(state)) if state.plotting);
+    let busy = matches!(status, PlotterStatus::Online(state) if state.activity != Activity::Idle);
 
     rsx! {
         style { { include_str!("./remote_modal.css") } }
@@ -48,20 +52,23 @@ pub fn RemoteModal(open: Signal<bool>) -> Element {
             width: ModalWidth::Form,
             title: "Plotter remote",
             body: rsx! {
-                match state {
-                    Some(Some(state)) => rsx! { RemoteInternal { state } },
-                    Some(None) => rsx! { p { class: "hint", "Start the plotter server to control it." } },
-                    None => rsx! { p { class: "hint", "Looking for the plotter…" } },
+                match status {
+                    PlotterStatus::Online(state) => rsx! { RemoteInternal { state } },
+                    PlotterStatus::Offline => rsx! { p { class: "hint", "Start the plotter server to control it." } },
+                    PlotterStatus::DifferentVersion => rsx! {
+                        p { class: "hint", "Install the same Plottery version on the plotter and here to control it." }
+                    },
+                    PlotterStatus::Connecting => rsx! { p { class: "hint", "Looking for the plotter…" } },
                 }
             },
             footer: rsx! {
-                StatusPill { tone, text: status }
-                if plotting {
+                StatusPill { tone, text }
+                if busy {
                     Button {
                         class: "remote_abort",
                         onclick: move |event: MouseEvent| async move {
-                            send_task(plottery_server_lib::Task::Abort).await.ok();
                             event.stop_propagation();
+                            send(Task::Abort).await;
                         },
                         "Abort"
                     }
@@ -69,6 +76,45 @@ pub fn RemoteModal(open: Signal<bool>) -> Element {
             },
         }
     }
+}
+
+/// The running plot's numbers, or how the last plot ended.
+fn plot_section(state: &ServerState) -> Element {
+    if let Some(plot) = state.plot {
+        let percent = (plot.fraction() * 100.0).clamp(0.0, 100.0);
+        return rsx! {
+            div { class: "remote_plot_row",
+                span { "{activity_label(state.activity)}" }
+                span { class: "mono", "shape {plot.shape} of {plot.shapes}" }
+            }
+            div {
+                class: "remote_progress",
+                role: "progressbar",
+                "aria-label": "Plot progress",
+                "aria-valuemin": "0",
+                "aria-valuemax": "100",
+                "aria-valuenow": "{percent:.0}",
+                div { class: "remote_progress_fill", width: "{percent:.1}%" }
+            }
+            div { class: "remote_plot_row",
+                span { class: "mono", "{format_plot_duration(plot.remaining)} left" }
+                span { class: "mono remote_plot_dim", "{format_plot_duration(plot.elapsed)} elapsed" }
+            }
+        };
+    }
+
+    let text = match (state.activity, state.last_plot) {
+        (Activity::Preparing, _) => "Preparing the plot…".to_string(),
+        (_, Some(result)) => {
+            let duration = format_plot_duration(result.duration);
+            match result.outcome {
+                PlotOutcome::Finished => format!("Finished, took {duration}"),
+                PlotOutcome::Aborted => format!("Aborted after {duration}"),
+            }
+        }
+        (_, None) => "No plot since the plotter server started.".to_string(),
+    };
+    rsx! { p { class: "hint", "{text}" } }
 }
 
 #[derive(PartialEq, Props, Clone)]
@@ -91,13 +137,17 @@ fn RemoteInternal(props: RemoteInternalProps) -> Element {
     rsx! {
         div { class: "remote_sections",
             section { class: "remote_section",
+                span { class: "caps", "Plot" }
+                {plot_section(&state)}
+            }
+            section { class: "remote_section",
                 span { class: "caps", "Position" }
                 div { class: "remote_grid",
                     {readout("x", state.location.x)}
                     {readout("y", state.location.y)}
                     Button {
                         onclick: move |event: MouseEvent| async move {
-                            send_task(plottery_server_lib::Task::SetOrigin()).await.ok();
+                            send(Task::SetOrigin()).await;
                             *target.write() = V2::zero();
                             event.stop_propagation();
                         },
@@ -131,7 +181,8 @@ fn RemoteInternal(props: RemoteInternalProps) -> Element {
                     Button {
                         variant: Variant::Primary,
                         onclick: move |event: MouseEvent| async move {
-                            send_task(plottery_server_lib::Task::MoveTo(*target.read(), PlotSettings::default())).await.ok();
+                            let target = *target.read();
+                            send(Task::MoveTo(target, PlotSettings::default())).await;
                             event.stop_propagation();
                         },
                         "Move"
@@ -145,14 +196,14 @@ fn RemoteInternal(props: RemoteInternalProps) -> Element {
                         checked: state.motors_enabled,
                         label: "Motors enabled",
                         onchange: move |enabled| async move {
-                            send_task(plottery_server_lib::Task::SetEnabled(enabled)).await.ok();
+                            send(Task::SetEnabled(enabled)).await;
                         },
                     }
                     Switch {
                         checked: state.head_down,
                         label: "Head down",
                         onchange: move |down| async move {
-                            send_task(plottery_server_lib::Task::SetHead(down)).await.ok();
+                            send(Task::SetHead(down)).await;
                         },
                     }
                 }

@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 use crate::{
-    components::remote::{PlotterRemote, RemoteOpen},
+    components::remote::{PlotterRemote, PlotterState, PlotterStatus, RemoteOpen},
     model::{app_state::AppState, window_state::WindowState},
     routes::Route,
     util::editor_route,
@@ -108,6 +108,7 @@ fn app() -> Element {
         }
     });
     use_context_provider(|| RemoteOpen(Signal::new(false)));
+    use_context_provider(|| PlotterState(Signal::new(PlotterStatus::Connecting)));
 
     rsx! {
         style { { include_str!("./main.css") } }

@@ -9,16 +9,19 @@ use crate::{
     plot_setting::PlotSettings,
 };
 
+/// Plots every shape of `layer`; `on_shape` is called with the shape's index right before it.
 pub fn plot_layer<E: HardwareExecutor>(
     hardware: &mut Hardware<E>,
     layer: &Layer,
     sample_settings: SampleSettings,
     plot_settings: &PlotSettings,
+    mut on_shape: impl FnMut(usize, &Hardware<E>),
 ) {
-    for shape in layer.iter() {
+    for (index, shape) in layer.iter().enumerate() {
         if hardware.aborted() {
             return;
         }
+        on_shape(index, hardware);
         plot_shape(hardware, shape, sample_settings, plot_settings);
     }
 }

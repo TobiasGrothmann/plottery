@@ -312,9 +312,10 @@ the Pi, Abort included, do not wait for the radio to wake up.
 
 Cheap additions on the existing architecture, each independent:
 
-- **Live position.** Call `sync_server_state` between shapes in
-  `plot_layer` (the machine is at minimum speed there, so the mutex is
-  harmless). Long single shapes update at their end; good enough.
+- **Live position.** Done 2026-11-13. `Hardware` publishes position, head
+  and step count to `Telemetry` (atomics, `server_lib/src/telemetry.rs`)
+  at the abort check, every 50 steps, and `GET /state` reads them off the
+  plot thread. No lock in the step loop.
 - **Pause / continue.** `Task::Pause` sets a flag checked between shapes.
   On pause: serialise the remaining shapes plus sample and plot settings
   to a fixed path, lift the head, travel to the origin, disable motors,
@@ -324,8 +325,12 @@ Cheap additions on the existing architecture, each independent:
   restart in between resets the position to zero, which is where the
   machine already is, so nothing needs re-origining unless the carriage
   was moved by hand.
-- **Progress and ETA.** With the estimator exact after 0.4, estimate the
-  remaining shapes on pause/progress boundaries and report a percentage.
+- **Progress and ETA.** Done 2026-11-13. The plot thread runs the
+  estimator once before the plot (`PlotTimeline`, `Preparing` in
+  `/state`) and prints `plot pre-pass: took_s=...`. Progress and time left
+  come from the live step counter looked up in that timeline
+  (`server/src/job.rs`). Not measured on the Pi yet: the pre-pass
+  duration, and the step stats against the build before it.
 - **Speed presets** in the editor's plot settings.
 - **Notes** when they are wanted: the current `play_freq` already works
   through the same loop.

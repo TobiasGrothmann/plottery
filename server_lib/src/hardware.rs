@@ -7,10 +7,11 @@ use plottery_lib::{geometry::v2i::V2i, *};
 
 use crate::{
     accelleration::{accelleration_path::V2Speed, speed_delay_handler::SpeedDelayHandler},
+    telemetry::Telemetry,
     Axis,
 };
 
-/// XY moves check the abort flag once per this many steps.
+/// XY moves publish telemetry and check the abort flag once per this many steps.
 const ABORT_CHECK_STEPS: i32 = 50;
 
 pub trait HardwareExecutor {
@@ -31,8 +32,10 @@ pub struct Hardware<E: HardwareExecutor> {
     x: i32,
     y: i32,
     head_down: bool,
+    steps: u64,
 
     abort: Arc<AtomicBool>,
+    telemetry: Arc<Telemetry>,
 
     hardware_profile: crate::pins::HardwareProfile,
     executor: E,
@@ -45,16 +48,49 @@ impl<E: HardwareExecutor> Hardware<E> {
             x: 0,
             y: 0,
             head_down: false,
+            steps: 0,
             abort: Arc::new(AtomicBool::new(false)),
+            telemetry: Arc::default(),
             hardware_profile,
             executor,
         }
+    }
+
+    /// A stand-in at `other`'s position and head state, with its own abort flag, telemetry and step count.
+    pub fn at_state_of<O: HardwareExecutor>(other: &Hardware<O>, executor: E) -> Self {
+        let mut hardware = Self::new(other.hardware_profile, executor);
+        hardware.enabled = other.enabled;
+        hardware.x = other.x;
+        hardware.y = other.y;
+        hardware.head_down = other.head_down;
+        hardware
     }
 
     /// Shares `flag` so another thread can stop XY moves mid-step.
     pub fn with_abort_flag(mut self, flag: Arc<AtomicBool>) -> Self {
         self.abort = flag;
         self
+    }
+
+    /// Publishes the live state to `telemetry` for other threads to read.
+    pub fn with_telemetry(mut self, telemetry: Arc<Telemetry>) -> Self {
+        self.telemetry = telemetry;
+        self.publish();
+        self
+    }
+
+    pub fn abort_flag(&self) -> Arc<AtomicBool> {
+        self.abort.clone()
+    }
+
+    fn publish(&self) {
+        self.telemetry
+            .store(self.x, self.y, self.steps, self.head_down, self.enabled);
+    }
+
+    /// All X, Y and head steps taken so far.
+    pub fn steps(&self) -> u64 {
+        self.steps
     }
 
     pub fn aborted(&self) -> bool {
@@ -95,6 +131,7 @@ impl<E: HardwareExecutor> Hardware<E> {
     pub fn set_origin(&mut self) {
         self.x = 0;
         self.y = 0;
+        self.publish();
     }
 
     // speed_fraction: fraction from 0 to 1 that is mapped to speed_min to speed_max
@@ -129,8 +166,11 @@ impl<E: HardwareExecutor> Hardware<E> {
         let path_factor = (movement_abs.x as f64).hypot(movement_abs.y as f64) / total_steps as f64;
 
         while stepped_x < movement_abs.x || stepped_y < movement_abs.y {
-            if (stepped_x + stepped_y) % ABORT_CHECK_STEPS == 0 && self.aborted() {
-                return;
+            if (stepped_x + stepped_y) % ABORT_CHECK_STEPS == 0 {
+                self.publish();
+                if self.aborted() {
+                    return;
+                }
             }
             let moved_fraction = (stepped_x as f32 + stepped_y as f32) / total_steps as f32;
             let speed_fraction =
@@ -154,7 +194,9 @@ impl<E: HardwareExecutor> Hardware<E> {
                 self.y += directions_signs.y;
                 self.executor.step(Axis::Y);
             }
+            self.steps += 1;
         }
+        self.publish();
     }
 
     pub fn move_to(
@@ -200,9 +242,11 @@ impl<E: HardwareExecutor> Hardware<E> {
             let delay_nanos = speed_handler.get_delay_nanos(speed_fraction.clamp(0.0, 1.0)) as u32;
             self.executor.wait_axis(Axis::Head, delay_nanos);
             self.executor.step(Axis::Head);
+            self.steps += 1;
         }
 
         self.head_down = down;
+        self.publish();
     }
 
     pub fn set_enabled(&mut self, enabled: bool) {
@@ -212,6 +256,7 @@ impl<E: HardwareExecutor> Hardware<E> {
 
         self.executor.set_enabled(enabled);
         self.enabled = enabled;
+        self.publish();
     }
 
     pub fn play_freq(&mut self, axis: &Axis, frequency: f32, duration_s: f32) {

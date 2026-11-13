@@ -6,6 +6,7 @@ pub mod font_face;
 pub mod fuzzy;
 mod fuzzy_test;
 pub mod img_src;
+pub mod notify;
 pub mod preview_coords;
 mod preview_coords_test;
 pub mod preview_zoom;
