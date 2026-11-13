@@ -24,6 +24,8 @@ pub struct SVGImageProps {
     pub pick_active: bool,
     pub onpick: EventHandler<V2>,
     pub zoom: Signal<PreviewZoom>,
+    /// Called once the svg is decoded and on screen.
+    pub onready: EventHandler<()>,
 }
 
 /// An input event from `preview_input.js`; positions are relative to the stage centre.
@@ -69,6 +71,8 @@ pub fn SVGImage(props: SVGImageProps) -> Element {
     let svg_data_url = format_svg(props.svg.as_bytes());
     let mut zoom = props.zoom;
     let mut animate = use_signal(|| false);
+    // The stage stays hidden until the svg is decoded, so a cached preview below it shows through.
+    let mut ready = use_signal(|| false);
     // The input loop outlives this render, so it reads the latest pick props from here.
     let mut pick = use_hook(|| {
         CopyValue::new(PickState {
@@ -196,12 +200,13 @@ pub fn SVGImage(props: SVGImageProps) -> Element {
     let paper_class = if animate() { "paper animate" } else { "paper" };
     let sharp_class = if animate() { "sharp animate" } else { "sharp" };
     let percent = (current.scale * 100.0).round();
+    let visibility = if ready() { "visible" } else { "hidden" };
 
     rsx!(
         div {
             id: "preview-stage",
             class: "preview-stage zoomable",
-            style: "cursor: {stage_cursor};",
+            style: "cursor: {stage_cursor}; visibility: {visibility};",
             onmounted: start_input,
             div { class: "papers",
                 img {
@@ -209,6 +214,12 @@ pub fn SVGImage(props: SVGImageProps) -> Element {
                     src: "{svg_data_url}",
                     draggable: "false",
                     style: "{fit} {transform} cursor: {paper_cursor};",
+                    onload: move |_| {
+                        if !ready() {
+                            ready.set(true);
+                            props.onready.call(());
+                        }
+                    },
                 }
                 div { class: sharp_class, style: "{sharp_style}",
                     img { src: "{svg_data_url}", style: "{sharp_img_style}" }

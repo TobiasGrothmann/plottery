@@ -364,6 +364,8 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
     let trigger_run = move || trigger_run(project_runner, running_state, console, release);
 
     let mut preview_zoom = use_signal(PreviewZoom::default);
+    // The cached preview stays below the live svg until that is on screen, or the swap flickers.
+    let mut svg_on_screen = use_signal(|| false);
     let mut fullscreen = use_signal(|| false);
 
     // click-to-pick for V2 params
@@ -813,6 +815,15 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                             }
                         }
                         if project().get_editor_preview_image_path().exists() {
+                            if !svg_on_screen() {
+                                div { class: "preview-stage",
+                                    Image {
+                                        class: "paper paper-file",
+                                        img_path: project().get_editor_preview_image_path().to_str().unwrap().to_string(),
+                                        redraw_counter: layer().change_counter,
+                                    }
+                                }
+                            }
                             if let Some(svg) = svg() {
                                 SVGImage {
                                     svg,
@@ -820,14 +831,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                                     pick_active: pick_target.is_active(),
                                     onpick,
                                     zoom: preview_zoom,
-                                }
-                            } else {
-                                div { class: "preview-stage",
-                                    Image {
-                                        class: "paper paper-file",
-                                        img_path: project().get_editor_preview_image_path().to_str().unwrap().to_string(),
-                                        redraw_counter: layer().change_counter,
-                                    }
+                                    onready: move |_| svg_on_screen.set(true),
                                 }
                             }
                             if busy {
