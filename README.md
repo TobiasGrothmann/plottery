@@ -54,6 +54,8 @@ A project is a [regular cargo package](./project) that depends on **Plottery**. 
 plottery new /path/to/folder awesome_project
 ```
 
+Everything in the project folder belongs in git, `Cargo.lock` and `resources/` included: builds and previews live in the cache directory.
+
 Its `src/generate.rs` turns a `Params` struct into a `Layer`:
 
 ```rust

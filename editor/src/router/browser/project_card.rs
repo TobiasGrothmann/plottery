@@ -1,5 +1,4 @@
 use dioxus::prelude::*;
-use path_absolutize::Absolutize;
 use plottery_project::Project;
 
 use crate::{components::image::Image, util::format_datetime_to_relative};
@@ -22,12 +21,13 @@ impl PartialEq for ProjectCardProps {
 
 #[component]
 pub fn ProjectCard(props: ProjectCardProps) -> Element {
-    let preview_image = props.project.get_editor_thumbnail_path();
-    let preview_path = preview_image
-        .absolutize()
-        .map(|p| p.to_string_lossy().to_string())
-        .unwrap_or_default();
-    let preview_exists = preview_image.exists();
+    // The thumbnail is cached per folder, so without a layer it would be a former project's.
+    let thumbnail = props
+        .project
+        .get_editor_thumbnail_path()
+        .ok()
+        .filter(|path| path.exists() && props.project.get_editor_layer_path().exists())
+        .map(|path| path.to_string_lossy().to_string());
     let dir = props.project.dir.clone();
     let name = props.project.config.name.clone();
     let modified = format_datetime_to_relative(&props.project.config.last_modified_date);
@@ -50,8 +50,8 @@ pub fn ProjectCard(props: ProjectCardProps) -> Element {
                 }
             },
             div { class: "thumb",
-                if preview_exists {
-                    Image { img_path: preview_path, class: "thumb_paper" }
+                if let Some(img_path) = thumbnail {
+                    Image { img_path, class: "thumb_paper" }
                 } else {
                     span { class: "thumb_empty", "No preview yet" }
                 }

@@ -13,8 +13,8 @@ static SCROLL_TOP: GlobalSignal<f64> = Signal::global(|| 0.0);
 /// Project search query, kept across navigation but not across restarts.
 pub static SEARCH_QUERY: GlobalSignal<String> = Signal::global(String::new);
 
-/// Renders missing or outdated thumbnails after each scan. The returned counter is bumped when new
-/// thumbnails were written so cards re-check their files.
+/// Renders missing or outdated thumbnails after each scan, one project at a time. The returned
+/// counter is bumped after each one, so cards re-check their files and fill in as they are done.
 pub fn use_thumbnail_generation(scan: Resource<ScanResult>) -> Signal<u32> {
     let mut generation = use_signal(|| 0u32);
     let _render = use_resource(move || {
@@ -24,32 +24,26 @@ pub fn use_thumbnail_generation(scan: Resource<ScanResult>) -> Signal<u32> {
             .map(|r| r.projects.clone())
             .unwrap_or_default();
         async move {
-            let stale: Vec<Project> = projects
+            let stale = projects
                 .into_iter()
-                .filter(Project::editor_thumbnail_is_stale)
-                .collect();
-            if stale.is_empty() {
-                return;
-            }
-            let rendered = tokio::task::spawn_blocking(move || {
-                stale
-                    .iter()
-                    .filter(|p| match p.update_editor_thumbnail() {
-                        Ok(()) => true,
-                        Err(err) => {
+                .filter(Project::editor_thumbnail_is_stale);
+            for project in stale {
+                let rendered = tokio::task::spawn_blocking(move || {
+                    project
+                        .update_editor_thumbnail()
+                        .inspect_err(|err| {
                             tracing::error!(
                                 "Failed to render thumbnail for {}: {err}",
-                                p.dir.display()
-                            );
-                            false
-                        }
-                    })
-                    .count()
-            })
-            .await
-            .unwrap_or(0);
-            if rendered > 0 {
-                generation += 1;
+                                project.dir.display()
+                            )
+                        })
+                        .is_ok()
+                })
+                .await
+                .unwrap_or(false);
+                if rendered {
+                    generation += 1;
+                }
             }
         }
     });

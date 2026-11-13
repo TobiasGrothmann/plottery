@@ -40,9 +40,10 @@ no commits yet. A project with work in it is not to be built over.
 Reusing a working piece is faster than writing it again. Look here, and tell the user what you build on:
 
 - **The user's projects:** the folders under `roots` in `app_state.json` (see step 2). A project is a
-  folder with a `*.plottery` file. Per project, `resources/latest_editor_thumb.png` shows what it draws
-  and `<name>/src/generate.rs` how. Grep their sources for a technique or lib type to see it used in
-  practice.
+  folder with a `*.plottery` file. Per project, `<name>/src/generate.rs` shows how it draws and its
+  thumbnail what: `previews/<name>-*.png` in the editor's cache folder (on macOS
+  `~/Library/Caches/de.tobiasgrothmann.plottery/`). Grep their sources for a technique or lib type to
+  see it used in practice.
 - **Plottery's examples:** `examples/` in the Plottery checkout. Each `generate.rs` opens with a
   comment saying what it shows, and `preview.png` is its render.
 - **The template:** `project/cargo_project_template/src/generate.rs`, what every new project starts with.

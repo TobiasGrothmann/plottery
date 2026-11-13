@@ -31,9 +31,11 @@ each pen into its own named sublayer. The user plots them one after another by h
 - `{{project-name}}.plottery`: project config. The `plottery` CLI finds it from any folder inside the project.
 - `resources/images/`, `resources/svgs/`: files the user picked for `ImagePath` and `SvgPath` params,
   copied in by the editor. The params hold paths relative to the project root.
-- `resources/` otherwise: editor state (the user's param values, plot settings, preview, thumbnail),
-  mostly binary. Don't edit it by hand.
-- The project root is its own git repository. Commit there, not in Plottery.
+- `resources/latest_editor.*`: the user's param values (`.plotp`), plot settings (`.plots`) and the
+  layer of the last run (`.plotl`). Binary, don't edit them by hand.
+- The project root is its own git repository. Commit there, not in Plottery. Everything in the
+  folder is committed, `Cargo.lock` and `resources/` included. Previews and builds are not in the
+  folder, they live in the editor's cache.
 
 ## Build and render with the `plottery` CLI
 

@@ -1,11 +1,18 @@
 #[cfg(test)]
 mod tests {
-    use std::path::{Path, PathBuf};
+    use std::{
+        fs::File,
+        path::{Path, PathBuf},
+        time::{Duration, UNIX_EPOCH},
+    };
 
     use anyhow::{Ok, Result};
+    use resvg::tiny_skia;
 
     use crate::{
-        cargo_project_template::generate_cargo_project_to_disk, LibSource, Project, ProjectConfig,
+        cargo_project_template::generate_cargo_project_to_disk,
+        project::{is_up_to_date, thumbnail_is_stale},
+        LibSource, Project, ProjectConfig, EDITOR_THUMBNAIL_SIZE,
     };
 
     fn genrate_temp_project(temp_dir: PathBuf, project_name: &str) -> Result<Project> {
@@ -156,6 +163,59 @@ mod tests {
         project_a.build(release)?;
         let layer_a_again = project_a.run(release, &params)?;
         assert_eq!(layer_a_again.len(), layer_a.len());
+        Ok(())
+    }
+
+    /// Previews of all projects share one cache folder, so the folder has to be part of the name.
+    #[test]
+    fn preview_file_name_tells_folders_apart() -> Result<()> {
+        let parent_a = tempfile::tempdir()?;
+        let parent_b = tempfile::tempdir()?;
+        let file_name = |parent: &Path| -> Result<String> {
+            let path =
+                Project::new(parent.to_path_buf(), "same_name").get_editor_thumbnail_path()?;
+            Ok(path.file_name().unwrap().to_string_lossy().to_string())
+        };
+
+        let name_a = file_name(parent_a.path())?;
+        assert!(name_a.starts_with("same_name-") && name_a.ends_with(".png"));
+        assert_eq!(name_a, file_name(parent_a.path())?);
+        assert_ne!(name_a, file_name(parent_b.path())?);
+        Ok(())
+    }
+
+    #[test]
+    fn thumbnail_staleness_follows_the_layer() -> Result<()> {
+        let dir = tempfile::tempdir()?;
+        let layer = dir.path().join("layer.plotl");
+        let thumbnail = dir.path().join("thumbnail.png");
+        let set_modified = |path: &Path, seconds: u64| -> Result<()> {
+            File::options()
+                .write(true)
+                .open(path)?
+                .set_modified(UNIX_EPOCH + Duration::from_secs(seconds))?;
+            Ok(())
+        };
+
+        // nothing was drawn yet
+        assert!(!thumbnail_is_stale(&layer, &thumbnail));
+
+        std::fs::write(&layer, b"layer")?;
+        set_modified(&layer, 1000)?;
+        assert!(thumbnail_is_stale(&layer, &thumbnail));
+        assert!(!is_up_to_date(&layer, &thumbnail));
+
+        tiny_skia::Pixmap::new(EDITOR_THUMBNAIL_SIZE, 1)
+            .unwrap()
+            .save_png(&thumbnail)?;
+        set_modified(&thumbnail, 2000)?;
+        assert!(!thumbnail_is_stale(&layer, &thumbnail));
+        assert!(is_up_to_date(&layer, &thumbnail));
+
+        // a run or a git checkout rewrites the layer
+        set_modified(&layer, 3000)?;
+        assert!(thumbnail_is_stale(&layer, &thumbnail));
+        assert!(!is_up_to_date(&layer, &thumbnail));
         Ok(())
     }
 

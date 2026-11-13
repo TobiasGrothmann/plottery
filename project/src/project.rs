@@ -1,7 +1,7 @@
 use crate::{
     generate_cargo_project_to_disk, init_git_repo,
     project_params_list_wrapper::ProjectParamsListWrapper,
-    project_util::{build_cargo_project_async, run_project_executable_async},
+    project_util::{build_cargo_project_async, path_hash, run_project_executable_async},
     read_object_from_stdout, write_agents_md, LibSource, ProjectConfig,
 };
 
@@ -11,7 +11,8 @@ use anyhow::{Error, Ok, Result};
 use async_process::Child;
 use path_absolutize::Absolutize;
 use resvg::{tiny_skia, usvg};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 use tempfile::NamedTempFile;
 use usvg::{fontdb, TreeParsing, TreeTextToPath};
 
@@ -68,6 +69,32 @@ fn png_longest_side(path: &std::path::Path) -> Option<u32> {
     let width = u32::from_be_bytes(header[16..20].try_into().ok()?);
     let height = u32::from_be_bytes(header[20..24].try_into().ok()?);
     Some(width.max(height))
+}
+
+/// Plottery's folder in the user's cache directory, for builds and previews.
+fn plottery_cache_dir() -> Result<PathBuf> {
+    let project_dirs = directories::ProjectDirs::from("de", "tobiasgrothmann", "plottery")
+        .ok_or_else(|| Error::msg("Could not determine the user's cache directory"))?;
+    Ok(project_dirs.cache_dir().to_path_buf())
+}
+
+fn modified(path: &Path) -> Option<SystemTime> {
+    std::fs::metadata(path).and_then(|m| m.modified()).ok()
+}
+
+/// True when `cached` exists and is not older than the `layer` file it was rendered from.
+pub(crate) fn is_up_to_date(layer: &Path, cached: &Path) -> bool {
+    match (modified(layer), modified(cached)) {
+        (Some(layer), Some(cached)) => cached >= layer,
+        _ => false,
+    }
+}
+
+/// True when `layer` exists but `thumbnail` is missing, older, or below [`EDITOR_THUMBNAIL_SIZE`].
+pub(crate) fn thumbnail_is_stale(layer: &Path, thumbnail: &Path) -> bool {
+    let usable = is_up_to_date(layer, thumbnail)
+        && png_longest_side(thumbnail).is_some_and(|side| side >= EDITOR_THUMBNAIL_SIZE);
+    layer.exists() && !usable
 }
 
 #[derive(Debug, Clone)]
@@ -159,12 +186,18 @@ impl Project {
         resource_path
     }
 
-    pub fn get_editor_preview_image_path(&self) -> PathBuf {
-        self.get_resource_dir_asset_path("latest_editor.svg")
+    /// A file in the cache's `previews/`, named after the project and a hash of its folder.
+    fn get_editor_cache_path(&self, extension: &str) -> Result<PathBuf> {
+        let file_name = format!("{}-{}.{extension}", self.config.name, path_hash(&self.dir));
+        Ok(plottery_cache_dir()?.join("previews").join(file_name))
+    }
+    /// The layer of the last run as SVG, a cache outside the project.
+    pub fn get_editor_preview_image_path(&self) -> Result<PathBuf> {
+        self.get_editor_cache_path("svg")
     }
     /// Rasterized version of the editor preview, used by the project browser.
-    pub fn get_editor_thumbnail_path(&self) -> PathBuf {
-        self.get_resource_dir_asset_path("latest_editor_thumb.png")
+    pub fn get_editor_thumbnail_path(&self) -> Result<PathBuf> {
+        self.get_editor_cache_path("png")
     }
     pub fn get_editor_layer_path(&self) -> PathBuf {
         self.get_resource_dir_asset_path("latest_editor.plotl")
@@ -250,9 +283,7 @@ impl Project {
     /// once and shared: `plottery/target` in the user's cache directory (`~/Library/Caches` on
     /// macOS). See [`build_cargo_project_async`] for how projects stay apart in there.
     pub fn get_plottery_target_dir(&self) -> Result<PathBuf> {
-        let project_dirs = directories::ProjectDirs::from("de", "tobiasgrothmann", "plottery")
-            .ok_or_else(|| Error::msg("Could not determine the user's cache directory"))?;
-        Ok(project_dirs.cache_dir().join("target"))
+        Ok(plottery_cache_dir()?.join("target"))
     }
 
     pub fn get_plottery_binary_path(&self, release: bool) -> Result<PathBuf> {
@@ -397,10 +428,20 @@ impl Project {
         Ok(())
     }
 
-    /// Writes the editor preview SVG and the browser thumbnail rendered from it.
+    /// Writes the editor preview SVG and the browser thumbnail rendered from it into the cache.
     pub fn save_editor_preview(&self, svg: &str) -> Result<()> {
-        std::fs::write(self.get_editor_preview_image_path(), svg)?;
-        self.write_editor_thumbnail(svg.as_bytes())
+        let preview_path = self.get_editor_preview_image_path()?;
+        let thumbnail_path = self.get_editor_thumbnail_path()?;
+        if let Some(dir) = preview_path.parent() {
+            std::fs::create_dir_all(dir)?;
+        }
+        std::fs::write(preview_path, svg)?;
+        render_svg_to_png(
+            svg.as_bytes(),
+            &thumbnail_path,
+            Some(EDITOR_THUMBNAIL_SIZE),
+            None,
+        )
     }
 
     /// Writes params, layer, preview and thumbnail, like a run in the editor.
@@ -414,35 +455,22 @@ impl Project {
         self.save_editor_preview(&layer.to_svg().to_string())
     }
 
-    pub fn write_editor_thumbnail(&self, svg_data: &[u8]) -> Result<()> {
-        render_svg_to_png(
-            svg_data,
-            &self.get_editor_thumbnail_path(),
-            Some(EDITOR_THUMBNAIL_SIZE),
-            None,
-        )
+    /// The cached preview SVG, unless it is missing or older than the layer.
+    pub fn fresh_editor_preview(&self) -> Option<PathBuf> {
+        self.get_editor_preview_image_path()
+            .ok()
+            .filter(|preview| is_up_to_date(&self.get_editor_layer_path(), preview))
     }
 
-    /// True when the editor preview exists but the thumbnail is missing, older than it, or
-    /// smaller than [`EDITOR_THUMBNAIL_SIZE`].
+    /// True when the thumbnail has to be rendered again from the layer.
     pub fn editor_thumbnail_is_stale(&self) -> bool {
-        let svg_modified =
-            std::fs::metadata(self.get_editor_preview_image_path()).and_then(|m| m.modified());
-        let png_path = self.get_editor_thumbnail_path();
-        let png_modified = std::fs::metadata(&png_path).and_then(|m| m.modified());
-        match (svg_modified, png_modified) {
-            (core::result::Result::Ok(svg), core::result::Result::Ok(png)) => {
-                png < svg
-                    || png_longest_side(&png_path).is_none_or(|side| side < EDITOR_THUMBNAIL_SIZE)
-            }
-            (core::result::Result::Ok(_), Err(_)) => true,
-            (Err(_), _) => false,
-        }
+        self.get_editor_thumbnail_path()
+            .is_ok_and(|thumbnail| thumbnail_is_stale(&self.get_editor_layer_path(), &thumbnail))
     }
 
-    /// Renders the thumbnail from the editor preview file on disk.
+    /// Renders the preview and the thumbnail again from the layer on disk.
     pub fn update_editor_thumbnail(&self) -> Result<()> {
-        let svg_data = std::fs::read(self.get_editor_preview_image_path())?;
-        self.write_editor_thumbnail(&svg_data)
+        let layer = Layer::new_from_file(&self.get_editor_layer_path())?;
+        self.save_editor_preview(&layer.to_svg().to_string())
     }
 }

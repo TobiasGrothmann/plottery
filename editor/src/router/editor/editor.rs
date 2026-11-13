@@ -188,8 +188,11 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
         layer: None,
         change_counter: 0,
     });
+    // True until the stored layer is read, or turns out to be missing or unreadable.
+    let layer_loading = use_signal_sync(|| project.peek().get_editor_layer_path().exists());
     {
         let mut layer = layer;
+        let mut layer_loading = layer_loading;
         use_effect(move || {
             let layer_path = project().get_editor_layer_path();
             tokio::spawn(async move {
@@ -236,6 +239,9 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                             );
                         }
                     }
+                }
+                if let Ok(mut layer_loading_write) = layer_loading.try_write() {
+                    *layer_loading_write = false;
                 }
             });
         });
@@ -322,6 +328,14 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
             .expect("Failed to write plot settings to file");
     });
     // layer
+    // The cached preview is shown until the layer is loaded and rendered. Checked once: loading
+    // the layer saves it again, which makes the cache look outdated until the new preview is saved.
+    let cached_preview = use_hook(|| {
+        project
+            .peek()
+            .fresh_editor_preview()
+            .map(|path| path.to_string_lossy().to_string())
+    });
     let svg = use_signal_sync(|| None as Option<String>);
     use_effect(move || {
         let layer = layer_only_visible().layer;
@@ -444,6 +458,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
     let status = run_status(&state_now);
     let status_title = Some(state_now.get_msg()).filter(|msg| !msg.is_empty());
     let busy = state_now.is_busy();
+    let has_drawing = layer_loading() || layer.read().layer.is_some();
     // Crumbs inside a watched folder get a path so they can open the browser there.
     let crumbs = use_memo(move || {
         let state = AppState::load_or_default();
@@ -814,29 +829,33 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                                 }
                             }
                         }
-                        if project().get_editor_preview_image_path().exists() {
-                            if !svg_on_screen() {
-                                div { class: "preview-stage",
-                                    Image {
-                                        class: "paper paper-file",
-                                        img_path: project().get_editor_preview_image_path().to_str().unwrap().to_string(),
-                                        redraw_counter: layer().change_counter,
-                                    }
+                        if let Some(img_path) = cached_preview.clone().filter(|_| !svg_on_screen()) {
+                            div { class: "preview-stage",
+                                Image {
+                                    class: "paper paper-file",
+                                    img_path,
+                                    redraw_counter: layer().change_counter,
                                 }
                             }
-                            if let Some(svg) = svg() {
-                                SVGImage {
-                                    svg,
-                                    layer_bbox: layer_bbox(),
-                                    pick_active: pick_target.is_active(),
-                                    onpick,
-                                    zoom: preview_zoom,
-                                    onready: move |_| svg_on_screen.set(true),
-                                }
+                        }
+                        if let Some(svg) = svg() {
+                            SVGImage {
+                                svg,
+                                layer_bbox: layer_bbox(),
+                                pick_active: pick_target.is_active(),
+                                onpick,
+                                zoom: preview_zoom,
+                                onready: move |_| svg_on_screen.set(true),
                             }
                             if busy {
                                 Loading {}
                             }
+                        } else if cached_preview.is_some() {
+                            if busy {
+                                Loading {}
+                            }
+                        } else if has_drawing {
+                            Loading {}
                         } else {
                             div { class: "preview-empty",
                                 p { "No preview yet" }

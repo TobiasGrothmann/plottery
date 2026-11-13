@@ -1,6 +1,9 @@
 # build
 **/target/
 
+# half-written params file of an interrupted save
+/resources/*.tmp
+
 # os / editors
 .DS_Store
 *.swp

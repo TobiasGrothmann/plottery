@@ -78,6 +78,7 @@ Building, local checkouts in projects, tests and releasing: see `DEVELOPMENT.md`
 
 - **Adding shapes:** A plottable shape implements `Plottable`, which needs a variant in the `Shape` enum in `lib/src/shapes/shape.rs`. Implement only the transform traits that make sense, e.g. `Rect` has no `Rotate` and `Circle` no `Scale2D`. Shapes that are not plotted directly, like `Spline`, convert to a `Path` instead.
 - **Adding param types:** Add a `ProjectParamValue` variant, a `ParamField` impl in `project/src/project_params/param_field.rs` and a widget in the editor's params editor. List the new type in `project/resources/AGENTS.md`.
+- **Project files:** Everything in a project folder is committed. Derived files (builds, previews, thumbnails) go to the cache dir, see `plottery_cache_dir` in `project/src/project.rs`.
 - **Project template:** `project/resources/AGENTS.md` is copied into every new project and describes the project, not this workspace. Existing projects keep their old copy, so template changes have to be redistributed.
 - **API changes:** Update `examples/` in the same change; `scripts/check_examples.sh` must pass. It fails when a render differs from the committed `preview.png`: look at `target/examples/changed/`, then fix the code or commit new previews with `--images`
 - **Crate READMEs:** `lib/README.md` and `project/README.md` are their crates' docs.rs pages (`include_str!`), so their code blocks are doctests and their links must be absolute GitHub URLs.

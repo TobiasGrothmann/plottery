@@ -80,12 +80,15 @@ pub async fn build_cargo_project_async(
 /// Identifies a project's build within the shared target directory, see
 /// [`build_cargo_project_async`].
 fn project_build_id(project_dir: &Path) -> String {
-    let project_dir = project_dir
-        .canonicalize()
-        .unwrap_or_else(|_| project_dir.to_path_buf());
+    format!("plottery_project_{}", path_hash(project_dir))
+}
+
+/// Hash of the canonical path, to tell folders of the same name apart.
+pub(crate) fn path_hash(path: &Path) -> String {
+    let path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
     let mut hasher = DefaultHasher::new();
-    project_dir.hash(&mut hasher);
-    format!("plottery_project_{:016x}", hasher.finish())
+    path.hash(&mut hasher);
+    format!("{:016x}", hasher.finish())
 }
 
 /// Runs the project binary with `working_dir` as its current directory, so relative paths in
