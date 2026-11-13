@@ -69,15 +69,33 @@ pub struct Params {
 ```
 
 - `#[value(..)]` sets the default.
-- `#[range(min, max)]` shows a slider, or sets the bounds of a `Range`.
+- `#[range(min, max)]` turns a number into a slider and bounds a `Range`, also inside an `Option`.
 - `#[section("Name")]` starts a collapsible section. It holds this field and all following ones until the next `#[section]`. The struct stays flat.
 - `///` doc comments are shown as tooltips on the param labels.
+- Field names show lowercase with spaces (`circle_size` → "circle size"). Enum variants split CamelCase (`SomeVariant` → "some variant").
 
-Supported field types:
+Field types and their widgets:
 
-- `f32`, `i32`, `bool`, `String`
-- `Paper`, `Range<f32>`, `Range<i32>`, `Angle`, `V2`, `V2i`, `Seed`, `Easing`, `ColorRgb`, `NoiseSettings`, `BundledFont`
-- `ImagePath`, `SvgPath`, `Curve2D`, `Curve2DNorm`
-- enums deriving `PlotteryEnum`, with `#[default]` on one variant
-- nested structs deriving `PlotteryParams`. They render as their own section.
-- `Option<T>` and `Vec<T>` of the above. `Option<Struct>` gets an on/off switch in its section header.
+| Field type | Editor widget |
+|---|---|
+| `f32`, `i32` | number box; slider with `#[range]` |
+| `bool` | switch |
+| `String` | multi-line text box |
+| `Paper` | DIN A/B or custom size, orientation, margin in cm or as a fraction |
+| `Range<f32>`, `Range<i32>` | min and max boxes, clamped to `#[range]` |
+| `Angle` | number with a deg/rot/rad unit switch |
+| `V2`, `V2i` | x and y boxes; a `V2` can also be picked by clicking the drawing |
+| `Seed` | number, dice button, recent seeds |
+| `Easing` | power, bias or s-curve, slider, curve preview |
+| `ColorRgb` | color picker and hex code |
+| `NoiseSettings` | perlin/simplex/worley, frequency per cm or per paper, octaves |
+| `BundledFont` | font picker with previews |
+| `ImagePath`, `SvgPath` | file picker; copies the file into `resources/` or links the original |
+| `Curve2DNorm` | curve editor on 0..1, double-click adds or removes points |
+| `Curve2D` | same curve plus the x and y range it maps to |
+| enum deriving `PlotteryEnum` (`#[default]` on one variant) | buttons up to four variants, dropdown beyond |
+| struct deriving `PlotteryParams` | its own collapsible section |
+| `Option<T>` | switch beside the widget, or in the section header for a struct; off hides it |
+| `Vec<T>` | list with add/remove; new items start at `T`'s default (a struct's `#[value]`s) |
+
+`Option<Option<T>>`, `Vec<Option<T>>` and `Vec<Vec<T>>` don't compile. `Option<Vec<T>>` works.

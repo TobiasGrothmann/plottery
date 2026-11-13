@@ -8,9 +8,9 @@ The user mostly works in the Plottery editor, not in the code:
 
 - The project browser shows all projects as tiles with their latest drawing.
 - An open project shows the drawing, a Parameters panel, a Layers panel and a Console.
-- The Parameters panel has one widget per `Params` field: sliders, checkboxes, dropdowns, curve editors,
-  file pickers. `#[section]`s fold, `///` comments show as tooltips. A `V2` can also be set by clicking
-  the drawing.
+- The Parameters panel has one widget per `Params` field: sliders, switches, dropdowns, curve editors,
+  file pickers. `#[section]`s and nested structs fold, `///` comments show as tooltips. A `V2` can also
+  be set by clicking the drawing.
 - Every param change re-runs `generate`, so keep it fast.
 - With Hot reload on, saving a file in `src/` rebuilds and redraws. The Run button does it once.
 - The Layers panel shows the layer tree with names from `with_name` and colors. The user can hide
@@ -123,6 +123,7 @@ Check here before writing your own helper. Paths are in `plottery_lib/src/`; the
 Expose what an artist wants to tweak while watching the result. Keep derived values and implementation
 constants in code. Where to find out what is possible, all in `plottery_project`:
 
+- **Field types, attributes and the widget each gets:** the Parameters section of `README.md`.
 - **Field types:** `src/project_params/param_field.rs`. Every `impl ParamField for T` is a usable field
   type. Types with `impl RangedParamField` also accept `#[range(min, max)]`.
 - **Attributes:** the docs on `PlotteryParams` and `PlotteryEnum` in `plottery_project_macros/src/lib.rs`.
@@ -134,13 +135,31 @@ Choosing well:
 
 - Use the most specific type: `Angle` instead of an `f32` in radians, `Range` for a random min/max,
   `V2` for a position, `Seed` for randomness, `BundledFont` for a font, a `PlotteryEnum` for modes.
-- Put a feature that can be switched off into `Option<SomeParamsStruct>`. It shows as a checkbox with its own section.
-- Bound sliders with `#[range]` to values that give sensible results.
-- Describe every param with `///` and state its unit. Group params with `#[section("..")]`, not `// ---` comments.
+- Give numbers a `#[range]` of values that give sensible results. Without one the user gets a bare
+  number box instead of a slider.
+- A feature that can be switched off is an `Option`, not a `bool` next to the params it gates.
+  `Option<GlowParams>` gets a switch in its section header and hides the fields while off.
+  `Option<NoiseSettings>` gets a switch beside its widget. In code: `if let Some(glow) = &params.glow`.
+- When an `Option` that's off by default is switched on, it starts from the inner type's default. For
+  a struct that's its `#[value]`s. For a bare number it's 0, clamped into its `#[range]`. Wrap the
+  value in a struct, or give it `#[value(Some(..))]`.
+- Params that belong together go into a nested `#[derive(PlotteryParams)]` struct: one section, one
+  argument for a helper, reusable (one struct per pen). Group flat fields with `#[section("..")]`,
+  not `// ---`.
+- A list the user grows (arms, pens, layers) is `Vec<ItemParams>`. `#[range]` doesn't reach into a
+  `Vec`, so even a list of numbers gets an item struct with a ranged field.
+- Name fields the way the label should read: `circle_size` shows as "circle size". Describe every
+  param with `///` and give its unit; it shows as a tooltip.
 
 The user's values are kept across code changes while a field's name, type and `#[range]` stay the same.
 Changing `#[value]` doesn't touch a kept value, so the user won't see a new default. Renaming a field or
-changing its type or range resets it to the default. Moving it to another section keeps it.
+changing its type or range resets it to the default. Moving it to another section keeps it. Also:
+
+- Wrapping a field in `Option` changes its type, so it resets.
+- Inside a nested struct the rules apply per field, and an `Option` around it keeps its on/off state.
+- An enum keeps its variant while that variant exists.
+- A `Vec` keeps its items only while the item type is unchanged. One field added to its item struct
+  resets the whole list.
 
 ## Conventions
 
