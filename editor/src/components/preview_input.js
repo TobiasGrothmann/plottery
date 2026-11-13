@@ -4,10 +4,18 @@ if (stage) {
   let gestureScale = null;
   let drag = null;
 
+  let pending = null;
+
+  const flush = () => {
+    if (!pending) return;
+    dioxus.send(pending);
+    pending = null;
+  };
+  // Zoom and pan are merged into one message per frame; a click goes out at once.
   const send = (kind, e, extra) => {
     const rect = stage.getBoundingClientRect();
     const paper = stage.querySelector(".paper");
-    dioxus.send(Object.assign({
+    const msg = Object.assign({
       kind,
       x: e.clientX - rect.left - rect.width / 2,
       y: e.clientY - rect.top - rect.height / 2,
@@ -18,7 +26,21 @@ if (stage) {
       factor: 1,
       dx: 0,
       dy: 0,
-    }, extra));
+    }, extra);
+    if (pending && pending.kind === kind) {
+      msg.factor *= pending.factor;
+      msg.dx += pending.dx;
+      msg.dy += pending.dy;
+      pending = msg;
+      return;
+    }
+    flush();
+    if (kind === "click") {
+      dioxus.send(msg);
+      return;
+    }
+    pending = msg;
+    requestAnimationFrame(flush);
   };
   const onControls = (e) => e.target.closest && e.target.closest(".zoom-ctl");
 

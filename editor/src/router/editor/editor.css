@@ -100,6 +100,36 @@
 }
 .preview-stage.zoomable {
   touch-action: none;
+  overflow: clip;
+}
+/* The zoomable paper: a bitmap the GPU moves and stretches, and a sharp layer on top of it. */
+.papers {
+  position: absolute;
+  inset: 0;
+  padding: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s;
+}
+.papers .paper {
+  will-change: transform;
+}
+/* As large as the stage, so repainting it never costs more than what is visible. */
+.sharp {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
+  pointer-events: none;
+}
+.sharp img {
+  display: block;
+  flex: none;
+  background: var(--paper);
 }
 .preview-stage.dragging,
 .preview-stage.dragging .paper {
@@ -107,6 +137,9 @@
 }
 .paper.animate {
   transition: transform 0.2s ease, opacity 0.15s;
+}
+.sharp.animate {
+  transition: transform 0.2s ease;
 }
 
 .zoom-ctl {
@@ -138,6 +171,13 @@
 }
 .preview.busy .paper {
   opacity: 0.6;
+}
+/* Both layers dim as one, or the blurry one would show through the sharp one. */
+.preview.busy .papers {
+  opacity: 0.6;
+}
+.preview.busy .papers .paper {
+  opacity: 1;
 }
 
 .preview-empty {

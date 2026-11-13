@@ -10,6 +10,7 @@ pub mod notify;
 pub mod preview_coords;
 mod preview_coords_test;
 pub mod preview_zoom;
+mod preview_zoom_test;
 pub mod route_util;
 
 pub use date_util::*;

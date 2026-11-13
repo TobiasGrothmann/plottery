@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use plottery_lib::{Rect, V2};
 use serde::Deserialize;
-use std::time::UNIX_EPOCH;
+use std::time::{Duration, UNIX_EPOCH};
 
 use crate::{
     components::{
@@ -54,6 +54,9 @@ impl PreviewInput {
     }
 }
 
+/// How long the zoom has to stand still before the sharp layer is rendered again.
+const SHARPEN_DELAY: Duration = Duration::from_millis(250);
+
 #[derive(Clone, Copy)]
 struct PickState {
     layer_bbox: Option<Rect>,
@@ -85,6 +88,20 @@ pub fn SVGImage(props: SVGImageProps) -> Element {
             animate.set(on);
         }
     };
+    // The zoom the sharp layer is rendered at. Rendering repaints the svg, so it only follows
+    // `zoom` once that has stood still for a moment.
+    let mut sharp_zoom = use_signal(PreviewZoom::default);
+    use_effect(move || {
+        let target = zoom();
+        spawn(async move {
+            tokio::time::sleep(SHARPEN_DELAY).await;
+            if *zoom.peek() == target && *sharp_zoom.peek() != target {
+                // The sharp layer has to jump to its new place, not glide there.
+                set_animate(false);
+                sharp_zoom.set(target);
+            }
+        });
+    });
     let start_input = move |_| {
         spawn(async move {
             let mut eval = document::eval(include_str!("preview_input.js"));
@@ -136,9 +153,9 @@ pub fn SVGImage(props: SVGImageProps) -> Element {
         .layer_bbox
         .map(|bbox| bbox.size())
         .filter(|size| size.x > 0.0 && size.y > 0.0);
-    let fit = match size {
-        Some(size) => {
-            let ratio = size.x / size.y;
+    let ratio = size.map(|size| size.x / size.y);
+    let fit = match ratio {
+        Some(ratio) => {
             format!("width: min(100cqw, calc(100cqh * {ratio})); height: min(100cqh, calc(100cqw / {ratio}));")
         }
         None => "max-width: 100%; max-height: 100%;".to_string(),
@@ -148,12 +165,36 @@ pub fn SVGImage(props: SVGImageProps) -> Element {
         "transform: translate({}px, {}px) scale({});",
         current.pan.x, current.pan.y, current.scale
     );
+    // The paper is a bitmap that the GPU moves and stretches: smooth, but blurry when zoomed.
+    // The sharp layer on top renders what the stage shows at `sharp_zoom` and is moved the same
+    // way until the zoom stands still again.
+    let rendered = sharp_zoom();
+    let (sharp_style, sharp_img_style) = match ratio.filter(|_| !rendered.is_fit()) {
+        Some(ratio) => {
+            let moved = current.relative_to(rendered);
+            (
+                // `display` is set both ways: a changed style string keeps properties it no longer names.
+                format!(
+                    "display: flex; transform: translate({}px, {}px) scale({});",
+                    moved.pan.x, moved.pan.y, moved.scale
+                ),
+                format!(
+                    "width: calc(min(100cqw, 100cqh * {ratio}) * {scale}); height: calc(min(100cqh, 100cqw / {ratio}) * {scale}); transform: translate({}px, {}px);",
+                    rendered.pan.x,
+                    rendered.pan.y,
+                    scale = rendered.scale
+                ),
+            )
+        }
+        None => ("display: none;".to_string(), String::new()),
+    };
     let (stage_cursor, paper_cursor) = match (props.pick_active, current.is_fit()) {
         (true, _) => ("default", "crosshair"),
         (false, true) => ("default", "zoom-in"),
         (false, false) => ("zoom-out", "zoom-out"),
     };
     let paper_class = if animate() { "paper animate" } else { "paper" };
+    let sharp_class = if animate() { "sharp animate" } else { "sharp" };
     let percent = (current.scale * 100.0).round();
 
     rsx!(
@@ -162,11 +203,16 @@ pub fn SVGImage(props: SVGImageProps) -> Element {
             class: "preview-stage zoomable",
             style: "cursor: {stage_cursor};",
             onmounted: start_input,
-            img {
-                class: paper_class,
-                src: "{svg_data_url}",
-                draggable: "false",
-                style: "{fit} {transform} cursor: {paper_cursor};",
+            div { class: "papers",
+                img {
+                    class: paper_class,
+                    src: "{svg_data_url}",
+                    draggable: "false",
+                    style: "{fit} {transform} cursor: {paper_cursor};",
+                }
+                div { class: sharp_class, style: "{sharp_style}",
+                    img { src: "{svg_data_url}", style: "{sharp_img_style}" }
+                }
             }
             if !current.is_fit() {
                 div { class: "zoom-ctl",

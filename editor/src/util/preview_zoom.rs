@@ -52,6 +52,15 @@ impl PreviewZoom {
         (at - self.pan) / self.scale + paper / 2.0
     }
 
+    /// The zoom that moves a picture of the stage taken at `rendered` to where this zoom shows it.
+    pub fn relative_to(self, rendered: Self) -> Self {
+        let scale = self.scale / rendered.scale;
+        Self {
+            scale,
+            pan: self.pan - rendered.pan * scale,
+        }
+    }
+
     /// Keeps the paper edges from moving inside the stage once the paper is larger than it.
     fn clamped(self, view: ZoomViewport) -> Self {
         let limit = ((view.paper * self.scale - view.stage) / 2.0).max(V2::zero());
