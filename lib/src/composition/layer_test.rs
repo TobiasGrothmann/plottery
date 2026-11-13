@@ -353,7 +353,7 @@ mod test_layer {
                     *paths_count.get_mut(path).unwrap() += 1;
                 }
                 Event::Error(_) => todo!(),
-                Event::Text(_) => todo!(),
+                Event::Text(_) => {}
                 Event::Comment(_) => todo!(),
                 Event::Declaration(_) => todo!(),
                 Event::Instruction(_) => todo!(),
