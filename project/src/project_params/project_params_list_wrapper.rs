@@ -9,18 +9,27 @@ use super::project_param_value::ProjectParamValue;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ProjectParamsListWrapper {
     pub list: Vec<ProjectParam>,
+    /// The project's defaults for `list`. Not saved, empty until `new_combined` fills it.
+    #[serde(skip)]
+    pub defaults: Vec<ProjectParam>,
 }
 
 impl ProjectParamsListWrapper {
     pub fn new(list: Vec<ProjectParam>) -> Self {
-        Self { list }
+        Self {
+            list,
+            defaults: Vec::new(),
+        }
     }
     pub fn empty() -> Self {
-        Self { list: Vec::new() }
+        Self::new(Vec::new())
     }
 
     pub fn new_combined(old: &[ProjectParam], new: &[ProjectParam]) -> Self {
-        Self::new(Self::combine_lists(old, new))
+        Self {
+            list: Self::combine_lists(old, new),
+            defaults: new.to_vec(),
+        }
     }
 
     /// Follows the order of `new` (the struct definition), keeping old values where the schema still matches.

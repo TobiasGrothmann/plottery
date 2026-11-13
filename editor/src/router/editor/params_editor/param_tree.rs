@@ -12,7 +12,20 @@ pub fn get_param_value_by_path(
     list: &[ProjectParam],
     path: &[String],
 ) -> Option<ProjectParamValue> {
-    get_param_value_ref_by_path(list, path).cloned()
+    get_param_value_ref_by_path(list, path, false).cloned()
+}
+
+/// The default of the leaf at `path`, `Optional` unwrapped. Vec items past the defaults' end use the item prototype.
+pub fn get_default_leaf_value(
+    defaults: &[ProjectParam],
+    path: &[String],
+) -> Option<ProjectParamValue> {
+    get_param_value_ref_by_path(defaults, path, true)
+        .map(|value| match value {
+            ProjectParamValue::Optional(optional) => optional.value.as_ref(),
+            other => other,
+        })
+        .cloned()
 }
 
 pub fn get_param_value_mut_by_path<'a>(
@@ -54,6 +67,7 @@ pub fn get_param_mut_by_path<'a>(
 fn get_param_value_ref_by_path<'a>(
     list: &'a [ProjectParam],
     path: &[String],
+    prototype_fallback: bool,
 ) -> Option<&'a ProjectParamValue> {
     if path.is_empty() {
         return None;
@@ -66,12 +80,13 @@ fn get_param_value_ref_by_path<'a>(
         return Some(&param.value);
     }
 
-    get_param_value_ref_in_value(&param.value, &path[1..])
+    get_param_value_ref_in_value(&param.value, &path[1..], prototype_fallback)
 }
 
 fn get_param_value_ref_in_value<'a>(
     value: &'a ProjectParamValue,
     path: &[String],
+    prototype_fallback: bool,
 ) -> Option<&'a ProjectParamValue> {
     if path.is_empty() {
         return Some(value);
@@ -79,15 +94,19 @@ fn get_param_value_ref_in_value<'a>(
 
     match value {
         ProjectParamValue::Struct(param_struct) => {
-            get_param_value_ref_by_path(&param_struct.fields, path)
+            get_param_value_ref_by_path(&param_struct.fields, path, prototype_fallback)
         }
         ProjectParamValue::Optional(optional) => {
-            get_param_value_ref_in_value(optional.value.as_ref(), path)
+            get_param_value_ref_in_value(optional.value.as_ref(), path, prototype_fallback)
         }
         ProjectParamValue::Vec(vec_value) => {
             let index = parse_index_segment(&path[0])?;
-            let item = vec_value.items.get(index)?;
-            get_param_value_ref_in_value(item, &path[1..])
+            let item = match vec_value.items.get(index) {
+                Some(item) => item,
+                None if prototype_fallback => vec_value.item_prototype.as_ref(),
+                None => return None,
+            };
+            get_param_value_ref_in_value(item, &path[1..], prototype_fallback)
         }
         _ => None,
     }

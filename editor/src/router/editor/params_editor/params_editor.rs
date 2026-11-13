@@ -27,7 +27,10 @@ use crate::router::editor::{
         noise_field::NoiseField,
         number_field::NumberField,
         paper_field::PaperField,
-        param_tree::{get_param_mut_by_path, get_param_value_mut_by_path, leaf_value_mut},
+        param_tree::{
+            get_default_leaf_value, get_param_mut_by_path, get_param_value_mut_by_path,
+            leaf_value_mut,
+        },
         range_field::RangeField,
         seed_field::SeedField,
         slider::Slider,
@@ -53,6 +56,8 @@ pub struct ParamsEditorProps {
 pub struct LeafProps {
     pub param: ProjectParam,
     pub path: Vec<String>,
+    /// The project's default for `param`, `None` until the first run got the params.
+    pub default: Option<ProjectParamValue>,
     pub project_dir: PathBuf,
     pub project_params: SyncSignal<ProjectParamsListWrapper>,
     pub project_runner: SyncSignal<ProjectRunner>,
@@ -67,6 +72,7 @@ impl PartialEq for LeafProps {
         self.param.name == other.param.name
             && self.param.value == other.param.value
             && self.path == other.path
+            && self.default == other.default
             && self.project_dir == other.project_dir
             && self.project_params == other.project_params
             && self.project_runner == other.project_runner
@@ -78,9 +84,11 @@ impl PartialEq for LeafProps {
 
 impl LeafProps {
     fn new(param: ProjectParam, path: Vec<String>, props: &ParamsEditorProps) -> Self {
+        let default = get_default_leaf_value(&props.project_params.read().defaults, &path);
         Self {
             param,
             path,
+            default,
             project_dir: props.project_dir.clone(),
             project_params: props.project_params,
             project_runner: props.project_runner,
