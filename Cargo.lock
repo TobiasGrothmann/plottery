@@ -5201,6 +5201,7 @@ dependencies = [
  "futures-lite",
  "plottery_lib",
  "plottery_project",
+ "rayon",
  "tempfile",
 ]
 
@@ -5274,6 +5275,7 @@ name = "plottery_project"
 version = "0.17.0"
 dependencies = [
  "anyhow",
+ "async-io",
  "async-process",
  "bincode",
  "chrono",

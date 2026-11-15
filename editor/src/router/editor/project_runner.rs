@@ -168,6 +168,8 @@ impl ProjectRunner {
                         }
                         return;
                     }
+                    // never requested, the editor shows no snapshots yet
+                    RunEvent::Snapshot(_) => return,
                 };
                 log(console, |c| c.info(info));
                 set_state(running_state, state);

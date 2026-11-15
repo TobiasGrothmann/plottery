@@ -73,6 +73,9 @@ Replace the template in `generate.rs`:
 - The simplest version that shows the composition. Shortcuts are fine (straight lines before splines,
   a fixed count before a density field), but split it into small functions per element so each part
   can be refined on its own.
+- If the drawing comes about over iterations (growth, a simulation, relaxation), call `snapshot` in
+  that loop from the start, as `AGENTS.md` says under Conventions. It costs nothing in normal runs and
+  lets the user make a video with `plottery animate`. Leave it out when nothing is built up in steps.
 
 Build and render with the CLI as `AGENTS.md` describes, look at every png, and stop after a few rounds,
 once it reads as the idea.

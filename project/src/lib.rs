@@ -15,6 +15,7 @@ mod project_scan;
 mod project_scan_test;
 mod project_test;
 mod project_util;
+mod run_stream;
 
 pub use cargo_project_template::*;
 pub use plottery_project_macros::*;
@@ -25,5 +26,6 @@ pub use project_params::*;
 pub use project_pipeline::*;
 pub use project_scan::*;
 pub use project_util::*;
+pub use run_stream::RunSocket;
 
 pub use util::*;

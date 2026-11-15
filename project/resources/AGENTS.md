@@ -48,6 +48,7 @@ plottery render /tmp/{{project-name}}.png         # render to look at, prints st
 plottery render /tmp/a.png /tmp/a.svg --set size=12 --set glow.radius=2   # try other values
 plottery set size=12 glow.radius=2                # change the user's values, like the editor
 plottery run                                      # like the editor's Run button
+plottery animate /tmp/a.mp4 --every 5             # video of how the drawing comes about, see `snapshot`
 ```
 
 `plottery --help` lists all commands. If `plottery` is missing or lacks a command, install the version
@@ -69,6 +70,10 @@ and runs with the user's param values, so a render shows what the user sees.
   shape count, draw and travel length, and the bounds against the paper frame.
 - `plottery run` and `render --update-editor` write the result into `resources/` for the editor.
   Don't use them to try things out: they replace what the user sees.
+- `animate` writes an `.mp4` or `.gif` with one frame per `snapshot` call of the project (`--every N`
+  keeps every N-th) and the finished drawing as the last frame. Takes `--set`, `--defaults` and `--size`
+  like `render`, plus `--fps` and `--hold`. Needs ffmpeg and a `Paper` param. To check single frames,
+  take stills out of the video with ffmpeg.
 - Compiler errors show paths relative to `{{project-name}}/`, e.g. `src/generate.rs` is
   `{{project-name}}/src/generate.rs`.
 
@@ -117,6 +122,7 @@ Check here before writing your own helper. Paths are in `plottery_lib/src/`; the
 | evenly spaced random points (blue noise), uniform or following a density function | `PoissonDisk` in `generate/poisson_disk.rs` |
 | Voronoi diagrams with relaxation | `generate/voronoi.rs` |
 | contour lines of a 2D function (marching squares) | `generate/func_2d/` |
+| a video of how the drawing comes about: `snapshot` in the loop that builds it, then `plottery animate` | `composition/snapshot.rs` |
 | images as brightness or darkness fields, histograms, equalizing | `sampling/` |
 | text layout, bundled and system fonts | `text/`; the bundled list is `BundledFont` in `plottery_fonts` |
 
@@ -178,6 +184,11 @@ changing its type or range resets it to the default. Moving it to another sectio
 - With a `Seed` param, call `params.seed.apply()` first. Then use Plottery's random helpers
   (`maths/random.rs`) and `Range::sample` instead of the `rand` crate, so results are reproducible.
   `NoiseSettings::noise()` also draws its seed from there, so create noise after applying the seed.
+- A drawing that comes about over iterations (growth, a simulation, relaxation, strokes added one
+  after another) calls `snapshot(|| layer)` once per iteration, with the whole picture at that moment.
+  Add it without being asked: it costs nothing in normal runs, the closure only runs for
+  `plottery animate`, which turns the snapshots into a video. The closure must not use the random
+  helpers, or the drawing changes. Leave it out where nothing is built up in steps.
 - For text, prefer single-line fonts (`Font::is_single_line`, `is_stroke`). Outline fonts draw both
   contours of every stroke.
 - Use idiomatic Rust: iterator chains, builders. `shape.rotate(a)` returns a copy, `shape.rotate_mut(a)` edits in place.

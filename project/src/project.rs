@@ -2,7 +2,9 @@ use crate::{
     generate_cargo_project_to_disk, init_git_repo,
     project_params_list_wrapper::ProjectParamsListWrapper,
     project_util::{build_cargo_project_async, path_hash, run_project_executable_async},
-    read_object_from_stdout, write_agents_md, LibSource, ProjectConfig,
+    read_object_from_stdout,
+    run_stream::RunSocket,
+    write_agents_md, LibSource, ProjectConfig,
 };
 
 use plottery_lib::*;
@@ -13,23 +15,24 @@ use path_absolutize::Absolutize;
 use resvg::{tiny_skia, usvg};
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
-use tempfile::NamedTempFile;
 use usvg::{fontdb, TreeParsing, TreeTextToPath};
 
 /// Longest side of the browser thumbnail in pixels.
 pub const EDITOR_THUMBNAIL_SIZE: u32 = 1024;
 
-/// Rasterizes SVG data to a PNG, scaled so the longest side is `max_size` when given.
-fn render_svg_to_png(
+/// Rasterizes SVG data, scaled so the longest side is `max_size` when given.
+fn render_svg(
     svg_data: &[u8],
-    path: &std::path::Path,
     max_size: Option<u32>,
     background: Option<tiny_skia::Color>,
-) -> Result<()> {
+) -> Result<tiny_skia::Pixmap> {
     let rtree = {
         let opt = usvg::Options::default();
         let mut fontdb = fontdb::Database::new();
-        fontdb.load_system_fonts();
+        // Scanning the system fonts is slow and only text needs them, which layers never contain.
+        if svg_data.windows(5).any(|bytes| bytes == b"<text") {
+            fontdb.load_system_fonts();
+        }
         let mut tree = usvg::Tree::from_data(svg_data, &opt)?;
         tree.convert_text(&fontdb);
         resvg::Tree::from_usvg(&tree)
@@ -51,8 +54,42 @@ fn render_svg_to_png(
         tiny_skia::Transform::from_scale(scale, scale),
         &mut pixmap.as_mut(),
     );
-    pixmap.save_png(path)?;
+    Ok(pixmap)
+}
+
+/// Rasterizes SVG data to a PNG, scaled so the longest side is `max_size` when given.
+fn render_svg_to_png(
+    svg_data: &[u8],
+    path: &std::path::Path,
+    max_size: Option<u32>,
+    background: Option<tiny_skia::Color>,
+) -> Result<()> {
+    render_svg(svg_data, max_size, background)?.save_png(path)?;
     Ok(())
+}
+
+/// The pixels of a rasterized layer.
+pub struct Raster {
+    pub width: u32,
+    pub height: u32,
+    /// Four bytes per pixel, rows from the top.
+    pub rgba: Vec<u8>,
+}
+
+/// Rasterizes `layer` on white, its longest side `max_size` pixels. Shows exactly `view` instead
+/// of the layer's bounding box, so that layers of different extent give images that line up.
+pub fn rasterize(layer: &Layer, view: Rect, max_size: u32) -> Result<Raster> {
+    let svg_data = layer.to_svg_in(view).to_string();
+    let pixmap = render_svg(
+        svg_data.as_bytes(),
+        Some(max_size),
+        Some(tiny_skia::Color::WHITE),
+    )?;
+    Ok(Raster {
+        width: pixmap.width(),
+        height: pixmap.height(),
+        rgba: pixmap.take(),
+    })
 }
 
 /// Reads the longest side from a PNG header without decoding the image.
@@ -326,22 +363,25 @@ impl Project {
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()?;
-        let (mut child, named_pipe) = rt.block_on(self.run_async(release, params))?;
-        let status = rt.block_on(child.status())?;
-
-        if !status.success() {
-            return Err(Error::msg(format!("Failed to run project: {}", status)));
-        }
-
-        let layer = Layer::new_from_file(&named_pipe.path().to_path_buf())?;
+        let layer = rt.block_on(self.run_with_params_async(
+            release,
+            params,
+            None,
+            |_| {},
+            std::future::pending(),
+        ))?;
         Ok(layer)
     }
 
+    /// Starts the built project. It sends its final layer through the returned socket, see
+    /// [`RunSocket::receive`], and before that every `frame_every`-th frame it passes to
+    /// [`plottery_lib::snapshot`] when `frame_every` is given.
     pub async fn run_async(
         &self,
         release: bool,
         params: &ProjectParamsListWrapper,
-    ) -> Result<(Child, NamedTempFile)> {
+        frame_every: Option<usize>,
+    ) -> Result<(Child, RunSocket)> {
         let bin_path = self.get_plottery_binary_path(release)?;
         if !bin_path.exists() {
             return Err(Error::msg(format!(
@@ -350,19 +390,19 @@ impl Project {
             )));
         }
 
-        let temp_file = tempfile::NamedTempFile::new()?;
-        let temp_named_pipe_path = temp_file.path().to_path_buf().to_string_lossy().to_string();
-
-        let arguments = vec![
-            "named-pipe",
-            &temp_named_pipe_path,
-            "--piped-params",
-            "true",
+        let socket = RunSocket::bind()?;
+        let mut arguments = vec![
+            "socket".to_string(),
+            socket.path().to_string_lossy().to_string(),
+            "--piped-params".to_string(),
         ];
-        Ok((
-            run_project_executable_async(&bin_path, &arguments, Some(params), &self.dir).await?,
-            temp_file,
-        ))
+        if let Some(every) = frame_every {
+            arguments.extend(["--frame-every".to_string(), every.to_string()]);
+        }
+        let arguments: Vec<&str> = arguments.iter().map(String::as_str).collect();
+        let child =
+            run_project_executable_async(&bin_path, &arguments, Some(params), &self.dir).await?;
+        Ok((child, socket))
     }
 
     pub fn run_get_params(&self, release: bool) -> Result<ProjectParamsListWrapper> {

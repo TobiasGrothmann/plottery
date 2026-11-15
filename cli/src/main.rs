@@ -1,3 +1,4 @@
+mod animate;
 mod discovery;
 mod discovery_test;
 mod editor_app;
@@ -12,10 +13,13 @@ use plottery_project::{
     Project, RunEvent,
 };
 use std::{
-    future::pending,
+    cell::RefCell,
+    future::{pending, poll_fn},
     path::{Path, PathBuf},
+    task::Poll,
 };
 
+use animate::{VideoFormat, VideoOptions, VideoWriter};
 use discovery::find_project;
 
 fn parse_lib_source(value: &str) -> LibSource {
@@ -51,7 +55,7 @@ impl ProjectArg {
     }
 }
 
-/// `-p` only, for render, whose outputs are positional.
+/// `-p` only, for commands whose outputs are positional.
 #[derive(Debug, Clone, Args)]
 struct ProjectFlag {
     #[arg(
@@ -162,6 +166,38 @@ enum Command {
         )]
         update_editor: bool,
     },
+    #[command(
+        about = "Make an mp4 or gif of how the drawing comes about, from the project's `snapshot` calls",
+        long_about = "Make an mp4 or gif of how the drawing comes about, from the project's `snapshot` calls.\n\nRuns the project once and asks it for its frames: every `snapshot(|| layer)` call in `generate` is one frame, the whole picture at that moment. Frames are rendered while the project runs and the video ends on the finished drawing. All frames show the paper, like a camera fixed above it, so the project needs a paper param. Params work as in `render`. Needs ffmpeg."
+    )]
+    Animate {
+        #[arg(
+            value_name = "OUT",
+            help = "Output file, the format follows the extension (.mp4 or .gif)"
+        )]
+        output: PathBuf,
+        #[command(flatten)]
+        project: ProjectFlag,
+        #[command(flatten)]
+        params: ParamArgs,
+        #[arg(
+            long,
+            default_value_t = 1600,
+            help = "Longest side of the video in pixels"
+        )]
+        size: u32,
+        #[arg(long, default_value_t = 30, value_parser = clap::value_parser!(u32).range(1..), help = "Frames per second")]
+        fps: u32,
+        #[arg(long, default_value_t = 1, value_parser = clap::value_parser!(u32).range(1..), value_name = "N", help = "Use only every N-th `snapshot`")]
+        every: u32,
+        #[arg(
+            long,
+            default_value_t = 2.0,
+            value_name = "SECONDS",
+            help = "How long the last frame stays at the end"
+        )]
+        hold: f32,
+    },
     #[command(about = "Set PLOTTERY_HOME, the local plottery checkout used by `new --lib home`")]
     SetHome {
         #[arg(help = "Path to the plottery workspace directory")]
@@ -176,6 +212,7 @@ Typical loop inside a project folder:
   plottery build                                  compile, show warnings
   plottery params                                 the user's param values
   plottery render /tmp/a.png --set size=12        render with an override, print stats
+  plottery animate /tmp/a.mp4 --every 5           video of how the drawing comes about (`snapshot`)
   plottery set size=12                            change the user's values
   plottery run ~/art/labyrinth                    run a project from anywhere
   plottery open                                   open the project in the editor";
@@ -201,38 +238,51 @@ enum OutputFormat {
     Svg,
 }
 
-/// Format from the extension, and the folder must exist, so mistakes show before building.
-fn check_output(path: &Path) -> Result<OutputFormat> {
+/// The lowercase extension of an output file of `command`. The file must not be a project and
+/// its folder must exist, so mistakes show before building.
+fn output_extension(path: &Path, command: &str) -> Result<Option<String>> {
     if path.is_dir() || path.extension().is_some_and(|ext| ext == "plottery") {
         bail!(
-            "'{0}' is a project. Pass it with -p: plottery render -p {0} <OUT>...",
+            "'{0}' is a project. Pass it with -p: plottery {command} -p {0} <OUT>...",
             path.display()
         );
     }
-    let extension = path
-        .extension()
-        .map(|ext| ext.to_string_lossy().to_lowercase());
-    let format = match extension.as_deref() {
-        Some("png") => OutputFormat::Png,
-        Some("svg") => OutputFormat::Svg,
-        _ => bail!(
-            "Can't tell the format of '{}', use a .png or .svg file",
-            path.display()
-        ),
-    };
     if let Some(parent) = path.parent().filter(|p| !p.as_os_str().is_empty()) {
         if !parent.is_dir() {
             bail!("Folder '{}' does not exist", parent.display());
         }
     }
-    Ok(format)
+    Ok(path
+        .extension()
+        .map(|ext| ext.to_string_lossy().to_lowercase()))
+}
+
+fn check_output(path: &Path) -> Result<OutputFormat> {
+    match output_extension(path, "render")?.as_deref() {
+        Some("png") => Ok(OutputFormat::Png),
+        Some("svg") => Ok(OutputFormat::Svg),
+        _ => bail!(
+            "Can't tell the format of '{}', use a .png or .svg file",
+            path.display()
+        ),
+    }
+}
+
+fn check_video_output(path: &Path) -> Result<VideoFormat> {
+    let extension = output_extension(path, "animate")?;
+    VideoFormat::from_extension(extension.as_deref()).with_context(|| {
+        format!(
+            "Can't tell the format of '{}', use a .mp4 or .gif file",
+            path.display()
+        )
+    })
 }
 
 fn print_event(event: RunEvent) {
     match event {
         RunEvent::StageRunning(stage) => eprintln!("{}...", stage),
         RunEvent::Output(line) => eprintln!("{}", line),
-        RunEvent::StageStarting(_) | RunEvent::ParamsMerged(_) => {}
+        RunEvent::StageStarting(_) | RunEvent::ParamsMerged(_) | RunEvent::Snapshot(_) => {}
     }
 }
 
@@ -303,8 +353,13 @@ pub fn main() -> Result<()> {
                     set: Vec::new(),
                 },
             )?;
-            let layer =
-                block_on(project.run_with_params_async(RELEASE, &params, print_event, pending()))?;
+            let layer = block_on(project.run_with_params_async(
+                RELEASE,
+                &params,
+                None,
+                print_event,
+                pending(),
+            ))?;
             project.save_editor_outputs(&params, &layer)?;
             println!(
                 "Ran '{}', the editor shows the new result",
@@ -375,8 +430,13 @@ pub fn main() -> Result<()> {
                 .collect::<Result<Vec<_>>>()?;
             let project = find_project(project.project)?;
             let (params, _) = build_and_resolve_params(&project, &params)?;
-            let layer =
-                block_on(project.run_with_params_async(RELEASE, &params, print_event, pending()))?;
+            let layer = block_on(project.run_with_params_async(
+                RELEASE,
+                &params,
+                None,
+                print_event,
+                pending(),
+            ))?;
             for (path, format) in outputs.into_iter().zip(formats) {
                 let written = match format {
                     OutputFormat::Png => project.write_png(path.clone(), &layer, size),
@@ -393,6 +453,72 @@ pub fn main() -> Result<()> {
                 );
             }
             println!("{}", stats::format_stats(&layer, &params.list));
+        }
+        Command::Animate {
+            output,
+            project,
+            params,
+            size,
+            fps,
+            every,
+            hold,
+        } => {
+            let options = VideoOptions {
+                format: check_video_output(&output)?,
+                output: output.clone(),
+                fps,
+                hold: hold.max(0.0),
+                size,
+            };
+            animate::check_ffmpeg()?;
+            let project = find_project(project.project)?;
+            let (params, _) = build_and_resolve_params(&project, &params)?;
+            let Some(paper) = stats::find_paper(&params.list) else {
+                bail!("The project has no paper param. Every frame shows the paper, and its size has to be known before the first frame arrives. Add a `Paper` param to `Params`.");
+            };
+
+            // frames are rendered as they arrive, the project waits meanwhile
+            let video = RefCell::new(VideoWriter::new(options, paper.rect()));
+            let failure = RefCell::new(None);
+            let on_event = |event| match event {
+                RunEvent::Snapshot(frame) if failure.borrow().is_none() => {
+                    if let Err(e) = video.borrow_mut().push(frame) {
+                        *failure.borrow_mut() = Some(e);
+                    }
+                }
+                event => print_event(event),
+            };
+            // stops the run after a failed frame; looked at whenever the run waits for the project
+            let cancel = poll_fn(|_| match failure.borrow().is_some() {
+                true => Poll::Ready(()),
+                false => Poll::Pending,
+            });
+            let run = block_on(project.run_with_params_async(
+                RELEASE,
+                &params,
+                Some(every as usize),
+                on_event,
+                cancel,
+            ));
+            if let Some(e) = failure.into_inner() {
+                return Err(e);
+            }
+            let layer = run?;
+
+            let mut video = video.into_inner();
+            if video.frame_count() == 0 {
+                bail!("No frames: the project never calls `snapshot`. Call `snapshot(|| layer)` in `generate` for every state the animation should show.");
+            }
+            let stats = stats::format_stats(&layer, &params.list);
+            // the video ends on the finished drawing, whatever the stride
+            video.push(layer)?;
+            let (frame_count, duration) = (video.frame_count(), video.duration());
+            video.finish()?;
+            println!(
+                "Wrote '{}': {frame_count} frames, {duration:.1} s at {fps} fps",
+                output.display()
+            );
+            println!("{stats}");
         }
         Command::SetHome { path } => {
             let path_buf = PathBuf::from(&path);

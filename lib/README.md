@@ -78,6 +78,23 @@ l.write_svg(std::env::temp_dir().join("circles.svg"))
     .expect("svg");
 ```
 
+## Animation
+
+`snapshot` shows how a drawing comes about. Each call adds the whole picture at that moment as one
+frame, and `plottery animate out.mp4` turns the frames into a video. In every other run it does
+nothing, the closure isn't even called.
+
+```rust
+use plottery_lib::*;
+
+let mut points = vec![V2::new(5.0, 5.0)];
+for step in 0..300 {
+    let angle = Angle::from_degrees(step as f32 * 10.0);
+    points.push(V2::new(5.0, 5.0) + V2::polar(angle, step as f32 * 0.01));
+    snapshot(|| Layer::new_from([Path::new_from(points.clone())]));
+}
+```
+
 ## Masking
 
 Cut any shape at the outline of another. `inside` and `outside` are layers.
