@@ -25,6 +25,7 @@ toml = "0.8.8"
 tempfile = "3.8.1"
 resvg = "0.37.0"
 async-process = "2.0.1"
+async-io = "2.3.0"
 open = "5.1.2"
 futures-lite = "2.2.0"
 tokio = { version = "1.35.1", features = ["rt"] }

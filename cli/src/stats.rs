@@ -22,14 +22,18 @@ pub fn format_stats(layer: &Layer, params: &[ProjectParam]) -> String {
         bounds.tr().x,
         bounds.tr().y
     );
-    let paper = params.iter().find_map(|param| match &param.value {
-        ProjectParamValue::Paper(paper) => Some(paper),
-        _ => None,
-    });
-    if let Some(paper) = paper {
+    if let Some(paper) = find_paper(params) {
         bounds_line += &format!(", {}", paper_check(&bounds, paper));
     }
     format!("{counts}\n{bounds_line}")
+}
+
+/// The first top-level paper param.
+pub fn find_paper(params: &[ProjectParam]) -> Option<&Paper> {
+    params.iter().find_map(|param| match &param.value {
+        ProjectParamValue::Paper(paper) => Some(paper),
+        _ => None,
+    })
 }
 
 fn paper_check(bounds: &Rect, paper: &Paper) -> String {

@@ -1,11 +1,11 @@
 use std::future::Future;
 
-use async_process::{Child, ChildStderr};
-use futures_lite::future;
+use async_process::Child;
+use futures_lite::{future, AsyncRead};
 use plottery_lib::Layer;
 
 use crate::{
-    process_lines_to_end, process_stderr_lines, process_stdout_lines,
+    process_lines_to_end, process_stderr_lines,
     project_params_list_wrapper::ProjectParamsListWrapper, read_object_from_stdout, Project,
     ProjectParam,
 };
@@ -37,6 +37,10 @@ pub enum RunEvent {
     Output(String),
     /// Project params merged with the saved ones, sent before the run starts.
     ParamsMerged(ProjectParamsListWrapper),
+    /// A layer the project passed to [`plottery_lib::snapshot`], one frame of its animation. Sent
+    /// while it runs and only when the run asked for frames. The project waits with its next one
+    /// until the handler returns.
+    Snapshot(Layer),
 }
 
 #[derive(Debug, Clone)]
@@ -82,14 +86,18 @@ fn kill_child(child: &mut Child) {
     let _ = child.kill();
 }
 
-async fn forward_stderr(stderr: Option<ChildStderr>, on_event: &impl Fn(RunEvent)) {
-    let Some(stderr) = stderr else {
+/// Sends the lines of the project's stdout or stderr (`name`) as [`RunEvent::Output`].
+async fn forward_output(
+    output: Option<impl AsyncRead + Unpin>,
+    name: &str,
+    on_event: &impl Fn(RunEvent),
+) {
+    let Some(output) = output else {
         return;
     };
-    if let Err(e) = process_lines_to_end(stderr, |line| on_event(RunEvent::Output(line))).await {
+    if let Err(e) = process_lines_to_end(output, |line| on_event(RunEvent::Output(line))).await {
         on_event(RunEvent::Output(format!(
-            "error receiving project stderr: {}",
-            e
+            "error receiving project {name}: {e}"
         )));
     }
 }
@@ -149,7 +157,7 @@ impl Project {
             .await?;
         on_event(RunEvent::ParamsMerged(params.clone()));
         let layer = self
-            .run_stage(release, &params, &on_event, &mut cancel)
+            .run_stage(release, &params, None, &on_event, &mut cancel)
             .await?;
         Ok((params, layer))
     }
@@ -168,16 +176,18 @@ impl Project {
             .await
     }
 
-    /// Runs the already built project with `params`.
+    /// Runs the already built project with `params`. With `frame_every` it also sends every
+    /// n-th frame the project passes to [`plottery_lib::snapshot`] as [`RunEvent::Snapshot`].
     pub async fn run_with_params_async(
         &self,
         release: bool,
         params: &ProjectParamsListWrapper,
+        frame_every: Option<usize>,
         on_event: impl Fn(RunEvent),
         cancel: impl Future<Output = ()>,
     ) -> Result<Layer, RunError> {
         let mut cancel = std::pin::pin!(cancel);
-        self.run_stage(release, params, &on_event, &mut cancel)
+        self.run_stage(release, params, frame_every, &on_event, &mut cancel)
             .await
     }
 
@@ -199,7 +209,7 @@ impl Project {
         let read = until_cancelled(
             future::zip(
                 read_object_from_stdout::<ProjectParamsListWrapper>(&mut child),
-                forward_stderr(stderr, on_event),
+                forward_output(stderr, "stderr", on_event),
             ),
             cancel,
         )
@@ -225,48 +235,48 @@ impl Project {
         &self,
         release: bool,
         params: &ProjectParamsListWrapper,
+        frame_every: Option<usize>,
         on_event: &impl Fn(RunEvent),
         cancel: &mut (impl Future<Output = ()> + Unpin),
     ) -> Result<Layer, RunError> {
         let stage = RunStage::Run;
         on_event(RunEvent::StageStarting(stage));
-        let (mut child, named_pipe) = self
-            .run_async(release, params)
+        let (mut child, socket) = self
+            .run_async(release, params, frame_every)
             .await
             .map_err(|e| RunError::failed(stage, format!("Error running project: {}", e)))?;
 
         on_event(RunEvent::StageRunning(stage));
-        let stderr = child.stderr.take();
-        let status = until_cancelled(
+        let (stdout, stderr) = (child.stdout.take(), child.stderr.take());
+        let received = until_cancelled(
             future::zip(
-                process_stdout_lines(&mut child, |line| on_event(RunEvent::Output(line))),
-                forward_stderr(stderr, on_event),
+                socket.receive(&mut child, |frame| on_event(RunEvent::Snapshot(frame))),
+                future::zip(
+                    forward_output(stdout, "stdout", on_event),
+                    forward_output(stderr, "stderr", on_event),
+                ),
             ),
             cancel,
         )
         .await;
 
-        match status {
-            None => {
-                kill_child(&mut child);
-                return Err(RunError::Killed { stage });
-            }
-            Some((Err(e), _)) => {
-                return Err(RunError::failed(
-                    stage,
-                    format!("error getting running status: {}", e),
-                ))
-            }
-            Some((Ok(status), _)) if !status.success() => {
-                return Err(RunError::failed(
-                    stage,
-                    format!("run failed ({})", status.code().unwrap_or(-1)),
-                ))
-            }
-            Some((Ok(_), _)) => {}
+        let Some((layer, _)) = received else {
+            kill_child(&mut child);
+            return Err(RunError::Killed { stage });
+        };
+        // a failed run says more than the result it didn't send
+        match child.status().await {
+            Err(e) => Err(RunError::failed(
+                stage,
+                format!("error getting running status: {}", e),
+            )),
+            Ok(status) if !status.success() => Err(RunError::failed(
+                stage,
+                format!("run failed ({})", status.code().unwrap_or(-1)),
+            )),
+            Ok(_) => layer.map_err(|e| {
+                RunError::failed(stage, format!("error receiving layer from run: {}", e))
+            }),
         }
-
-        Layer::new_from_file(&named_pipe.path().to_path_buf())
-            .map_err(|e| RunError::failed(stage, format!("error reading layer from run: {}", e)))
     }
 }

@@ -1,13 +1,15 @@
 use bincode::serialize;
 use clap::{Parser, Subcommand};
-use plottery_lib::Layer;
+use plottery_lib::{record_frames, Layer};
 use std::error::Error;
 use std::io::{self, Read, Write};
+use std::os::unix::net::UnixStream;
 use std::path::PathBuf;
 
 use crate::project_param::ProjectParam;
 use crate::project_params_definition::PlotteryParams;
 use crate::project_params_list_wrapper::ProjectParamsListWrapper;
+use crate::run_stream::{write_message, MessageKind};
 
 #[derive(Debug, Clone, Subcommand)]
 enum RunCommand {
@@ -18,10 +20,16 @@ enum RunCommand {
         #[arg(long, short)]
         piped_params: Option<bool>,
     },
-    NamedPipe {
-        #[arg(long, short)]
-        piped_params: Option<bool>,
-        pipe_path: String,
+    /// Used by the editor and the CLI: sends the result through a Unix domain socket.
+    Socket {
+        /// Socket of the caller, the final layer and the frames are sent through it.
+        path: PathBuf,
+        /// Read the params from stdin instead of using the defaults.
+        #[arg(long)]
+        piped_params: bool,
+        /// Also send every n-th frame the project passes to `snapshot`.
+        #[arg(long)]
+        frame_every: Option<usize>,
     },
     Dry {},
     Params {},
@@ -91,31 +99,28 @@ where
                 .expect("Failed to convert layer to binary format");
             stdout.write_all(&binary)?;
         }
-        RunCommand::NamedPipe {
+        RunCommand::Socket {
+            path,
             piped_params,
-            pipe_path,
+            frame_every,
         } => {
-            let wait_for_stdin = piped_params.unwrap_or(false);
-
-            let params = if wait_for_stdin {
+            let params = if piped_params {
                 let list = read_params_from_stdin()?;
                 P::new_from_list(list)
             } else {
                 P::new_with_defaults()
             };
 
+            let mut stream = UnixStream::connect(&path)?;
+            if let Some(every) = frame_every {
+                let mut frames = stream.try_clone()?;
+                record_frames(every, move |frame| {
+                    write_message(&mut frames, MessageKind::Snapshot, &frame)
+                        .expect("Failed to send frame")
+                });
+            }
             let art = generate_function(params);
-            let binary = art
-                .to_binary()
-                .expect("Failed to convert layer to binary format");
-
-            let mut file = std::fs::OpenOptions::new()
-                .write(true)
-                .create(true)
-                .truncate(true)
-                .open(&pipe_path)
-                .expect("Failed to open pipe.");
-            file.write_all(&binary)?;
+            write_message(&mut stream, MessageKind::Final, &art)?;
         }
         RunCommand::Dry {} => {
             generate_function(P::new_with_defaults());

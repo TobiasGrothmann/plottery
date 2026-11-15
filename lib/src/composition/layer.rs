@@ -217,16 +217,21 @@ impl Layer {
 
     /// Return the layer as a real-size [`svg::Document`] in mm, y-axis flipped, sublayers as `<g>`, strokes multiplied like ink.
     pub fn to_svg(&self) -> Document {
-        let Some(bounding_box) = self.bounding_box() else {
-            return Document::new();
-        };
-        let height = bounding_box.size().only_y();
+        // The view box follows the content so shapes below or left of the origin stay visible.
+        match self.bounding_box() {
+            Some(bounding_box) => self.to_svg_in(bounding_box),
+            None => Document::new(),
+        }
+    }
+    /// Like [`Layer::to_svg`], but the document shows exactly `view` instead of the layer's
+    /// bounding box. Layers of different extent then line up, e.g. as frames of an animation.
+    pub fn to_svg_in(&self, view: Rect) -> Document {
+        let height = view.size().only_y();
         let prepared = self.map_recursive(|shape| shape.mirror_y().translate(height));
 
-        // The view box follows the content so shapes below or left of the origin stay visible.
-        let flipped_bl = V2::new(bounding_box.bl().x, height.y - bounding_box.tr().y);
+        let flipped_bl = V2::new(view.bl().x, height.y - view.tr().y);
         let origin: V2 = flipped_bl * SVG_UNITS_PER_CM;
-        let size: V2 = bounding_box.size() * SVG_UNITS_PER_CM;
+        let size: V2 = view.size() * SVG_UNITS_PER_CM;
 
         Document::new()
             .set("viewBox", (origin.x, origin.y, size.x, size.y))
