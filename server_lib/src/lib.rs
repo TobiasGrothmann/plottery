@@ -57,7 +57,7 @@ static LOOKUP: Mutex<Option<Lookup>> = Mutex::new(None);
 /// Otherwise the name is resolved to an IPv4 address. The server listens
 /// on 0.0.0.0 only, and `otter.local` may resolve to an IPv6 address first,
 /// which fails with "no route to host" before IPv4 is ever tried.
-/// The address is cached until [`forget_server_url`] is called.
+/// The address is cached until a request to the server fails.
 pub async fn server_url() -> anyhow::Result<String> {
     if let Ok(host) = std::env::var("PLOTTERY_HOST") {
         return Ok(format!("http://{}:{}", host, HOST_PORT));
