@@ -8,11 +8,11 @@ license.workspace = true
 categories.workspace = true
 repository.workspace = true
 keywords.workspace = true
-exclude = ["dioxusin", "screenshots"]
+exclude = ["screenshots"]
 
 [package.metadata.bundle]
 name = "Plottery Editor"
-icon = ["plottery/icon_512.png"]
+icon = ["public/app_icon/icon_512.png"]
 identifier = "de.tobiasgrothmann.plottery"
 copyright = "Copyright (c) Tobias Grothmann 2023"
 category = "Creative Coding"
