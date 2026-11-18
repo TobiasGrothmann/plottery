@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{Angle, Path, LARGE_EPSILON, V2};
+use crate::{Angle, Path, LENGTH_TOLERANCE, V2};
 
 use super::path_end::PathEnd;
 
@@ -46,9 +46,9 @@ impl EndIndex {
     }
 }
 
-/// Points closer than [`LARGE_EPSILON`] per axis always fall into neighbouring cells.
+/// Points closer than [`LENGTH_TOLERANCE`] per axis always fall into neighbouring cells.
 fn cell(point: V2) -> Cell {
-    let epsilon = f64::from(LARGE_EPSILON);
+    let epsilon = f64::from(LENGTH_TOLERANCE);
     (
         (f64::from(point.x) / epsilon).floor() as i64,
         (f64::from(point.y) / epsilon).floor() as i64,

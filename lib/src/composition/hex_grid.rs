@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::{Angle, Layer, Path, Plottable, Rect, V2i, LARGE_EPSILON, V2};
+use crate::{Angle, Layer, Path, Plottable, Rect, V2i, LENGTH_TOLERANCE, V2};
 
 const SQRT_3: f32 = 1.732_050_8;
 
@@ -113,8 +113,8 @@ impl HexGrid {
     /// `bounds` grown by an epsilon, so that points on the boundary count as inside.
     fn bounds_inclusive(&self) -> Rect {
         Rect::new(
-            self.bounds.bl() - V2::xy(LARGE_EPSILON),
-            self.bounds.tr() + V2::xy(LARGE_EPSILON),
+            self.bounds.bl() - V2::xy(LENGTH_TOLERANCE),
+            self.bounds.tr() + V2::xy(LENGTH_TOLERANCE),
         )
     }
 

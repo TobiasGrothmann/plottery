@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{resample_even, SampleSettings, LARGE_EPSILON, V2};
+use crate::{resample_even, SampleSettings, LENGTH_TOLERANCE, V2};
 
 /// Bézier curve of any degree: 2 controls is a line, 3 quadratic, 4 cubic.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -52,7 +52,7 @@ impl Bezier {
             .map(|pair| pair[1] - pair[0])
             .collect();
         let tangent = de_casteljau(&differences, t) * self.degree() as f32;
-        if tangent.length_squared() > LARGE_EPSILON * LARGE_EPSILON {
+        if tangent.length_squared() > LENGTH_TOLERANCE * LENGTH_TOLERANCE {
             tangent
         } else {
             self.to() - self.from()
@@ -102,7 +102,7 @@ impl Bezier {
             .windows(2)
             .map(|pair| pair[0].dist(pair[1]))
             .sum();
-        if polygon - chord < 1e-4 * chord.max(LARGE_EPSILON) || depth >= 20 {
+        if polygon - chord < 1e-4 * chord.max(LENGTH_TOLERANCE) || depth >= 20 {
             return (polygon + chord) * 0.5;
         }
         let (left, right) = self.split(0.5);

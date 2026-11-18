@@ -1,7 +1,7 @@
 use anyhow::{bail, Context, Result};
 
 use super::Scale;
-use crate::{BoundingBox, Rect, Translate, LARGE_EPSILON, V2};
+use crate::{BoundingBox, Rect, Translate, LENGTH_TOLERANCE, V2};
 
 /// Which edge of the target the fitted shape touches when the aspect ratios differ.
 pub enum Alignment {
@@ -42,7 +42,7 @@ where
 
 fn fit_mut<T: Fit>(shape: &mut T, target: Rect, alignment: Alignment, around: bool) -> Result<()> {
     let bounds = shape.bounding_box().context("no bounding box")?;
-    if bounds.width() <= LARGE_EPSILON || bounds.height() <= LARGE_EPSILON {
+    if bounds.width() <= LENGTH_TOLERANCE || bounds.height() <= LENGTH_TOLERANCE {
         bail!("cannot fit a shape with zero width or height");
     }
     let ratio = target.size() / bounds.size();

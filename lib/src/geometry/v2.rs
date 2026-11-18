@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     rand_range, Angle, Mirror, Rect, Rotate, Rotate90, SampleSettings, Scale, Transform, Translate,
-    V2i, LARGE_EPSILON,
+    V2i, LENGTH_TOLERANCE,
 };
 
 /// A 2D vector with floating-point coordinates.
@@ -570,7 +570,7 @@ impl V2 {
     #[must_use]
     pub fn towards(&self, other: Self, distance: f32) -> Self {
         let point_dist = self.dist(other);
-        let t = if point_dist <= LARGE_EPSILON {
+        let t = if point_dist <= LENGTH_TOLERANCE {
             0.0
         } else {
             distance / point_dist

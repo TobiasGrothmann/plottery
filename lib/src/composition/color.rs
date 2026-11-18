@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{Angle, LARGE_EPSILON};
+use crate::{Angle, COLOR_TOLERANCE};
 
 use super::color_names::{ColorName, COLOR_NAMES};
 
@@ -318,25 +318,25 @@ impl From<ColorOklab> for ColorRgb {
 
 impl PartialEq for ColorRgb {
     fn eq(&self, other: &Self) -> bool {
-        (self.r - other.r).abs() < LARGE_EPSILON
-            && (self.g - other.g).abs() < LARGE_EPSILON
-            && (self.b - other.b).abs() < LARGE_EPSILON
+        (self.r - other.r).abs() < COLOR_TOLERANCE
+            && (self.g - other.g).abs() < COLOR_TOLERANCE
+            && (self.b - other.b).abs() < COLOR_TOLERANCE
     }
 }
 
 impl PartialEq for ColorOklab {
     fn eq(&self, other: &Self) -> bool {
-        (self.l - other.l).abs() < LARGE_EPSILON
-            && (self.a - other.a).abs() < LARGE_EPSILON
-            && (self.b - other.b).abs() < LARGE_EPSILON
+        (self.l - other.l).abs() < COLOR_TOLERANCE
+            && (self.a - other.a).abs() < COLOR_TOLERANCE
+            && (self.b - other.b).abs() < COLOR_TOLERANCE
     }
 }
 
 impl PartialEq for ColorHsv {
     fn eq(&self, other: &Self) -> bool {
-        (self.h - other.h).abs() < LARGE_EPSILON
-            && (self.s - other.s).abs() < LARGE_EPSILON
-            && (self.v - other.v).abs() < LARGE_EPSILON
+        (self.h - other.h).abs() < COLOR_TOLERANCE
+            && (self.s - other.s).abs() < COLOR_TOLERANCE
+            && (self.v - other.v).abs() < COLOR_TOLERANCE
     }
 }
 

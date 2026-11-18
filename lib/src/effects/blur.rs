@@ -3,7 +3,7 @@ use std::{fmt, iter::once, sync::Arc};
 use rand::{rngs::StdRng, SeedableRng};
 
 use crate::{
-    maths::random::rand_seed, Circle, Layer, Path, Plottable, SampleSettings, Shape, LARGE_EPSILON,
+    maths::random::rand_seed, Circle, Layer, Path, Plottable, SampleSettings, Shape, LENGTH_TOLERANCE,
     V2,
 };
 
@@ -206,7 +206,7 @@ impl Blur<'_> {
             .map(|pair| pair[0].dist(pair[1]))
             .collect();
         let length: f32 = lengths.iter().sum();
-        if !length.is_finite() || length <= LARGE_EPSILON {
+        if !length.is_finite() || length <= LENGTH_TOLERANCE {
             return None;
         }
 

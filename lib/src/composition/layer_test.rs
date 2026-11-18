@@ -10,7 +10,7 @@ mod test_layer {
         traits::{fit::Alignment, Translate},
         Angle, BoundingBox, Circle, ColorRgb, Fit, FloatInterpolation, Inheritable, Layer,
         LayerPropsInheritable, Path, Plottable, Rect, Rotate, SampleSettings, Shape, ToAngle,
-        LARGE_EPSILON, V2,
+        LENGTH_TOLERANCE, V2,
     };
 
     #[test]
@@ -842,9 +842,9 @@ mod test_layer {
             assert!(shapes[0].get_points(SampleSettings::default())[0] == V2::new(0.0, 1.0));
             assert!(shapes[0].get_points(SampleSettings::default())[1] == V2::new(0.0, 0.0));
 
-            assert!(shapes[1].get_points(SampleSettings::default())[0].y <= LARGE_EPSILON);
+            assert!(shapes[1].get_points(SampleSettings::default())[0].y <= LENGTH_TOLERANCE);
             assert!(shapes[1].get_points(SampleSettings::default())[1] == V2::new(0.0, 0.0));
-            assert!(shapes[1].get_points(SampleSettings::default())[2].y <= LARGE_EPSILON);
+            assert!(shapes[1].get_points(SampleSettings::default())[2].y <= LENGTH_TOLERANCE);
         }
     }
 

@@ -2,7 +2,7 @@ use std::f32::consts::{FRAC_PI_2, TAU};
 
 use crate::{
     shapes::spline::hobby::{hobby_closed, hobby_open, EndCondition},
-    Angle, Bezier, Line, Rotate90, Segment, Spline, LARGE_EPSILON, V2,
+    Angle, Bezier, Line, Rotate90, Segment, Spline, ANGLE_TOLERANCE, LENGTH_TOLERANCE, V2,
 };
 
 /// How a knot is reached from the previous one.
@@ -113,7 +113,7 @@ impl SplineBuilder {
         let from = self.current().point;
         let radius = from.dist(center);
         let sweep = sweep.to_rad();
-        if radius <= LARGE_EPSILON || sweep.abs() <= LARGE_EPSILON {
+        if radius <= LENGTH_TOLERANCE || sweep.abs() <= ANGLE_TOLERANCE {
             return self;
         }
         let pieces = (sweep.abs() / FRAC_PI_2 - 1e-4).ceil().max(1.0) as usize;
@@ -146,7 +146,7 @@ impl SplineBuilder {
         let from = self.current().point;
         let chord = to - from;
         let chord_length = chord.length();
-        if chord_length <= LARGE_EPSILON {
+        if chord_length <= LENGTH_TOLERANCE {
             return self;
         }
         let radius = radius.abs().max(chord_length / 2.0);
@@ -172,7 +172,7 @@ impl SplineBuilder {
         };
         let chord = to - from;
         let chord_length_squared = chord.length_squared();
-        if chord_length_squared <= LARGE_EPSILON * LARGE_EPSILON {
+        if chord_length_squared <= LENGTH_TOLERANCE * LENGTH_TOLERANCE {
             return self;
         }
         let normal_left = tangent.normalize().rotate_90();
@@ -211,7 +211,7 @@ impl SplineBuilder {
             }
             _ => current.point - previous,
         };
-        (tangent.length_squared() > LARGE_EPSILON * LARGE_EPSILON).then_some(tangent)
+        (tangent.length_squared() > LENGTH_TOLERANCE * LENGTH_TOLERANCE).then_some(tangent)
     }
 
     /// The tangent may break at the knot just added.
@@ -257,7 +257,7 @@ impl SplineBuilder {
             return Spline::from_segments(build_linear(&knots, false), false);
         };
 
-        if knots[knots.len() - 1].point.dist(knots[0].point) > LARGE_EPSILON {
+        if knots[knots.len() - 1].point.dist(knots[0].point) > LENGTH_TOLERANCE {
             let first = knots[0].clone();
             knots.push(Knot {
                 incoming: closing,
@@ -381,7 +381,7 @@ fn end_condition(knot: &Knot, neighbour_tangent: Option<V2>) -> EndCondition {
         Join::Direction(angle) => EndCondition::Direction(angle),
         Join::Corner => EndCondition::Curl(knot.curl),
         Join::Smooth => neighbour_tangent
-            .filter(|tangent| tangent.length_squared() > LARGE_EPSILON * LARGE_EPSILON)
+            .filter(|tangent| tangent.length_squared() > LENGTH_TOLERANCE * LENGTH_TOLERANCE)
             .map(|tangent| EndCondition::Direction(tangent.angle()))
             .unwrap_or(EndCondition::Curl(knot.curl)),
     }

@@ -208,7 +208,7 @@ mod test_line {
     mod traits {
         use crate::{
             Angle, BoundingBox, Layer, Line, Path, Plottable, Rect, Rotate, SampleSettings,
-            Translate, LARGE_EPSILON, V2,
+            Translate, LENGTH_TOLERANCE, V2,
         };
 
         #[test]
@@ -226,7 +226,7 @@ mod test_line {
             assert_eq!(line.translate(V2::new(0.0, 1.0)).to, V2::new(2.0, 1.0));
 
             let rotated = line.rotate_around(V2::new(1.0, 0.0), Angle::quarter_rotation());
-            assert!(rotated.to.dist(V2::new(1.0, 1.0)) < LARGE_EPSILON);
+            assert!(rotated.to.dist(V2::new(1.0, 1.0)) < LENGTH_TOLERANCE);
 
             let bb = Line::new(V2::new(3.0, 1.0), V2::new(0.0, 2.0)).bounding_box();
             assert_eq!(bb, Some(Rect::new(V2::new(0.0, 1.0), V2::new(3.0, 2.0))));

@@ -1,7 +1,7 @@
 use crate::{
     traits::{bounds_may_touch, ClosestPoint, Fit, Scale, Scale2D, Translate},
     Angle, BoundingBox, Circle, Containment, Line, LineIntersection, Mirror, Path, Plottable,
-    PointLineRelation, Rotate, Rotate90, SampleSettings, Shape, LARGE_EPSILON, V2,
+    PointLineRelation, Rotate, Rotate90, SampleSettings, Shape, LENGTH_TOLERANCE, V2,
 };
 use serde::{Deserialize, Serialize};
 
@@ -153,7 +153,7 @@ impl Rect {
         self.width() / self.height()
     }
     pub fn is_square(&self) -> bool {
-        (self.width() - self.height()).abs() < LARGE_EPSILON
+        (self.width() - self.height()).abs() < LENGTH_TOLERANCE
     }
 
     pub fn area(&self) -> f32 {
@@ -167,7 +167,7 @@ impl Rect {
         mut thickness: f32,
         pen_width: f32,
     ) -> super::Path {
-        if pen_width <= LARGE_EPSILON {
+        if pen_width <= LENGTH_TOLERANCE {
             return Path::new_from(self.get_points(SampleSettings::default()));
         }
 
@@ -175,7 +175,7 @@ impl Rect {
         let max_thickness_y = (self.height() * 0.5 - pen_width * 0.5).max(0.0);
         thickness = thickness.min(max_thickness_x.min(max_thickness_y));
 
-        if thickness <= LARGE_EPSILON {
+        if thickness <= LENGTH_TOLERANCE {
             return Path::new_from(self.get_points(SampleSettings::default()));
         }
 
@@ -200,7 +200,7 @@ impl Rect {
     fn spiral_fill_with_steps(&self, max_steps: usize, step_x: f32, step_y: f32) -> super::Path {
         let border = self.get_points(SampleSettings::default());
 
-        if max_steps == 0 || step_x <= LARGE_EPSILON || step_y <= LARGE_EPSILON {
+        if max_steps == 0 || step_x <= LENGTH_TOLERANCE || step_y <= LENGTH_TOLERANCE {
             return Path::new_from(border);
         }
 
@@ -222,25 +222,25 @@ impl Rect {
         for _ in 0..max_steps {
             points.push(V2::new(left, top));
             left += step_x;
-            if left > right + LARGE_EPSILON {
+            if left > right + LENGTH_TOLERANCE {
                 break;
             }
 
             points.push(V2::new(right, top));
             top -= step_y;
-            if bottom > top + LARGE_EPSILON {
+            if bottom > top + LENGTH_TOLERANCE {
                 break;
             }
 
             points.push(V2::new(right, bottom));
             right -= step_x;
-            if left > right + LARGE_EPSILON {
+            if left > right + LENGTH_TOLERANCE {
                 break;
             }
 
             points.push(V2::new(left, bottom));
             bottom += step_y;
-            if bottom > top + LARGE_EPSILON {
+            if bottom > top + LENGTH_TOLERANCE {
                 break;
             }
         }

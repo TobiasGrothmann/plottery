@@ -1,7 +1,7 @@
 use std::ops;
 
 use super::angle::Angle;
-use crate::LARGE_EPSILON;
+use crate::ANGLE_TOLERANCE;
 
 // add
 impl ops::Add<Angle> for Angle {
@@ -120,19 +120,19 @@ impl ops::DivAssign<f32> for Angle {
 // equality
 impl PartialEq<Angle> for Angle {
     fn eq(&self, rhs: &Angle) -> bool {
-        (self.to_rad() - rhs.to_rad()).abs() < LARGE_EPSILON
+        (self.to_rad() - rhs.to_rad()).abs() < ANGLE_TOLERANCE
     }
 }
 
 impl PartialEq<&Angle> for Angle {
     fn eq(&self, rhs: &&Angle) -> bool {
-        (self.to_rad() - rhs.to_rad()).abs() < LARGE_EPSILON
+        (self.to_rad() - rhs.to_rad()).abs() < ANGLE_TOLERANCE
     }
 }
 
 impl PartialEq<Angle> for &Angle {
     fn eq(&self, rhs: &Angle) -> bool {
-        (self.to_rad() - rhs.to_rad()).abs() < LARGE_EPSILON
+        (self.to_rad() - rhs.to_rad()).abs() < ANGLE_TOLERANCE
     }
 }
 

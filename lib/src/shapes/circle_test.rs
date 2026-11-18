@@ -4,7 +4,7 @@ mod test_circle {
 
     use crate::{
         traits::{fit::Alignment, ClosestPoint, Fit, Scale, Scale2D},
-        Angle, BoundingBox, Circle, Path, Plottable, SampleSettings, LARGE_EPSILON, V2,
+        Angle, BoundingBox, Circle, Path, Plottable, SampleSettings, LENGTH_TOLERANCE, V2,
     };
 
     #[test]
@@ -27,7 +27,7 @@ mod test_circle {
         let points = c.get_points(sample_settings);
         assert!(points.len() > 50); // enough points
         for point in points.iter() {
-            assert!((point.dist(center) - radius).abs() < LARGE_EPSILON); // radius distance from center
+            assert!((point.dist(center) - radius).abs() < LENGTH_TOLERANCE); // radius distance from center
         }
         assert_eq!(points.first().unwrap(), points.last().unwrap()); // is closed
     }
@@ -177,7 +177,7 @@ mod test_circle {
             SampleSettings::new(10.0),
         );
         assert_eq!(*arc.first().unwrap(), V2::new(3.0, 1.0));
-        assert!(arc.last().unwrap().dist(V2::new(1.0, 3.0)) < LARGE_EPSILON);
+        assert!(arc.last().unwrap().dist(V2::new(1.0, 3.0)) < LENGTH_TOLERANCE);
 
         let sector = c.sector(
             Angle::zero(),

@@ -1,7 +1,9 @@
 use itertools::Itertools;
-use plottery_lib::{LARGE_EPSILON, V2};
+use plottery_lib::V2;
 
 use super::maths::get_corner_sharpness;
+
+const EPSILON: f32 = 0.000_01;
 
 #[derive(Debug, Clone, Copy)]
 pub struct V2Speed {
@@ -120,7 +122,7 @@ impl AccellerationPath {
             return speed_points;
         }
 
-        if accell_dist <= LARGE_EPSILON {
+        if accell_dist <= EPSILON {
             return points
                 .iter()
                 .zip(speeds.iter())
@@ -143,19 +145,19 @@ impl AccellerationPath {
             });
 
             let segment_length = a.dist(b);
-            if segment_length <= LARGE_EPSILON {
+            if segment_length <= EPSILON {
                 continue;
             }
 
             let a_dist_to_max_speed = (1.0 - speed_a) * accell_dist;
             let b_dist_to_max_speed = (1.0 - speed_b) * accell_dist;
 
-            if segment_length + LARGE_EPSILON >= a_dist_to_max_speed + b_dist_to_max_speed {
+            if segment_length + EPSILON >= a_dist_to_max_speed + b_dist_to_max_speed {
                 // We can reach full speed somewhere in this segment.
                 let first_max_dist = a_dist_to_max_speed;
                 let second_max_dist = segment_length - b_dist_to_max_speed;
 
-                if first_max_dist > LARGE_EPSILON && first_max_dist < segment_length - LARGE_EPSILON
+                if first_max_dist > EPSILON && first_max_dist < segment_length - EPSILON
                 {
                     speed_points.push(V2Speed {
                         point: a.lerp(b, first_max_dist / segment_length),
@@ -163,8 +165,8 @@ impl AccellerationPath {
                     });
                 }
 
-                if second_max_dist > first_max_dist + LARGE_EPSILON
-                    && second_max_dist < segment_length - LARGE_EPSILON
+                if second_max_dist > first_max_dist + EPSILON
+                    && second_max_dist < segment_length - EPSILON
                 {
                     speed_points.push(V2Speed {
                         point: a.lerp(b, second_max_dist / segment_length),
@@ -176,7 +178,7 @@ impl AccellerationPath {
 
             // We cannot reach full speed. The best profile is triangular with one peak.
             let dist_to_peak = 0.5 * (segment_length + accell_dist * (speed_b - speed_a));
-            if dist_to_peak <= LARGE_EPSILON || dist_to_peak >= segment_length - LARGE_EPSILON {
+            if dist_to_peak <= EPSILON || dist_to_peak >= segment_length - EPSILON {
                 continue;
             }
 
@@ -184,7 +186,7 @@ impl AccellerationPath {
                 .min(speed_b + (segment_length - dist_to_peak) / accell_dist)
                 .min(1.0);
 
-            if peak_speed > speed_a.max(speed_b) + LARGE_EPSILON {
+            if peak_speed > speed_a.max(speed_b) + EPSILON {
                 speed_points.push(V2Speed {
                     point: a.lerp(b, dist_to_peak / segment_length),
                     speed: peak_speed,

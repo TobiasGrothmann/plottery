@@ -1,5 +1,5 @@
 use crate::{
-    traits::bounds_may_touch, Blur, BoundingBox, Hatch, Layer, Line, Path, Shape, LARGE_EPSILON, V2,
+    traits::bounds_may_touch, Blur, BoundingBox, Hatch, Layer, Line, Path, Shape, LENGTH_TOLERANCE, V2,
 };
 
 use geo::BooleanOps;
@@ -134,7 +134,7 @@ pub trait Plottable: Clone + Into<Shape> + BoundingBox {
 
         let mut dist_along = 0.0;
         let mut is_gap = false;
-        let mut remaining = f(segments[0].from, false, 0.0, 0.0).max(LARGE_EPSILON);
+        let mut remaining = f(segments[0].from, false, 0.0, 0.0).max(LENGTH_TOLERANCE);
         let mut current = Path::new();
 
         for line in segments {
@@ -156,13 +156,13 @@ pub trait Plottable: Clone + Into<Shape> + BoundingBox {
                 dist_along += step;
                 remaining -= step;
 
-                if remaining <= LARGE_EPSILON {
+                if remaining <= LENGTH_TOLERANCE {
                     if !is_gap {
                         layer.push(std::mem::take(&mut current));
                     }
                     is_gap = !is_gap;
                     remaining =
-                        f(end, is_gap, dist_along, dist_along / total_length).max(LARGE_EPSILON);
+                        f(end, is_gap, dist_along, dist_along / total_length).max(LENGTH_TOLERANCE);
                 }
             }
         }

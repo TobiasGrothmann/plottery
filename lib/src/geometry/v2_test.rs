@@ -3,7 +3,7 @@ mod test_v2 {
     use itertools::Itertools;
     use rand_distr::num_traits::Pow;
 
-    use crate::{Angle, Rotate, Rotate90, LARGE_EPSILON, V2};
+    use crate::{Angle, Rotate, Rotate90, LENGTH_TOLERANCE, V2};
 
     #[test]
     fn scalar_on_the_left() {
@@ -246,7 +246,7 @@ mod test_v2 {
         assert_eq!(v, V2::new(1.0, 0.0));
 
         let v = V2::new(1.0, 1.0).normalize();
-        assert!((v.length() - 1.0).abs() < LARGE_EPSILON);
+        assert!((v.length() - 1.0).abs() < LENGTH_TOLERANCE);
 
         let v = V2::new(-1.0, 5.0).normalize_to(5.0);
         assert_eq!(v.length(), 5.0);

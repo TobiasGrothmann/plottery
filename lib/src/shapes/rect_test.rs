@@ -3,7 +3,7 @@ mod test_rect {
     use crate::{
         maths::seed_for_test,
         traits::{ClosestPoint, Scale},
-        Angle, Plottable, Rect, Rotate90, SampleSettings, LARGE_EPSILON, V2,
+        Angle, Plottable, Rect, Rotate90, SampleSettings, LENGTH_TOLERANCE, V2,
     };
 
     #[test]
@@ -135,7 +135,7 @@ mod test_rect {
         assert!(r.contains_point(r.random_point()));
 
         let rotated = r.rotated(Angle::half_rotation());
-        assert!(rotated[0].dist(r.tr()) < LARGE_EPSILON);
+        assert!(rotated[0].dist(r.tr()) < LENGTH_TOLERANCE);
         assert_eq!(rotated.len(), 5);
     }
 }

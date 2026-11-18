@@ -6,7 +6,7 @@ use crate::{
     geometry::TransformMatrix,
     traits::{ClosestPoint, Fit, Scale, Scale2D, Transform, Translate},
     Angle, BoundingBox, Containment, Line, Mirror, Plottable, Rotate, Rotate90, SampleSettings,
-    LARGE_EPSILON, V2,
+    LENGTH_TOLERANCE, V2,
 };
 use serde::{Deserialize, Serialize};
 
@@ -21,8 +21,8 @@ impl Shape {
     /// True if the shape draws nothing, e.g. a [`Path`] with fewer than two distinct points.
     pub fn is_degenerate(&self) -> bool {
         match self {
-            Shape::Circle(c) => c.radius <= LARGE_EPSILON,
-            Shape::Rect(r) => r.width() <= LARGE_EPSILON && r.height() <= LARGE_EPSILON,
+            Shape::Circle(c) => c.radius <= LENGTH_TOLERANCE,
+            Shape::Rect(r) => r.width() <= LENGTH_TOLERANCE && r.height() <= LENGTH_TOLERANCE,
             Shape::Path(p) => p.is_degenerate(),
         }
     }

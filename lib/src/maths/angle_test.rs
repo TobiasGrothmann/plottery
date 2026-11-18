@@ -2,7 +2,7 @@
 mod test_angle {
     use std::f32::consts::PI;
 
-    use crate::{Angle, LARGE_EPSILON};
+    use crate::{Angle, ANGLE_TOLERANCE};
 
     #[test]
     fn angle_creation() {
@@ -51,7 +51,7 @@ mod test_angle {
 
         assert!(
             (a.mod_one_rotation().to_rad() - Angle::from_degrees(90.0).to_rad()).abs()
-                < LARGE_EPSILON
+                < ANGLE_TOLERANCE
         );
     }
 

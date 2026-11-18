@@ -4,7 +4,7 @@ mod test_path {
         geometry::TransformMatrix,
         traits::{transform::Transform, ClosestPoint, Scale},
         Angle, BoundingBox, Circle, Path, Plottable, Rect, SampleSettings, Translate,
-        LARGE_EPSILON, V2,
+        LENGTH_TOLERANCE, V2,
     };
     use std::f32::consts::PI;
 
@@ -63,7 +63,7 @@ mod test_path {
 
         let r = Rect::new_shape(V2::new(-1.2, -5.0), V2::new(2.0, 3.1));
         let p = Path::new_shape_from(r.get_points(SampleSettings::default()));
-        assert!((r.length() - p.length()).abs() < LARGE_EPSILON);
+        assert!((r.length() - p.length()).abs() < LENGTH_TOLERANCE);
         assert!(p.is_closed());
     }
 
@@ -224,11 +224,11 @@ mod test_path {
 
         for point in points_simplified.iter() {
             assert!(points.contains(point));
-            assert!((point.dist(center) - radius).abs() < LARGE_EPSILON);
+            assert!((point.dist(center) - radius).abs() < LENGTH_TOLERANCE);
         }
         for point in points_simplified2.iter() {
             assert!(points.contains(point));
-            assert!((point.dist(center) - radius).abs() < LARGE_EPSILON);
+            assert!((point.dist(center) - radius).abs() < LENGTH_TOLERANCE);
         }
     }
 
@@ -248,7 +248,7 @@ mod test_path {
         assert_eq!(reduced_points.first(), reduced_points.last());
 
         for point in reduced_points {
-            assert!((point.dist(center) - radius).abs() < LARGE_EPSILON);
+            assert!((point.dist(center) - radius).abs() < LENGTH_TOLERANCE);
         }
     }
 
@@ -273,7 +273,7 @@ mod test_path {
         assert_eq!(*arc.get_start().unwrap(), center + V2::new(radius, 0.0));
         assert_eq!(*arc.get_end().unwrap(), center + V2::new(0.0, radius));
         for p in arc.iter() {
-            assert!((p.dist(center) - radius).abs() < LARGE_EPSILON);
+            assert!((p.dist(center) - radius).abs() < LENGTH_TOLERANCE);
         }
     }
 
@@ -302,12 +302,12 @@ mod test_path {
         let b = V2::new(0.0, -1.0);
         let arc = Path::arc_between(center, 1.0, a, b, SampleSettings::new(10.0));
         assert_eq!(*arc.first().unwrap(), a);
-        assert!(arc.last().unwrap().dist(b) < LARGE_EPSILON);
+        assert!(arc.last().unwrap().dist(b) < LENGTH_TOLERANCE);
         assert!((arc.length() - PI / 2.0).abs() < 0.01);
         // never passes through the far side
         assert!(arc
             .iter()
-            .all(|p| p.x >= -LARGE_EPSILON && p.y <= LARGE_EPSILON));
+            .all(|p| p.x >= -LENGTH_TOLERANCE && p.y <= LENGTH_TOLERANCE));
 
         let rect_path = Rect::new(V2::zero(), V2::xy(1.0)).to_path(SampleSettings::default());
         assert_eq!(rect_path.len(), 5);

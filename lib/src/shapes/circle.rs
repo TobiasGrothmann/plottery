@@ -4,7 +4,7 @@ use std::f32::consts::PI;
 use crate::{
     traits::{bounds_may_touch, ClosestPoint, Fit, Mirror, Scale, Translate},
     Angle, BoundingBox, Containment, Path, Plottable, Rect, Rotate, Rotate90, SampleSettings,
-    Shape, LARGE_EPSILON, V2,
+    Shape, AREA_TOLERANCE, LENGTH_TOLERANCE, V2,
 };
 
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq)]
@@ -43,15 +43,15 @@ impl Circle {
             return vec![];
         }
         // circles are the same
-        if dist <= LARGE_EPSILON && radius_difference <= LARGE_EPSILON {
+        if dist <= LENGTH_TOLERANCE && radius_difference <= LENGTH_TOLERANCE {
             return vec![];
         }
         // circles are tangent
-        if (dist - radius_sum).abs() <= LARGE_EPSILON {
+        if (dist - radius_sum).abs() <= LENGTH_TOLERANCE {
             return vec![self.center + V2::polar(delta.angle(), self.radius)];
         }
         // circles are tangent (one inside the other)
-        if (dist - radius_difference).abs() <= LARGE_EPSILON {
+        if (dist - radius_difference).abs() <= LENGTH_TOLERANCE {
             if self.radius > other.radius {
                 return vec![self.center + V2::polar(delta.angle(), self.radius)];
             } else {
@@ -224,7 +224,7 @@ impl Circle {
         let dy = y - self.center.y;
         let dx_squared = self.radius.powi(2) - dy.powi(2);
 
-        if dx_squared < -LARGE_EPSILON {
+        if dx_squared < -AREA_TOLERANCE {
             return None;
         }
 
