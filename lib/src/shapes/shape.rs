@@ -145,6 +145,7 @@ impl Plottable for Shape {
     }
 }
 
+/// A [`Rect`] is always upright, so rotating one turns it into a [`Path`].
 impl Rotate for Shape {
     fn rotate(&self, angle: Angle) -> Self {
         match self {
@@ -316,6 +317,7 @@ impl Scale for Shape {
     }
 }
 
+/// A [`Circle`] has one radius, so scaling one unevenly turns it into a sampled [`Path`].
 impl Scale2D for Shape {
     fn scale_2d(&self, factor: V2) -> Self {
         match self {
@@ -392,6 +394,7 @@ impl BoundingBox for Shape {
     }
 }
 
+/// A matrix can rotate and shear, so [`Circle`] and [`Rect`] turn into [`Path`]s.
 impl Transform for Shape {
     fn transform(&self, matrix: &TransformMatrix) -> Self {
         match self {
