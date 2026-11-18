@@ -5,6 +5,7 @@ Copyright notices are also embedded in each font file (SVG `<metadata>`, TTF/OTF
 The same information is available at runtime through `BundledFont::credit`.
 
 - `OFL.txt`: SIL Open Font License 1.1. The gluk fonts carry Reserved Font Names: rename them if you convert or modify them.
+- `MIT.txt`: MIT licence, for the crate's own code.
 - `HERSHEY.txt`: Hershey font licence, the acknowledgement must ship with the data.
 
 | File | Family | Author / conversion | Source | Licence |

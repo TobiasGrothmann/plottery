@@ -44,7 +44,9 @@ for font in BundledFont::ALL {
 
 ## Licences
 
-Everything is under the [SIL Open Font License 1.1](https://github.com/TobiasGrothmann/plottery/blob/main/fonts/LICENSES/OFL.txt) or the [Hershey font licence](https://github.com/TobiasGrothmann/plottery/blob/main/fonts/LICENSES/HERSHEY.txt). Both allow commercial use and bundling. The Hershey licence asks that its acknowledgement travels with the data, so keep `LICENSES/` (or `Licence::Hershey.text()`) in anything you ship. Per-font credits are in [LICENSES/CREDITS.md](https://github.com/TobiasGrothmann/plottery/blob/main/fonts/LICENSES/CREDITS.md).
+The fonts are under the [SIL Open Font License 1.1](https://github.com/TobiasGrothmann/plottery/blob/main/fonts/LICENSES/OFL.txt) or the [Hershey font licence](https://github.com/TobiasGrothmann/plottery/blob/main/fonts/LICENSES/HERSHEY.txt). Both allow commercial use and bundling. The Hershey licence asks that its acknowledgement travels with the data, so keep `LICENSES/` (or `Licence::Hershey.text()`) in anything you ship. Per-font credits are in [LICENSES/CREDITS.md](https://github.com/TobiasGrothmann/plottery/blob/main/fonts/LICENSES/CREDITS.md).
+
+The crate's own code is under the [MIT licence](https://github.com/TobiasGrothmann/plottery/blob/main/fonts/LICENSES/MIT.txt).
 
 ## Fonts
 
