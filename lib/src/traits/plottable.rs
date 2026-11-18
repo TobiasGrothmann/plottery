@@ -1,12 +1,10 @@
 use crate::{
-    traits::bounds_may_touch, Angle, Blur, BoundingBox, Hatch, Layer, Line, LineIntersection, Path, Rect,
-    Shape, LARGE_EPSILON, V2,
+    traits::bounds_may_touch, Blur, BoundingBox, Hatch, Layer, Line, Path, Shape, LARGE_EPSILON, V2,
 };
 
 use geo::BooleanOps;
 use geo_types::{LineString, MultiLineString, Polygon};
 
-use geometry_predicates::orient2d;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
@@ -352,73 +350,6 @@ pub trait Plottable: Clone + Into<Shape> + BoundingBox {
         Masked { inside, outside }
     }
 
-    fn mask_by_intersections<M: Into<Shape>>(
-        &self,
-        mask: M,
-        sample_settings: SampleSettings,
-    ) -> Masked {
-        let mask: Shape = mask.into();
-        if misses_mask(self, &mask) {
-            return Masked {
-                inside: Layer::new(),
-                outside: Layer::new_from([self.to_path(sample_settings)]),
-            };
-        }
-        let Some(mask_bounds) = mask.bounding_box() else {
-            return Masked::default();
-        };
-        let segments_mask = mask.get_line_segments(sample_settings);
-
-        // perturb the path to avoid points on the mask lines
-        let perturbed_path: Path = self
-            .get_points(sample_settings)
-            .into_iter()
-            .map(|point| {
-                if bounds_may_touch(&Rect::new(point, point), &mask_bounds) {
-                    perturb_off_mask_lines(point, &segments_mask)
-                } else {
-                    point
-                }
-            })
-            .collect();
-
-        let segments_shape: Vec<_> = perturbed_path.get_line_segments(sample_settings);
-        let mut inside = Layer::new();
-        let mut outside = Layer::new();
-        let Some(first_segment) = segments_shape.first() else {
-            return Masked::default();
-        };
-        let mut current_part = Path::new_from([first_segment.from]);
-        let mut currently_inside = mask.contains_point(*current_part.get_start().unwrap());
-
-        // switch inside to outside on each intersection
-        for segment in segments_shape {
-            let intersections_sorted =
-                get_intersections_sorted(&segment, &segments_mask, &mask_bounds);
-
-            for intersection in intersections_sorted {
-                current_part.push(intersection);
-                if currently_inside {
-                    inside.push(current_part);
-                } else {
-                    outside.push(current_part);
-                }
-                current_part = Path::new_from(vec![intersection]);
-                currently_inside = !currently_inside;
-            }
-
-            current_part.push(segment.to);
-        }
-
-        if currently_inside {
-            inside.push(current_part);
-        } else {
-            outside.push(current_part);
-        }
-
-        Masked { inside, outside }
-    }
-
     #[must_use]
     fn to_layer(&self) -> Layer {
         Layer::new_from(vec![self.clone().into()])
@@ -430,43 +361,4 @@ fn misses_mask(shape: &impl BoundingBox, mask: &Shape) -> bool {
     shape
         .bounding_box()
         .is_some_and(|bounds| !bounds_may_touch(&bounds, mask))
-}
-
-fn get_intersections_sorted(segment: &Line, segments_mask: &[Line], mask_bounds: &Rect) -> Vec<V2> {
-    if !bounds_may_touch(segment, mask_bounds) {
-        return Vec::new();
-    }
-    segments_mask
-        .iter()
-        .map(|segment_mask| segment.intersection(*segment_mask))
-        .filter_map(|intersection| match intersection {
-            LineIntersection::Intersection(point) => Some(point),
-            _ => None,
-        })
-        .sorted_by_cached_key(|point| point.dist_squared(segment.from).to_bits())
-        .collect()
-}
-
-fn perturb_off_mask_lines(mut point: V2, segments_mask: &[Line]) -> V2 {
-    loop {
-        let (is_on_mask_line, line_angle) = is_point_on_mask_line(point, segments_mask, 0.1);
-        if !is_on_mask_line {
-            return point;
-        }
-        point += V2::polar(line_angle + Angle::quarter_rotation(), 0.05);
-    }
-}
-
-fn is_point_on_mask_line(point: V2, segments_mask: &[Line], epsilon: f64) -> (bool, Angle) {
-    for segment_mask in segments_mask {
-        let orientation = orient2d(
-            [segment_mask.from.x as f64, segment_mask.from.y as f64],
-            [segment_mask.to.x as f64, segment_mask.to.y as f64],
-            [point.x as f64, point.y as f64],
-        );
-        if orientation < epsilon && orientation > -epsilon {
-            return (true, segment_mask.angle());
-        }
-    }
-    (false, Angle::zero())
 }

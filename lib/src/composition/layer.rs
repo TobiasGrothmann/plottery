@@ -807,7 +807,7 @@ impl Layer {
     /// see [`Shape::mask_geo`].
     ///
     /// There can be unexpected outputs for example with shapes that self-intersect.
-    /// See also [`Layer::mask_flattened_brute_force`] for a different and more stable masking.
+    /// See also [`Layer::mask_brute_force_flattened`] for a different and more stable masking.
     pub fn mask_geo_flattened<M: Into<Shape>>(
         &self,
         mask: M,
@@ -832,7 +832,7 @@ impl Layer {
     }
 
     /// see [`Layer::mask_geo_flattened`].
-    pub fn mask_geo_flattened_inside<M: Into<Shape>>(
+    pub fn mask_geo_inside_flattened<M: Into<Shape>>(
         &self,
         mask: M,
         sample_settings: SampleSettings,
@@ -844,7 +844,7 @@ impl Layer {
     }
 
     /// see [`Layer::mask_geo_flattened`].
-    pub fn mask_geo_flattened_outside<M: Into<Shape>>(
+    pub fn mask_geo_outside_flattened<M: Into<Shape>>(
         &self,
         mask: M,
         sample_settings: SampleSettings,
@@ -868,7 +868,7 @@ impl Layer {
     /// see [`Shape::mask_brute_force`].
     ///
     /// see also [`Layer::mask_geo_flattened`].
-    pub fn mask_flattened_brute_force<M: Into<Shape>>(
+    pub fn mask_brute_force_flattened<M: Into<Shape>>(
         &self,
         mask: M,
         sample_settings: SampleSettings,
