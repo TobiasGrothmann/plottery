@@ -41,6 +41,10 @@ curl -fsSL https://raw.githubusercontent.com/TobiasGrothmann/plottery/main/scrip
 
 CLI only: `cargo install plottery_cli`.
 
+## Platforms
+
+The editor runs on macOS only. The library, runtime, project crate and CLI support macOS and Linux; `plottery open` needs the editor. The plotter server runs on a Raspberry Pi. Windows is not supported.
+
 # Editor
 
 The [editor](./editor) lets you manage, preview and run **Plottery** projects.

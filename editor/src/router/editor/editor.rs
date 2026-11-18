@@ -548,24 +548,12 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
         })
     };
     let current_layout = layout();
-    let shortcut = |key: &str| {
-        if cfg!(target_os = "macos") {
-            format!("⌘{key}")
-        } else {
-            format!("Ctrl+{key}")
-        }
-    };
+    let shortcut = |key: &str| format!("⌘{key}");
     let (params_min, params_max, params_default) = Panel::Params.size_limits();
     let (layers_min, layers_max, layers_default) = Panel::Layers.size_limits();
     let (console_min, console_max, console_default) = Panel::Console.size_limits();
 
-    let icon_folder = if cfg!(target_os = "windows") {
-        format_svg(include_bytes!("../../../public/icons/explorer.svg"))
-    } else if cfg!(target_os = "macos") {
-        format_svg(include_bytes!("../../../public/icons/finder.svg"))
-    } else {
-        format_svg(include_bytes!("../../../public/icons/linux_folder.svg"))
-    };
+    let icon_folder = format_svg(include_bytes!("../../../public/icons/finder.svg"));
 
     rsx! {
         style { { include_str!("./editor.css") } }

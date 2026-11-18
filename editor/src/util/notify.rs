@@ -9,7 +9,6 @@ use crate::{model::plot_watch::PlotEvent, util::format_plot_duration};
 pub fn notify(title: &str, body: &str) {
     let (title, body) = (title.to_string(), body.to_string());
     std::thread::spawn(move || {
-        #[cfg(target_os = "macos")]
         set_sender();
         if let Err(err) = Notification::new().summary(&title).body(&body).show() {
             tracing::warn!("Cannot show notification '{title}': {err}");
@@ -18,7 +17,6 @@ pub fn notify(title: &str, body: &str) {
 }
 
 /// Sends as the installed editor app; without one macOS shows Finder as the sender.
-#[cfg(target_os = "macos")]
 fn set_sender() {
     static ONCE: std::sync::Once = std::sync::Once::new();
     ONCE.call_once(|| {

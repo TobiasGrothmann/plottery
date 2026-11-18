@@ -366,6 +366,9 @@ pub fn main() -> Result<()> {
             println!("{}", stats::format_stats(&layer, &params.list));
         }
         Command::Open { project } => {
+            if !cfg!(target_os = "macos") {
+                bail!("`plottery open` needs the Plottery Editor, which runs on macOS only");
+            }
             let project = project.find()?;
             let Some(app) = editor_app::find_editor_app() else {
                 bail!("Plottery Editor not found in /Applications or ~/Applications. Install it with: curl -fsSL https://raw.githubusercontent.com/TobiasGrothmann/plottery/main/scripts/install_macos.sh | bash");

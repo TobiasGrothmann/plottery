@@ -11,11 +11,7 @@ use crate::{
 
 /// Pens a group row shows, the tooltip has their number.
 const MAX_PENS_SHOWN: usize = 3;
-const SOLO_CLICK: &str = if cfg!(target_os = "macos") {
-    "⌥-click"
-} else {
-    "Alt-click"
-};
+const SOLO_CLICK: &str = "⌥-click";
 
 #[component]
 pub fn LayerEditor(

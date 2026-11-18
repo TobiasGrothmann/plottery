@@ -98,3 +98,4 @@ Building, local checkouts in projects, tests and releasing: see `DEVELOPMENT.md`
 - **Crate READMEs:** `lib/README.md`, `runtime/README.md` and `project/README.md` are their crates' docs.rs pages (`include_str!`), so their code blocks are doctests and their links must be absolute GitHub URLs.
 - **Editor formatting:** `dx fmt` moves comments and splits `.await` chains. Format rsx by hand, or run it on one file and diff the result. `cargo fmt` is safe but skips rsx.
 - **Server crate:** Hardware-specific code; `raspi` feature flag required for GPIO
+- **Platforms:** Supported systems per crate are in the README's "Platforms" section; don't add code for others.
