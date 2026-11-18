@@ -38,7 +38,7 @@ A **Plottery Project** is a user-created artwork generator: a standalone Cargo p
 - **Param types:** `runtime/src/project_params/`, the `.plotp` format in `params_file_format.rs`
 - **Project binary:** entry point and subcommands in `runtime/src/project_main.rs`, `PROTOCOL_VERSION` in `runtime/src/protocol.rs`, run stream in `runtime/src/run_stream.rs` (project side) and `project/src/run_stream.rs` (host side)
 - **Project template:** `project/cargo_project_template/`, its agent doc is `project/resources/AGENTS.md`
-- **Example projects:** `examples/`, standalone projects with path dependencies on this checkout, shown in the README
+- **Example projects:** `examples/`, see DEVELOPMENT.md "Examples"
 - **Editor:** pages in `editor/src/router/`, param widgets in `editor/src/router/editor/params_editor/`, shared widgets in `editor/src/components/`
 - **Hardware control:** `server/src/gpio_executor.rs`, `server/src/task_handler.rs`
 - **New project skill:** `.claude/skills/new-plottery-project/`
@@ -72,11 +72,9 @@ cargo test -p <package>
 ./scripts/check_examples.sh     # after lib or project API changes
 ```
 
-`scripts/pre_release_checks.sh` runs the full set, including rustdoc with warnings as errors.
-
 ## Tools
 
-Building, local checkouts in projects, tests and releasing: see `DEVELOPMENT.md`. Scripts live in `scripts/`.
+Building, local checkouts in projects, examples, tests, pre-release checks and releasing: see `DEVELOPMENT.md`. Scripts live in `scripts/`.
 
 ## Common Pitfalls
 
@@ -96,8 +94,8 @@ Building, local checkouts in projects, tests and releasing: see `DEVELOPMENT.md`
   - tests: `param_field_test.rs`, `param_text_test.rs`, `project_params_list_wrapper_test.rs`
 - **Project files:** Everything in a project folder is committed. Derived files (builds, previews, thumbnails) go to the cache dir, see `plottery_cache_dir` in `project/src/project.rs`.
 - **Project template:** `project/resources/AGENTS.md` is copied into every new project and describes the project, not this workspace. Existing projects keep their old copy, so template changes have to be redistributed.
-- **API changes:** Update `examples/` in the same change; `scripts/check_examples.sh` must pass. It fails when a drawing differs from the committed `reference.svg`: look at `target/examples/changed/`, then fix the code or commit new references with `--update`
-- **Crate READMEs:** `lib/README.md`, `runtime/README.md` and `project/README.md` are their crates' docs.rs pages (`include_str!`), so their code blocks are doctests and their links must be absolute GitHub URLs.
+- **API changes:** Update `examples/` in the same change; `scripts/check_examples.sh` must pass. When it fails, follow DEVELOPMENT.md "Examples".
+- **Crate READMEs:** `lib/README.md`, `runtime/README.md` and `project/README.md` are docs.rs pages with doctests, see DEVELOPMENT.md "Tests".
 - **Editor formatting:** `dx fmt` moves comments and splits `.await` chains. Format rsx by hand, or run it on one file and diff the result. `cargo fmt` is safe but skips rsx.
 - **Server crate:** Hardware-specific code; `raspi` feature flag required for GPIO
 - **Platforms:** Supported systems per crate are in the README's "Platforms" section; don't add code for others.
