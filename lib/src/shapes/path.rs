@@ -817,11 +817,11 @@ impl ClosestPoint for Path {
             .par_iter()
             .map(|line| {
                 let closest_point = line.closest_point(point);
-                let dist_sqaured = closest_point.dist_squared(point);
-                (closest_point, dist_sqaured)
+                let dist_squared = closest_point.dist_squared(point);
+                (closest_point, dist_squared)
             })
-            .min_by(|(_a, dist_sqaured_a), (_b, dist_sqaured_b)| {
-                dist_sqaured_a.partial_cmp(dist_sqaured_b).unwrap()
+            .min_by(|(_a, dist_squared_a), (_b, dist_squared_b)| {
+                dist_squared_a.partial_cmp(dist_squared_b).unwrap()
             })
             .map(|closest| closest.0)
     }

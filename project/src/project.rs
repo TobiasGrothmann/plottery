@@ -174,7 +174,7 @@ impl Project {
     }
 
     pub fn exists(&self) -> bool {
-        let dir_exsists = self.dir.exists();
+        let dir_exists = self.dir.exists();
 
         let mut project_config_path = self.dir.clone();
         project_config_path.push(format!("{}.plottery", self.config.name));
@@ -182,7 +182,7 @@ impl Project {
 
         let cargo_project_exists = self.get_cargo_path().is_ok();
 
-        dir_exsists && project_config_file_exists && cargo_project_exists
+        dir_exists && project_config_file_exists && cargo_project_exists
     }
 
     pub fn load_from_file(project_config_path: PathBuf) -> Result<Self> {

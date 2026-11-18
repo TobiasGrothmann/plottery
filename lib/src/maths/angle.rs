@@ -35,7 +35,7 @@ impl Angle {
     /// ```
     /// # use plottery_lib::*;
     /// let angle = Angle::from_rotations(0.25);
-    /// assert_eq!(angle.to_degree(), 90.0);
+    /// assert_eq!(angle.to_degrees(), 90.0);
     /// ```
     pub fn from_rotations(rotations: f32) -> Self {
         Self {
@@ -120,7 +120,7 @@ impl Angle {
     pub fn to_rad(&self) -> f32 {
         self.rad
     }
-    pub fn to_degree(&self) -> f32 {
+    pub fn to_degrees(&self) -> f32 {
         360.0 * (self.rad / (2.0 * PI))
     }
     pub fn to_rotations(&self) -> f32 {
@@ -147,7 +147,7 @@ impl Angle {
     /// ```
     /// # use plottery_lib::*;
     /// let angle = Angle::from_degrees(-90.0);
-    /// assert_eq!(angle.positive().to_degree(), 270.0);
+    /// assert_eq!(angle.positive().to_degrees(), 270.0);
     /// ```
     #[must_use]
     pub fn positive(&self) -> Self {

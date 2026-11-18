@@ -23,7 +23,7 @@ impl AngleUnit {
 
     pub fn from_angle(&self, angle: Angle) -> f32 {
         match self {
-            AngleUnit::Degrees => angle.to_degree(),
+            AngleUnit::Degrees => angle.to_degrees(),
             AngleUnit::Rotations => angle.to_rotations(),
             AngleUnit::Radians => angle.to_rad(),
         }

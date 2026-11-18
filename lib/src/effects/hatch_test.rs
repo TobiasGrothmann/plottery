@@ -122,7 +122,7 @@ mod test_hatch {
             let [a, b] = path.as_slice()[..] else {
                 panic!("plain line with {} points", path.as_slice().len());
             };
-            let degrees = (b - a).angle().to_degree().rem_euclid(180.0);
+            let degrees = (b - a).angle().to_degrees().rem_euclid(180.0);
             assert!((degrees - 30.0).abs() < 0.01, "line at {degrees}°");
         }
     }

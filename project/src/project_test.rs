@@ -16,7 +16,7 @@ mod tests {
     };
     use plottery_runtime::{ProjectParam, ProjectParamValue, ProjectParamsListWrapper};
 
-    fn genrate_temp_project(temp_dir: PathBuf, project_name: &str) -> Result<Project> {
+    fn generate_temp_project(temp_dir: PathBuf, project_name: &str) -> Result<Project> {
         // project dir should not exist
         let project_dir = temp_dir.join(project_name);
         assert!(!project_dir.exists());
@@ -69,7 +69,7 @@ mod tests {
     fn generate_project() -> Result<()> {
         let project_name: &str = "test_proj";
         let temp_dir = tempfile::tempdir()?;
-        let project = genrate_temp_project(temp_dir.path().to_path_buf(), project_name)?;
+        let project = generate_temp_project(temp_dir.path().to_path_buf(), project_name)?;
 
         // check if dir test_project/resources exists
         let resource_dir = project.dir.join("resources");
@@ -91,7 +91,7 @@ mod tests {
     fn build_and_run() -> Result<()> {
         let project_name: &str = "test_proj";
         let temp_dir = tempfile::tempdir()?;
-        let project = genrate_temp_project(temp_dir.path().to_path_buf(), project_name)?;
+        let project = generate_temp_project(temp_dir.path().to_path_buf(), project_name)?;
         assert!(project.exists());
 
         let release = true;
@@ -131,8 +131,8 @@ mod tests {
         let project_name: &str = "test_proj_same_name";
         let temp_dir_a = tempfile::tempdir()?;
         let temp_dir_b = tempfile::tempdir()?;
-        let project_a = genrate_temp_project(temp_dir_a.path().to_path_buf(), project_name)?;
-        let project_b = genrate_temp_project(temp_dir_b.path().to_path_buf(), project_name)?;
+        let project_a = generate_temp_project(temp_dir_a.path().to_path_buf(), project_name)?;
+        let project_b = generate_temp_project(temp_dir_b.path().to_path_buf(), project_name)?;
         assert_eq!(
             project_a.get_cargo_toml_name()?,
             project_b.get_cargo_toml_name()?

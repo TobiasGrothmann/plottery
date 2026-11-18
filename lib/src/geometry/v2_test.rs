@@ -258,7 +258,7 @@ mod test_v2 {
         assert_eq!(v.angle(), Angle::from_degrees(0.0));
 
         let v = V2::new(0.0, 1.0);
-        assert_eq!(v.angle().to_degree(), 90.0);
+        assert_eq!(v.angle().to_degrees(), 90.0);
 
         let v = V2::new(-1.0, 0.0);
         assert_eq!(v.angle(), Angle::from_degrees(180.0));
