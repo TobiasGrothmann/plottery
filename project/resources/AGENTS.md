@@ -13,8 +13,9 @@ The user mostly works in the Plottery editor, not in the code:
   be set by clicking the drawing.
 - Every param change re-runs `generate`, so keep it fast.
 - With Hot reload on, saving a file in `src/` rebuilds and redraws. The Run button does it once.
-- The Layers panel shows the layer tree with names from `with_name` and colors. The user can hide
-  sublayers there.
+- The Layers panel shows the layer tree: one row per sublayer with its name from `with_name`, its
+  shape count and its pen. The user hides layers there or shows a single one, and the editor
+  remembers that across runs by layer name.
 - The Console shows build output and anything the project prints with `println!` or `eprintln!`.
 - From the editor the user sends the visible layers to the pen plotter.
 
@@ -23,6 +24,7 @@ should be a param with a fitting widget, range and tooltip, not a constant they 
 
 The plotter ignores color and pen width; they only affect the preview and svg. For several pens, put
 each pen into its own named sublayer. The user plots them one after another by hiding the others.
+See [Layers](#layers).
 
 ## Layout
 
@@ -168,6 +170,25 @@ changing its type or range resets it to the default. Moving it to another sectio
 - An enum keeps its variant while that variant exists.
 - A `Vec` keeps its items only while the item type is unchanged. One field added to its item struct
   resets the whole list.
+
+## Layers
+
+The Layers panel is where the user reads how the drawing is built, hides parts of it and plots pen by
+pen. The layer tree you return is that panel, so build it for the user, not for the code:
+
+- Every part the user would look at, hide or plot on its own is a sublayer named with `with_name`,
+  after what it shows: `hills`, `sky hatching`, `title`, `frame`. An unnamed layer shows as "layer 3".
+- With several pens, the pens are the top level: one sublayer per pen with `with_color` and
+  `with_pen_width_cm`, which its sublayers inherit, and the parts drawn with that pen below it.
+- A layer holds either shapes or sublayers. Shapes pushed next to sublayers, also in the root, end up
+  in a nameless "shapes" row.
+- Names are unique among siblings and the same in every run. The editor finds hidden layers again by
+  name, unnamed ones only by their position.
+- A sublayer is a part of the drawing, not a step of the algorithm. Don't make one per shape, grid
+  cell or iteration: each is a row in the panel. Shapes that repeat go into one layer.
+- `flatten`, `optimize`, `push_layer_flat` and the `mask_*_flattened` methods give one layer without
+  sublayers. Apply them to a single part and name the result. On the tree use `optimize_recursive`
+  and the other `_recursive` methods, they keep sublayers and names.
 
 ## Conventions
 
