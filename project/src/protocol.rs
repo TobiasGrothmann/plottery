@@ -3,10 +3,7 @@ use std::path::Path;
 use anyhow::{bail, Result};
 use async_process::{Command, Stdio};
 
-/// Version of what the CLI and the editor exchange with a project binary: its subcommands, the
-/// piped params and the run stream. Changes with any of them, including the bincode layout of
-/// params and layers.
-pub const PROTOCOL_VERSION: u32 = 1;
+use plottery_runtime::PROTOCOL_VERSION;
 
 /// Checks what a binary answered to `protocol-version`. Binaries older than the subcommand fail on it.
 pub(crate) fn check_protocol_answer(success: bool, stdout: &[u8]) -> Result<()> {

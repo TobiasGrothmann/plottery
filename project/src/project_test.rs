@@ -12,10 +12,9 @@ mod tests {
     use crate::{
         cargo_project_template::generate_cargo_project_to_disk,
         project::{is_up_to_date, thumbnail_is_stale},
-        project_params_list_wrapper::ProjectParamsListWrapper,
-        LibSource, Project, ProjectConfig, ProjectParam, ProjectParamValue,
-        EDITOR_THUMBNAIL_SIZE,
+        LibSource, Project, ProjectConfig, EDITOR_THUMBNAIL_SIZE,
     };
+    use plottery_runtime::{ProjectParam, ProjectParamValue, ProjectParamsListWrapper};
 
     fn genrate_temp_project(temp_dir: PathBuf, project_name: &str) -> Result<Project> {
         // project dir should not exist

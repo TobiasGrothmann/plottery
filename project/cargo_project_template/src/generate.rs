@@ -1,5 +1,5 @@
 use plottery_lib::*;
-use plottery_project::*;
+use plottery_runtime::*;
 
 // Every field shows up in the editor.
 // `///` comments become tooltips on the param labels.

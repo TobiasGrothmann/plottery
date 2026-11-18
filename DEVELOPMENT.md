@@ -22,7 +22,7 @@ New projects use the published crates by default. To make a project depend on th
 
 ```sh
 plottery set-home /path/to/plottery          # once, sets PLOTTERY_HOME
-plottery new sketches my_sketch -l home      # depends on $PLOTTERY_HOME/lib and project
+plottery new sketches my_sketch -l home      # depends on $PLOTTERY_HOME/lib and runtime
 ```
 
 `-l <PATH>` uses any other checkout.
@@ -47,7 +47,7 @@ Create a new example with `plottery new examples <name> -l ../../..`, then delet
 cargo test --workspace
 ```
 
-The `lib` and `project` READMEs are their crates' docs.rs front pages, so their code blocks run as doctests too. Links in them must be absolute GitHub URLs, docs.rs does not resolve relative ones.
+The `lib`, `runtime` and `project` READMEs are their crates' docs.rs front pages, so their code blocks run as doctests too. Links in them must be absolute GitHub URLs, docs.rs does not resolve relative ones.
 
 ## Pre-Release Checks
 
@@ -64,6 +64,6 @@ cargo release <patch|minor> --execute                   # Publish crates to crat
 ./scripts/release_editor.sh <version> true             # Upload DMG to GitHub
 ```
 
-All crates share one version and are released together. Use `patch` when nothing breaks for existing projects, and `minor` for breaking changes: projects depend on `^0.x`, so a minor bump leaves them on the old version until they are updated.
+All crates share one version and are released together. `cargo release` publishes them in dependency order, so `plottery_runtime_macros` and `plottery_runtime` go out before `plottery_project`. Use `patch` when nothing breaks for existing projects, and `minor` for breaking changes: projects depend on `^0.x`, so a minor bump leaves them on the old version until they are updated.
 
 The `cargo release` command automatically builds the DMG via pre-release-hook but does not upload it. You must manually run the upload script afterwards with the same version number.

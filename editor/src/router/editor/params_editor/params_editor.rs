@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use dioxus::prelude::*;
 use dioxus_logger::tracing;
-use plottery_project::{
+use plottery_runtime::{
     project_param::ProjectParam, project_param_optional::ProjectParamOptional,
     project_param_struct::ProjectParamStruct, project_param_value::ProjectParamValue,
     project_param_vec::ProjectParamVec, project_params_list_wrapper::ProjectParamsListWrapper,

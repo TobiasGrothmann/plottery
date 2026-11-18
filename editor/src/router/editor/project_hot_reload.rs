@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use dioxus::signals::{ReadableExt, SyncSignal, WritableExt};
 use dioxus_logger::tracing;
 use notify::{Config, FsEventWatcher, RecommendedWatcher, RecursiveMode, Watcher};
-use plottery_project::project_params_list_wrapper::ProjectParamsListWrapper;
+use plottery_runtime::project_params_list_wrapper::ProjectParamsListWrapper;
 use tokio::task::JoinHandle;
 
 use super::{

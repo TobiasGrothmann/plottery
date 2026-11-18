@@ -85,8 +85,8 @@ pub fn generate_cargo_project_to_disk(
     std::fs::create_dir_all(&out_dir)?;
 
     let plottery_lib_include = get_plottery_subcrate("lib", &lib_source, "plottery_lib")?;
-    let plottery_project_include =
-        get_plottery_subcrate("project", &lib_source, "plottery_project")?;
+    let plottery_runtime_include =
+        get_plottery_subcrate("runtime", &lib_source, "plottery_runtime")?;
 
     let string_replacements = vec![
         Replacement {
@@ -94,8 +94,8 @@ pub fn generate_cargo_project_to_disk(
             to: plottery_lib_include,
         },
         Replacement {
-            from: "{{plottery-project-include}}".to_string(),
-            to: plottery_project_include,
+            from: "{{plottery-runtime-include}}".to_string(),
+            to: plottery_runtime_include,
         },
         Replacement {
             from: "{{project-name}}".to_string(),

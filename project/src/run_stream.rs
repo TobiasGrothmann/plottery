@@ -6,7 +6,6 @@
 //! early would leave the caller hanging.
 
 use std::{
-    io::Write,
     os::unix::net::{UnixListener, UnixStream},
     path::PathBuf,
 };
@@ -16,27 +15,8 @@ use async_io::Async;
 use async_process::Child;
 use futures_lite::{future, AsyncRead, AsyncReadExt};
 use plottery_lib::Layer;
+use plottery_runtime::MessageKind;
 use tempfile::TempDir;
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) enum MessageKind {
-    Snapshot = 0,
-    Final = 1,
-}
-
-/// Project side: sends `layer` as one message.
-pub(crate) fn write_message(
-    stream: &mut impl Write,
-    kind: MessageKind,
-    layer: &Layer,
-) -> Result<()> {
-    let binary = layer.to_binary()?;
-    let mut header = [kind as u8; 9];
-    header[1..].copy_from_slice(&(binary.len() as u64).to_le_bytes());
-    stream.write_all(&header)?;
-    stream.write_all(&binary)?;
-    Ok(())
-}
 
 /// The next message, `None` at the end of the stream.
 async fn read_message(

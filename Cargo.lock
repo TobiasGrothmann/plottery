@@ -5201,6 +5201,7 @@ dependencies = [
  "futures-lite",
  "plottery_lib",
  "plottery_project",
+ "plottery_runtime",
  "rayon",
  "tempfile",
 ]
@@ -5225,6 +5226,7 @@ dependencies = [
  "path-absolutize",
  "plottery_lib",
  "plottery_project",
+ "plottery_runtime",
  "plottery_server_lib",
  "regex",
  "rfd",
@@ -5278,14 +5280,12 @@ dependencies = [
  "async-process",
  "bincode",
  "chrono",
- "clap",
  "directories",
  "futures-lite",
  "nix",
- "open",
  "path-absolutize",
  "plottery_lib",
- "plottery_project_macros",
+ "plottery_runtime",
  "resvg",
  "rust-embed",
  "serde",
@@ -5299,7 +5299,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "plottery_project_macros"
+name = "plottery_runtime"
+version = "0.18.0"
+dependencies = [
+ "anyhow",
+ "bincode",
+ "clap",
+ "open",
+ "plottery_lib",
+ "plottery_runtime_macros",
+ "serde",
+]
+
+[[package]]
+name = "plottery_runtime_macros"
 version = "0.18.0"
 dependencies = [
  "proc-macro2",

@@ -11,7 +11,7 @@ use std::{
     process::ExitStatus,
 };
 
-use crate::project_params_list_wrapper::ProjectParamsListWrapper;
+use plottery_runtime::ProjectParamsListWrapper;
 
 fn find_cargo_executable() -> Result<PathBuf> {
     let output = std::process::Command::new("which").arg("cargo").output()?;

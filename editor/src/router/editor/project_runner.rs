@@ -6,9 +6,8 @@ use std::sync::{
 use crate::router::editor::running_state::RunningState;
 use dioxus::signals::{ReadableExt, SyncSignal, WritableExt};
 use dioxus_logger::tracing;
-use plottery_project::{
-    project_params_list_wrapper::ProjectParamsListWrapper, Project, RunError, RunEvent, RunStage,
-};
+use plottery_project::{Project, RunError, RunEvent, RunStage};
+use plottery_runtime::project_params_list_wrapper::ProjectParamsListWrapper;
 
 use super::{console_messages::ConsoleMessages, editor::LayerChangeWrapper};
 

@@ -44,7 +44,7 @@ impl Default for Domain {
 /// # Usage
 ///
 /// ```
-/// use plottery_project::{Curve2D, Domain};
+/// use plottery_runtime::{Curve2D, Domain};
 ///
 /// let curve = Curve2D::new(Domain::new(0.0, 10.0, 0.0, 100.0));
 /// let y = curve.sample(5.0); // Sample at x=5.0 in the \[0,10\] range

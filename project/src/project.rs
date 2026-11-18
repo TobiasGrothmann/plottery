@@ -1,6 +1,5 @@
 use crate::{
     generate_cargo_project_to_disk, init_git_repo,
-    project_params_list_wrapper::ProjectParamsListWrapper,
     project_util::{build_cargo_project_async, path_hash, run_project_executable_async},
     protocol::check_binary_protocol,
     read_object_from_stdout,
@@ -9,6 +8,7 @@ use crate::{
 };
 
 use plottery_lib::*;
+use plottery_runtime::ProjectParamsListWrapper;
 
 use anyhow::{Context, Error, Ok, Result};
 use async_process::Child;

@@ -10,7 +10,8 @@
 * [**plottery_lib**](./lib) ([crates.io](https://crates.io/crates/plottery_lib), [docs.rs](https://docs.rs/plottery_lib)): Core library with shapes, geometry helpers, composition and other tools to generate art.
 * [**plottery_editor**](./editor) ([crates.io](https://crates.io/crates/plottery_editor), [releases](https://github.com/TobiasGrothmann/plottery/releases)): The macOS app to create, manage and run projects, preview artworks and control the plotter.
 * [**plottery_cli**](./cli) ([crates.io](https://crates.io/crates/plottery_cli)): Command line interface to create, run and render projects.
-* [**plottery_project**](./project) ([crates.io](https://crates.io/crates/plottery_project), [docs.rs](https://docs.rs/plottery_project)): Project handling and the `Params` derive macros.
+* [**plottery_runtime**](./runtime) ([crates.io](https://crates.io/crates/plottery_runtime), [docs.rs](https://docs.rs/plottery_runtime)): What a project depends on besides the lib: param types, the `Params` derive macros and the project's entry point.
+* [**plottery_project**](./project) ([crates.io](https://crates.io/crates/plottery_project), [docs.rs](https://docs.rs/plottery_project)): Creates, builds and runs projects for the editor and the CLI.
 * [**plottery_fonts**](./fonts) ([crates.io](https://crates.io/crates/plottery_fonts), [docs.rs](https://docs.rs/plottery_fonts)): 65 bundled single-line fonts for plotters (Hershey, EMS, Cutlings, Relief, ...) with their licences. Data only, usable without **Plottery**.
 * [**plottery_server**](./server): The controller of my DIY pen-plotter. It serves an HTTP interface for plot tasks and drives the motors.
 
@@ -60,7 +61,7 @@ Its `src/generate.rs` turns a `Params` struct into a `Layer`:
 
 ```rust
 use plottery_lib::*;
-use plottery_project::*;
+use plottery_runtime::*;
 
 #[derive(PlotteryParams)]
 pub struct Params {
@@ -100,7 +101,7 @@ Every example is a complete project that builds against this repository: in a cl
 
 ### Parameters
 
-Every field of `Params` shows up in the editor. `#[value(..)]` sets the default, `#[range(min, max)]` shows a slider, `#[section("..")]` groups fields and `///` comments become tooltips. All attributes and supported types are listed in the [project README](./project/README.md#parameters), and the [examples](#examples) use many of them.
+Every field of `Params` shows up in the editor. `#[value(..)]` sets the default, `#[range(min, max)]` shows a slider, `#[section("..")]` groups fields and `///` comments become tooltips. All attributes and supported types are listed in the [runtime README](./runtime/README.md#parameters), and the [examples](#examples) use many of them.
 
 # Text & Fonts
 

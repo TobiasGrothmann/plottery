@@ -1,5 +1,5 @@
 use plottery_lib::*;
-use plottery_project::*;
+use plottery_runtime::*;
 
 // A title fitted to the page width, a rule and a wrapped paragraph below it.
 #[derive(PlotteryParams)]

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 /// Seed for the global random number generator, see [`plottery_lib::seed`].
 ///
 /// ```
-/// # use plottery_project::Seed;
+/// # use plottery_runtime::Seed;
 /// let seed = Seed::new(42);
 /// seed.apply(); // all plottery_lib random functions are now deterministic
 /// ```

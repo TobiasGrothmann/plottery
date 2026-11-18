@@ -1,5 +1,5 @@
 use plottery_lib::*;
-use plottery_project::*;
+use plottery_runtime::*;
 
 // A spiral path masked to the inside of the paper margin.
 #[derive(PlotteryEnum, Clone, Copy)]

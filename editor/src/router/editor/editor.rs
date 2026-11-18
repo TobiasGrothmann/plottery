@@ -39,9 +39,9 @@ use dioxus_logger::tracing;
 use dioxus_router::hooks::use_navigator;
 use notify::FsEventWatcher;
 use plottery_lib::{BoundingBox, Layer, SampleSettings, V2};
-use plottery_project::{
+use plottery_project::Project;
+use plottery_runtime::{
     project_param_value::ProjectParamValue, project_params_list_wrapper::ProjectParamsListWrapper,
-    Project,
 };
 use plottery_server_lib::{
     estimation::estimate_plot_layer_duration, plot_setting::PlotSettings, task::send_task,

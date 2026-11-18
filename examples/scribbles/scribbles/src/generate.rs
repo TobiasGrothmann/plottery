@@ -1,5 +1,5 @@
 use plottery_lib::*;
-use plottery_project::*;
+use plottery_runtime::*;
 
 // A grid of squares that dissolve into noisy scribbles down the page.
 #[derive(PlotteryParams)]

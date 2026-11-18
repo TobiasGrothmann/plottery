@@ -1,5 +1,5 @@
 use plottery_lib::*;
-use plottery_project::*;
+use plottery_runtime::*;
 
 // A grid of pebbles: closed Hobby splines through random points, with smaller rings inside.
 #[derive(PlotteryParams)]

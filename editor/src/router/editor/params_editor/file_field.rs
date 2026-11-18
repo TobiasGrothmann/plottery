@@ -6,7 +6,7 @@ use std::{
 use anyhow::Result;
 use dioxus::prelude::*;
 use dioxus_logger::tracing;
-use plottery_project::{file_name_of, project_param_value::ProjectParamValue, ProjectParamFile};
+use plottery_runtime::{file_name_of, project_param_value::ProjectParamValue, ProjectParamFile};
 use rfd::AsyncFileDialog;
 
 use crate::{

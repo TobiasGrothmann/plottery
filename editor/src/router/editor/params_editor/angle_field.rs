@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use plottery_lib::Angle;
-use plottery_project::{angle_unit::AngleUnit, project_param_value::ProjectParamValue};
+use plottery_runtime::{angle_unit::AngleUnit, project_param_value::ProjectParamValue};
 
 use crate::router::editor::params_editor::{
     params_editor::LeafProps,

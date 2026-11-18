@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod test_params_file {
-    use plottery_project::{
-        project_params_list_wrapper::ProjectParamsListWrapper, Project, ProjectParam,
-        ProjectParamValue,
+    use plottery_project::Project;
+    use plottery_runtime::{
+        project_params_list_wrapper::ProjectParamsListWrapper, ProjectParam, ProjectParamValue,
     };
     use tempfile::TempDir;
 

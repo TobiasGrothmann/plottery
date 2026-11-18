@@ -11,7 +11,7 @@ use super::project_param_file::{existing_param_path, resolve_param_path};
 /// Relative paths are resolved against the current directory, which the editor and CLI set to
 /// the project directory, so svgs copied into `resources/svgs/` travel with the project.
 /// ```no_run
-/// # use plottery_project::SvgPath;
+/// # use plottery_runtime::SvgPath;
 /// let svg_path = SvgPath::new("resources/svgs/logo.svg");
 /// let layer = svg_path.load().expect("svg is missing");
 /// ```

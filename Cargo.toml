@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["lib", "fonts", "cli", "editor", "project", "server", "server_lib"]
+members = ["lib", "fonts", "cli", "editor", "project", "runtime", "server", "server_lib"]
 
 [workspace.package]
 version = "0.18.0"

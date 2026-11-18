@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 /// Use `sample(x)` to get the y-value at any x position:
 ///
 /// ```
-/// use plottery_project::Curve2DNorm;
+/// use plottery_runtime::Curve2DNorm;
 ///
 /// let curve = Curve2DNorm::default();
 /// let y = curve.sample(0.5);

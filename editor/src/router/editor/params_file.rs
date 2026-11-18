@@ -5,7 +5,8 @@ use std::{
 
 use anyhow::Result;
 use dioxus_logger::tracing;
-use plottery_project::{project_params_list_wrapper::ProjectParamsListWrapper, Project};
+use plottery_project::Project;
+use plottery_runtime::project_params_list_wrapper::ProjectParamsListWrapper;
 
 /// The editor's params file, telling its own writes apart from changes by the CLI.
 #[derive(Clone)]

@@ -8,10 +8,8 @@ mod stats;
 use anyhow::{bail, Context, Result};
 use clap::{Args, Parser, Subcommand};
 use futures_lite::future::block_on;
-use plottery_project::{
-    export_plottery_home, project_params_list_wrapper::ProjectParamsListWrapper, LibSource,
-    Project, RunEvent,
-};
+use plottery_project::{export_plottery_home, LibSource, Project, RunEvent};
+use plottery_runtime::project_params_list_wrapper::ProjectParamsListWrapper;
 use std::{
     cell::RefCell,
     future::{pending, poll_fn},

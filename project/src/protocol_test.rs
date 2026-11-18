@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use crate::protocol::{check_protocol_answer, PROTOCOL_VERSION};
+    use crate::protocol::check_protocol_answer;
+    use plottery_runtime::PROTOCOL_VERSION;
 
     #[test]
     fn same_version_is_accepted() {

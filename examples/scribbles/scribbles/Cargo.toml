@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 plottery_lib = { path = "../../../lib" }
-plottery_project = { path = "../../../project" }
+plottery_runtime = { path = "../../../runtime" }

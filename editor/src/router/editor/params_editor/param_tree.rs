@@ -1,4 +1,4 @@
-use plottery_project::{project_param::ProjectParam, project_param_value::ProjectParamValue};
+use plottery_runtime::{project_param::ProjectParam, project_param_value::ProjectParamValue};
 
 /// Unwraps `Optional` so widgets can edit the inner leaf value.
 pub fn leaf_value_mut(value: &mut ProjectParamValue) -> &mut ProjectParamValue {

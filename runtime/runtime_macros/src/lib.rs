@@ -158,16 +158,16 @@ fn field_value_tokens(
 ) -> proc_macro2::TokenStream {
     match (value, range) {
         (None, None) => quote! {
-            <#ty as ::plottery_project::ParamField>::default_param_value()
+            <#ty as ::plottery_runtime::ParamField>::default_param_value()
         },
         (None, Some((min, max))) => quote! {
-            <#ty as ::plottery_project::RangedParamField>::default_ranged_param_value(#min, #max)
+            <#ty as ::plottery_runtime::RangedParamField>::default_ranged_param_value(#min, #max)
         },
         (Some(value), None) => quote! {
-            <#ty as ::plottery_project::ParamField>::to_param_value(&#value)
+            <#ty as ::plottery_runtime::ParamField>::to_param_value(&#value)
         },
         (Some(value), Some((min, max))) => quote! {
-            <#ty as ::plottery_project::RangedParamField>::to_ranged_param_value(&#value, #min, #max)
+            <#ty as ::plottery_runtime::RangedParamField>::to_ranged_param_value(&#value, #min, #max)
         },
     }
 }
@@ -218,61 +218,61 @@ fn plottery_params_impl(ast: &syn::DeriveInput) -> TokenStream {
             .map(|value| quote!({ let v: #ty = #value; v }));
         let default_tokens = field_value_tokens(ty, default_value, &attributes.range);
         defaults.push(quote! {
-            ::plottery_project::ProjectParam::new(#field_name, #default_tokens) #metadata,
+            ::plottery_runtime::ProjectParam::new(#field_name, #default_tokens) #metadata,
         });
 
         let self_tokens = field_value_tokens(ty, Some(quote!(self.#ident)), &attributes.range);
         to_params.push(quote! {
-            ::plottery_project::ProjectParam::new(#field_name, #self_tokens) #metadata,
+            ::plottery_runtime::ProjectParam::new(#field_name, #self_tokens) #metadata,
         });
 
         from_map.push(quote! {
-            #ident: ::plottery_project::param_field_from_map(params, #field_name)?,
+            #ident: ::plottery_runtime::param_field_from_map(params, #field_name)?,
         });
     }
 
     let expanded = quote! {
-        impl ::plottery_project::PlotteryParams for #name {
-            fn param_defaults_list() -> ::std::vec::Vec<::plottery_project::ProjectParam> {
+        impl ::plottery_runtime::PlotteryParams for #name {
+            fn param_defaults_list() -> ::std::vec::Vec<::plottery_runtime::ProjectParam> {
                 vec![ #(#defaults)* ]
             }
 
-            fn to_params_list(&self) -> ::std::vec::Vec<::plottery_project::ProjectParam> {
+            fn to_params_list(&self) -> ::std::vec::Vec<::plottery_runtime::ProjectParam> {
                 vec![ #(#to_params)* ]
             }
 
             fn try_new_from_map(
-                params: &::std::collections::HashMap<String, ::plottery_project::ProjectParam>,
-            ) -> ::std::result::Result<Self, ::plottery_project::ParamFieldError> {
+                params: &::std::collections::HashMap<String, ::plottery_runtime::ProjectParam>,
+            ) -> ::std::result::Result<Self, ::plottery_runtime::ParamFieldError> {
                 Ok(Self { #(#from_map)* })
             }
         }
 
-        impl ::plottery_project::ParamField for #name {
-            fn default_param_value() -> ::plottery_project::ProjectParamValue {
-                ::plottery_project::ProjectParamValue::Struct(
-                    ::plottery_project::ProjectParamStruct::new(
-                        <Self as ::plottery_project::PlotteryParams>::param_defaults_list(),
+        impl ::plottery_runtime::ParamField for #name {
+            fn default_param_value() -> ::plottery_runtime::ProjectParamValue {
+                ::plottery_runtime::ProjectParamValue::Struct(
+                    ::plottery_runtime::ProjectParamStruct::new(
+                        <Self as ::plottery_runtime::PlotteryParams>::param_defaults_list(),
                     ),
                 )
             }
 
-            fn to_param_value(&self) -> ::plottery_project::ProjectParamValue {
-                ::plottery_project::ProjectParamValue::Struct(
-                    ::plottery_project::ProjectParamStruct::new(
-                        <Self as ::plottery_project::PlotteryParams>::to_params_list(self),
+            fn to_param_value(&self) -> ::plottery_runtime::ProjectParamValue {
+                ::plottery_runtime::ProjectParamValue::Struct(
+                    ::plottery_runtime::ProjectParamStruct::new(
+                        <Self as ::plottery_runtime::PlotteryParams>::to_params_list(self),
                     ),
                 )
             }
 
             fn from_param_value(
-                value: &::plottery_project::ProjectParamValue,
-            ) -> ::std::result::Result<Self, ::plottery_project::ParamFieldError> {
+                value: &::plottery_runtime::ProjectParamValue,
+            ) -> ::std::result::Result<Self, ::plottery_runtime::ParamFieldError> {
                 match value {
-                    ::plottery_project::ProjectParamValue::Struct(s) => {
-                        <Self as ::plottery_project::PlotteryParams>::try_new_from_list(s.fields.clone())
+                    ::plottery_runtime::ProjectParamValue::Struct(s) => {
+                        <Self as ::plottery_runtime::PlotteryParams>::try_new_from_list(s.fields.clone())
                     }
-                    other => Err(::plottery_project::param_type_mismatch("struct", other)),
+                    other => Err(::plottery_runtime::param_type_mismatch("struct", other)),
                 }
             }
         }
@@ -323,35 +323,35 @@ fn plottery_enum_impl(ast: &syn::DeriveInput) -> TokenStream {
     let default_name = default_variant.to_string();
 
     let expanded = quote! {
-        impl ::plottery_project::ParamField for #name {
-            fn default_param_value() -> ::plottery_project::ProjectParamValue {
-                ::plottery_project::ProjectParamValue::Enum(
-                    ::plottery_project::ProjectParamEnum::new(#default_name, &[#(#variant_names),*]),
+        impl ::plottery_runtime::ParamField for #name {
+            fn default_param_value() -> ::plottery_runtime::ProjectParamValue {
+                ::plottery_runtime::ProjectParamValue::Enum(
+                    ::plottery_runtime::ProjectParamEnum::new(#default_name, &[#(#variant_names),*]),
                 )
             }
 
-            fn to_param_value(&self) -> ::plottery_project::ProjectParamValue {
+            fn to_param_value(&self) -> ::plottery_runtime::ProjectParamValue {
                 let selected = match self {
                     #(Self::#variant_idents => #variant_names,)*
                 };
-                ::plottery_project::ProjectParamValue::Enum(
-                    ::plottery_project::ProjectParamEnum::new(selected, &[#(#variant_names),*]),
+                ::plottery_runtime::ProjectParamValue::Enum(
+                    ::plottery_runtime::ProjectParamEnum::new(selected, &[#(#variant_names),*]),
                 )
             }
 
             fn from_param_value(
-                value: &::plottery_project::ProjectParamValue,
-            ) -> ::std::result::Result<Self, ::plottery_project::ParamFieldError> {
+                value: &::plottery_runtime::ProjectParamValue,
+            ) -> ::std::result::Result<Self, ::plottery_runtime::ParamFieldError> {
                 match value {
-                    ::plottery_project::ProjectParamValue::Enum(e) => match e.selected.as_str() {
+                    ::plottery_runtime::ProjectParamValue::Enum(e) => match e.selected.as_str() {
                         #(#variant_names => Ok(Self::#variant_idents),)*
-                        other => Err(::plottery_project::param_type_mismatch(
+                        other => Err(::plottery_runtime::param_type_mismatch(
                             concat!("enum ", stringify!(#name)),
                             value,
                         )
                         .context(format!("unknown variant '{}'", other))),
                     },
-                    other => Err(::plottery_project::param_type_mismatch(
+                    other => Err(::plottery_runtime::param_type_mismatch(
                         concat!("enum ", stringify!(#name)),
                         other,
                     )),

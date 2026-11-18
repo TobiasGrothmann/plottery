@@ -10,7 +10,7 @@ use super::project_param_file::{existing_param_path, resolve_param_path};
 /// Relative paths are resolved against the current directory, which the editor and CLI set to
 /// the project directory, so images copied into `resources/images/` travel with the project.
 /// ```no_run
-/// # use plottery_project::ImagePath;
+/// # use plottery_runtime::ImagePath;
 /// let image_path = ImagePath::new("resources/images/photo.jpg");
 /// let image = image_path.load().expect("image is missing");
 /// ```

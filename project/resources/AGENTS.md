@@ -29,7 +29,7 @@ See [Layers](#layers).
 ## Layout
 
 - `{{project-name}}/src/generate.rs`: `Params` and `generate`. Start here.
-- `{{project-name}}/Cargo.toml`: depends on `plottery_lib` (geometry) and `plottery_project` (params, runner).
+- `{{project-name}}/Cargo.toml`: depends on `plottery_lib` (geometry) and `plottery_runtime` (params, runner).
 - `{{project-name}}.plottery`: project config. The `plottery` CLI finds it from any folder inside the project.
 - `resources/images/`, `resources/svgs/`: files the user picked for `ImagePath` and `SvgPath` params,
   copied in by the editor. The params hold paths relative to the project root.
@@ -54,7 +54,7 @@ plottery animate /tmp/a.mp4 --every 5             # video of how the drawing com
 ```
 
 `plottery --help` lists all commands. If `plottery` is missing or lacks a command, install the version
-matching `plottery_project`: `cargo install plottery_cli`, or `cargo install --path <checkout>/cli`.
+matching `plottery_runtime`: `cargo install plottery_cli`, or `cargo install --path <checkout>/cli`.
 
 The CLI works like the editor. It builds in release mode into the target directory the editor shares,
 and runs with the user's param values, so a render shows what the user sees.
@@ -93,9 +93,9 @@ the stats are where you meant the drawing to be.
 
 Read the source instead of guessing APIs. `{{project-name}}/Cargo.toml` shows where it is:
 
-- `path = ".../lib"`: a local Plottery checkout with `lib/`, `project/` and `project/project_macros/`.
-- a version: `~/.cargo/registry/src/*/plottery_lib-<version>/`, same for `plottery_project` and `plottery_project_macros`.
-- online: https://docs.rs/plottery_lib, https://docs.rs/plottery_project, https://github.com/TobiasGrothmann/plottery
+- `path = ".../lib"`: a local Plottery checkout with `lib/`, `runtime/` and `runtime/runtime_macros/`.
+- a version: `~/.cargo/registry/src/*/plottery_lib-<version>/`, same for `plottery_runtime` and `plottery_runtime_macros`.
+- online: https://docs.rs/plottery_lib, https://docs.rs/plottery_runtime, https://github.com/TobiasGrothmann/plottery
 
 ## What Plottery already has
 
@@ -131,15 +131,15 @@ Check here before writing your own helper. Paths are in `plottery_lib/src/`; the
 ## Parameters
 
 Expose what an artist wants to tweak while watching the result. Keep derived values and implementation
-constants in code. Where to find out what is possible, all in `plottery_project`:
+constants in code. Where to find out what is possible, all in `plottery_runtime`:
 
 - **Field types, attributes and the widget each gets:** the Parameters section of `README.md`.
 - **Field types:** `src/project_params/param_field.rs`. Every `impl ParamField for T` is a usable field
   type. Types with `impl RangedParamField` also accept `#[range(min, max)]`.
-- **Attributes:** the docs on `PlotteryParams` and `PlotteryEnum` in `plottery_project_macros/src/lib.rs`.
+- **Attributes:** the docs on `PlotteryParams` and `PlotteryEnum` in `plottery_runtime_macros/src/lib.rs`.
 - **Using a value:** each type's own docs and methods. Project-only types like `Seed`, the curves and
   the image and svg paths live in `src/project_params/`, the rest in `plottery_lib`.
-- **Example:** `cargo_project_template/src/generate.rs`, the code every new project starts from.
+- **Example:** `cargo_project_template/src/generate.rs` in `plottery_project`, the code every new project starts from.
 
 Choosing well:
 

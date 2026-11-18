@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use plottery_lib::{NoiseScale, NoiseSettings, NoiseType};
-use plottery_project::project_param_value::ProjectParamValue;
+use plottery_runtime::project_param_value::ProjectParamValue;
 
 use crate::router::editor::params_editor::{
     params_editor::LeafProps,

@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use plottery_lib::rand_range_i;
-use plottery_project::{project_param_value::ProjectParamValue, ProjectParamSeed};
+use plottery_runtime::{project_param_value::ProjectParamValue, ProjectParamSeed};
 
 use crate::{
     components::{

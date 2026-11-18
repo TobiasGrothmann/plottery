@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use dioxus_logger::tracing;
-use plottery_project::{
+use plottery_runtime::{
     project_param::ProjectParam, project_param_value::ProjectParamValue,
     project_params_list_wrapper::ProjectParamsListWrapper,
 };
