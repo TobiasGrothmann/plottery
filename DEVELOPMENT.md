@@ -60,8 +60,10 @@ Before releasing, validate (tests, clippy, examples, docs) with:
 ## Release
 
 ```sh
-cargo release --execute                                 # Publish crates to crates.io and build editor DMG
+cargo release <patch|minor> --execute                   # Publish crates to crates.io and build editor DMG
 ./scripts/release_editor.sh <version> true             # Upload DMG to GitHub
 ```
+
+All crates share one version and are released together. Use `patch` when nothing breaks for existing projects, and `minor` for breaking changes: projects depend on `^0.x`, so a minor bump leaves them on the old version until they are updated.
 
 The `cargo release` command automatically builds the DMG via pre-release-hook but does not upload it. You must manually run the upload script afterwards with the same version number.
