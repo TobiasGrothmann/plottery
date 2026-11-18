@@ -40,7 +40,7 @@ cargo run -p plottery_cli -- run examples/spiral    # run one, or open its folde
 
 The check fails when an example's svg differs from its committed `reference.svg` and keeps the new renders in `target/examples/changed/`. Look at them: if the change is intended, run `--update` and commit the files, otherwise fix the code. `preview.png` is only the image for the README (which shows `spiral` from a hosted image), so a renderer update that changes pixels fails nothing.
 
-Create a new example with `plottery new examples <name> -l ../../..`, then delete its `.git`, `.gitignore` and `AGENTS.md`, and write its first reference with `--update`.
+Create a new example with `plottery new examples <name> -l ../../.. --no-git`, then delete its `AGENTS.md`, and write its first reference with `--update`.
 
 ## Tests
 
