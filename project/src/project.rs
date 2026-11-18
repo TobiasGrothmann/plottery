@@ -326,7 +326,7 @@ impl Project {
         } else {
             bin_path.push("debug");
         }
-        bin_path.push(cargo_name); // TODO: get name from cargo.toml if it has been set?
+        bin_path.push(cargo_name);
         Ok(bin_path)
     }
 

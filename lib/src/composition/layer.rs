@@ -518,10 +518,6 @@ impl Layer {
         Masked { inside, outside }
     }
 
-    /// Returns a new `Layer` with all of this layers [`Shape`]s (non-recursive) ordered in a way that they can be plotted with a minimum of pen travel between shapes.
-    /// This is done with a greedy algorithm that always chooses the closest shape to the current position.
-    ///
-    /// see also [`Layer::optimize_recursive`].
     fn optimize_shape_start_end(shape: &Shape) -> (V2, V2) {
         match shape {
             Shape::Path(path) => {
@@ -543,6 +539,10 @@ impl Layer {
         }
     }
 
+    /// Returns a new `Layer` with all of this layers [`Shape`]s (non-recursive) ordered in a way that they can be plotted with a minimum of pen travel between shapes.
+    /// This is done with a greedy algorithm that always chooses the closest shape to the current position.
+    ///
+    /// see also [`Layer::optimize_recursive`].
     #[must_use]
     pub fn optimize(&self) -> Self {
         let starts_and_ends: Vec<_> = self

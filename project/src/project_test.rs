@@ -108,7 +108,7 @@ mod tests {
         let generated_layer = project.run(release, &params)?;
         assert!(!generated_layer.is_empty());
 
-        // build debug
+        // build again
         project.build(release)?;
 
         // test saving svg
