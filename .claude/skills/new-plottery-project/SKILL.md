@@ -49,8 +49,8 @@ Reusing a working piece is faster than writing it again. Look here, and tell the
 - **The template:** `project/cargo_project_template/src/generate.rs`, what every new project starts with.
 - **The library:** the "What Plottery already has" table in the new project's `AGENTS.md`.
 
-The Plottery checkout is at `$PLOTTERY_HOME`, or at the `path` dependency in an existing project's
-`Cargo.toml`.
+The Plottery checkout is the one set with `plottery set-home` (`plottery_home` in
+`project/src/plottery_config.rs`), or at the `path` dependency in an existing project's `Cargo.toml`.
 
 Reuse by copying functions or modules into the new project, not by copying a project folder: a folder
 carries its name, git repository and editor state.

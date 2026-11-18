@@ -21,11 +21,12 @@ The server is built on the Raspberry Pi, see [server/README.md](server/README.md
 New projects use the published crates by default. To make a project depend on this checkout instead:
 
 ```sh
-plottery set-home /path/to/plottery          # once, sets PLOTTERY_HOME
-plottery new sketches my_sketch -l home      # depends on $PLOTTERY_HOME/lib and runtime
+plottery set-home /path/to/plottery          # once, saved in Plottery's config file
+plottery new sketches my_sketch -l home      # depends on that checkout's lib and runtime
 ```
 
-`-l <PATH>` uses any other checkout.
+`-l <PATH>` uses any other checkout. The config file is read by the CLI and the editor; where it is
+and how the `PLOTTERY_HOME` environment variable overrides it: `project/src/plottery_config.rs`.
 
 ## Examples
 

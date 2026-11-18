@@ -8,7 +8,7 @@ mod stats;
 use anyhow::{bail, Context, Result};
 use clap::{Args, Parser, Subcommand};
 use futures_lite::future::block_on;
-use plottery_project::{export_plottery_home, LibSource, Project, RunEvent};
+use plottery_project::{set_plottery_home, LibSource, Project, RunEvent, PLOTTERY_HOME_ENV};
 use plottery_runtime::project_params_list_wrapper::ProjectParamsListWrapper;
 use std::{
     cell::RefCell,
@@ -93,7 +93,7 @@ enum Command {
             short = 'l',
             long = "lib",
             help = "Plottery library source [default: cratesio]",
-            long_help = "Plottery library source\n    cratesio [default]    Use the published crate from crates.io\n    home                  Use local source from PLOTTERY_HOME env var\n    PATH                  Use local source from a custom path"
+            long_help = "Plottery library source\n    cratesio [default]    Use the published crate from crates.io\n    home                  Use the local checkout set with `plottery set-home`\n    PATH                  Use local source from a custom path"
         )]
         lib: Option<String>,
     },
@@ -196,7 +196,10 @@ enum Command {
         )]
         hold: f32,
     },
-    #[command(about = "Set PLOTTERY_HOME, the local plottery checkout used by `new --lib home`")]
+    #[command(
+        about = "Set the local plottery checkout used by `new --lib home`",
+        long_about = "Set the local plottery checkout used by `new --lib home`.\n\nIt is saved in Plottery's config file, which the editor reads too. The PLOTTERY_HOME environment variable overrides it when set."
+    )]
     SetHome {
         #[arg(help = "Path to the plottery workspace directory")]
         path: String,
@@ -530,12 +533,21 @@ pub fn main() -> Result<()> {
                 bail!("Path is not a directory: {}", path);
             }
 
-            let absolute_path = path_buf.canonicalize().unwrap_or(path_buf);
-            let absolute_path_str = absolute_path.to_string_lossy();
-
-            export_plottery_home(&absolute_path_str).context("Failed to set PLOTTERY_HOME")?;
-            println!("PLOTTERY_HOME has been set to: {}", absolute_path_str);
-            println!("This setting will persist across terminal sessions.");
+            let home = path_buf.canonicalize().unwrap_or(path_buf);
+            let config_path = set_plottery_home(&home).context("Failed to save plottery home")?;
+            println!(
+                "Plottery home set to '{}' in '{}'",
+                home.display(),
+                config_path.display()
+            );
+            if let Some(env_home) = std::env::var_os(PLOTTERY_HOME_ENV).filter(|v| !v.is_empty()) {
+                if Path::new(&env_home) != home {
+                    eprintln!(
+                        "{PLOTTERY_HOME_ENV} is set to '{}' and overrides it. Remove it from your shell profile.",
+                        env_home.to_string_lossy()
+                    );
+                }
+            }
         }
         Command::Version => println!("plottery {}", env!("CARGO_PKG_VERSION")),
     }

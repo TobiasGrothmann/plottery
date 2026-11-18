@@ -111,9 +111,7 @@ fn png_longest_side(path: &std::path::Path) -> Option<u32> {
 
 /// Plottery's folder in the user's cache directory, for builds and previews.
 fn plottery_cache_dir() -> Result<PathBuf> {
-    let project_dirs = directories::ProjectDirs::from("de", "tobiasgrothmann", "plottery")
-        .ok_or_else(|| Error::msg("Could not determine the user's cache directory"))?;
-    Ok(project_dirs.cache_dir().to_path_buf())
+    Ok(crate::plottery_config::plottery_dirs()?.cache_dir().to_path_buf())
 }
 
 fn modified(path: &Path) -> Option<SystemTime> {

@@ -10,7 +10,7 @@ use crate::{
 };
 
 use dioxus::prelude::*;
-use plottery_project::{LibSource, Project};
+use plottery_project::{plottery_home, LibSource, Project};
 use rfd::AsyncFileDialog;
 
 fn validate_form(
@@ -40,11 +40,11 @@ fn validate_form(
     match lib_source {
         LibSource::PlotteryHome => {
             if plottery_home_path.is_empty() {
-                return Err("PLOTTERY_HOME environment variable is not set".to_string());
+                return Err("Plottery home is not set, run `plottery set-home <path>`".to_string());
             }
             if !PathBuf::from(plottery_home_path).exists() {
                 return Err(format!(
-                    "PLOTTERY_HOME path does not exist: {}",
+                    "Plottery home does not exist: {}",
                     plottery_home_path
                 ));
             }
@@ -66,6 +66,14 @@ fn validate_form(
     Ok(())
 }
 
+fn plottery_home_string() -> String {
+    plottery_home()
+        .ok()
+        .flatten()
+        .map(|home| home.to_string_lossy().to_string())
+        .unwrap_or_default()
+}
+
 #[component]
 pub fn NewProjectModal(open: Signal<bool>, on_created: EventHandler<PathBuf>) -> Element {
     let app_state = use_context::<Signal<AppState>>();
@@ -81,7 +89,7 @@ pub fn NewProjectModal(open: Signal<bool>, on_created: EventHandler<PathBuf>) ->
     let mut project_name = use_signal(|| "".to_string());
     let mut lib_source = use_signal(|| LibSource::CratesIO);
     let mut custom_path = use_signal(|| "".to_string());
-    let mut plottery_home_path = use_signal(|| std::env::var("PLOTTERY_HOME").unwrap_or_default());
+    let mut plottery_home_path = use_signal(plottery_home_string);
     let mut error = use_signal(|| "".to_string());
 
     let custom_path_missing =
@@ -187,8 +195,7 @@ pub fn NewProjectModal(open: Signal<bool>, on_created: EventHandler<PathBuf>) ->
                                 match event.value().as_str() {
                                     "cratesio" => lib_source.set(LibSource::CratesIO),
                                     "home" => {
-                                        let home_path = std::env::var("PLOTTERY_HOME").unwrap_or_default();
-                                        plottery_home_path.set(home_path);
+                                        plottery_home_path.set(plottery_home_string());
                                         lib_source.set(LibSource::PlotteryHome);
                                     },
                                     "path" => lib_source.set(LibSource::Path { path: PathBuf::from(custom_path()) }),
@@ -196,7 +203,7 @@ pub fn NewProjectModal(open: Signal<bool>, on_created: EventHandler<PathBuf>) ->
                                 }
                             },
                             option { value: "cratesio", "crates.io (default)" }
-                            option { value: "home", "PLOTTERY_HOME" }
+                            option { value: "home", "Plottery home" }
                             option { value: "path", "Custom path" }
                         }
                     }

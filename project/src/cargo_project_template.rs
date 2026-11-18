@@ -36,14 +36,9 @@ fn get_plottery_subcrate(
 ) -> Result<String> {
     let lib_source_for_toml = match lib_source {
         LibSource::PlotteryHome => {
-            let plottery_home = match std::env::var("PLOTTERY_HOME") {
-                Ok(home) => Path::new(&home).to_path_buf(),
-                Err(_) => {
-                    return Err(anyhow::anyhow!(
-                        "Environment variable PLOTTERY_HOME is not set"
-                    ));
-                }
-            };
+            let plottery_home = crate::plottery_home()?.ok_or_else(|| {
+                anyhow::anyhow!("Plottery home is not set, run `plottery set-home <path>`")
+            })?;
             let plottery_home_lib = plottery_home
                 .join(plottery_home_subdir)
                 .absolutize()
@@ -51,7 +46,7 @@ fn get_plottery_subcrate(
                 .to_path_buf();
             if !plottery_home_lib.exists() {
                 return Err(anyhow::anyhow!(
-                    "PLOTTERY_HOME/lib does not exist at: {}",
+                    "Plottery home has no '{plottery_home_subdir}' folder at: {}",
                     plottery_home_lib.to_string_lossy()
                 ));
             }

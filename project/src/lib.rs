@@ -2,8 +2,9 @@
 
 mod cargo_project_template;
 mod project;
+mod plottery_config;
+mod plottery_config_test;
 mod project_config;
-mod util;
 
 mod project_pipeline;
 mod project_scan;
@@ -15,11 +16,10 @@ mod protocol_test;
 mod run_stream;
 
 pub use cargo_project_template::*;
+pub use plottery_config::*;
 pub use project::*;
 pub use project_config::*;
 pub use project_pipeline::*;
 pub use project_scan::*;
 pub use project_util::*;
 pub use run_stream::RunSocket;
-
-pub use util::*;
