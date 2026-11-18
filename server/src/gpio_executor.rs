@@ -243,7 +243,7 @@ impl GpioExecutor {
     }
 
     fn record_step(&mut self, axis: Axis, start: Instant, end: Instant) {
-        let axis_i = axis_to_index(axis);
+        let axis_i = axis.index();
         self.stats.record_pulse(start, end);
         if let Some((previous_end, previous_delay)) = self.last_step {
             let gap = start
@@ -330,7 +330,7 @@ impl HardwareExecutor for GpioExecutor {
     }
 
     fn wait_axis(&mut self, axis: Axis, delay_nanos: u32) {
-        let axis_i = axis_to_index(axis);
+        let axis_i = axis.index();
         let delay = Duration::new(0, delay_nanos);
         self.pending_delay[axis_i] = delay;
         self.maybe_report(delay);
@@ -339,7 +339,7 @@ impl HardwareExecutor for GpioExecutor {
 
     fn wait_xy(&mut self, delay_nanos: u32) {
         let delay = Duration::new(0, delay_nanos);
-        let (x, y) = (axis_to_index(Axis::X), axis_to_index(Axis::Y));
+        let (x, y) = (Axis::X.index(), Axis::Y.index());
         self.pending_delay[x] = delay;
         self.pending_delay[y] = delay;
         self.maybe_report(delay);
@@ -359,13 +359,5 @@ impl HardwareExecutor for GpioExecutor {
 
         #[cfg(not(feature = "raspi"))]
         let _ = enabled;
-    }
-}
-
-fn axis_to_index(axis: Axis) -> usize {
-    match axis {
-        Axis::X => 0,
-        Axis::Y => 1,
-        Axis::Head => 2,
     }
 }

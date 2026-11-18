@@ -142,11 +142,11 @@ impl HardwareExecutor for TimeEstimatorExecutor {
     fn set_dir(&mut self, _axis: Axis, _forward: bool) {}
 
     fn step(&mut self, axis: Axis) {
-        self.last_steps_timestamp_nanos[axis_to_index(axis)] = self.now_nanos;
+        self.last_steps_timestamp_nanos[axis.index()] = self.now_nanos;
     }
 
     fn wait_axis(&mut self, axis: Axis, delay_nanos: u32) {
-        let axis_i = axis_to_index(axis);
+        let axis_i = axis.index();
         let delay_nanos = delay_nanos as u128;
         let delay_until = self.last_steps_timestamp_nanos[axis_i] + delay_nanos;
         self.now_nanos = self.now_nanos.max(delay_until);
@@ -158,12 +158,4 @@ impl HardwareExecutor for TimeEstimatorExecutor {
     }
 
     fn set_enabled(&mut self, _enabled: bool) {}
-}
-
-fn axis_to_index(axis: Axis) -> usize {
-    match axis {
-        Axis::X => 0,
-        Axis::Y => 1,
-        Axis::Head => 2,
-    }
 }

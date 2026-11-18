@@ -9,6 +9,7 @@ use std::{
     slice::{Iter, IterMut},
 };
 
+use super::containment::contains_shape_by_variant;
 use crate::{
     geometry::TransformMatrix,
     traits::{bounds_may_touch, ClosestPoint, Fit, Scale, Scale2D, Transform, Translate},
@@ -450,16 +451,10 @@ impl Path {
         Containment::None
     }
 
-    pub fn contains_shape(&self, other: &Shape) -> Containment {
-        match other {
-            Shape::Circle(c) => self.contains_circle(c),
-            Shape::Rect(r) => self.contains_rect(r),
-            Shape::Path(p) => self.contains_path(p),
-        }
-    }
+    contains_shape_by_variant!();
 }
 
-fn segments_intersect_or_touch(a: Line, b: Line) -> bool {
+pub(super) fn segments_intersect_or_touch(a: Line, b: Line) -> bool {
     if matches!(a.intersection(b), LineIntersection::Intersection(_)) {
         return true;
     }

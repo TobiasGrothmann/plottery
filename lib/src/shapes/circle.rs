@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::f32::consts::PI;
 
+use super::containment::contains_shape_by_variant;
 use crate::{
     traits::{bounds_may_touch, ClosestPoint, Fit, Mirror, Scale, Translate},
     Angle, BoundingBox, Containment, Path, Plottable, Rect, Rotate, Rotate90, SampleSettings,
@@ -322,13 +323,7 @@ impl Circle {
         Containment::None
     }
 
-    pub fn contains_shape(&self, other: &Shape) -> Containment {
-        match other {
-            Shape::Circle(c) => self.contains_circle(c),
-            Shape::Rect(r) => self.contains_rect(r),
-            Shape::Path(p) => self.contains_path(p),
-        }
-    }
+    contains_shape_by_variant!();
 }
 
 impl Plottable for Circle {

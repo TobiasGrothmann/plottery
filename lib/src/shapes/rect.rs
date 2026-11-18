@@ -1,7 +1,9 @@
+use super::containment::contains_shape_by_variant;
+use super::path::segments_intersect_or_touch;
 use crate::{
     traits::{bounds_may_touch, ClosestPoint, Fit, Scale, Scale2D, Translate},
-    Angle, BoundingBox, Circle, Containment, Line, LineIntersection, Mirror, Path, Plottable,
-    PointLineRelation, Rotate, Rotate90, SampleSettings, Shape, LENGTH_TOLERANCE, V2,
+    Angle, BoundingBox, Circle, Containment, Line, Mirror, Path, Plottable, Rotate, Rotate90,
+    SampleSettings, Shape, LENGTH_TOLERANCE, V2,
 };
 use serde::{Deserialize, Serialize};
 
@@ -438,13 +440,7 @@ impl Rect {
             && self.top_right.y > other.bot_left.y
     }
 
-    pub fn contains_shape(&self, other: &Shape) -> Containment {
-        match other {
-            Shape::Circle(c) => self.contains_circle(c),
-            Shape::Rect(r) => self.contains_rect(r),
-            Shape::Path(p) => self.contains_path(p),
-        }
-    }
+    contains_shape_by_variant!();
 
     pub fn rounded_corners(
         &self,
@@ -493,33 +489,6 @@ impl Rect {
             .collect();
         Ok(path)
     }
-}
-
-fn segments_intersect_or_touch(a: Line, b: Line) -> bool {
-    if matches!(a.intersection(b), LineIntersection::Intersection(_)) {
-        return true;
-    }
-
-    if a.point_relation(b.from) == PointLineRelation::OnLine
-        && a.point_relation(b.to) == PointLineRelation::OnLine
-    {
-        let a_min_x = a.from.x.min(a.to.x);
-        let a_max_x = a.from.x.max(a.to.x);
-        let a_min_y = a.from.y.min(a.to.y);
-        let a_max_y = a.from.y.max(a.to.y);
-
-        let b_min_x = b.from.x.min(b.to.x);
-        let b_max_x = b.from.x.max(b.to.x);
-        let b_min_y = b.from.y.min(b.to.y);
-        let b_max_y = b.from.y.max(b.to.y);
-
-        let overlaps_x = a_min_x <= b_max_x && a_max_x >= b_min_x;
-        let overlaps_y = a_min_y <= b_max_y && a_max_y >= b_min_y;
-
-        return overlaps_x && overlaps_y;
-    }
-
-    false
 }
 
 impl Plottable for Rect {

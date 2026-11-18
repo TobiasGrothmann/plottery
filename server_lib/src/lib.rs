@@ -34,6 +34,16 @@ pub enum Axis {
     Head,
 }
 
+impl Axis {
+    pub fn index(self) -> usize {
+        match self {
+            Axis::X => 0,
+            Axis::Y => 1,
+            Axis::Head => 2,
+        }
+    }
+}
+
 // TODO: config
 pub static HOST_PORT: u16 = 29797;
 pub static HOST_NAME: &str = "otter.local";
