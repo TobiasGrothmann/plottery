@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # Builds every project in examples/ (clippy), renders it with the checkout's CLI and compares the
-# render with the committed examples/<name>/preview.png. Fails if any output changed.
-# With --images, overwrites the previews instead, to commit after an intended change.
+# svg with the committed examples/<name>/reference.svg. Fails if any drawing changed.
+# With --update, overwrites reference.svg and the README image preview.png instead, to commit
+# after an intended change.
 
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
 update=false
-if [[ "${1:-}" == "--images" ]]; then
+if [[ "${1:-}" == "--update" ]]; then
     update=true
 fi
 
@@ -24,13 +25,14 @@ for project in examples/*/; do
 
     cargo clippy -q --manifest-path "$project/$name/Cargo.toml" --target-dir target/examples -- -D warnings
 
-    rendered="$changed_dir/$name.png"
-    cargo run -q -p plottery_cli -- render -p "$project" "$rendered" --defaults --size 1200
+    rendered="$changed_dir/$name"
+    cargo run -q -p plottery_cli -- render -p "$project" "$rendered.svg" "$rendered.png" --defaults --size 1200
 
     if $update; then
-        mv "$rendered" "$project/preview.png"
-    elif cmp -s "$rendered" "$project/preview.png"; then
-        rm "$rendered"
+        mv "$rendered.svg" "$project/reference.svg"
+        mv "$rendered.png" "$project/preview.png"
+    elif cmp -s "$rendered.svg" "$project/reference.svg"; then
+        rm "$rendered.svg" "$rendered.png"
     else
         changed+=("$name")
     fi
@@ -38,8 +40,8 @@ done
 
 if ((${#changed[@]})); then
     echo ""
-    echo "Output changed: ${changed[*]}"
+    echo "Drawing changed: ${changed[*]}"
     echo "New renders are in $changed_dir/. If the change is intended, run"
-    echo "scripts/check_examples.sh --images and commit the previews, otherwise fix the code."
+    echo "scripts/check_examples.sh --update and commit the files, otherwise fix the code."
     exit 1
 fi

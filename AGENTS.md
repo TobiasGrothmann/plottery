@@ -96,7 +96,7 @@ Building, local checkouts in projects, tests and releasing: see `DEVELOPMENT.md`
   - tests: `param_field_test.rs`, `param_text_test.rs`, `project_params_list_wrapper_test.rs`
 - **Project files:** Everything in a project folder is committed. Derived files (builds, previews, thumbnails) go to the cache dir, see `plottery_cache_dir` in `project/src/project.rs`.
 - **Project template:** `project/resources/AGENTS.md` is copied into every new project and describes the project, not this workspace. Existing projects keep their old copy, so template changes have to be redistributed.
-- **API changes:** Update `examples/` in the same change; `scripts/check_examples.sh` must pass. It fails when a render differs from the committed `preview.png`: look at `target/examples/changed/`, then fix the code or commit new previews with `--images`
+- **API changes:** Update `examples/` in the same change; `scripts/check_examples.sh` must pass. It fails when a drawing differs from the committed `reference.svg`: look at `target/examples/changed/`, then fix the code or commit new references with `--update`
 - **Crate READMEs:** `lib/README.md`, `runtime/README.md` and `project/README.md` are their crates' docs.rs pages (`include_str!`), so their code blocks are doctests and their links must be absolute GitHub URLs.
 - **Editor formatting:** `dx fmt` moves comments and splits `.await` chains. Format rsx by hand, or run it on one file and diff the result. `cargo fmt` is safe but skips rsx.
 - **Server crate:** Hardware-specific code; `raspi` feature flag required for GPIO

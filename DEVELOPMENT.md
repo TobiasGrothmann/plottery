@@ -34,13 +34,13 @@ and how the `PLOTTERY_HOME` environment variable overrides it: `project/src/plot
 
 ```sh
 cargo run -p plottery_cli -- run examples/spiral    # run one, or open its folder in the editor
-./scripts/check_examples.sh                         # clippy, render, compare with the committed previews
-./scripts/check_examples.sh --images                # rewrite examples/<name>/preview.png instead
+./scripts/check_examples.sh                         # clippy, render, compare with the committed drawings
+./scripts/check_examples.sh --update                # rewrite reference.svg and preview.png instead
 ```
 
-The check fails when a render differs from the committed `preview.png` and keeps the new renders in `target/examples/changed/`. Look at them: if the change is intended, run `--images` and commit the previews, otherwise fix the code. The README shows `spiral` from a hosted image, its `preview.png` is only the reference.
+The check fails when an example's svg differs from its committed `reference.svg` and keeps the new renders in `target/examples/changed/`. Look at them: if the change is intended, run `--update` and commit the files, otherwise fix the code. `preview.png` is only the image for the README (which shows `spiral` from a hosted image), so a renderer update that changes pixels fails nothing.
 
-Create a new example with `plottery new examples <name> -l ../../..`, then delete its `.git`, `.gitignore` and `AGENTS.md`, and write its first preview with `--images`.
+Create a new example with `plottery new examples <name> -l ../../..`, then delete its `.git`, `.gitignore` and `AGENTS.md`, and write its first reference with `--update`.
 
 ## Tests
 
