@@ -5,15 +5,15 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-pub mod accelleration;
+pub mod acceleration;
 pub mod estimation;
 pub mod hardware;
 mod hardware_test;
 pub mod midi;
 pub mod pins;
 pub mod plot_execution;
-pub mod plot_setting;
-mod plot_setting_test;
+pub mod plot_settings;
+mod plot_settings_test;
 pub mod server_state;
 pub mod task;
 mod task_test;
@@ -22,7 +22,7 @@ pub mod telemetry;
 pub use estimation::*;
 pub use midi::*;
 pub use pins::*;
-pub use plot_setting::*;
+pub use plot_settings::*;
 pub use server_state::*;
 pub use task::*;
 pub use telemetry::*;

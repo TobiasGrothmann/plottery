@@ -6,7 +6,7 @@ use crate::{
     hardware::{Hardware, HardwareExecutor},
     pins::HARDWARE_CONSTS,
     plot_execution::{plot_layer, travel_to},
-    plot_setting::PlotSettings,
+    plot_settings::PlotSettings,
     Axis,
 };
 

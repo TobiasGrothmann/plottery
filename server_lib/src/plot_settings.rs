@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 pub struct SpeedRange {
     pub min: f32,
     pub max: f32,
-    pub accelleration_distance: f32,
+    pub acceleration_distance: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -36,22 +36,22 @@ impl Default for PlotSettings {
             speed_draw: SpeedRange {
                 min: 0.39,
                 max: 3.41,
-                accelleration_distance: 0.14,
+                acceleration_distance: 0.14,
             },
             speed_travel: SpeedRange {
                 min: 0.58,
                 max: 4.68,
-                accelleration_distance: 1.0,
+                acceleration_distance: 1.0,
             },
             speed_head_down: SpeedRange {
                 min: 0.47,
                 max: 2.68,
-                accelleration_distance: 0.22,
+                acceleration_distance: 0.22,
             },
             speed_head_up: SpeedRange {
                 min: 1.27,
                 max: 3.75,
-                accelleration_distance: 0.06,
+                acceleration_distance: 0.06,
             },
         }
     }

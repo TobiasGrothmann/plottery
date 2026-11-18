@@ -350,13 +350,13 @@ Any hardware-timed backend consumes an explicit schedule. That means:
 - A `StepEvent { t_ns, axis, forward }` stream produced lazily by the
   planner, sorted by time, never collected whole.
 - A closed-form time parameterisation per segment. With speed linear in
-  distance from `v0` to `v1` over length `L` (what `AccellerationPath`
+  distance from `v0` to `v1` over length `L` (what `AccelerationPath`
   assumes today, `v_min > 0`): `t(s) = s / v0` if `v1 == v0`, else
   `L / (v1 - v0) × ln(v(s) / v0)`. X step `k` fires at
   `s = L × (k - ½) / |dx|`, Y likewise, merged by time; step sums are exact.
 - A pull-model `Stepper::run(events, progress)` trait with `SpinStepper`,
   `PigpioStepper` or `McuStepper` behind it. Heavy planning (sampling,
-  `AccellerationPath`) must happen where the machine is at `v_min`, which
+  `AccelerationPath`) must happen where the machine is at `v_min`, which
   today is every shape boundary.
 - Estimation becomes the sum of closed-form segment durations.
 - Abort becomes a generation counter set by the HTTP handler; the planner
@@ -366,7 +366,7 @@ Any hardware-timed backend consumes an explicit schedule. That means:
 Constant acceleration (`v² = v0² + 2as`, `t = (v - v0) / a`) would be a
 better profile: today's linear-in-distance ramp peaks at about twice the
 acceleration of a trapezoid with the same ramp distance, right where
-torque is lowest. It needs `AccellerationPath` to plan in `v²` space and
+torque is lowest. It needs `AccelerationPath` to plan in `v²` space and
 is its own change.
 
 ### pigpio DMA waves (works on the Pi 3, no hardware change)

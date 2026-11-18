@@ -2,7 +2,7 @@
 mod tests {
     use plottery_lib::{Angle, TransformMatrix, V2};
 
-    use crate::accelleration::maths::get_corner_sharpness;
+    use crate::acceleration::maths::get_corner_sharpness;
 
     #[test]
     fn corner_sharpness_180() {

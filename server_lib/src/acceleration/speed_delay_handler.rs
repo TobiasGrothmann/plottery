@@ -1,4 +1,4 @@
-use crate::plot_setting::SpeedRange;
+use crate::plot_settings::SpeedRange;
 
 #[derive(Debug, Clone, Copy)]
 pub struct SpeedDelayHandler {

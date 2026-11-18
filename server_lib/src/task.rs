@@ -1,6 +1,6 @@
 use plottery_lib::*;
 
-use crate::{plot_setting::PlotSettings, Axis};
+use crate::{plot_settings::PlotSettings, Axis};
 
 use anyhow::{bail, Context};
 use serde::{Deserialize, Serialize};

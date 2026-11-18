@@ -45,7 +45,7 @@ use plottery_runtime::{
     project_param_value::ProjectParamValue, project_params_list_wrapper::ProjectParamsListWrapper,
 };
 use plottery_server_lib::{
-    estimation::estimate_plot_layer_duration, plot_setting::PlotSettings, task::send_task,
+    estimation::estimate_plot_layer_duration, plot_settings::PlotSettings, task::send_task,
 };
 use std::{
     path::{Path, PathBuf},

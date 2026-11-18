@@ -2,7 +2,7 @@
 mod tests {
     use plottery_lib::{FloatInterpolation, Path, Plottable, Rect, SampleSettings, V2};
 
-    use crate::accelleration::accelleration_path::{AccellerationPath, V2Speed};
+    use crate::acceleration::acceleration_path::{AccelerationPath, V2Speed};
 
     fn is_inbetween_on_segment(point: V2, a: V2, b: V2) -> bool {
         if point == a || point == b {
@@ -79,11 +79,11 @@ mod tests {
     fn full_speed_all_segments() {
         let path = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
 
-        let accell_dist = 0.2;
-        let edge_slow_down_power = 0.5;
+        let acceleration_distance = 0.2;
+        let corner_slowdown_power = 0.5;
 
         let points = path.points(SampleSettings::default());
-        let acc_path = AccellerationPath::new(&points, accell_dist, edge_slow_down_power);
+        let acc_path = AccelerationPath::new(&points, acceleration_distance, corner_slowdown_power);
 
         assert_eq!(acc_path.points.len(), 13);
         // start and end points didn't change
@@ -116,11 +116,11 @@ mod tests {
             V2::new(1.0, 0.1),
         ]);
 
-        let accell_dist = 0.3;
-        let edge_slow_down_power = 0.5;
+        let acceleration_distance = 0.3;
+        let corner_slowdown_power = 0.5;
 
         let points = path.points(SampleSettings::default());
-        let acc_path = AccellerationPath::new(&points, accell_dist, edge_slow_down_power);
+        let acc_path = AccelerationPath::new(&points, acceleration_distance, corner_slowdown_power);
 
         assert!(acc_path.points.len() >= 5);
 
@@ -160,11 +160,11 @@ mod tests {
             V2::new(0.1, 1.0),
         ]);
 
-        let accell_dist = 0.3;
-        let edge_slow_down_power = 0.5;
+        let acceleration_distance = 0.3;
+        let corner_slowdown_power = 0.5;
 
         let points = path.points(SampleSettings::default());
-        let acc_path = AccellerationPath::new(&points, accell_dist, edge_slow_down_power);
+        let acc_path = AccelerationPath::new(&points, acceleration_distance, corner_slowdown_power);
 
         assert!(acc_path.points.len() >= 5);
 
@@ -200,9 +200,9 @@ mod tests {
     fn very_short_segments() {
         let points: Vec<V2> = 0.0.lerp_iter(1.0, 0.01).map(|x| V2::new(x, 0.0)).collect();
 
-        let accell_dist = 0.3;
-        let edge_slow_down_power = 0.5;
-        let acc_path = AccellerationPath::new(&points, accell_dist, edge_slow_down_power);
+        let acceleration_distance = 0.3;
+        let corner_slowdown_power = 0.5;
+        let acc_path = AccelerationPath::new(&points, acceleration_distance, corner_slowdown_power);
 
         for point in acc_path.points.iter() {
             println!("point: {:?}", point);
@@ -214,12 +214,12 @@ mod tests {
     #[test]
     fn inserts_peak_when_segment_can_accelerate_above_endpoints() {
         // Single segment with both endpoints at speed 0.0.
-        // With accell_dist=2.0 and length=1.0, peak speed should be 0.25 at midpoint.
+        // With acceleration_distance=2.0 and length=1.0, peak speed should be 0.25 at midpoint.
         let points = vec![V2::new(0.0, 0.0), V2::new(1.0, 0.0)];
-        let accell_dist = 2.0;
-        let edge_slow_down_power = 1.0;
+        let acceleration_distance = 2.0;
+        let corner_slowdown_power = 1.0;
 
-        let acc_path = AccellerationPath::new(&points, accell_dist, edge_slow_down_power);
+        let acc_path = AccelerationPath::new(&points, acceleration_distance, corner_slowdown_power);
 
         assert_eq!(acc_path.points.len(), 3);
         assert_eq!(acc_path.points[0].point, V2::new(0.0, 0.0));
@@ -233,13 +233,13 @@ mod tests {
     }
 
     #[test]
-    fn single_segment_accell_dist_ratio_cases() {
+    fn single_segment_acceleration_distance_ratio_cases() {
         // Segment from a->b with n = |b-a| = 1.0
         let points = vec![V2::new(0.0, 0.0), V2::new(1.0, 0.0)];
-        let edge_slow_down_power = 1.0;
+        let corner_slowdown_power = 1.0;
 
-        // accell_dist = 0.2 * n
-        let path_02 = AccellerationPath::new(&points, 0.2, edge_slow_down_power);
+        // acceleration_distance = 0.2 * n
+        let path_02 = AccelerationPath::new(&points, 0.2, corner_slowdown_power);
         assert_path_matches(
             &path_02.points,
             &[
@@ -250,8 +250,8 @@ mod tests {
             ],
         );
 
-        // accell_dist = 0.5 * n
-        let path_05 = AccellerationPath::new(&points, 0.5, edge_slow_down_power);
+        // acceleration_distance = 0.5 * n
+        let path_05 = AccelerationPath::new(&points, 0.5, corner_slowdown_power);
         assert_path_matches(
             &path_05.points,
             &[
@@ -261,8 +261,8 @@ mod tests {
             ],
         );
 
-        // accell_dist = 0.8 * n
-        let path_08 = AccellerationPath::new(&points, 0.8, edge_slow_down_power);
+        // acceleration_distance = 0.8 * n
+        let path_08 = AccelerationPath::new(&points, 0.8, corner_slowdown_power);
         assert_path_matches(
             &path_08.points,
             &[
@@ -272,8 +272,8 @@ mod tests {
             ],
         );
 
-        // accell_dist = 1.0 * n
-        let path_10 = AccellerationPath::new(&points, 1.0, edge_slow_down_power);
+        // acceleration_distance = 1.0 * n
+        let path_10 = AccelerationPath::new(&points, 1.0, corner_slowdown_power);
         assert_path_matches(
             &path_10.points,
             &[
@@ -283,8 +283,8 @@ mod tests {
             ],
         );
 
-        // accell_dist = 1.5 * n
-        let path_15 = AccellerationPath::new(&points, 1.5, edge_slow_down_power);
+        // acceleration_distance = 1.5 * n
+        let path_15 = AccelerationPath::new(&points, 1.5, corner_slowdown_power);
         assert_path_matches(
             &path_15.points,
             &[
@@ -300,10 +300,10 @@ mod tests {
         // Reproduces: (0,0) -> (1,0) -> (0,0)
         // Both segments are equal and should both get in-between peak points.
         let points = vec![V2::new(0.0, 0.0), V2::new(1.0, 0.0), V2::new(0.0, 0.0)];
-        let accell_dist = 2.0;
-        let edge_slow_down_power = 1.0;
+        let acceleration_distance = 2.0;
+        let corner_slowdown_power = 1.0;
 
-        let acc_path = AccellerationPath::new(&points, accell_dist, edge_slow_down_power);
+        let acc_path = AccelerationPath::new(&points, acceleration_distance, corner_slowdown_power);
 
         assert!(has_inserted_inbetween_for_segment(
             &acc_path.points,

@@ -25,7 +25,7 @@ use std::time::Duration;
 
 use plottery_lib::{Circle, Layer, Path, SampleSettings, V2};
 use plottery_server_lib::{
-    plot_setting::PlotSettings,
+    plot_settings::PlotSettings,
     server_state::request_server_state,
     task::{send_task, Task},
 };

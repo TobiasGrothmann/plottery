@@ -12,19 +12,19 @@ pub struct V2Speed {
 }
 
 impl V2Speed {
-    pub fn compute_speed(before: V2, point: V2, after: V2, edge_slow_down_power: f32) -> f32 {
+    pub fn compute_speed(before: V2, point: V2, after: V2, corner_slowdown_power: f32) -> f32 {
         let sharpness = get_corner_sharpness(before, point, after);
-        1.0 - sharpness.powf(edge_slow_down_power)
+        1.0 - sharpness.powf(corner_slowdown_power)
     }
 }
 
 #[derive(Debug)]
-pub struct AccellerationPath {
+pub struct AccelerationPath {
     pub points: Vec<V2Speed>,
 }
 
-impl AccellerationPath {
-    pub fn new(points: &[V2], accell_dist: f32, corner_slowdown_power: f32) -> Self {
+impl AccelerationPath {
+    pub fn new(points: &[V2], acceleration_distance: f32, corner_slowdown_power: f32) -> Self {
         let points_dedup: Vec<V2> = points.iter().dedup().cloned().collect();
         if points_dedup.len() < 2 {
             return Self {
@@ -40,45 +40,45 @@ impl AccellerationPath {
 
         let corner_sharpness_speeds = Self::edge_pass(&points_dedup, corner_slowdown_power);
 
-        let accelleration_speeds = Self::accelleration_pass(
+        let acceleration_speeds = Self::acceleration_pass(
             points_dedup.iter().cloned(),
             corner_sharpness_speeds.iter().cloned(),
-            accell_dist,
+            acceleration_distance,
         );
-        let decelleration_speeds = Self::accelleration_pass(
+        let deceleration_speeds = Self::acceleration_pass(
             points_dedup.iter().rev().cloned(),
             corner_sharpness_speeds.iter().rev().cloned(),
-            accell_dist,
+            acceleration_distance,
         );
 
-        let min_speeds: Vec<f32> = accelleration_speeds
+        let min_speeds: Vec<f32> = acceleration_speeds
             .iter()
-            // decelleration speeds are iterated in reverse
-            .zip(decelleration_speeds.iter().rev())
+            // deceleration speeds are iterated in reverse
+            .zip(deceleration_speeds.iter().rev())
             .map(|(acc, dec)| acc.min(*dec))
             .collect();
 
         let points_with_inbetweens =
-            Self::get_points_with_inbetweens(&points_dedup, &min_speeds, accell_dist);
+            Self::get_points_with_inbetweens(&points_dedup, &min_speeds, acceleration_distance);
 
         Self {
             points: points_with_inbetweens,
         }
     }
 
-    fn accelleration_pass(
+    fn acceleration_pass(
         points: impl Iterator<Item = V2>,
         corner_sharpness_speeds: impl Iterator<Item = f32>,
-        accell_dist: f32,
+        acceleration_distance: f32,
     ) -> Vec<f32> {
         let mut speed = 0.0;
         let speeds = points.zip(corner_sharpness_speeds).tuple_windows().map(
             |((a, _a_speed), (b, b_speed))| {
                 let segment_length = a.dist(b);
-                let max_acc = segment_length / accell_dist;
+                let max_acc = segment_length / acceleration_distance;
 
                 if speed < b_speed {
-                    // we need to accellerate
+                    // we need to accelerate
                     if speed + max_acc >= b_speed {
                         // we can reach max speed
                         speed = b_speed;
@@ -88,7 +88,7 @@ impl AccellerationPath {
                     }
                     return speed;
                 } else {
-                    // set speed to next speed, decelleration is handled in reverse pass
+                    // set speed to next speed, deceleration is handled in reverse pass
                     speed = b_speed;
                 }
                 speed
@@ -98,7 +98,7 @@ impl AccellerationPath {
         std::iter::once(0.0).chain(speeds).collect()
     }
 
-    fn edge_pass(points: &[V2], edge_slow_down_power: f32) -> Vec<f32> {
+    fn edge_pass(points: &[V2], corner_slowdown_power: f32) -> Vec<f32> {
         let mut speeds = Vec::with_capacity(points.len());
         speeds.push(0.0);
 
@@ -107,7 +107,7 @@ impl AccellerationPath {
                 *before,
                 *point,
                 *after,
-                edge_slow_down_power,
+                corner_slowdown_power,
             ));
         }
 
@@ -115,14 +115,18 @@ impl AccellerationPath {
         speeds
     }
 
-    fn get_points_with_inbetweens(points: &[V2], speeds: &[f32], accell_dist: f32) -> Vec<V2Speed> {
+    fn get_points_with_inbetweens(
+        points: &[V2],
+        speeds: &[f32],
+        acceleration_distance: f32,
+    ) -> Vec<V2Speed> {
         let mut speed_points = Vec::with_capacity(points.len() * 3);
 
         if points.is_empty() {
             return speed_points;
         }
 
-        if accell_dist <= EPSILON {
+        if acceleration_distance <= EPSILON {
             return points
                 .iter()
                 .zip(speeds.iter())
@@ -149,8 +153,8 @@ impl AccellerationPath {
                 continue;
             }
 
-            let a_dist_to_max_speed = (1.0 - speed_a) * accell_dist;
-            let b_dist_to_max_speed = (1.0 - speed_b) * accell_dist;
+            let a_dist_to_max_speed = (1.0 - speed_a) * acceleration_distance;
+            let b_dist_to_max_speed = (1.0 - speed_b) * acceleration_distance;
 
             if segment_length + EPSILON >= a_dist_to_max_speed + b_dist_to_max_speed {
                 // We can reach full speed somewhere in this segment.
@@ -177,13 +181,13 @@ impl AccellerationPath {
             }
 
             // We cannot reach full speed. The best profile is triangular with one peak.
-            let dist_to_peak = 0.5 * (segment_length + accell_dist * (speed_b - speed_a));
+            let dist_to_peak = 0.5 * (segment_length + acceleration_distance * (speed_b - speed_a));
             if dist_to_peak <= EPSILON || dist_to_peak >= segment_length - EPSILON {
                 continue;
             }
 
-            let peak_speed = (speed_a + dist_to_peak / accell_dist)
-                .min(speed_b + (segment_length - dist_to_peak) / accell_dist)
+            let peak_speed = (speed_a + dist_to_peak / acceleration_distance)
+                .min(speed_b + (segment_length - dist_to_peak) / acceleration_distance)
                 .min(1.0);
 
             if peak_speed > speed_a.max(speed_b) + EPSILON {

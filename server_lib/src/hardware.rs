@@ -6,7 +6,7 @@ use std::sync::{
 use plottery_lib::*;
 
 use crate::{
-    accelleration::{accelleration_path::V2Speed, speed_delay_handler::SpeedDelayHandler},
+    acceleration::{acceleration_path::V2Speed, speed_delay_handler::SpeedDelayHandler},
     telemetry::Telemetry,
     Axis,
 };
@@ -218,7 +218,7 @@ impl<E: HardwareExecutor> Hardware<E> {
         &mut self,
         down: bool,
         head_travel_beyond_paper_cm: f32,
-        accelleration_dist: f32,
+        acceleration_distance: f32,
         speed_handler: SpeedDelayHandler,
     ) {
         if self.head_down == down {
@@ -234,9 +234,9 @@ impl<E: HardwareExecutor> Hardware<E> {
         for i in 0..head_travel_steps {
             let fraction = i as f32 / head_travel_steps as f32;
             let current_head_travel_cm = head_travel_cm * fraction;
-            let speed_fraction_acc: f32 = current_head_travel_cm / accelleration_dist;
+            let speed_fraction_acc: f32 = current_head_travel_cm / acceleration_distance;
             let speed_fraction_decc: f32 =
-                (head_travel_cm - current_head_travel_cm) / accelleration_dist;
+                (head_travel_cm - current_head_travel_cm) / acceleration_distance;
             let speed_fraction = speed_fraction_acc.min(speed_fraction_decc).clamp(0.0, 1.0);
 
             let delay_nanos = speed_handler.get_delay_nanos(speed_fraction.clamp(0.0, 1.0)) as u32;
