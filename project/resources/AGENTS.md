@@ -67,7 +67,7 @@ and runs with the user's param values, so a render shows what the user sees.
   user's saved values. Use `params --set ...` to check an override before rendering.
 - `plottery set NAME=VALUE...` changes the user's saved values and prints the changed lines. Use it only
   when the user asks for new values, not to try things out. An open editor with hot reload on picks
-  them up and reruns. `set --defaults` resets all params to the code's `#[value]`s.
+  them up and reruns. `set --reset` resets all params to the code's `#[value]`s.
 - `render` writes `.png` (white, `--size` px on the long side, default 1600) and `.svg` files and prints
   shape count, draw and travel length, and the bounds against the paper frame.
 - `plottery run` and `render --update-editor` write the result into `resources/` for the editor.

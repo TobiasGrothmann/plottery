@@ -129,7 +129,7 @@ enum Command {
     )]
     Set {
         #[arg(
-            required_unless_present = "defaults",
+            required_unless_present = "reset",
             value_name = "NAME=VALUE",
             help = "Syntax as printed by `plottery params`, e.g. size=12.5 glow.radius=2 points.0=1,2"
         )]
@@ -137,7 +137,7 @@ enum Command {
         #[command(flatten)]
         project: ProjectFlag,
         #[arg(long, help = "Reset all params to the code's defaults first")]
-        defaults: bool,
+        reset: bool,
     },
     #[command(
         about = "Render to png and/or svg files and print drawing stats",
@@ -392,7 +392,7 @@ pub fn main() -> Result<()> {
         Command::Set {
             assignments,
             project,
-            defaults: reset,
+            reset,
         } => {
             let assignments = parse_assignments(&assignments)?;
             let project = find_project(project.project)?;
