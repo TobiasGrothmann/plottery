@@ -26,15 +26,15 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'plottery_cli'",
+            "name": "Debug executable 'plottery'",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=plottery_cli",
+                    "--bin=plottery",
                     "--package=plottery_cli"
                 ],
                 "filter": {
-                    "name": "plottery_cli",
+                    "name": "plottery",
                     "kind": "bin"
                 }
             },
@@ -44,16 +44,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'plottery_cli'",
+            "name": "Debug unit tests in executable 'plottery'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=plottery_cli",
+                    "--bin=plottery",
                     "--package=plottery_cli"
                 ],
                 "filter": {
-                    "name": "plottery_cli",
+                    "name": "plottery",
                     "kind": "bin"
                 }
             },
