@@ -96,10 +96,6 @@ impl Angle {
         Self::from_degrees(-90.0)
     }
 
-    /// Creates an angle with the golden ratio number of rotations. See [`GOLDEN_RATIO`].
-    pub fn golden_ratio() -> Self {
-        Self::from_rotations(GOLDEN_RATIO)
-    }
     /// Creates an angle with 1.0 / golden ratio number of rotations. See [`GOLDEN_RATIO`].
     pub fn golden_ratio_inverse() -> Self {
         Self::from_rotations(1.0 / GOLDEN_RATIO)
@@ -107,10 +103,6 @@ impl Angle {
     /// The golden angle, ≈ 137.5°: the circle split in the golden ratio.
     pub fn golden_angle() -> Self {
         Self::from_rotations(1.0 - 1.0 / GOLDEN_RATIO)
-    }
-    /// Creates an angle with √2 number of rotations.
-    pub fn root_two() -> Self {
-        Self::from_rotations(2.0_f32.sqrt())
     }
     /// Creates an angle with 1.0 / √2 number of rotations.
     pub fn root_two_inverse() -> Self {

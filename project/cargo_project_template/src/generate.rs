@@ -35,7 +35,7 @@ pub fn generate(params: Params) -> Layer {
     // circles in a golden-angle spiral, keeping only those inside the frame
     let circles = (1..)
         .map(|i| {
-            let angle = Angle::golden_ratio() * i as f32;
+            let angle = Angle::golden_angle() * i as f32;
             let distance = (i as f32).sqrt() * params.spacing;
             spiral_center + V2::polar(angle, distance)
         })
