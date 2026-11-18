@@ -50,6 +50,7 @@ A **Plottery Project** is a user-created artwork generator: a standalone Cargo p
 - `///` docstrings are one short line, and only where the signature alone is unclear.
 - Transformations come in pairs: `rotate` returns a new value, `rotate_mut` changes it in place.
 - Error handling: `anyhow::Result`.
+- Deterministic: the same seed gives the same drawing. Rayon only for code that can't reach an rng (global rng, unseeded `Noise`, user closures); see `Layer::map_recursive_par`.
 
 ## File Conventions
 

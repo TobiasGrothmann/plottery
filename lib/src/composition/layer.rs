@@ -283,7 +283,23 @@ impl Layer {
 
     /// Create a new [`Layer`] with a function mapped recursively to all [`Shape`]s in the `Layer` and its sublayers.
     #[must_use]
-    pub fn map_recursive<F>(&self, f: F) -> Self
+    pub fn map_recursive<F: Fn(&Shape) -> Shape>(&self, f: F) -> Self {
+        self.map_recursive_internal(&f)
+    }
+    fn map_recursive_internal<F: Fn(&Shape) -> Shape>(&self, f: &F) -> Self {
+        Layer::new_from_shapes_and_layers(
+            self.shapes.iter().map(f).collect(),
+            self.sublayers
+                .iter()
+                .map(|sublayer| sublayer.map_recursive_internal(f))
+                .collect(),
+        )
+        .with_props_inheritable(self.props_inheritable.clone())
+        .with_props(self.props.clone())
+    }
+
+    /// Parallel [`Layer::map_recursive`], only for closures that can't reach any rng.
+    pub(crate) fn map_recursive_par<F>(&self, f: F) -> Self
     where
         F: Fn(&Shape) -> Shape + Send + Sync,
     {
@@ -330,14 +346,44 @@ impl Layer {
     #[must_use]
     pub fn flat_map_recursive<F, I>(&self, f: F) -> Self
     where
+        F: Fn(&Shape) -> I,
+        I: IntoIterator,
+        I::Item: Into<Shape>,
+    {
+        self.flat_map_recursive_internal(&f)
+    }
+    fn flat_map_recursive_internal<F, I>(&self, f: &F) -> Self
+    where
+        F: Fn(&Shape) -> I,
+        I: IntoIterator,
+        I::Item: Into<Shape>,
+    {
+        let shapes: Vec<Shape> = self
+            .shapes
+            .iter()
+            .flat_map(|shape| f(shape).into_iter().map(Into::into))
+            .collect();
+        let sublayers = self
+            .sublayers
+            .iter()
+            .map(|layer| layer.flat_map_recursive_internal(f))
+            .collect();
+
+        Layer::new_from_shapes_and_layers(shapes, sublayers)
+            .with_props_inheritable(self.props_inheritable.clone())
+            .with_props(self.props.clone())
+    }
+
+    /// Parallel [`Layer::flat_map_recursive`], only for closures that can't reach any rng.
+    fn flat_map_recursive_par<F, I>(&self, f: F) -> Self
+    where
         F: Fn(&Shape) -> I + Send + Sync,
         I: IntoIterator,
         I::Item: Into<Shape>,
     {
-        let f = Arc::new(f);
-        self.flat_map_recursive_internal(f)
+        self.flat_map_recursive_par_internal(Arc::new(f))
     }
-    fn flat_map_recursive_internal<F, I>(&self, f: Arc<F>) -> Self
+    fn flat_map_recursive_par_internal<F, I>(&self, f: Arc<F>) -> Self
     where
         F: Fn(&Shape) -> I + Send + Sync,
         I: IntoIterator,
@@ -351,7 +397,7 @@ impl Layer {
         let sublayers = self
             .sublayers
             .par_iter()
-            .map(|layer| layer.flat_map_recursive_internal(f.clone()))
+            .map(|layer| layer.flat_map_recursive_par_internal(f.clone()))
             .collect();
 
         Layer::new_from_shapes_and_layers(shapes, sublayers)
@@ -361,24 +407,21 @@ impl Layer {
 
     /// Oversamples every shape and moves each point with `f`, recursively. see [`Shape::distort`].
     #[must_use]
-    pub fn distort<F>(&self, sample_settings: SampleSettings, f: F) -> Self
-    where
-        F: Fn(V2) -> V2 + Send + Sync,
-    {
+    pub fn distort<F: Fn(V2) -> V2>(&self, sample_settings: SampleSettings, f: F) -> Self {
         self.map_recursive(|shape| shape.distort(sample_settings, &f).into())
     }
 
     /// Dashes every shape, recursively. see [`Shape::dash`].
     #[must_use]
     pub fn dash(&self, dash_length: f32, gap_length: f32, sample_settings: SampleSettings) -> Self {
-        self.flat_map_recursive(|shape| shape.dash(dash_length, gap_length, sample_settings))
+        self.flat_map_recursive_par(|shape| shape.dash(dash_length, gap_length, sample_settings))
     }
 
     /// Dashes every shape with a custom dash function, recursively. see [`Shape::dash_fn`].
     #[must_use]
     pub fn dash_fn<F>(&self, sample_settings: SampleSettings, f: F) -> Self
     where
-        F: Fn(V2, bool, f32, f32) -> f32 + Send + Sync,
+        F: Fn(V2, bool, f32, f32) -> f32,
     {
         self.flat_map_recursive(|shape| shape.dash_fn(sample_settings, &f))
     }
@@ -397,36 +440,23 @@ impl Layer {
 
     /// Create a new [`Layer`] with the [`Shape`]s in the `Layer` and its sublayers filtered with a predicate function.
     #[must_use]
-    pub fn filter_recursive<F>(&self, f: F) -> Self
-    where
-        F: Fn(&Shape) -> bool + Send + Sync,
-    {
-        let f = Arc::new(f);
-        self.filter_recursive_internal(f)
+    pub fn filter_recursive<F: Fn(&Shape) -> bool>(&self, f: F) -> Self {
+        self.filter_recursive_internal(&f)
     }
-    fn filter_recursive_internal<F>(&self, f: Arc<F>) -> Self
-    where
-        F: Fn(&Shape) -> bool + Send + Sync,
-    {
-        let (filtered_shapes, filtered_sublayers) = rayon::join(
-            || {
-                self.shapes
-                    .par_iter()
-                    .filter(|shape| f(shape))
-                    .cloned()
-                    .collect()
-            },
-            || {
-                self.sublayers
-                    .par_iter()
-                    .map(|layer| layer.filter_recursive_internal(f.clone()))
-                    .collect()
-            },
-        );
-
-        Layer::new_from_shapes_and_layers(filtered_shapes, filtered_sublayers)
-            .with_props_inheritable(self.props_inheritable.clone())
-            .with_props(self.props.clone())
+    fn filter_recursive_internal<F: Fn(&Shape) -> bool>(&self, f: &F) -> Self {
+        Layer::new_from_shapes_and_layers(
+            self.shapes
+                .iter()
+                .filter(|shape| f(shape))
+                .cloned()
+                .collect(),
+            self.sublayers
+                .iter()
+                .map(|layer| layer.filter_recursive_internal(f))
+                .collect(),
+        )
+        .with_props_inheritable(self.props_inheritable.clone())
+        .with_props(self.props.clone())
     }
 
     /// Returns a [`Masked`] object all [`Shape`]s of the `Layer` and its sublayers, grouping parts of all [`Shape`]s into `inside` and `outside`.
@@ -486,7 +516,7 @@ impl Layer {
     /// Reduces the number of points for all [`Shape`]s in this `Layer` and its sublayers. see [`Shape::reduce_points`].
     #[must_use]
     pub fn reduce_points_recursive(&self, aggression_factor: f32) -> Self {
-        self.map_recursive(|shape| shape.reduce_points(aggression_factor))
+        self.map_recursive_par(|shape| shape.reduce_points(aggression_factor))
     }
 
     /// Returns a [`Masked`] object all [`Shape`]s of the `Layer` and its sublayers, grouping parts of all [`Shape`]s into `inside` and `outside`.
@@ -726,7 +756,7 @@ impl FromIterator<Layer> for Layer {
 
 impl Translate for Layer {
     fn translate(&self, dist: V2) -> Self {
-        self.map_recursive(|shape| shape.translate(dist))
+        self.map_recursive_par(|shape| shape.translate(dist))
     }
     fn translate_mut(&mut self, dist: V2) {
         self.map_recursive_mut(|shape| shape.translate_mut(dist));
@@ -735,14 +765,14 @@ impl Translate for Layer {
 
 impl Rotate for Layer {
     fn rotate(&self, angle: Angle) -> Self {
-        self.map_recursive(|shape| shape.rotate(angle))
+        self.map_recursive_par(|shape| shape.rotate(angle))
     }
     fn rotate_mut(&mut self, angle: Angle) {
         self.map_recursive_mut(|shape| shape.rotate_mut(angle));
     }
 
     fn rotate_around(&self, pivot: V2, angle: Angle) -> Self {
-        self.map_recursive(|shape| shape.rotate_around(pivot, angle))
+        self.map_recursive_par(|shape| shape.rotate_around(pivot, angle))
     }
     fn rotate_around_mut(&mut self, pivot: V2, angle: Angle) {
         self.map_recursive_mut(|shape| shape.rotate_around_mut(pivot, angle));
@@ -751,7 +781,7 @@ impl Rotate for Layer {
 
 impl Scale for Layer {
     fn scale(&self, factor: f32) -> Self {
-        self.map_recursive(|shape| shape.scale(factor))
+        self.map_recursive_par(|shape| shape.scale(factor))
     }
 
     fn scale_mut(&mut self, factor: f32) {
@@ -761,7 +791,7 @@ impl Scale for Layer {
 
 impl Scale2D for Layer {
     fn scale_2d(&self, factor: V2) -> Self {
-        self.map_recursive(|shape| shape.scale_2d(factor))
+        self.map_recursive_par(|shape| shape.scale_2d(factor))
     }
 
     fn scale_2d_mut(&mut self, factor: V2) {
@@ -773,7 +803,7 @@ impl Fit for Layer {}
 
 impl Mirror for Layer {
     fn mirror_x(&self) -> Self {
-        self.map_recursive(|shape| shape.mirror_x())
+        self.map_recursive_par(|shape| shape.mirror_x())
     }
 
     fn mirror_x_mut(&mut self) {
@@ -781,7 +811,7 @@ impl Mirror for Layer {
     }
 
     fn mirror_y(&self) -> Self {
-        self.map_recursive(|shape| shape.mirror_y())
+        self.map_recursive_par(|shape| shape.mirror_y())
     }
 
     fn mirror_y_mut(&mut self) {
@@ -849,37 +879,37 @@ impl Extend<Layer> for Layer {
 
 impl Rotate90 for Layer {
     fn rotate_90(&self) -> Self {
-        self.map_recursive(|shape| shape.rotate_90())
+        self.map_recursive_par(|shape| shape.rotate_90())
     }
     fn rotate_90_mut(&mut self) {
         self.map_recursive_mut(|shape| shape.rotate_90_mut());
     }
     fn rotate_180(&self) -> Self {
-        self.map_recursive(|shape| shape.rotate_180())
+        self.map_recursive_par(|shape| shape.rotate_180())
     }
     fn rotate_180_mut(&mut self) {
         self.map_recursive_mut(|shape| shape.rotate_180_mut());
     }
     fn rotate_270(&self) -> Self {
-        self.map_recursive(|shape| shape.rotate_270())
+        self.map_recursive_par(|shape| shape.rotate_270())
     }
     fn rotate_270_mut(&mut self) {
         self.map_recursive_mut(|shape| shape.rotate_270_mut());
     }
     fn rotate_90_around(&self, pivot: V2) -> Self {
-        self.map_recursive(|shape| shape.rotate_90_around(pivot))
+        self.map_recursive_par(|shape| shape.rotate_90_around(pivot))
     }
     fn rotate_90_around_mut(&mut self, pivot: V2) {
         self.map_recursive_mut(|shape| shape.rotate_90_around_mut(pivot));
     }
     fn rotate_180_around(&self, pivot: V2) -> Self {
-        self.map_recursive(|shape| shape.rotate_180_around(pivot))
+        self.map_recursive_par(|shape| shape.rotate_180_around(pivot))
     }
     fn rotate_180_around_mut(&mut self, pivot: V2) {
         self.map_recursive_mut(|shape| shape.rotate_180_around_mut(pivot));
     }
     fn rotate_270_around(&self, pivot: V2) -> Self {
-        self.map_recursive(|shape| shape.rotate_270_around(pivot))
+        self.map_recursive_par(|shape| shape.rotate_270_around(pivot))
     }
     fn rotate_270_around_mut(&mut self, pivot: V2) {
         self.map_recursive_mut(|shape| shape.rotate_270_around_mut(pivot));
@@ -888,7 +918,7 @@ impl Rotate90 for Layer {
 
 impl Transform for Layer {
     fn transform(&self, matrix: &TransformMatrix) -> Self {
-        self.map_recursive(|shape| shape.transform(matrix))
+        self.map_recursive_par(|shape| shape.transform(matrix))
     }
     fn transform_mut(&mut self, matrix: &TransformMatrix) {
         self.map_recursive_mut(|shape| shape.transform_mut(matrix));

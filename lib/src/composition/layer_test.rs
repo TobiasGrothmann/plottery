@@ -4,11 +4,32 @@ mod test_layer {
     use rand::{seq::SliceRandom, SeedableRng};
 
     use crate::{
+        maths::seed_for_test,
+        rand_range,
         traits::{fit::Alignment, Translate},
         Angle, BoundingBox, Circle, ColorRgb, Fit, FloatInterpolation, Inheritable, Layer,
         LayerPropsInheritable, Path, Plottable, Rect, Rotate, SampleSettings, Shape,
         LENGTH_TOLERANCE, V2,
     };
+
+    #[test]
+    fn map_recursive_draws_from_the_global_rng_in_shape_order() {
+        let circles = |offset: f32| -> Vec<Circle> {
+            (0..500)
+                .map(|i| Circle::new(V2::new(i as f32, offset), 1.0))
+                .collect()
+        };
+        let mut layer = Layer::new_from(circles(0.0));
+        layer.push_layer(Layer::new_from(circles(1.0)));
+        let jitter = |shape: &Shape| shape.translate(V2::new(rand_range(0.0, 1.0), 0.0));
+
+        let _rng = seed_for_test(5);
+        let mapped: Vec<Shape> = layer.map_recursive(jitter).iter().cloned().collect();
+        crate::seed(5);
+        let expected: Vec<Shape> = layer.iter().map(jitter).collect();
+
+        assert_eq!(mapped, expected);
+    }
 
     #[test]
     fn iterator() {

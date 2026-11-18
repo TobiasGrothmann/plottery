@@ -37,7 +37,7 @@ impl Layer {
     /// bounding box. Layers of different extent then line up, e.g. as frames of an animation.
     pub fn to_svg_in(&self, view: Rect) -> Document {
         let height = view.size().only_y();
-        let prepared = self.map_recursive(|shape| shape.mirror_y().translate(height));
+        let prepared = self.map_recursive_par(|shape| shape.mirror_y().translate(height));
 
         let flipped_bl = V2::new(view.bl().x, height.y - view.tr().y);
         let origin: V2 = flipped_bl * SVG_UNITS_PER_CM;
@@ -247,7 +247,8 @@ impl Layer {
 
         // Convert SVG y-down coordinates back to Plottery y-up coordinates.
         if let Some(bounds) = layer.bounding_box() {
-            layer = layer.map_recursive(|shape| shape.mirror_y().translate(bounds.tr().only_y()));
+            layer =
+                layer.map_recursive_par(|shape| shape.mirror_y().translate(bounds.tr().only_y()));
         }
 
         Ok(layer)
