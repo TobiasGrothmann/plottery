@@ -14,6 +14,8 @@ mod layer_props;
 mod layer_props_test;
 mod layer_stats;
 mod layer_stats_test;
+mod layer_svg;
+mod layer_svg_test;
 mod layer_test;
 pub mod paper;
 mod paper_test;
