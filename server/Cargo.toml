@@ -18,7 +18,7 @@ raspi = ["dep:rppal", "dep:libc"]
 plottery_lib = { path = "../lib", version = "^0.18.0" }
 plottery_server_lib = { path = "../server_lib", version = "^0.18.0" }
 rocket = "0.5.1"
-tokio = "1.43.0"
+tokio.workspace = true
 rppal = { version = "0.22.1", features = ["hal"], optional = true }
-anyhow = "1.0.96"
+anyhow.workspace = true
 libc = { version = "0.2", optional = true }

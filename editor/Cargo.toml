@@ -20,25 +20,25 @@ plottery_project = { path = "../project", version = "^0.18.0" }
 plottery_runtime = { path = "../runtime", version = "^0.18.0" }
 plottery_server_lib = { path = "../server_lib", version = "^0.18.0" }
 dioxus = { version = "0.7", features = ["desktop"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+serde.workspace = true
+serde_json.workspace = true
 dioxus-logger = "0.7"
-path-absolutize = "3.1.1"
-chrono = "0.4.31"
+path-absolutize.workspace = true
+chrono.workspace = true
 dioxus-router = "0.7"
-tokio = "1.35.1"
+tokio.workspace = true
 notify = "6.1.1"
 rfd = { version = "0.17", default-features = false }
 regex = "1.10.3"
 base64 = "0.22.0"
-open = "5.3.2"
+open.workspace = true
 which = "8.0"
-anyhow = "1.0"
-image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+anyhow.workspace = true
+image.workspace = true
 notify-rust = "4.19.0"
 
 [dev-dependencies]
-tempfile = "3.8.1"
+tempfile.workspace = true
 
 [[bin]]
 name = "PlotteryEditor"
