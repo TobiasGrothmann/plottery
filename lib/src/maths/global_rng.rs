@@ -1,10 +1,8 @@
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 
 use rand::{rngs::StdRng, Rng, SeedableRng};
 
-lazy_static::lazy_static! {
-    pub static ref RNG: Mutex<StdRng> = Mutex::new(StdRng::from_entropy());
-}
+pub static RNG: LazyLock<Mutex<StdRng>> = LazyLock::new(|| Mutex::new(StdRng::from_entropy()));
 
 /// Seeds the global random number generator behind the `rand_*` functions and new [`crate::Noise`]s.
 pub fn seed(seed: i32) {

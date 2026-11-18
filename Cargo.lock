@@ -4632,7 +4632,6 @@ dependencies = [
  "harfrust",
  "image",
  "itertools 0.13.0",
- "lazy_static",
  "mint",
  "num-traits",
  "plottery_fonts",
