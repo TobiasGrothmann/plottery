@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use path_absolutize::Absolutize;
 use rust_embed::RustEmbed;
 use std::path::{Path, PathBuf};
@@ -22,6 +22,50 @@ pub enum LibSource {
     PlotteryHome,
     Path { path: PathBuf },
     CratesIO,
+}
+
+const RUST_KEYWORDS: &[&str] = &[
+    "Self", "abstract", "as", "async", "await", "become", "box", "break", "const", "continue",
+    "crate", "do", "dyn", "else", "enum", "extern", "false", "final", "fn", "for", "gen", "if",
+    "impl", "in", "let", "loop", "macro", "match", "mod", "move", "mut", "override", "priv", "pub",
+    "ref", "return", "self", "static", "struct", "super", "trait", "true", "try", "type", "typeof",
+    "unsafe", "unsized", "use", "virtual", "where", "while", "yield",
+];
+
+/// Names Cargo refuses or that clash with the template's dependencies.
+const RESERVED_NAMES: &[&str] = &[
+    "test",
+    "core",
+    "std",
+    "alloc",
+    "proc_macro",
+    "plottery_lib",
+    "plottery_runtime",
+];
+
+/// A project name is also its folder and Cargo package name, so it has to be a valid one.
+pub fn validate_project_name(name: &str) -> Result<()> {
+    let Some(first) = name.chars().next() else {
+        bail!("The project name is empty");
+    };
+    if let Some(invalid) = name
+        .chars()
+        .find(|c| !(c.is_ascii_alphanumeric() || matches!(c, '_' | '-')))
+    {
+        bail!(
+            "Invalid project name '{name}': '{invalid}' is not allowed, use letters, digits, '_' and '-'"
+        );
+    }
+    if !(first.is_ascii_alphabetic() || first == '_') {
+        bail!("Invalid project name '{name}': it has to start with a letter or '_'");
+    }
+    if RUST_KEYWORDS.contains(&name) {
+        bail!("Invalid project name '{name}': it is a Rust keyword");
+    }
+    if RESERVED_NAMES.contains(&name) {
+        bail!("Invalid project name '{name}': the name is reserved");
+    }
+    Ok(())
 }
 
 struct Replacement {

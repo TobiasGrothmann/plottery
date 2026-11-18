@@ -8,7 +8,9 @@ mod stats;
 use anyhow::{bail, Context, Result};
 use clap::{Args, Parser, Subcommand};
 use futures_lite::future::block_on;
-use plottery_project::{set_plottery_home, LibSource, Project, RunEvent, PLOTTERY_HOME_ENV};
+use plottery_project::{
+    set_plottery_home, validate_project_name, LibSource, Project, RunEvent, PLOTTERY_HOME_ENV,
+};
 use plottery_runtime::project_params_list_wrapper::ProjectParamsListWrapper;
 use std::{
     cell::RefCell,
@@ -96,6 +98,11 @@ enum Command {
             long_help = "Plottery library source\n    cratesio [default]    Use the published crate from crates.io\n    home                  Use the local checkout set with `plottery set-home`\n    PATH                  Use local source from a custom path"
         )]
         lib: Option<String>,
+        #[arg(
+            long,
+            help = "Don't create a git repository and .gitignore in the project"
+        )]
+        no_git: bool,
     },
     #[command(about = "Build the project and show cargo output")]
     Build {
@@ -329,14 +336,20 @@ fn build_and_resolve_params(
 pub fn main() -> Result<()> {
     let args = Cli::parse();
     match args.command {
-        Command::New { name, path, lib } => {
+        Command::New {
+            name,
+            path,
+            lib,
+            no_git,
+        } => {
+            validate_project_name(&name)?;
             let lib_source = lib.as_deref().map_or(LibSource::CratesIO, parse_lib_source);
             let project = Project::new(PathBuf::from(path), &name);
             if project.exists() {
                 bail!("Project already exists at '{}'", project.dir.display());
             }
             project
-                .generate_to_disk(lib_source, true)
+                .generate_to_disk(lib_source, !no_git)
                 .with_context(|| format!("Failed to create project '{}'", project.dir.display()))?;
             println!("Created project at '{}'", project.dir.display());
         }

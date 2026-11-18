@@ -4,7 +4,7 @@ use crate::{
     protocol::check_binary_protocol,
     read_object_from_stdout,
     run_stream::RunSocket,
-    write_agents_md, LibSource, ProjectConfig,
+    validate_project_name, write_agents_md, LibSource, ProjectConfig,
 };
 
 use plottery_lib::*;
@@ -111,7 +111,9 @@ fn png_longest_side(path: &std::path::Path) -> Option<u32> {
 
 /// Plottery's folder in the user's cache directory, for builds and previews.
 fn plottery_cache_dir() -> Result<PathBuf> {
-    Ok(crate::plottery_config::plottery_dirs()?.cache_dir().to_path_buf())
+    Ok(crate::plottery_config::plottery_dirs()?
+        .cache_dir()
+        .to_path_buf())
 }
 
 fn modified(path: &Path) -> Option<SystemTime> {
@@ -279,6 +281,7 @@ impl Project {
     }
 
     pub fn generate_to_disk(&self, lib_source: LibSource, init_git: bool) -> Result<()> {
+        validate_project_name(&self.config.name)?;
         std::fs::create_dir_all(&self.dir)?;
         self.save_config()?;
 

@@ -12,7 +12,7 @@ mod tests {
     use crate::{
         cargo_project_template::generate_cargo_project_to_disk,
         project::{is_up_to_date, thumbnail_is_stale},
-        LibSource, Project, ProjectConfig, EDITOR_THUMBNAIL_SIZE,
+        validate_project_name, LibSource, Project, ProjectConfig, EDITOR_THUMBNAIL_SIZE,
     };
     use plottery_runtime::{ProjectParam, ProjectParamValue, ProjectParamsListWrapper};
 
@@ -45,6 +45,26 @@ mod tests {
         // check if project dir was generated
         assert!(project_dir.exists());
         Ok(project)
+    }
+
+    #[test]
+    fn project_names_are_cargo_package_names() {
+        for valid in ["spiral", "my_sketch", "_x", "ka-poster", "Lines2"] {
+            assert!(validate_project_name(valid).is_ok(), "{valid}");
+        }
+        for invalid in [
+            "",
+            "2lines",
+            "-lines",
+            "my sketch",
+            "a/b",
+            "linien_ä",
+            "loop",
+            "test",
+            "plottery_lib",
+        ] {
+            assert!(validate_project_name(invalid).is_err(), "{invalid}");
+        }
     }
 
     #[test]
