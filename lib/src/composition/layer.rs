@@ -1,9 +1,9 @@
-use anyhow::{Ok, Result};
-use bincode::{deserialize_from, serialize};
+use anyhow::{bail, Context, Ok, Result};
+use bincode::{deserialize, serialize};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use std::{fs::File, io::Write, iter::FromIterator, path::PathBuf, vec};
+use std::{iter::FromIterator, path::PathBuf, vec};
 
 use crate::{
     geometry::TransformMatrix,
@@ -14,6 +14,7 @@ use crate::{
 
 use super::{
     combine_paths::combine_paths,
+    file_header::{split_file_header, with_file_header},
     ColorRgb, Inheritable, LayerProps, LayerPropsInheritable,
 };
 
@@ -41,6 +42,10 @@ pub struct Layer {
 }
 
 impl Layer {
+    const FILE_MAGIC: [u8; 4] = *b"PLTL";
+    /// Changes with every change to the bincode layout of `Layer`.
+    const FILE_VERSION: u16 = 1;
+
     pub fn new() -> Self {
         Self {
             shapes: Vec::new(),
@@ -79,26 +84,30 @@ impl Layer {
             props: LayerProps::default(),
         }
     }
-    /// Creates a new `Layer` by deserializing binary from a file. see [`Layer::write_file`].
+    /// Reads a `.plotl` file. see [`Layer::write_file`].
     pub fn new_from_file(path: &PathBuf) -> Result<Layer> {
-        let file = File::open(path)?;
-        let decoded: Layer = deserialize_from(&file)?;
-        Ok(decoded)
+        Layer::new_from_binary(&std::fs::read(path)?)
+            .with_context(|| format!("Failed to read layer '{}'", path.display()))
     }
-    /// Writes the binary representation of the `Layer` to a file. see [`Layer::new_from_file`].
+    /// Writes the `Layer` as a `.plotl` file. see [`Layer::new_from_file`].
     pub fn write_file(&self, path: &PathBuf) -> Result<()> {
-        let encoded: Vec<u8> = serialize(self)?;
-        let mut file = File::create(path)?;
-        file.write_all(&encoded)?;
+        std::fs::write(path, self.to_binary()?)?;
         Ok(())
     }
-    /// Creates a new `Layer` by deserializing binary from a vector of bytes. see [`Layer::to_binary`].
-    pub fn new_from_binary(binary_data: &Vec<u8>) -> Result<Layer> {
-        Ok(deserialize_from(binary_data.as_slice())?)
+    /// Reads the `.plotl` format written by [`Layer::to_binary`]. There is no migration between its versions.
+    pub fn new_from_binary(binary_data: &[u8]) -> Result<Layer> {
+        match split_file_header(&Self::FILE_MAGIC, binary_data) {
+            Some((Self::FILE_VERSION, payload)) => Ok(deserialize(payload)?),
+            _ => bail!("The layer is from another Plottery version and can't be read, render it again."),
+        }
     }
-    /// Serializes the `Layer` to a vector of bytes. see [`Layer::new_from_binary`].
+    /// The `.plotl` format: a file header followed by the bincode of the `Layer`.
     pub fn to_binary(&self) -> Result<Vec<u8>> {
-        Ok(serialize(self)?)
+        Ok(with_file_header(
+            &Self::FILE_MAGIC,
+            Self::FILE_VERSION,
+            &serialize(self)?,
+        ))
     }
 
     #[must_use]

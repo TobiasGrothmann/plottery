@@ -12,7 +12,9 @@ mod tests {
     use crate::{
         cargo_project_template::generate_cargo_project_to_disk,
         project::{is_up_to_date, thumbnail_is_stale},
-        LibSource, Project, ProjectConfig, EDITOR_THUMBNAIL_SIZE,
+        project_params_list_wrapper::ProjectParamsListWrapper,
+        LibSource, Project, ProjectConfig, ProjectParam, ProjectParamValue,
+        EDITOR_THUMBNAIL_SIZE,
     };
 
     fn genrate_temp_project(temp_dir: PathBuf, project_name: &str) -> Result<Project> {
@@ -230,6 +232,28 @@ mod tests {
 
         assert!(temp_dir.path().join("Cargo.toml").exists());
         assert!(temp_dir.path().join("src").exists());
+        Ok(())
+    }
+
+    #[test]
+    fn saving_params_keeps_a_file_it_cannot_read() -> Result<()> {
+        let temp_dir = tempfile::tempdir()?;
+        let project = Project::new(temp_dir.path().to_path_buf(), "test");
+        std::fs::create_dir_all(project.get_resource_dir())?;
+        let params = ProjectParamsListWrapper::new(vec![ProjectParam::new(
+            "size",
+            ProjectParamValue::Float(1.0),
+        )]);
+
+        // no file: nothing saved yet, and saving creates it
+        assert!(project.load_editor_params()?.0.list.is_empty());
+        project.save_editor_params(&params)?;
+        assert_eq!(project.load_editor_params()?.0.list.len(), 1);
+
+        std::fs::write(project.get_editor_params_path(), [1, 2, 3])?;
+        assert!(project.load_editor_params().is_err());
+        assert!(project.save_editor_params(&params).is_err());
+        assert_eq!(std::fs::read(project.get_editor_params_path())?, [1, 2, 3]);
         Ok(())
     }
 }

@@ -13,6 +13,7 @@ pub mod midi;
 pub mod pins;
 pub mod plot_execution;
 pub mod plot_setting;
+mod plot_setting_test;
 pub mod server_state;
 pub mod task;
 pub mod telemetry;

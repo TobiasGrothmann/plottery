@@ -4,6 +4,7 @@ use std::{
 };
 
 use anyhow::Result;
+use dioxus_logger::tracing;
 use plottery_project::{project_params_list_wrapper::ProjectParamsListWrapper, Project};
 
 /// The editor's params file, telling its own writes apart from changes by the CLI.
@@ -34,7 +35,7 @@ impl ParamsFile {
 
     /// Writes unless the bytes equal the last ones written or read.
     pub fn save(&self, params: &ProjectParamsListWrapper) -> Result<()> {
-        let bytes = bincode::serialize(params)?;
+        let bytes = params.to_file_bytes()?;
         let mut last = self.lock();
         if *last != bytes {
             self.project.save_editor_params(params)?;
@@ -50,7 +51,10 @@ impl ParamsFile {
         if *last == bytes {
             return Ok(None);
         }
-        let params = bincode::deserialize(&bytes)?;
+        let (params, skipped) = ProjectParamsListWrapper::from_file_bytes(&bytes)?;
+        if !skipped.is_empty() {
+            tracing::warn!("Saved params that could not be read: {}", skipped.join(", "));
+        }
         *last = bytes;
         Ok(Some(params))
     }

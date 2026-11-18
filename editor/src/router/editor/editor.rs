@@ -34,7 +34,6 @@ use crate::{
     routes::Route,
     util::{format_plot_duration, format_svg, preview_zoom::PreviewZoom},
 };
-use bincode::{deserialize, serialize};
 use dioxus::prelude::*;
 use dioxus_logger::tracing;
 use dioxus_router::hooks::use_navigator;
@@ -174,27 +173,30 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
         use_signal_sync(|| ConsoleMessages::new(console_change_counter));
 
     // ui state
-    let project_params = use_signal_sync(|| {
-        project().load_editor_params().unwrap_or_else(|err| {
-            console().error(format!("failed to load project params: {:?}", err).as_str());
+    let project_params = use_signal_sync(|| match project().load_editor_params() {
+        Ok((params, skipped)) => {
+            if !skipped.is_empty() {
+                console().warn(&format!(
+                    "saved params that could not be read and get their default: {}",
+                    skipped.join(", ")
+                ));
+            }
+            params
+        }
+        Err(err) => {
+            console().error(&format!(
+                "{err:#}. Params are not saved until the file is fixed or deleted."
+            ));
             ProjectParamsListWrapper::empty()
-        })
+        }
     });
     let plot_settings = use_signal_sync(|| {
-        let plot_settings_file_path = project().get_editor_plot_settings_path();
-        match std::fs::read(plot_settings_file_path) {
-            Ok(plot_settings_binary) => match deserialize(&plot_settings_binary) {
-                Ok(plot_settings) => plot_settings,
-                Err(err) => {
-                    console().error(
-                        format!("failed to deserialize plot settings from binary: {:?}", err)
-                            .as_str(),
-                    );
-                    PlotSettings::default()
-                }
-            },
-            Err(_) => PlotSettings::default(),
-        }
+        PlotSettings::load_file(&project().get_editor_plot_settings_path()).unwrap_or_else(|err| {
+            console().error(&format!(
+                "{err:#}. Plot settings are not saved until the file is fixed or deleted."
+            ));
+            PlotSettings::default()
+        })
     });
     let layer = use_signal_sync(|| LayerChangeWrapper {
         layer: None,
@@ -213,9 +215,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                         match std::fs::read(layer_path) {
                             Ok(layer_binary) => Layer::new_from_binary(&layer_binary)
                                 .map(Some)
-                                .map_err(|err| {
-                                    format!("failed to deserialize layer from binary: {:?}", err)
-                                }),
+                                .map_err(|err| format!("failed to load the last layer: {err}")),
                             Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(None),
                             Err(err) => Err(format!("failed to read layer from file: {:?}", err)),
                         }
@@ -359,11 +359,10 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
     }
     // plot settings
     use_effect(move || {
-        let plot_settings_binary =
-            serialize(&(plot_settings())).expect("Failed to serialize plot settings");
-        let plot_settings_file_path = project().get_editor_plot_settings_path();
-        std::fs::write(plot_settings_file_path, plot_settings_binary)
-            .expect("Failed to write plot settings to file");
+        let path = project().get_editor_plot_settings_path();
+        if let Err(e) = plot_settings().save_file(&path) {
+            tracing::error!("Failed to write plot settings to file: {:?}", e);
+        }
     });
     // layer
     // The cached preview is shown until the layer is loaded and rendered. Checked once: loading

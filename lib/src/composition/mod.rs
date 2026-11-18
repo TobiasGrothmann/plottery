@@ -2,6 +2,7 @@ mod color;
 pub(crate) mod color_names;
 mod color_test;
 mod combine_paths;
+mod file_header;
 pub(crate) mod frame;
 mod frame_test;
 pub(crate) mod grid;
@@ -26,6 +27,7 @@ mod svg_path_data_test;
 pub(crate) mod svg_transform;
 
 pub use color::*;
+pub use file_header::*;
 pub use frame::*;
 pub use grid::*;
 pub use grid_combineable::*;

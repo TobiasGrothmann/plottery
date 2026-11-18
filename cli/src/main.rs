@@ -286,13 +286,13 @@ fn print_event(event: RunEvent) {
     }
 }
 
+/// The saved params. Names those whose saved value could not be read, they get their default.
 fn load_editor_params(project: &Project) -> Result<ProjectParamsListWrapper> {
-    project.load_editor_params().with_context(|| {
-        format!(
-            "Failed to read saved params '{}'",
-            project.get_editor_params_path().display()
-        )
-    })
+    let (params, skipped) = project.load_editor_params()?;
+    for name in skipped {
+        eprintln!("The saved value of '{name}' could not be read, using its default");
+    }
+    Ok(params)
 }
 
 fn parse_assignments(assignments: &[String]) -> Result<Vec<(&str, &str)>> {

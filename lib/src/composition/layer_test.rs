@@ -784,4 +784,33 @@ mod test_layer {
         assert_eq!(color_first.props_inheritable, expected);
         assert_eq!(width_first.props_inheritable, expected);
     }
+
+    #[test]
+    fn binary_round_trip() {
+        let mut layer = Layer::new();
+        layer.push(Circle::new_shape(V2::new(1.0, 2.0), 3.0));
+        layer.push_layer(Layer::new_from(vec![Rect::new_shape(
+            V2::new(0.0, 0.0),
+            V2::new(1.0, 1.0),
+        )]));
+
+        let binary = layer.to_binary().unwrap();
+        assert_eq!(&binary[..6], b"PLTL\x01\x00");
+        let read = Layer::new_from_binary(&binary).unwrap();
+        assert_eq!(read.to_binary().unwrap(), binary);
+        assert_eq!(read.sublayers.len(), 1);
+    }
+
+    #[test]
+    fn binary_of_another_version_is_an_error() {
+        let binary = Layer::new().to_binary().unwrap();
+        let headerless = binary[6..].to_vec();
+        let mut newer = binary.clone();
+        newer[4] += 1;
+
+        for unreadable in [headerless, newer, b"PLT".to_vec()] {
+            let err = Layer::new_from_binary(&unreadable).unwrap_err();
+            assert!(err.to_string().contains("another Plottery version"));
+        }
+    }
 }

@@ -52,7 +52,7 @@ A **Plottery Project** is a user-created artwork generator: a standalone Cargo p
 ## File Conventions
 
 - Tests: `foo_test.rs` next to `foo.rs`, wrapped in a `#[cfg(test)]` module and registered with `mod foo_test;` in the parent `mod.rs`.
-- Serialization formats: `.plotl` (layers), `.plotp` (params), `.plottery` (project config)
+- Serialization formats: `.plotl` (layers), `.plotp` (params), `.plots` (plot settings), `.plottery` (project config). The three binary ones start with a header of 4 magic bytes and a `u16` format version (`lib/src/composition/file_header.rs`); bump the version when the layout after it changes.
 
 ## Testing
 

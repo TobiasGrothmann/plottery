@@ -5211,7 +5211,6 @@ version = "0.18.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
- "bincode",
  "chrono",
  "dioxus 0.7.9",
  "dioxus-logger 0.7.9",
@@ -5331,6 +5330,7 @@ dependencies = [
  "plottery_lib",
  "reqwest",
  "serde",
+ "tempfile",
  "tokio",
 ]
 

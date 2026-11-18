@@ -9,7 +9,7 @@ use crate::{
 
 use plottery_lib::*;
 
-use anyhow::{Error, Ok, Result};
+use anyhow::{Context, Error, Ok, Result};
 use async_process::Child;
 use path_absolutize::Absolutize;
 use resvg::{tiny_skia, usvg};
@@ -443,22 +443,28 @@ impl Project {
         )
     }
 
-    /// Params last used by the editor, empty when none were saved.
-    pub fn load_editor_params(&self) -> Result<ProjectParamsListWrapper> {
-        match std::fs::read(self.get_editor_params_path()) {
-            core::result::Result::Ok(binary) => Ok(bincode::deserialize(&binary)?),
+    /// Params last used by the editor, empty when none were saved, and the names of saved params
+    /// that could not be decoded and are left out.
+    pub fn load_editor_params(&self) -> Result<(ProjectParamsListWrapper, Vec<String>)> {
+        let path = self.get_editor_params_path();
+        match std::fs::read(&path) {
+            core::result::Result::Ok(binary) => ProjectParamsListWrapper::from_file_bytes(&binary)
+                .with_context(|| format!("Failed to read saved params '{}'", path.display())),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                Ok(ProjectParamsListWrapper::empty())
+                Ok((ProjectParamsListWrapper::empty(), Vec::new()))
             }
             Err(e) => Err(e.into()),
         }
     }
 
     /// Writes a temp file and renames it, so a watching editor never reads half a file.
+    /// Fails instead of replacing a file that can't be read.
     pub fn save_editor_params(&self, params: &ProjectParamsListWrapper) -> Result<()> {
+        self.load_editor_params()
+            .context("Params not saved, fix or delete the file")?;
         let path = self.get_editor_params_path();
         let temp_path = path.with_extension("plotp.tmp");
-        std::fs::write(&temp_path, bincode::serialize(params)?)?;
+        std::fs::write(&temp_path, params.to_file_bytes()?)?;
         std::fs::rename(temp_path, path)?;
         Ok(())
     }
