@@ -3,6 +3,7 @@ name = "plottery_editor"
 edition = "2021"
 description = "Graphical Editor of Plottery, a creative coding framework for generative vector graphics and pen plotting."
 version.workspace = true
+rust-version = "1.89"
 authors.workspace = true
 license.workspace = true
 categories.workspace = true

@@ -3,6 +3,7 @@ name = "plottery_server_lib"
 edition = "2021"
 description = "library for the communication with the pen-plotter server of Plottery, a creative coding framework for generative vector graphics and pen plotting."
 version.workspace = true
+rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 categories.workspace = true

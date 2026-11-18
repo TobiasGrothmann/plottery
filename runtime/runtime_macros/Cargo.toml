@@ -3,6 +3,7 @@ name = "plottery_runtime_macros"
 edition = "2021"
 description = "Derive macros of plottery_runtime for the parameters of a Plottery project."
 version.workspace = true
+rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 categories.workspace = true

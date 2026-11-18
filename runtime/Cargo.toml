@@ -3,6 +3,7 @@ name = "plottery_runtime"
 edition = "2021"
 description = "What a Plottery project compiles against: param types, the PlotteryParams derive and the project's entry point. Plottery is a creative coding framework for generative vector graphics and pen plotting."
 version.workspace = true
+rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 categories.workspace = true

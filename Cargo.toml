@@ -4,6 +4,7 @@ members = ["lib", "fonts", "cli", "editor", "project", "runtime", "server", "ser
 
 [workspace.package]
 version = "0.18.0"
+rust-version = "1.88"
 authors = ["Tobias Grothmann <tobiasgrothmannplotterart@gmail.com>"]
 license = "GPL-3.0-only"
 repository = "https://github.com/TobiasGrothmann/plottery"
