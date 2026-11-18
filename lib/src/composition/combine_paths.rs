@@ -38,7 +38,7 @@ impl EndIndex {
         let (x, y) = cell(point);
         (-1..=1)
             .flat_map(|dx| (-1..=1).map(move |dy| (x + dx, y + dy)))
-            .filter_map(|neighbour| self.buckets.get(&neighbour))
+            .filter_map(|neighbor| self.buckets.get(&neighbor))
             .flatten()
             .copied()
             .filter(|&entry| matches(entry))
@@ -46,7 +46,7 @@ impl EndIndex {
     }
 }
 
-/// Points closer than [`LENGTH_TOLERANCE`] per axis always fall into neighbouring cells.
+/// Points closer than [`LENGTH_TOLERANCE`] per axis always fall into neighboring cells.
 fn cell(point: V2) -> Cell {
     let epsilon = f64::from(LENGTH_TOLERANCE);
     (

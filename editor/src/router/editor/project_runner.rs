@@ -89,7 +89,7 @@ fn set_state(mut running_state: SyncSignal<RunningState>, state: RunningState) {
     }
 }
 
-/// Starts a run of the editor's project, cancelling the previous one.
+/// Starts a run of the editor's project, canceling the previous one.
 pub fn trigger_run(
     project_runner: SyncSignal<ProjectRunner>,
     running_state: SyncSignal<RunningState>,

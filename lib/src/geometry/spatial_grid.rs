@@ -14,7 +14,7 @@ struct Entry<T> {
     order: u64,
 }
 
-/// Points with values in square cells for fast neighbour queries; `collect()` picks the cell size from the density.
+/// Points with values in square cells for fast neighbor queries; `collect()` picks the cell size from the density.
 #[derive(Debug, Clone)]
 pub struct SpatialGrid<T> {
     cell_size: f32,

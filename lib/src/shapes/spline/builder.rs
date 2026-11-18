@@ -16,7 +16,7 @@ enum Connection {
     Bezier(Vec<V2>),
 }
 
-/// Tangent behaviour at a knot.
+/// Tangent behavior at a knot.
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Join {
     Smooth,
@@ -376,11 +376,11 @@ fn explicit_segment(from: &Knot, to: &Knot) -> Option<Segment> {
 }
 
 /// Hobby end condition at `knot`, continuing an adjacent explicit segment's tangent when smooth.
-fn end_condition(knot: &Knot, neighbour_tangent: Option<V2>) -> EndCondition {
+fn end_condition(knot: &Knot, neighbor_tangent: Option<V2>) -> EndCondition {
     match knot.join {
         Join::Direction(angle) => EndCondition::Direction(angle),
         Join::Corner => EndCondition::Curl(knot.curl),
-        Join::Smooth => neighbour_tangent
+        Join::Smooth => neighbor_tangent
             .filter(|tangent| tangent.length_squared() > LENGTH_TOLERANCE * LENGTH_TOLERANCE)
             .map(|tangent| EndCondition::Direction(tangent.angle()))
             .unwrap_or(EndCondition::Curl(knot.curl)),

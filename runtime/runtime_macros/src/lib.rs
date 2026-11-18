@@ -150,7 +150,7 @@ fn check_field_type(field: &Field) {
     }
 }
 
-/// Builds the `ProjectParamValue` for `value` (or the type default when `None`), honouring `#[range]`.
+/// Builds the `ProjectParamValue` for `value` (or the type default when `None`), honoring `#[range]`.
 fn field_value_tokens(
     ty: &syn::Type,
     value: Option<proc_macro2::TokenStream>,

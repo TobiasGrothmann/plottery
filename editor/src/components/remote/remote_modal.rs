@@ -27,7 +27,7 @@ fn activity_label(activity: Activity) -> &'static str {
     match activity {
         Activity::Idle => "Idle",
         Activity::Preparing => "Preparing",
-        Activity::Travelling => "Travelling",
+        Activity::Traveling => "Traveling",
         Activity::Drawing => "Drawing",
         Activity::Returning => "Returning to origin",
         Activity::Moving => "Moving",

@@ -22,7 +22,7 @@ pub enum Activity {
     Idle,
     /// Estimating a plot before it starts.
     Preparing,
-    Travelling,
+    Traveling,
     Drawing,
     /// Back to the origin after the last shape.
     Returning,

@@ -28,7 +28,7 @@ pub struct SVGImageProps {
     pub onready: EventHandler<()>,
 }
 
-/// An input event from `preview_input.js`; positions are relative to the stage centre.
+/// An input event from `preview_input.js`; positions are relative to the stage center.
 #[derive(Deserialize)]
 struct PreviewInput {
     kind: String,

@@ -163,7 +163,7 @@ impl Rect {
     }
 
     /// Path to draw a rect with a given thickness.
-    /// It creates a spiralling path from the rectangle border towards the center with `thickness`.
+    /// It creates a spiraling path from the rectangle border towards the center with `thickness`.
     pub fn filled_partially_towards_center(
         &self,
         mut thickness: f32,

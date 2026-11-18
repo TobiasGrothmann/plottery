@@ -3,7 +3,7 @@ use plottery_lib::{Rect, V2};
 /// Maps a click on the preview `<img>` back to layer coordinates (cm).
 ///
 /// The preview SVG's viewBox is the layer's bounding box with the y-axis flipped (see
-/// `Layer::to_svg`), and the browser letterboxes it centred inside the element. Returns `None`
+/// `Layer::to_svg`), and the browser letterboxes it centered inside the element. Returns `None`
 /// for clicks on the letterbox bars.
 pub fn preview_click_to_layer(click_px: V2, element_px: V2, layer_bbox: Rect) -> Option<V2> {
     let content = layer_bbox.size();

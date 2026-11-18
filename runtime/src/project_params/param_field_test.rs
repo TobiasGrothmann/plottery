@@ -68,7 +68,7 @@ mod tests {
     }
 
     #[test]
-    fn defaults_honour_value_and_range() {
+    fn defaults_honor_value_and_range() {
         let defaults = Params::param_defaults_list();
         let by_name = |name: &str| {
             defaults

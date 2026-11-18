@@ -57,7 +57,7 @@ pub struct Params {
 
     #[section("Points")]
     num_points: i32,
-    /// distance between neighbouring points in cm
+    /// distance between neighboring points in cm
     #[value(2.0)]
     #[range(0.5, 10.0)]
     points_distance: f32,

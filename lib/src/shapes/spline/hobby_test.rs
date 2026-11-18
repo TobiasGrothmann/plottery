@@ -84,7 +84,7 @@ mod test_hobby {
     }
 
     #[test]
-    fn direction_end_condition_is_honoured() {
+    fn direction_end_condition_is_honored() {
         let points = zigzag();
         let tensions = vec![1.0; points.len()];
         let up = Angle::from_degrees(90.0);

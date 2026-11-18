@@ -21,7 +21,7 @@ use super::{
     Layer, LayerPropsInheritable,
 };
 
-/// SVG exports use millimetres as user units.
+/// SVG exports use millimeters as user units.
 const SVG_UNITS_PER_CM: f32 = 10.0;
 
 impl Layer {

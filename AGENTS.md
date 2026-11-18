@@ -7,7 +7,7 @@ Generative art engine for pen-plotters written in Rust.
 | Folder | Package | Purpose |
 |--------|---------|---------|
 | `lib/` | `plottery_lib` | Core geometry: shapes, vectors, layers, transformations, text |
-| `fonts/` | `plottery_fonts` | Bundled plotter fonts with their licences, loaded via `Font::bundled` |
+| `fonts/` | `plottery_fonts` | Bundled plotter fonts with their licenses, loaded via `Font::bundled` |
 | `runtime/` | `plottery_runtime` | What projects compile against: param types, `.plotp` format, `run_project` entry point |
 | `runtime/runtime_macros/` | `plottery_runtime_macros` | `PlotteryParams` and `PlotteryEnum` derive macros |
 | `project/` | `plottery_project` | Host side: project creation and management, template, building and running project binaries, cache, previews |

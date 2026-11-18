@@ -1,7 +1,7 @@
 [package]
 name = "plottery_fonts"
 edition = "2021"
-description = "Plotter fonts bundled with Plottery: single-stroke SVG fonts, single-line TTFs and OpenType-SVG fonts, with their licences."
+description = "Plotter fonts bundled with Plottery: single-stroke SVG fonts, single-line TTFs and OpenType-SVG fonts, with their licenses."
 license = "MIT AND OFL-1.1 AND LicenseRef-Hershey"
 version.workspace = true
 rust-version.workspace = true

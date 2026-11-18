@@ -2,7 +2,7 @@
   border-bottom: 0;
 }
 
-/* Labels and single-line controls share a 28px first line so they centre on each other. */
+/* Labels and single-line controls share a 28px first line so they center on each other. */
 .ParamsEditor .plabel,
 .ParamsEditor .sublabel {
   display: flex;

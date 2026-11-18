@@ -63,8 +63,8 @@ impl std::fmt::Display for RunError {
 
 impl std::error::Error for RunError {}
 
-/// Runs `fut` until it finishes or `cancel` resolves, `None` when cancelled.
-async fn until_cancelled<T>(
+/// Runs `fut` until it finishes or `cancel` resolves, `None` when canceled.
+async fn until_canceled<T>(
     fut: impl Future<Output = T>,
     cancel: &mut (impl Future<Output = ()> + Unpin),
 ) -> Option<T> {
@@ -115,7 +115,7 @@ impl Project {
             .map_err(|e| RunError::failed(stage, format!("Error compiling project: {}", e)))?;
 
         on_event(RunEvent::StageRunning(stage));
-        let status = until_cancelled(
+        let status = until_canceled(
             process_stderr_lines(&mut child, |line| on_event(RunEvent::Output(line))),
             cancel,
         )
@@ -203,7 +203,7 @@ impl Project {
 
         on_event(RunEvent::StageRunning(stage));
         let stderr = child.stderr.take();
-        let read = until_cancelled(
+        let read = until_canceled(
             future::zip(
                 read_object_from_stdout::<ProjectParamsListWrapper>(&mut child),
                 forward_output(stderr, "stderr", on_event),
@@ -245,7 +245,7 @@ impl Project {
 
         on_event(RunEvent::StageRunning(stage));
         let (stdout, stderr) = (child.stdout.take(), child.stderr.take());
-        let received = until_cancelled(
+        let received = until_canceled(
             future::zip(
                 socket.receive(&mut child, |frame| on_event(RunEvent::Snapshot(frame))),
                 future::zip(

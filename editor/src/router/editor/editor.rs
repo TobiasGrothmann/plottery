@@ -137,7 +137,7 @@ impl PartialEq for LayerChangeWrapper {
 #[component]
 pub fn Editor(project_path: Vec<String>) -> Element {
     let key = project_path.join("/");
-    // dioxus only honours keys in lists, so a one-item list remounts on a new project.
+    // dioxus only honors keys in lists, so a one-item list remounts on a new project.
     rsx! {
         for key in std::iter::once(key) {
             ProjectEditor { key: "{key}", project_path: project_path.clone() }

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::random::{rand_range, rand_range_i};
 
-/// An inclusive `min..=max` interval, e.g. for randomised parameters.
+/// An inclusive `min..=max` interval, e.g. for randomized parameters.
 ///
 /// Not to be confused with `std::ops::Range`, which is not in the prelude.
 /// ```

@@ -18,7 +18,7 @@ pub struct Params {
     #[range(0.02, 0.35)]
     pub circle_size: Range<f32>,
 
-    /// distance between neighbouring circles in the spiral
+    /// distance between neighboring circles in the spiral
     #[value(0.5)]
     #[range(0.2, 2.0)]
     pub spacing: f32,

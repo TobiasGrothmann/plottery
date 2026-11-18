@@ -82,7 +82,7 @@ impl Font {
             magic == [0, 1, 0, 0] || magic == *b"OTTO" || magic == *b"true" || magic == *b"ttcf"
         });
         if !is_outline {
-            bail!("unrecognised font data, expected TTF, OTF, TTC or an SVG font");
+            bail!("unrecognized font data, expected TTF, OTF, TTC or an SVG font");
         }
         Ok(Self::new(FontData::Outline(OutlineFont::from_bytes(
             bytes,

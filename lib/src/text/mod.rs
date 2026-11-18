@@ -22,5 +22,5 @@ pub use font::*;
 pub use glyph::*;
 pub use layout::*;
 pub use metrics::*;
-pub use plottery_fonts::{BundledFont, Credit, FontKind, Licence};
+pub use plottery_fonts::{BundledFont, Credit, FontKind, License};
 pub use text::*;

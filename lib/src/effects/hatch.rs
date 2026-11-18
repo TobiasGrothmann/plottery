@@ -147,7 +147,7 @@ struct Segment {
     cell: usize,
 }
 
-/// Border piece from a crossing to a neighbouring crossing along the ring.
+/// Border piece from a crossing to a neighboring crossing along the ring.
 #[derive(Clone, Copy, PartialEq, Eq)]
 struct Link {
     to: usize,

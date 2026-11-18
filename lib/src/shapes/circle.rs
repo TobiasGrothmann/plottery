@@ -104,7 +104,7 @@ impl Circle {
     }
 
     /// Path to draw a circle with a given thickness
-    /// It creates a spiralling path from the circle's radius towards the center with a given `thickness`
+    /// It creates a spiraling path from the circle's radius towards the center with a given `thickness`
     pub fn filled_partially_towards_center(
         &self,
         mut thickness: f32,
@@ -145,7 +145,7 @@ impl Circle {
     }
 
     /// Path to draw a circle filled similar to `with_thickness_towards_center`
-    /// It creates a spiralling path from the circle's radius towards the center with a given `thickness`
+    /// It creates a spiraling path from the circle's radius towards the center with a given `thickness`
     pub fn filled_spiral(&self, pen_width: f32, sample_settings: SampleSettings) -> super::Path {
         if self.radius <= pen_width * 0.5 {
             return Path::new_from(self.points_from_angle(Angle::zero(), sample_settings));

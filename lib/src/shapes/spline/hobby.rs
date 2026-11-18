@@ -30,7 +30,7 @@ fn turning_angle(a: V2, b: V2) -> f32 {
     (a.x * b.y - a.y * b.x).atan2(a.dot(b))
 }
 
-/// MetaPost's `curl_ratio`: coefficient relating the end angle to its neighbour under curl `gamma`.
+/// MetaPost's `curl_ratio`: coefficient relating the end angle to its neighbor under curl `gamma`.
 fn curl_ratio(gamma: f32, alpha: f32, beta: f32) -> f32 {
     let ratio = ((3.0 - alpha) * alpha * alpha * gamma + beta * beta * beta)
         / (alpha * alpha * alpha * gamma + (3.0 - beta) * beta * beta);
@@ -251,7 +251,7 @@ pub(crate) fn hobby_closed(points: &[V2], tensions: &[f32]) -> Vec<Bezier> {
         .collect();
 
     let theta = if n == 2 {
-        // both neighbours are the same knot, so the corner entries merge into one coefficient
+        // both neighbors are the same knot, so the corner entries merge into one coefficient
         let (a0, b0, c0, d0) = coefficients[0];
         let (a1, b1, c1, d1) = coefficients[1];
         let (m00, m01, m10, m11) = (b0 + c0, a0 + d0, a1 + d1, b1 + c1);

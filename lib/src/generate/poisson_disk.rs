@@ -96,13 +96,12 @@ impl<'a> PoissonDisk<'a> {
         })
     }
 
-    /// Every neighbour is at least the mean of both spacings away.
+    /// Every neighbor is at least the mean of both spacings away.
     fn fits(&self, grid: &SpatialGrid<f32>, candidate: V2, radius: f32) -> bool {
-        grid.within(candidate, (radius + self.max_dist) * 0.5).all(
-            |(neighbour, neighbour_radius)| {
-                let needed = (radius + neighbour_radius) * 0.5;
-                candidate.dist_squared(neighbour) >= needed * needed
-            },
-        )
+        grid.within(candidate, (radius + self.max_dist) * 0.5)
+            .all(|(neighbor, neighbor_radius)| {
+                let needed = (radius + neighbor_radius) * 0.5;
+                candidate.dist_squared(neighbor) >= needed * needed
+            })
     }
 }

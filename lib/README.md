@@ -25,7 +25,7 @@ let matrix = TransformMatrix::builder()
     .build();
 let transformed_v = matrix.mul_vector(v1);
 
-// fast neighbour queries over many points, each with a value
+// fast neighbor queries over many points, each with a value
 let points = [V2::new(1.0, 2.0), V2::new(4.0, 0.5), V2::new(2.5, 2.5)];
 let grid: SpatialGrid<usize> = points.iter().copied().zip(0..).collect();
 let close = grid.within(V2::new(2.0, 2.0), 1.0).count();
