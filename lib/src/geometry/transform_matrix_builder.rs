@@ -56,14 +56,14 @@ impl TransformMatrixBuilder {
         self
     }
 
-    /// Adds a transformation that mirrors across the x-axis.
+    /// Adds a transformation that negates `x`, mirroring across the y-axis.
     #[must_use]
     pub fn mirror_x(mut self) -> Self {
         self.transforms.push(TransformMatrix::mirror_x());
         self
     }
 
-    /// Adds a transformation that mirrors across the y-axis.
+    /// Adds a transformation that negates `y`, mirroring across the x-axis.
     #[must_use]
     pub fn mirror_y(mut self) -> Self {
         self.transforms.push(TransformMatrix::mirror_y());
