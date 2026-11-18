@@ -20,7 +20,7 @@ pub fn start_hot_reload(
     console: SyncSignal<ConsoleMessages>,
     params_file: ParamsFile,
     mut project_params: SyncSignal<ProjectParamsListWrapper>,
-) -> (JoinHandle<()>, FsEventWatcher) {
+) -> notify::Result<(JoinHandle<()>, FsEventWatcher)> {
     // async channel: a blocking `recv` would hold a runtime thread and stall the runs spawned below
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
     let mut watcher = RecommendedWatcher::new(
@@ -28,11 +28,8 @@ pub fn start_hot_reload(
             let _ = tx.send(event);
         },
         Config::default(),
-    )
-    .unwrap();
-    watcher
-        .watch(&path_to_watch, RecursiveMode::Recursive)
-        .unwrap();
+    )?;
+    watcher.watch(&path_to_watch, RecursiveMode::Recursive)?;
 
     // the editor writes its layer and previews here too, only the params file counts
     let params_path = params_file.path();
@@ -44,7 +41,9 @@ pub fn start_hot_reload(
         .map_err(notify::Error::io)
         .and_then(|_| watcher.watch(&resource_dir, RecursiveMode::NonRecursive))
     {
-        tracing::error!("Failed to watch {:?}: {:?}", resource_dir, e);
+        console
+            .peek()
+            .error(&format!("failed to watch {}: {e}", resource_dir.display()));
     }
     // events carry resolved paths, e.g. /private/var for /var
     let resource_dirs = [resource_dir.canonicalize().ok(), Some(resource_dir)];
@@ -74,7 +73,11 @@ pub fn start_hot_reload(
                                 }
                             }
                             Ok(None) => {}
-                            Err(e) => tracing::error!("Failed to read changed params: {:?}", e),
+                            Err(e) => {
+                                if let Ok(console) = console.try_read() {
+                                    console.error(&format!("failed to read changed params: {e:#}"));
+                                }
+                            }
                         }
                         continue;
                     }
@@ -85,8 +88,7 @@ pub fn start_hot_reload(
                     let ignore_list = [".DS_Store"];
                     let changed_paths = event.paths.iter().filter(|p| {
                         p.file_name()
-                            .map(|s| !ignore_list.contains(&s.to_str().unwrap()))
-                            .unwrap_or(false)
+                            .is_some_and(|name| !ignore_list.iter().any(|ignored| name == *ignored))
                     });
                     if changed_paths.count() == 0 {
                         continue;
@@ -113,11 +115,15 @@ pub fn start_hot_reload(
                     tracing::info!("Hot reload triggered");
                     project_runner.trigger_run_project(release, running_state, console);
                 }
-                Err(e) => tracing::error!("Hot reload error: {:?}", e),
+                Err(e) => {
+                    if let Ok(console) = console.try_read() {
+                        console.error(&format!("hot reload error: {e}"));
+                    }
+                }
             }
         }
         tracing::info!("Hot reload thread finished");
     });
 
-    (hot_reload_handle, watcher)
+    Ok((hot_reload_handle, watcher))
 }

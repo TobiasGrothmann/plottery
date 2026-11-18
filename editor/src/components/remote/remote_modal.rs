@@ -1,5 +1,4 @@
 use dioxus::prelude::*;
-use dioxus_logger::tracing;
 use plottery_lib::V2;
 use plottery_server_lib::{
     server_state::ServerState, task::send_task, Activity, PlotOutcome, PlotSettings, Task,
@@ -11,13 +10,15 @@ use crate::{
         remote::{poke_plotter, PlotterState, PlotterStatus},
         ui::{Button, StatusPill, Switch, Tone, Variant},
     },
+    router::editor::console_messages::ActiveConsole,
     util::format_plot_duration,
 };
 
 /// Sends `task` and polls the plotter right after, so the modal shows the effect.
 async fn send(task: Task) {
+    let console = consume_context::<ActiveConsole>();
     if let Err(err) = send_task(task).await {
-        tracing::error!("Failed to send task to the plotter: {err:#}");
+        console.error(&format!("failed to send task to the plotter: {err:#}"));
     }
     poke_plotter();
 }

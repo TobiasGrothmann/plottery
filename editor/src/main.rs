@@ -5,6 +5,7 @@ use crate::{
         app_state::{update_app_state, AppState},
         window_state::WindowState,
     },
+    router::editor::console_messages::ActiveConsole,
     routes::Route,
     util::editor_route,
 };
@@ -16,7 +17,6 @@ use dioxus::{
     },
     prelude::*,
 };
-use dioxus_logger::tracing;
 use dioxus_router::*;
 use plottery_project::Project;
 use std::{
@@ -48,11 +48,11 @@ fn opened_project<T>(event: &Event<'_, T>) -> Option<PathBuf> {
 }
 
 /// Shows the project in the editor and selects its folder in the browser for later.
-fn open_project_path(path: PathBuf, app_state: Signal<AppState>) {
+fn open_project_path(path: PathBuf, app_state: Signal<AppState>, console: ActiveConsole) {
     let project = match Project::load_from_file(path.clone()) {
         Ok(project) => project,
         Err(err) => {
-            tracing::error!("Cannot open project '{}': {err}", path.display());
+            console.error(&format!("cannot open project '{}': {err}", path.display()));
             return;
         }
     };
@@ -76,6 +76,7 @@ fn app() -> Element {
     let window = use_window();
     let history = dioxus::history::history();
     let app_state = use_context_provider(|| Signal::new(AppState::load_or_default()));
+    let console = use_context_provider(|| ActiveConsole(Signal::new(None)));
     use_hook(|| {
         MOUNTED.store(true, Ordering::SeqCst);
         if let Some(state) = WindowState::load() {
@@ -87,14 +88,14 @@ fn app() -> Element {
         }
         // A requested project wins over the restored route.
         if let Some(path) = PENDING_OPEN.lock().unwrap().take() {
-            open_project_path(path, app_state);
+            open_project_path(path, app_state, console);
         }
     });
     let history = dioxus::history::history();
     use_wry_event_handler(move |event, _| {
         if let Some(path) = opened_project(event) {
             window.set_focus();
-            open_project_path(path, app_state);
+            open_project_path(path, app_state, console);
             return;
         }
         let closing = matches!(

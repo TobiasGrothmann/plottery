@@ -2,7 +2,6 @@ use std::{path::Path, time::UNIX_EPOCH};
 
 use anyhow::Result;
 use dioxus::prelude::*;
-use dioxus_logger::tracing;
 use plottery_runtime::{file_name_of, project_param_value::ProjectParamValue, ProjectParamFile};
 use rfd::AsyncFileDialog;
 
@@ -174,10 +173,10 @@ pub fn FileField(props: LeafProps) -> Element {
                         match result {
                             Ok(Ok(stored)) => edit_file(&props, kind, |file| file.set(Some(stored))),
                             Ok(Err(e)) => {
-                                tracing::error!("Failed to import {}: {:?}", noun, e);
+                                ctx.console.peek().error(&format!("failed to import {noun}: {e:#}"));
                                 import_error.set(Some(format!("{e:#}")));
                             }
-                            Err(e) => tracing::error!("File import task failed: {:?}", e),
+                            Err(e) => ctx.console.peek().error(&format!("{noun} import task failed: {e}")),
                         }
                     }
                 },

@@ -65,8 +65,8 @@ pub fn NumberField(props: NumberFieldProps) -> Element {
                                 _ => panic!("Unexpected Error"),
                             }
                         }
-                        Err(e) => {
-                            tracing::error!("Error parsing value: {:?}", e);
+                        Err(_) => {
+                            ctx.console.peek().error(&format!("'{}' is not a number", event.value()));
                             return;
                         }
                     }

@@ -1,4 +1,4 @@
-use crate::util::format_svg;
+use crate::{router::editor::editor_ctx::EditorCtx, util::format_svg};
 use dioxus::prelude::*;
 use std::path::PathBuf;
 
@@ -14,6 +14,7 @@ pub struct ExternalEditorButtonProps {
 
 #[component]
 pub fn ExternalEditorButton(props: ExternalEditorButtonProps) -> Element {
+    let console = use_context::<EditorCtx>().console;
     rsx! {
         button {
             r#type: "button",
@@ -25,11 +26,13 @@ pub fn ExternalEditorButton(props: ExternalEditorButtonProps) -> Element {
                 for arg in &props.extra_args {
                     cmd.arg(arg);
                 }
-                cmd.arg(&*props.project_dir.read())
+                let launched = cmd
+                    .arg(&*props.project_dir.read())
                     .spawn()
-                    .unwrap()
-                    .wait()
-                    .unwrap();
+                    .and_then(|mut child| child.wait());
+                if let Err(err) = launched {
+                    console.peek().error(&format!("failed to open {}: {err}", props.editor_name));
+                }
                 event.stop_propagation();
             },
             img { src: "{format_svg(props.icon_svg)}", alt: "" }

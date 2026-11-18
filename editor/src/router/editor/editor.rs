@@ -17,7 +17,7 @@ use crate::{
     },
     router::editor::{
         console::Console,
-        console_messages::ConsoleMessages,
+        console_messages::{ActiveConsole, ConsoleMessages},
         editor_ctx::EditorCtx,
         external_editor_button::ExternalEditorButton,
         layer_editor::layer_editor::LayerEditor,
@@ -147,16 +147,20 @@ pub fn Editor(project_path: Vec<String>) -> Element {
 
 #[component]
 fn ProjectEditor(project_path: Vec<String>) -> Element {
-    let loaded = use_hook(|| project_from_segments(&project_path).map_err(|e| e.to_string()));
+    let loaded = use_hook(|| {
+        project_from_segments(&project_path)
+            .and_then(|project| Ok((project.get_cargo_path()?, project)))
+            .map_err(|e| e.to_string())
+    });
     let nav = use_navigator();
     let RemoteOpen(mut remote_open) = use_context::<RemoteOpen>();
-    let Ok(loaded) = loaded else {
-        tracing::error!(
-            "Cannot open project, returning home: {}",
-            loaded.unwrap_err()
-        );
-        nav.replace(Route::Browser {});
-        return rsx! {};
+    let (cargo_path, loaded) = match loaded {
+        Ok(loaded) => loaded,
+        Err(err) => {
+            tracing::error!("Cannot open project, returning home: {err}");
+            nav.replace(Route::Browser {});
+            return rsx! {};
+        }
     };
     let project = use_signal(move || loaded);
 
@@ -172,6 +176,13 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
     let console_change_counter = use_signal_sync(|| 0);
     let console: Signal<ConsoleMessages, SyncStorage> =
         use_signal_sync(|| ConsoleMessages::new(console_change_counter));
+    let ActiveConsole(mut active_console) = use_context::<ActiveConsole>();
+    use_hook(|| active_console.set(Some(console)));
+    use_drop(move || {
+        if *active_console.peek() == Some(console) {
+            active_console.set(None);
+        }
+    });
 
     // ui state
     let project_params = use_signal_sync(|| match project().load_editor_params() {
@@ -357,7 +368,9 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
         let params_file = params_file.clone();
         use_effect(move || {
             if let Err(e) = params_file.save(&project_params()) {
-                tracing::error!("Failed to write project params to file: {:?}", e);
+                console
+                    .peek()
+                    .error(&format!("failed to save params: {e:#}"));
             }
         });
     }
@@ -365,7 +378,9 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
     use_effect(move || {
         let path = project().get_editor_plot_settings_path();
         if let Err(e) = plot_settings().save_file(&path) {
-            tracing::error!("Failed to write plot settings to file: {:?}", e);
+            console
+                .peek()
+                .error(&format!("failed to save plot settings: {e:#}"));
         }
     });
     // layer
@@ -403,7 +418,9 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
     use_effect(move || {
         if let Some(layer) = layer.read().layer.as_ref() {
             if let Err(e) = project().save_editor_layer(layer) {
-                tracing::error!("Failed to write layer to file: {:?}", e);
+                console
+                    .peek()
+                    .error(&format!("failed to save layer: {e:#}"));
             }
         }
     });
@@ -474,7 +491,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
     // hot reload
     let mut hot_reload_watcher = use_signal_sync(|| None as Option<FsEventWatcher>);
     let mut hot_reload_join_handle = use_signal_sync(|| None as Option<JoinHandle<()>>);
-    let hot_reload_path_to_watch = project().get_cargo_path().unwrap().join("src");
+    let hot_reload_path_to_watch = cargo_path.join("src");
     let hot_reload_is_enabled = move || hot_reload_watcher.read().is_some();
 
     let hot_reload_enabled = hot_reload_is_enabled();
@@ -490,9 +507,11 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                     project_params.set(params);
                 }
                 Ok(None) => {}
-                Err(e) => tracing::error!("Failed to read params from file: {:?}", e),
+                Err(e) => console
+                    .peek()
+                    .error(&format!("failed to read params: {e:#}")),
             }
-            let (handle, watcher) = start_hot_reload(
+            match start_hot_reload(
                 hot_reload_path_to_watch.clone(),
                 release,
                 project_runner(),
@@ -500,10 +519,16 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                 console,
                 params_file.clone(),
                 project_params,
-            );
-            hot_reload_join_handle.set(Some(handle));
-            hot_reload_watcher.set(Some(watcher));
-            trigger_run();
+            ) {
+                Ok((handle, watcher)) => {
+                    hot_reload_join_handle.set(Some(handle));
+                    hot_reload_watcher.set(Some(watcher));
+                    trigger_run();
+                }
+                Err(e) => console
+                    .peek()
+                    .error(&format!("failed to start hot reload: {e}")),
+            }
         } else {
             hot_reload_watcher.set(None);
             hot_reload_join_handle.set(None);
@@ -648,7 +673,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                     div { class: "vsep" }
                     div { class: "hgroup tight",
                         {
-                            let cargo_dir = use_memo(move || project().get_cargo_path().unwrap());
+                            let cargo_dir = use_memo(move || cargo_path.clone());
                             let project_dir = use_memo(move || project().get_dir());
                             rsx! {
                                 if vscode_installed() {
@@ -689,7 +714,9 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                                     title: "Open project folder",
                                     "aria-label": "Open project folder",
                                     onclick: move |event| {
-                                        open::that_in_background(project().dir).join().unwrap().unwrap();
+                                        if let Err(err) = open::that(project().dir) {
+                                            console.peek().error(&format!("failed to open the project folder: {err}"));
+                                        }
                                         event.stop_propagation();
                                     },
                                     img { src: "{icon_folder}", alt: "" }
@@ -766,9 +793,9 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                         onclick: move |_| {
                             if let Some(svg) = svg() {
                                 let path = std::env::temp_dir().join("temp_editor.svg");
-                                std::fs::write(&path, svg).unwrap();
-                                if let Err(err) = open::that_in_background(path).join() {
-                                    tracing::error!("Failed to open svg: {:?}", err);
+                                let opened = std::fs::write(&path, svg).and_then(|_| open::that(&path));
+                                if let Err(err) = opened {
+                                    console.peek().error(&format!("failed to open the SVG: {err}"));
                                 }
                             }
                         },
