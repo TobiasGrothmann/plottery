@@ -202,12 +202,6 @@ impl Project {
         Ok(loaded_project)
     }
 
-    pub fn normalize_paths_mut(&mut self) {
-        if let core::result::Result::Ok(path) = self.dir.absolutize() {
-            self.dir = path.to_path_buf();
-        }
-    }
-
     pub fn get_dir(&self) -> PathBuf {
         self.dir.clone()
     }

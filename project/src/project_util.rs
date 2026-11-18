@@ -136,16 +136,6 @@ where
     anyhow::Ok(deserialize_from(buf.as_slice())?)
 }
 
-pub async fn read_stdout_as_string_to_end(
-    child_process: &mut Child,
-) -> Result<(ExitStatus, String)> {
-    let mut data = String::new();
-    if let Some(stdout) = &mut child_process.stdout {
-        (*stdout).read_to_string(&mut data).await?;
-    }
-    Ok((child_process.status().await?, data))
-}
-
 pub async fn process_lines_to_end<R, F>(stream: R, mut line_handler: F) -> Result<()>
 where
     R: AsyncRead + Unpin,
@@ -156,22 +146,6 @@ where
         line_handler(line?);
     }
     Ok(())
-}
-
-pub async fn process_stdout_lines<F>(
-    child_process: &mut Child,
-    mut line_handler: F,
-) -> Result<ExitStatus>
-where
-    F: FnMut(String),
-{
-    let stdout = child_process
-        .stdout
-        .take()
-        .ok_or_else(|| anyhow::Error::msg("Failed to get stdout handle"))?;
-
-    process_lines_to_end(stdout, &mut line_handler).await?;
-    Ok(child_process.status().await?)
 }
 
 pub async fn process_stderr_lines<F>(
