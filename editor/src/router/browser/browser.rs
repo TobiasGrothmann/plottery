@@ -1,4 +1,8 @@
-use std::{collections::BTreeSet, path::PathBuf, rc::Rc};
+use std::{
+    collections::BTreeSet,
+    path::{Path, PathBuf},
+    rc::Rc,
+};
 
 use dioxus::prelude::*;
 use dioxus_router::hooks::use_navigator;
@@ -11,7 +15,7 @@ use crate::{
         ui::{Button, IconButton, Variant},
     },
     model::{
-        app_state::AppState,
+        app_state::{update_app_state, AppState},
         folder_tree::{build_tree, find_closest_in_forest, FolderNode},
     },
     router::browser::{
@@ -42,7 +46,7 @@ fn count_label(count: usize, singular: &str, plural: &str) -> String {
 
 #[component]
 pub fn Browser() -> Element {
-    let mut app_state = use_signal(AppState::load_or_default);
+    let app_state = use_context::<Signal<AppState>>();
     // Only the roots trigger a rescan; selection and expansion changes must not.
     let roots = use_memo(move || app_state.read().roots.clone());
     let mut scan = use_resource(move || {
@@ -59,7 +63,6 @@ pub fn Browser() -> Element {
     let thumbnail_generation = use_thumbnail_generation(scan);
     let scanned = use_memo(move || scan.read().is_some());
     let scroll = use_scroll_restore(scanned);
-    use_effect(move || app_state.read().save());
 
     let nav = use_navigator();
     let mut show_new_project = use_signal(|| false);
@@ -67,15 +70,16 @@ pub fn Browser() -> Element {
     let add_root = move || {
         spawn(async move {
             if let Some(folder) = pick_root_folder().await {
-                let mut state = app_state.write();
-                state.add_root(folder.clone());
-                state.selected_folder = Some(folder);
+                update_app_state(app_state, |state| {
+                    state.add_root(folder.clone());
+                    state.selected_folder = Some(folder);
+                });
             }
         });
     };
-    let mut select_folder = move |path: PathBuf| {
+    let select_folder = move |path: PathBuf| {
         SEARCH_QUERY.write().clear();
-        app_state.write().selected_folder = Some(path);
+        update_app_state(app_state, |state| state.selected_folder = Some(path));
         scroll.scroll_to_top();
     };
 
@@ -193,14 +197,15 @@ pub fn Browser() -> Element {
                         expanded,
                         on_select: move |path: PathBuf| select_folder(path),
                         on_toggle_expand: move |path: PathBuf| {
-                            let mut state = app_state.write();
-                            if !state.expanded_folders.remove(&path) {
-                                state.expanded_folders.insert(path);
-                            }
+                            update_app_state(app_state, |state| {
+                                if !state.expanded_folders.remove(&path) {
+                                    state.expanded_folders.insert(path);
+                                }
+                            });
                         },
                         on_add_root: move |_| add_root(),
                         on_remove_root: move |path: PathBuf| {
-                            app_state.write().remove_root(&path);
+                            update_app_state(app_state, |state| state.remove_root(&path));
                         },
                     }
                     if !errors.is_empty() {
@@ -257,7 +262,9 @@ pub fn Browser() -> Element {
                                 nav.push(editor_route(&project));
                             },
                             on_select_folder: move |path: PathBuf| select_folder(path),
-                            on_toggle_section: move |path: PathBuf| app_state.write().toggle_section(path),
+                            on_toggle_section: move |path: PathBuf| {
+                                update_app_state(app_state, |state| state.toggle_section(path))
+                            },
                         }
                     }
                 }
@@ -265,11 +272,13 @@ pub fn Browser() -> Element {
             if show_new_project() {
                 NewProjectModal {
                     open: show_new_project,
-                    on_created: move |_| {
-                        let fresh = AppState::load_or_default();
-                        let roots_changed = fresh.roots != app_state.peek().roots;
-                        app_state.set(fresh);
-                        if !roots_changed {
+                    on_created: move |project_dir: PathBuf| {
+                        let roots_before = app_state.peek().roots.clone();
+                        update_app_state(app_state, |state| {
+                            state.ensure_root_covers(&project_dir);
+                            state.selected_folder = project_dir.parent().map(Path::to_path_buf);
+                        });
+                        if app_state.peek().roots == roots_before {
                             scan.restart();
                         }
                     },
@@ -279,7 +288,7 @@ pub fn Browser() -> Element {
                 status,
                 detail,
                 tile_size,
-                on_tile_size: move |size: u32| app_state.write().set_tile_size(size),
+                on_tile_size: move |size: u32| update_app_state(app_state, |state| state.set_tile_size(size)),
             }
         }
     }

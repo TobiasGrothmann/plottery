@@ -1,7 +1,4 @@
-use std::{
-    path::{Path, PathBuf},
-    time::UNIX_EPOCH,
-};
+use std::{path::Path, time::UNIX_EPOCH};
 
 use anyhow::Result;
 use dioxus::prelude::*;
@@ -14,9 +11,12 @@ use crate::{
         icon::IconName,
         ui::{Button, Checkbox, IconButton, Size},
     },
-    router::editor::params_editor::{
-        params_editor::LeafProps,
-        widgets::{dropdown::Dropdown, segmented::Segmented},
+    router::editor::{
+        editor_ctx::EditorCtx,
+        params_editor::{
+            params_editor::LeafProps,
+            widgets::{dropdown::Dropdown, segmented::Segmented},
+        },
     },
     util::file_import::{import_image, import_svg, resolve_stored_path, DOWNSCALE_MAX_PX},
 };
@@ -100,12 +100,14 @@ pub fn FileField(props: LeafProps) -> Element {
     let mut copy_mode = use_signal(|| true);
     let mut downscale = use_signal(|| true);
     let mut import_error = use_signal(|| None::<String>);
+    let ctx = use_context::<EditorCtx>();
+    let project_dir = ctx.project.read().get_dir();
 
     let noun = kind.noun();
     let current = file.path.clone();
     let resolved = current
         .as_deref()
-        .map(|stored| resolve_stored_path(&props.project_dir, stored));
+        .map(|stored| resolve_stored_path(&project_dir, stored));
     let missing = resolved.as_ref().map(|p| !p.exists()).unwrap_or(false);
     let preview_src = resolved
         .filter(|p| p.exists())
@@ -120,7 +122,6 @@ pub fn FileField(props: LeafProps) -> Element {
     let choose_props = props.clone();
     let recent_props = props.clone();
     let clear_props = props.clone();
-    let project_dir: PathBuf = props.project_dir.clone();
 
     rsx! {
         style { {include_str!("file_field.css")} }

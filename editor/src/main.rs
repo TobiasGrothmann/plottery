@@ -1,7 +1,10 @@
 #![allow(non_snake_case)]
 use crate::{
     components::remote::{PlotterRemote, PlotterState, PlotterStatus, RemoteOpen},
-    model::{app_state::AppState, window_state::WindowState},
+    model::{
+        app_state::{update_app_state, AppState},
+        window_state::WindowState,
+    },
     routes::Route,
     util::editor_route,
 };
@@ -45,7 +48,7 @@ fn opened_project<T>(event: &Event<'_, T>) -> Option<PathBuf> {
 }
 
 /// Shows the project in the editor and selects its folder in the browser for later.
-fn open_project_path(path: PathBuf) {
+fn open_project_path(path: PathBuf, app_state: Signal<AppState>) {
     let project = match Project::load_from_file(path.clone()) {
         Ok(project) => project,
         Err(err) => {
@@ -53,12 +56,12 @@ fn open_project_path(path: PathBuf) {
             return;
         }
     };
-    let mut app_state = AppState::load_or_default();
-    app_state.ensure_root_covers(&project.dir);
-    if let Some(parent) = project.dir.parent() {
-        app_state.reveal_folder(parent);
-    }
-    app_state.save();
+    update_app_state(app_state, |state| {
+        state.ensure_root_covers(&project.dir);
+        if let Some(parent) = project.dir.parent() {
+            state.reveal_folder(parent);
+        }
+    });
     let route = editor_route(&project);
     // A plain history push doesn't re-render a mounted router; before mount the router reads it.
     match root_router() {
@@ -72,6 +75,7 @@ fn open_project_path(path: PathBuf) {
 fn app() -> Element {
     let window = use_window();
     let history = dioxus::history::history();
+    let app_state = use_context_provider(|| Signal::new(AppState::load_or_default()));
     use_hook(|| {
         MOUNTED.store(true, Ordering::SeqCst);
         if let Some(state) = WindowState::load() {
@@ -83,14 +87,14 @@ fn app() -> Element {
         }
         // A requested project wins over the restored route.
         if let Some(path) = PENDING_OPEN.lock().unwrap().take() {
-            open_project_path(path);
+            open_project_path(path, app_state);
         }
     });
     let history = dioxus::history::history();
     use_wry_event_handler(move |event, _| {
         if let Some(path) = opened_project(event) {
             window.set_focus();
-            open_project_path(path);
+            open_project_path(path, app_state);
             return;
         }
         let closing = matches!(

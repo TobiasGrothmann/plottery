@@ -1,3 +1,4 @@
+use dioxus::prelude::*;
 use dioxus_logger::tracing;
 use path_absolutize::Absolutize;
 use serde::{Deserialize, Serialize};
@@ -128,6 +129,12 @@ impl Default for AppState {
     }
 }
 
+/// Changes the app state shared through context and writes it to disk.
+pub fn update_app_state(mut app_state: Signal<AppState>, change: impl FnOnce(&mut AppState)) {
+    change(&mut app_state.write());
+    app_state.peek().save();
+}
+
 fn absolutize(path: &Path) -> PathBuf {
     path.absolutize()
         .map(|p| p.to_path_buf())
@@ -144,7 +151,7 @@ impl AppState {
         path
     }
 
-    /// Loads the state file; a missing or broken file yields a default.
+    /// Loads the state file; a missing or broken file yields a default. Called once, at the app root.
     pub fn load_or_default() -> Self {
         let path = Self::get_save_file_path();
         if !path.exists() {

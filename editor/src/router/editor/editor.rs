@@ -10,7 +10,7 @@ use crate::{
         ui::{Button, IconButton, PanelHeader, Size, StatusPill, Switch, Tone, Variant},
     },
     model::{
-        app_state::{AppState, Panel},
+        app_state::{update_app_state, AppState, Panel},
         layer_view::{
             filter_visible, LayerKey, LayerRows, LayerSummary, LayerViewState, RowTarget,
         },
@@ -18,6 +18,7 @@ use crate::{
     router::editor::{
         console::Console,
         console_messages::ConsoleMessages,
+        editor_ctx::EditorCtx,
         external_editor_button::ExternalEditorButton,
         layer_editor::layer_editor::LayerEditor,
         params_editor::{
@@ -28,7 +29,7 @@ use crate::{
         pick_target::PickTarget,
         plot_settings_editor::plot_settings_editor::PlotSettingsEditor,
         project_hot_reload::start_hot_reload,
-        project_runner::{trigger_run, ProjectRunner},
+        project_runner::ProjectRunner,
         running_state::RunningState,
     },
     routes::Route,
@@ -261,10 +262,13 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
 
     // layers panel
     // Hidden and collapsed layers are kept by layer name, so they outlive runs and restarts.
+    let app_state = use_context::<Signal<AppState>>();
     let saved_layer_view = use_hook(|| {
-        AppState::load_or_default()
+        app_state
+            .peek()
             .layer_views
-            .remove(&project.peek().dir)
+            .get(&project.peek().dir)
+            .cloned()
             .unwrap_or_default()
     });
     let mut layer_visibility = use_signal({
@@ -273,15 +277,15 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
     });
     let mut layer_expansion = use_signal(move || saved_layer_view.expansion);
     let save_layer_view = move || {
-        let mut state = AppState::load_or_default();
-        state.set_layer_view(
-            &project.peek().dir,
-            LayerViewState {
-                visibility: layer_visibility.peek().clone(),
-                expansion: layer_expansion.peek().clone(),
-            },
-        );
-        state.save();
+        update_app_state(app_state, |state| {
+            state.set_layer_view(
+                &project.peek().dir,
+                LayerViewState {
+                    visibility: layer_visibility.peek().clone(),
+                    expansion: layer_expansion.peek().clone(),
+                },
+            )
+        });
     };
     let layer_summary = use_memo(move || layer.read().layer.as_ref().map(LayerSummary::new));
     let layer_rows = use_memo(move || {
@@ -425,7 +429,15 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
     let running_state = use_signal_sync(|| RunningState::Idle);
     let project_runner =
         use_signal_sync(|| ProjectRunner::new(project().clone(), layer, project_params));
-    let trigger_run = move || trigger_run(project_runner, running_state, console, release);
+    let ctx = use_context_provider(|| EditorCtx {
+        project,
+        project_params,
+        project_runner,
+        running_state,
+        console,
+        release,
+    });
+    let trigger_run = move || ctx.trigger_run();
 
     let mut preview_zoom = use_signal(PreviewZoom::default);
     // The cached preview stays below the live svg until that is on screen, or the swap flickers.
@@ -505,7 +517,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
     let has_drawing = layer_loading() || layer.read().layer.is_some();
     // Crumbs inside a watched folder get a path so they can open the browser there.
     let crumbs = use_memo(move || {
-        let state = AppState::load_or_default();
+        let state = app_state.peek();
         parent_crumbs(&project().dir)
             .into_iter()
             .map(|(name, path)| (name, state.covers(&path).then_some(path)))
@@ -515,11 +527,11 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
     let mut show_plot_settings = use_signal(|| false);
     let mut plot_settings_for_reset = plot_settings;
 
-    let mut layout = use_signal(|| AppState::load_or_default().panel_layout.clamped());
+    let mut layout = use_signal(|| app_state.peek().panel_layout.clone().clamped());
     let save_layout = move || {
-        let mut state = AppState::load_or_default();
-        state.panel_layout = layout.peek().clone();
-        state.save();
+        update_app_state(app_state, |state| {
+            state.panel_layout = layout.peek().clone()
+        });
     };
     let mut toggle_panel = move |panel: Panel| {
         layout.write().toggle(panel);
@@ -621,9 +633,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                                     class: "crumb crumb-link",
                                     title: "Show {path.to_string_lossy()} in projects",
                                     onclick: move |_| {
-                                        let mut state = AppState::load_or_default();
-                                        state.reveal_folder(&path);
-                                        state.save();
+                                        update_app_state(app_state, |state| state.reveal_folder(&path));
                                         nav.push(Route::Browser {});
                                     },
                                     "{name}"
@@ -809,14 +819,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                             on_collapse: move |_| toggle_panel(Panel::Params),
                         }
                         div { class: "panel-body scroll",
-                            ParamsEditor {
-                                project_dir: project().get_dir(),
-                                project_params,
-                                project_runner,
-                                running_state,
-                                console,
-                                release,
-                            }
+                            ParamsEditor {}
                         }
                     }
                     Resizer {

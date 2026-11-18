@@ -67,11 +67,13 @@ fn validate_form(
 }
 
 #[component]
-pub fn NewProjectModal(open: Signal<bool>, on_created: EventHandler<()>) -> Element {
+pub fn NewProjectModal(open: Signal<bool>, on_created: EventHandler<PathBuf>) -> Element {
+    let app_state = use_context::<Signal<AppState>>();
     let mut target_folder = use_signal(|| {
-        let state = AppState::load_or_default();
+        let state = app_state.peek();
         state
             .selected_folder
+            .clone()
             .or_else(|| state.roots.first().cloned())
             .map(|p| p.to_string_lossy().to_string())
             .unwrap_or_default()
@@ -111,13 +113,8 @@ pub fn NewProjectModal(open: Signal<bool>, on_created: EventHandler<()>) -> Elem
 
         error.set("".to_string());
 
-        let mut app_state = AppState::load_or_default();
-        app_state.ensure_root_covers(&project.dir);
-        app_state.selected_folder = project.dir.parent().map(|p| p.to_path_buf());
-        app_state.save();
-
         open.set(false);
-        on_created.call(());
+        on_created.call(project.dir);
     };
 
     rsx! {
