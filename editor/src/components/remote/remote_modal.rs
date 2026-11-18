@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use dioxus_logger::tracing;
 use plottery_lib::V2;
 use plottery_server_lib::{
     server_state::ServerState, task::send_task, Activity, PlotOutcome, PlotSettings, Task,
@@ -15,7 +16,9 @@ use crate::{
 
 /// Sends `task` and polls the plotter right after, so the modal shows the effect.
 async fn send(task: Task) {
-    send_task(task).await.ok();
+    if let Err(err) = send_task(task).await {
+        tracing::error!("Failed to send task to the plotter: {err:#}");
+    }
     poke_plotter();
 }
 

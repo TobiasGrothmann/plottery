@@ -19,6 +19,7 @@ use job::JobState;
 use plottery_server_lib::{task::Task, Telemetry, HOST_PORT};
 use rocket::{
     data::{Limits, ToByteUnit},
+    http::Status,
     Config, State,
 };
 use task_handler::start_server;
@@ -32,17 +33,22 @@ struct ManagedState {
 }
 
 #[post("/task", data = "<task_data>")]
-async fn set_task(managed_state: &State<ManagedState>, task_data: &[u8]) {
-    let task = Task::from_binary(task_data).expect("Failed to decode task data from binary format");
+async fn set_task(
+    managed_state: &State<ManagedState>,
+    task_data: &[u8],
+) -> Result<(), (Status, String)> {
+    let task =
+        Task::from_binary(task_data).map_err(|err| (Status::BadRequest, format!("{err:#}")))?;
     if matches!(task, Task::Abort) {
         managed_state.abort.store(true, Ordering::Relaxed);
-        return;
+        return Ok(());
     }
-    managed_state
-        .task_sender
-        .send(task)
-        .await
-        .expect("Failed to send task to task handler");
+    managed_state.task_sender.send(task).await.map_err(|_| {
+        (
+            Status::InternalServerError,
+            "The task handler has stopped, restart the server.".to_string(),
+        )
+    })
 }
 
 #[get("/state")]

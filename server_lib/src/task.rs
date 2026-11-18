@@ -2,6 +2,7 @@ use plottery_lib::*;
 
 use crate::{plot_setting::PlotSettings, Axis};
 
+use anyhow::{bail, Context};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -34,22 +35,51 @@ pub enum Task {
     },
 }
 
+/// Version of the task request, sent in front of the task. Changes with the bincode layout of [`Task`].
+pub const TASK_PROTOCOL_VERSION: u16 = 1;
+const TASK_MAGIC: [u8; 4] = *b"PLTT";
+
 impl Task {
+    /// Reads a request body written by [`Task::to_binary`], an error if it is of another protocol version.
     pub fn from_binary(data: &[u8]) -> anyhow::Result<Self> {
-        Ok(bincode::deserialize(data)?)
+        match split_file_header(&TASK_MAGIC, data) {
+            Some((TASK_PROTOCOL_VERSION, payload)) => {
+                bincode::deserialize(payload).context("The task could not be decoded")
+            }
+            Some((version, _)) => bail!(
+                "The sender uses plotter protocol version {version}, the server version \
+                 {TASK_PROTOCOL_VERSION}. Update the older of the two."
+            ),
+            None => bail!(
+                "The task has no protocol version, the server uses version \
+                 {TASK_PROTOCOL_VERSION}. Update the sender."
+            ),
+        }
     }
     pub fn to_binary(&self) -> anyhow::Result<Vec<u8>> {
-        Ok(bincode::serialize(self)?)
+        Ok(with_file_header(
+            &TASK_MAGIC,
+            TASK_PROTOCOL_VERSION,
+            &bincode::serialize(self)?,
+        ))
     }
 }
 
+/// Sends `task` to the server. An answer other than success is an error with the server's message.
 pub async fn send_task(task: Task) -> anyhow::Result<()> {
     let body = task.to_binary()?;
     let url = format!("{}/task", crate::server_url().await?);
-    let sent = crate::http_client().post(url).body(body).send().await;
-    if sent.is_err() {
-        crate::forget_server_url();
+    let response = match crate::http_client().post(url).body(body).send().await {
+        Ok(response) => response,
+        Err(err) => {
+            crate::forget_server_url();
+            return Err(err.into());
+        }
+    };
+    let status = response.status();
+    if !status.is_success() {
+        let message = response.text().await.unwrap_or_default();
+        bail!("The plotter server refused the task ({status}): {}", message.trim());
     }
-    sent?;
     Ok(())
 }

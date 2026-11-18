@@ -16,6 +16,7 @@ pub mod plot_setting;
 mod plot_setting_test;
 pub mod server_state;
 pub mod task;
+mod task_test;
 pub mod telemetry;
 
 pub use estimation::*;
