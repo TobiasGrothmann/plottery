@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test_random {
-    use crate::{maths::thread_local::seed_for_test, rand_index, rand_sign};
+    use crate::{maths::global_rng::seed_for_test, rand_index, rand_sign};
 
     #[test]
     fn sign_and_index() {

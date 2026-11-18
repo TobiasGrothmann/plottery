@@ -12,7 +12,7 @@ pub mod random;
 mod random_test;
 pub mod range;
 mod range_test;
-mod thread_local;
+mod global_rng;
 
 pub use angle::*;
 pub use consts::*;
@@ -22,6 +22,6 @@ pub use noise::*;
 pub use random::*;
 pub use range::*;
 #[cfg(test)]
-pub(crate) use thread_local::seed_for_test;
-pub(crate) use thread_local::RNG;
-pub use thread_local::{seed, seed_random};
+pub(crate) use global_rng::seed_for_test;
+pub(crate) use global_rng::RNG;
+pub use global_rng::{seed, seed_random};

@@ -5,7 +5,7 @@ use rand::seq::SliceRandom;
 use rand::Rng;
 use rand_distr::{Distribution, Normal, SkewNormal};
 
-use super::thread_local::RNG;
+use super::global_rng::RNG;
 
 /// uniform random float between `from` and `to`
 pub fn rand_range(from: f32, to: f32) -> f32 {

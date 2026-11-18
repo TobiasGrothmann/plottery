@@ -3,27 +3,20 @@ mod test_noise {
     use rand::{rngs::StdRng, Rng, SeedableRng};
 
     use crate::{
-        maths::thread_local::{seed, seed_for_test},
-        perlin_2d, perlin_3d, simplex_2d, simplex_3d, worley_2d, worley_3d, MarchingSquares, Noise,
-        NoiseScale, NoiseSettings, Rect, SampleSettings, V2,
+        maths::global_rng::{seed, seed_for_test},
+        MarchingSquares, Noise, NoiseScale, NoiseSettings, NoiseType, Rect, SampleSettings, V2,
     };
 
     #[test]
     fn test_noise_value_range() {
         let _rng = seed_for_test(1);
-        println!("perlin_2d");
-        test_noise_range_helper(perlin_2d);
-        println!("simplex_2d");
-        test_noise_range_helper(simplex_2d);
-        println!("worley_2d");
-        test_noise_range_helper(worley_2d);
-    }
-    fn test_noise_range_helper(noise: fn(V2) -> f32) {
         let mut rng = StdRng::seed_from_u64(1);
-        for _ in 0..10000 {
-            let location = V2::new(rng.gen_range(-500.0..500.0), rng.gen_range(-500.0..500.0));
-            let noise = noise(location);
-            assert!((0.0..=1.0).contains(&noise));
+        for noise_type in [NoiseType::Perlin, NoiseType::Simplex, NoiseType::Worley] {
+            let noise = Noise::new(noise_type).frequency(0.01);
+            for _ in 0..10000 {
+                let location = V2::new(rng.gen_range(-500.0..500.0), rng.gen_range(-500.0..500.0));
+                assert!((0.0..=1.0).contains(&noise.get(location)));
+            }
         }
     }
 
@@ -43,49 +36,17 @@ mod test_noise {
     }
 
     #[test]
-    fn test_noise_seed() {
+    fn global_seed_decides_the_seed_of_new_noise() {
         let _rng = seed_for_test(1);
-        println!("perlin_2d");
-        test_noise_seed_helper(perlin_2d);
-        println!("simplex_2d");
-        test_noise_seed_helper(simplex_2d);
-        println!("worley_2d");
-        test_noise_seed_helper(worley_2d);
-    }
-    fn test_noise_seed_helper(noise: fn(V2) -> f32) {
-        seed(1);
-        let noise1 = noise(V2::new(0.5, 0.5));
-        let noise2 = noise(V2::new(0.5, 0.5));
-        assert_eq!(noise1, noise2); // same location should result in same value
-
-        seed(2);
-        let noise3 = noise(V2::new(0.5, 0.5));
-        let noise4 = noise(V2::new(0.5, 0.5));
-        assert_eq!(noise3, noise4); // same location should result in same value
-        assert_ne!(noise1, noise3); // different seed should result in different value
-        assert_ne!(noise1, noise4);
-    }
-
-    #[test]
-    fn test_noise_location() {
-        let _rng = seed_for_test(1);
-        println!("perlin");
-        test_noise_location_helper(perlin_2d, perlin_3d);
-        println!("simplex");
-        test_noise_location_helper(simplex_2d, simplex_3d);
-        println!("worley");
-        test_noise_location_helper(worley_2d, worley_3d);
-    }
-    fn test_noise_location_helper(noise_2d: fn(V2) -> f32, noise_3d: fn(f32, f32, f32) -> f32) {
-        seed(12312);
-        let noise1 = noise_2d(V2::new(0.5, 0.5));
-        let noise2 = noise_2d(V2::new(0.47, 0.53));
-        assert_ne!(noise1, noise2);
-
-        seed(41232);
-        let noise1 = noise_3d(0.5, 0.5, 0.5);
-        let noise2 = noise_3d(0.47, 0.53, 0.5);
-        assert_ne!(noise1, noise2);
+        let p = V2::new(0.5, 0.5);
+        for noise_type in [NoiseType::Perlin, NoiseType::Simplex, NoiseType::Worley] {
+            seed(1);
+            let first = Noise::new(noise_type).get(p);
+            seed(1);
+            assert_eq!(first, Noise::new(noise_type).get(p));
+            seed(2);
+            assert_ne!(first, Noise::new(noise_type).get(p));
+        }
     }
 
     #[test]
