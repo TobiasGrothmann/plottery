@@ -62,6 +62,8 @@ Write tests for real logic, algorithms and fixed bugs, not for one-line helpers 
 
 Tests are deterministic. Random test data comes from a seeded `StdRng::seed_from_u64(n)`. Tests that use the lib's global rng (`rand_*`, `V2::random_*`, unseeded noise, `seed()`) start with `let _rng = seed_for_test(n);` from `lib/src/maths/global_rng.rs`. It holds a lock so parallel tests don't interleave.
 
+Exception: the server's hardware timing tests (`server/src/gpio_executor_test.rs`) measure real `sleep`s.
+
 Before finishing a change:
 
 ```sh
