@@ -6,7 +6,7 @@ mod test_layer {
     use crate::{
         traits::{fit::Alignment, Translate},
         Angle, BoundingBox, Circle, ColorRgb, Fit, FloatInterpolation, Inheritable, Layer,
-        LayerPropsInheritable, Path, Plottable, Rect, Rotate, SampleSettings, Shape, ToAngle,
+        LayerPropsInheritable, Path, Plottable, Rect, Rotate, SampleSettings, Shape,
         LENGTH_TOLERANCE, V2,
     };
 
@@ -530,10 +530,10 @@ mod test_layer {
         let center = V2::new(3.5, 5.0);
 
         for angle_diff_deg in (-85.0).lerp_iter_fixed(85.0, 20) {
-            let angle_diff = angle_diff_deg.degrees();
+            let angle_diff = Angle::from_degrees(angle_diff_deg);
 
             for start_angle_deg in 0.0.lerp_iter_fixed(360.0, 20) {
-                let start_angle = start_angle_deg.degrees();
+                let start_angle = Angle::from_degrees(start_angle_deg);
                 let end_angle = start_angle + angle_diff;
 
                 let point_before = center - V2::polar(start_angle, 1.0);
@@ -577,12 +577,12 @@ mod test_layer {
                     let combined = layer.combine_shapes_flat(None);
                     assert_eq!(combined.len(), 1);
 
-                    let combined =
-                        layer.combine_shapes_flat(Some(angle_diff.abs() + 2.0.degrees()));
+                    let combined = layer
+                        .combine_shapes_flat(Some(angle_diff.abs() + Angle::from_degrees(2.0)));
                     assert_eq!(combined.len(), 1);
 
-                    let combined =
-                        layer.combine_shapes_flat(Some(angle_diff.abs() - 2.0.degrees()));
+                    let combined = layer
+                        .combine_shapes_flat(Some(angle_diff.abs() - Angle::from_degrees(2.0)));
                     assert_eq!(combined.len(), 2);
                 }
             }
@@ -592,9 +592,9 @@ mod test_layer {
     #[test]
     fn combine_shapes_three() {
         let center = V2::new(0.0, 0.0);
-        let angle_a = 180.degrees();
-        let angle_b = 90.degrees();
-        let angle_c = 0.degrees();
+        let angle_a = Angle::from_degrees(180.0);
+        let angle_b = Angle::from_degrees(90.0);
+        let angle_c = Angle::from_degrees(0.0);
 
         let a = Path::new_shape_from(vec![center + V2::polar(angle_a, 1.0), center]);
         let b = Path::new_shape_from(vec![center + V2::polar(angle_b, 1.0), center]);
@@ -608,7 +608,7 @@ mod test_layer {
         let layer_f = Layer::new_from(vec![c.clone(), b.clone(), a.clone()]);
 
         for layer in [layer_a, layer_b, layer_c, layer_d, layer_e, layer_f].iter() {
-            let combined = layer.combine_shapes_flat(Some(10.degrees()));
+            let combined = layer.combine_shapes_flat(Some(Angle::from_degrees(10.0)));
             assert_eq!(combined.len(), 2);
 
             let shapes: Vec<_> = combined
