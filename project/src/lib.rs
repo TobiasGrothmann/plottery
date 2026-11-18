@@ -1,6 +1,7 @@
 #![doc = include_str!("../README.md")]
 
 mod cargo_project_template;
+mod editor_state;
 mod project;
 mod plottery_config;
 mod plottery_config_test;
@@ -16,6 +17,7 @@ mod protocol_test;
 mod run_stream;
 
 pub use cargo_project_template::*;
+pub use editor_state::*;
 pub use plottery_config::*;
 pub use project::*;
 pub use project_config::*;

@@ -9,7 +9,8 @@ use anyhow::{bail, Context, Result};
 use clap::{Args, Parser, Subcommand};
 use futures_lite::future::block_on;
 use plottery_project::{
-    set_plottery_home, validate_project_name, LibSource, Project, RunEvent, PLOTTERY_HOME_ENV,
+    editor_roots, scan_roots, set_plottery_home, validate_project_name, LibSource, Project,
+    RunEvent, ScanOptions, PLOTTERY_HOME_ENV,
 };
 use plottery_runtime::project_params_list_wrapper::ProjectParamsListWrapper;
 use std::{
@@ -116,6 +117,25 @@ enum Command {
     },
     #[command(about = "Open the project in the Plottery Editor")]
     Open {
+        #[command(flatten)]
+        project: ProjectArg,
+    },
+    #[command(
+        about = "Print the folders of the projects the editor shows, one per line",
+        long_about = "Print the folders of the projects the editor shows, one per line.\n\nThese are the projects in the folders added to the editor's browser. --roots prints those folders instead."
+    )]
+    List {
+        #[arg(
+            long,
+            help = "Print the folders the editor scans instead of the projects"
+        )]
+        roots: bool,
+    },
+    #[command(
+        about = "Print the path of a png of the project's last run, the editor's thumbnail",
+        long_about = "Print the path of a png of the project's last run, the editor's thumbnail.\n\nNothing is built or run: it shows what `plottery run` or the editor drew last."
+    )]
+    Preview {
         #[command(flatten)]
         project: ProjectArg,
     },
@@ -400,6 +420,31 @@ pub fn main() -> Result<()> {
                 bail!("`open -a {}` failed ({status})", app.display());
             }
             println!("Opened '{}' in the editor", project.config.name);
+        }
+        Command::List { roots: only_roots } => {
+            let roots = editor_roots()?;
+            if roots.is_empty() {
+                bail!("The editor has no project folders yet. Add one in the editor's browser.");
+            }
+            if only_roots {
+                for root in roots {
+                    println!("{}", root.display());
+                }
+            } else {
+                let scan = scan_roots(&roots, &ScanOptions::default());
+                for (path, error) in scan.errors {
+                    eprintln!("Skipped '{}': {error}", path.display());
+                }
+                let mut dirs: Vec<PathBuf> = scan.projects.into_iter().map(|p| p.dir).collect();
+                dirs.sort();
+                for dir in dirs {
+                    println!("{}", dir.display());
+                }
+            }
+        }
+        Command::Preview { project } => {
+            let thumbnail = project.find()?.fresh_editor_thumbnail()?;
+            println!("{}", thumbnail.display());
         }
         Command::Params { project, params } => {
             let project = project.find()?;

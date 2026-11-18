@@ -512,6 +512,21 @@ impl Project {
             .is_ok_and(|thumbnail| thumbnail_is_stale(&self.get_editor_layer_path(), &thumbnail))
     }
 
+    /// The thumbnail of the last run, rendered again when stale. An error if the project never ran.
+    pub fn fresh_editor_thumbnail(&self) -> Result<PathBuf> {
+        if !self.get_editor_layer_path().exists() {
+            return Err(Error::msg(format!(
+                "Project '{}' has no drawing yet, run it first: plottery run {}",
+                self.config.name,
+                self.dir.display()
+            )));
+        }
+        if self.editor_thumbnail_is_stale() {
+            self.update_editor_thumbnail()?;
+        }
+        self.get_editor_thumbnail_path()
+    }
+
     /// Renders the preview and the thumbnail again from the layer on disk.
     pub fn update_editor_thumbnail(&self) -> Result<()> {
         let layer = Layer::new_from_file(&self.get_editor_layer_path())?;
