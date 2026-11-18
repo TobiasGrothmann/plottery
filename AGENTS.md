@@ -79,7 +79,19 @@ Building, local checkouts in projects, tests and releasing: see `DEVELOPMENT.md`
 ## Common Pitfalls
 
 - **Adding shapes:** A plottable shape implements `Plottable`, which needs a variant in the `Shape` enum in `lib/src/shapes/shape.rs`. Implement only the transform traits that make sense, e.g. `Rect` has no `Rotate` and `Circle` no `Scale2D`. Shapes that are not plotted directly, like `Spline`, convert to a `Path` instead.
-- **Adding param types:** Add a `ProjectParamValue` variant, a `ParamField` impl in `runtime/src/project_params/param_field.rs` and a widget in the editor's params editor. List the new type in `project/resources/AGENTS.md`.
+- **Adding param types:** every place a new `ProjectParamValue` variant is handled:
+  - `runtime/src/project_params/project_param_value.rs`: the variant, appended at the end (variant order is the `.plotp` type tag, see `ParamRecord` in `params_file_format.rs`), `type_name`, `value_as_string`
+  - `runtime/src/project_params/param_field.rs`: `impl ParamField`, `impl RangedParamField` if it takes `#[range]`
+  - `runtime/src/project_params/param_text.rs`: `to_text`, `set_from_text`
+  - `runtime/src/project_params/project_param.rs`: `value_schema_equal`
+  - `runtime/src/project_params/project_params_list_wrapper.rs`: `combine_values`
+  - `runtime/src/project_params/mod.rs`: the module and re-export of a new value type
+  - `runtime/src/protocol.rs`: `PROTOCOL_VERSION`
+  - `cli/src/params.rs`: `type_label`, `constraint`, `same_value`
+  - `editor/src/router/editor/params_editor/params_editor.rs`: `render_leaf_param`, with the widget as a new `*_field.rs` registered in `mod.rs`
+  - `runtime/README.md`: the widget table
+  - `project/resources/AGENTS.md`: "Parameters"
+  - tests: `param_field_test.rs`, `param_text_test.rs`, `project_params_list_wrapper_test.rs`
 - **Project files:** Everything in a project folder is committed. Derived files (builds, previews, thumbnails) go to the cache dir, see `plottery_cache_dir` in `project/src/project.rs`.
 - **Project template:** `project/resources/AGENTS.md` is copied into every new project and describes the project, not this workspace. Existing projects keep their old copy, so template changes have to be redistributed.
 - **API changes:** Update `examples/` in the same change; `scripts/check_examples.sh` must pass. It fails when a render differs from the committed `preview.png`: look at `target/examples/changed/`, then fix the code or commit new previews with `--images`
