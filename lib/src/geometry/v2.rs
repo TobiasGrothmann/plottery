@@ -506,7 +506,7 @@ impl V2 {
         V2Interpolator::new(
             *self,
             end,
-            sample_settings.get_num_points_for_length(distance) as usize,
+            sample_settings.num_points_for_length(distance) as usize,
         )
     }
 

@@ -51,9 +51,9 @@ impl Layer {
             .set("stroke-linejoin", "round")
             .set("stroke-linecap", "round")
             .add(Style::new("path,circle,rect{mix-blend-mode:multiply}"))
-            .add(prepared.get_svg_group(&LayerPropsInheritable::default()))
+            .add(prepared.svg_group(&LayerPropsInheritable::default()))
     }
-    fn get_svg_group(&self, parent_props: &LayerPropsInheritable) -> Group {
+    fn svg_group(&self, parent_props: &LayerPropsInheritable) -> Group {
         let props_inheritable = parent_props.overwrite_with(&self.props_inheritable);
 
         let mut group = Group::new();
@@ -61,22 +61,22 @@ impl Layer {
             group = group.set("id", name.as_str());
         }
 
-        for shape_svg in self.get_shapes_as_svg_nodes(&props_inheritable) {
+        for shape_svg in self.shapes_as_svg_nodes(&props_inheritable) {
             group = group.add(shape_svg);
         }
         for sublayer_svg in self
             .sublayers
             .iter()
-            .map(|sublayer| sublayer.get_svg_group(&props_inheritable))
+            .map(|sublayer| sublayer.svg_group(&props_inheritable))
         {
             group = group.add(sublayer_svg);
         }
         group
     }
-    fn get_shapes_as_svg_nodes(&self, props: &LayerPropsInheritable) -> Vec<Box<dyn Node>> {
+    fn shapes_as_svg_nodes(&self, props: &LayerPropsInheritable) -> Vec<Box<dyn Node>> {
         let fill = "none";
         let stroke = props.color.unwrap().hex();
-        let stroke_width = props.pen_width_cm.unwrap() * SVG_UNITS_PER_CM;
+        let stroke_width = props.pen_width.unwrap() * SVG_UNITS_PER_CM;
 
         let mut nodes: Vec<Box<dyn Node>> = Vec::with_capacity(self.shapes.len());
         for shape in &self.shapes {
@@ -105,7 +105,7 @@ impl Layer {
                     ));
                 }
                 Shape::Path(p) => {
-                    let points = p.get_points_ref();
+                    let points = p.as_slice();
                     if points.len() <= 1 {
                         continue;
                     }
@@ -186,7 +186,7 @@ impl Layer {
                                     Self::close_path_if_needed(&mut path);
                                 }
 
-                                if path.get_points_ref().len() >= 2 {
+                                if path.as_slice().len() >= 2 {
                                     layer.push(Self::apply_svg_transform_to_path(
                                         &path,
                                         combined_transform,
@@ -279,7 +279,7 @@ impl Layer {
         scale_to_cm: f32,
     ) -> Path {
         Path::new_from(
-            path.get_points_ref()
+            path.as_slice()
                 .iter()
                 .map(|point| transform.mul_vector(*point) * scale_to_cm),
         )
@@ -359,7 +359,7 @@ impl Layer {
     }
 
     fn close_path_if_needed(path: &mut Path) {
-        let points = path.get_points_ref();
+        let points = path.as_slice();
         if points.len() >= 3 {
             if let (Some(first), Some(last)) = (points.first(), points.last()) {
                 if first != last {

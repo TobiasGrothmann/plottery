@@ -27,13 +27,13 @@ impl HexCell {
     /// Closed hexagon outline.
     #[must_use]
     pub fn outline(&self) -> Path {
-        Path::new_from(self.corners().to_vec()).closed()
+        Path::new_from(self.corners().to_vec()).close()
     }
 
     /// Six closed triangles between the center and adjacent corners.
     pub fn triangles(&self) -> [Path; 6] {
         std::array::from_fn(|i| {
-            Path::new_from(vec![self.center, self.corner(i), self.corner((i + 1) % 6)]).closed()
+            Path::new_from(vec![self.center, self.corner(i), self.corner((i + 1) % 6)]).close()
         })
     }
 }

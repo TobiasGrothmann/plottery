@@ -11,7 +11,7 @@ mod test_path {
     #[test]
     fn path() {
         let p = Path::new_shape_from(vec![V2::new(0.0, 0.0), V2::new(1.0, 0.0)]);
-        let points = p.get_points(SampleSettings::default());
+        let points = p.points(SampleSettings::default());
         assert_eq!(points.len(), 2);
     }
 
@@ -20,9 +20,9 @@ mod test_path {
         let p: Path = (0..100)
             .map(|i| V2::new(i as f32 * 0.1, (i as f32).sin()))
             .collect();
-        assert_eq!(p.get_points(SampleSettings::default()).len(), 100);
+        assert_eq!(p.points(SampleSettings::default()).len(), 100);
 
-        for (i, point) in p.get_points(SampleSettings::default()).iter().enumerate() {
+        for (i, point) in p.points(SampleSettings::default()).iter().enumerate() {
             assert_eq!(point, V2::new(i as f32 * 0.1, (i as f32).sin()));
         }
     }
@@ -32,7 +32,7 @@ mod test_path {
         let points = vec![V2::new(0.0, 0.0), V2::new(1.0, 2.0), V2::new(3.0, 5.0)];
         let path: Path = points.clone().into();
 
-        assert_eq!(path.get_points_ref(), points.as_slice());
+        assert_eq!(path.as_slice(), points.as_slice());
     }
 
     #[test]
@@ -40,7 +40,7 @@ mod test_path {
         let points = [V2::new(0.0, 0.0), V2::new(1.0, 2.0), V2::new(3.0, 5.0)];
         let path: Path = points.as_slice().into();
 
-        assert_eq!(path.get_points_ref(), points.as_slice());
+        assert_eq!(path.as_slice(), points.as_slice());
     }
 
     #[test]
@@ -48,7 +48,7 @@ mod test_path {
         let points = [V2::new(0.0, 0.0), V2::new(1.0, 2.0), V2::new(3.0, 5.0)];
         let path: Path = points.iter().collect();
 
-        assert_eq!(path.get_points_ref(), points.as_slice());
+        assert_eq!(path.as_slice(), points.as_slice());
     }
 
     #[test]
@@ -62,7 +62,7 @@ mod test_path {
         assert!(!p.is_closed());
 
         let r = Rect::new_shape(V2::new(-1.2, -5.0), V2::new(2.0, 3.1));
-        let p = Path::new_shape_from(r.get_points(SampleSettings::default()));
+        let p = Path::new_shape_from(r.points(SampleSettings::default()));
         assert!((r.length() - p.length()).abs() < LENGTH_TOLERANCE);
         assert!(p.is_closed());
     }
@@ -88,13 +88,13 @@ mod test_path {
     fn scale() {
         let p = Path::new_shape_from(vec![V2::new(0.0, 0.1), V2::new(1.0, 0.5)]);
         let p_scaled = p.scale(2.0);
-        assert_eq!(p_scaled.get_points(SampleSettings::default()).len(), 2);
+        assert_eq!(p_scaled.points(SampleSettings::default()).len(), 2);
         assert_eq!(
-            p_scaled.get_points(SampleSettings::default())[0],
+            p_scaled.points(SampleSettings::default())[0],
             V2::new(0.0, 0.2)
         );
         assert_eq!(
-            p_scaled.get_points(SampleSettings::default())[1],
+            p_scaled.points(SampleSettings::default())[1],
             V2::new(2.0, 1.0)
         );
     }
@@ -111,8 +111,8 @@ mod test_path {
         let transformed_2 = p.scale(2.0).translate(V2::new(1.0, 0.0));
 
         assert_eq!(
-            transformed.get_points(SampleSettings::default()),
-            transformed_2.get_points(SampleSettings::default())
+            transformed.points(SampleSettings::default()),
+            transformed_2.points(SampleSettings::default())
         );
     }
 
@@ -169,8 +169,8 @@ mod test_path {
             V2::new(1.0, 1.0),
         ]);
 
-        let p_rounded = p.rounded_chaikins(1);
-        let points = p_rounded.get_points(SampleSettings::default());
+        let p_rounded = p.round_chaikins(1);
+        let points = p_rounded.points(SampleSettings::default());
         assert_eq!(points.len(), 4);
         assert_eq!(points[0], V2::new(0.0, 0.0));
         assert_eq!(points[1], V2::new(0.75, 0.0));
@@ -189,8 +189,8 @@ mod test_path {
             V2::new(0.0, 0.0),
         ]);
 
-        let p_rounded = p.rounded_chaikins(1);
-        let points = p_rounded.get_points(SampleSettings::default());
+        let p_rounded = p.round_chaikins(1);
+        let points = p_rounded.points(SampleSettings::default());
         assert_eq!(points.len(), 9);
         assert_eq!(points[0], V2::new(0.25, 0.0));
         assert_eq!(points[1], V2::new(0.75, 0.0));
@@ -209,14 +209,14 @@ mod test_path {
         let radius = 5.0;
 
         let c = Circle::new(center, radius);
-        let points = c.get_points(SampleSettings::default());
+        let points = c.points(SampleSettings::default());
         let p = Path::new_from(points.clone());
 
         let p_simplified1 = p.reduce_points(0.01);
-        let points_simplified = p_simplified1.get_points(SampleSettings::default());
+        let points_simplified = p_simplified1.points(SampleSettings::default());
 
         let p_simplified2 = p.reduce_points(0.5);
-        let points_simplified2 = p_simplified2.get_points(SampleSettings::default());
+        let points_simplified2 = p_simplified2.points(SampleSettings::default());
 
         assert!(points.len() > points_simplified.len());
         assert!(points_simplified.len() > points_simplified2.len());
@@ -238,11 +238,11 @@ mod test_path {
         let radius = 5.0;
 
         let circle = Circle::new(center, radius);
-        let original_points = circle.get_points(SampleSettings::default());
+        let original_points = circle.points(SampleSettings::default());
         let path = Path::new_from(original_points.clone());
 
         let reduced = path.reduce_points(0.25);
-        let reduced_points = reduced.get_points(SampleSettings::default());
+        let reduced_points = reduced.points(SampleSettings::default());
 
         assert!(reduced_points.len() < original_points.len());
         assert_eq!(reduced_points.first(), reduced_points.last());
@@ -266,12 +266,12 @@ mod test_path {
         );
 
         // quarter circle: length = PI / 2 * radius = PI, so about 32 segments
-        let expected = sample.get_num_points_for_length(PI * radius / 2.0) as usize + 1;
-        assert_eq!(arc.get_points_ref().len(), expected);
+        let expected = sample.num_points_for_length(PI * radius / 2.0) as usize + 1;
+        assert_eq!(arc.as_slice().len(), expected);
         assert!(expected < 40);
 
-        assert_eq!(*arc.get_start().unwrap(), center + V2::new(radius, 0.0));
-        assert_eq!(*arc.get_end().unwrap(), center + V2::new(0.0, radius));
+        assert_eq!(*arc.start().unwrap(), center + V2::new(radius, 0.0));
+        assert_eq!(*arc.end().unwrap(), center + V2::new(0.0, radius));
         for p in arc.iter() {
             assert!((p.dist(center) - radius).abs() < LENGTH_TOLERANCE);
         }
@@ -289,7 +289,7 @@ mod test_path {
         assert_eq!(path.windows(2).count(), 3);
         assert_eq!((&path).into_iter().count(), 4);
 
-        let closed = path.closed();
+        let closed = path.close();
         assert_eq!(closed.len(), 5);
         assert_eq!(closed.first(), closed.last());
         assert!(closed.is_closed());

@@ -144,7 +144,7 @@ mod test_builder {
         assert_eq!(spline.len(), 6);
         assert_eq!(spline.start_point().unwrap(), V2::new(0.0, 0.0));
         for (a, b) in spline.segments().iter().circular_tuple_windows() {
-            assert_eq!(a.to(), b.from());
+            assert_eq!(a.end(), b.start());
             assert!(parallel(a.tangent_at_end(), b.tangent_at_start()));
         }
     }

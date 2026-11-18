@@ -22,29 +22,29 @@ impl PathEnd {
 
     pub fn from_path_start(path: &Path) -> Self {
         PathEnd {
-            point: *path.get_start().unwrap(),
+            point: *path.start().unwrap(),
             angle: path
-                .get_points_ref()
+                .as_slice()
                 .first()
                 .unwrap()
-                .angle_to(*path.get_points_ref().get(1).unwrap()),
+                .angle_to(*path.as_slice().get(1).unwrap()),
         }
     }
 
     pub fn from_path_end(path: &Path) -> Self {
-        let path_len = path.get_points_ref().len();
+        let path_len = path.as_slice().len();
         PathEnd {
-            point: *path.get_end().unwrap(),
+            point: *path.end().unwrap(),
             angle: path
-                .get_points_ref()
+                .as_slice()
                 .get(path_len - 2)
                 .unwrap()
-                .angle_to(*path.get_points_ref().get(path_len - 1).unwrap()),
+                .angle_to(*path.as_slice().get(path_len - 1).unwrap()),
         }
     }
 
     #[must_use]
-    pub fn flipped(&self) -> Self {
+    pub fn flip(&self) -> Self {
         PathEnd {
             point: self.point,
             angle: self.angle + Angle::half_rotation(),

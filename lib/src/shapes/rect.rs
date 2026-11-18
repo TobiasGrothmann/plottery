@@ -98,12 +98,12 @@ impl Rect {
 
     /// The outline rotated around the rect's center; a rotated rect is a [`Path`].
     #[must_use]
-    pub fn rotated(&self, angle: Angle) -> Path {
-        self.rotated_around(self.center(), angle)
+    pub fn rotate(&self, angle: Angle) -> Path {
+        self.rotate_around(self.center(), angle)
     }
     /// The outline rotated around `pivot`; a rotated rect is a [`Path`].
     #[must_use]
-    pub fn rotated_around(&self, pivot: V2, angle: Angle) -> Path {
+    pub fn rotate_around(&self, pivot: V2, angle: Angle) -> Path {
         self.to_path(SampleSettings::default())
             .rotate_around(pivot, angle)
     }
@@ -168,7 +168,7 @@ impl Rect {
         pen_width: f32,
     ) -> super::Path {
         if pen_width <= LENGTH_TOLERANCE {
-            return Path::new_from(self.get_points(SampleSettings::default()));
+            return Path::new_from(self.points(SampleSettings::default()));
         }
 
         let max_thickness_x = (self.width() * 0.5 - pen_width * 0.5).max(0.0);
@@ -176,7 +176,7 @@ impl Rect {
         thickness = thickness.min(max_thickness_x.min(max_thickness_y));
 
         if thickness <= LENGTH_TOLERANCE {
-            return Path::new_from(self.get_points(SampleSettings::default()));
+            return Path::new_from(self.points(SampleSettings::default()));
         }
 
         let thickness_x = thickness.min(max_thickness_x);
@@ -198,7 +198,7 @@ impl Rect {
     }
 
     fn spiral_fill_with_steps(&self, max_steps: usize, step_x: f32, step_y: f32) -> super::Path {
-        let border = self.get_points(SampleSettings::default());
+        let border = self.points(SampleSettings::default());
 
         if max_steps == 0 || step_x <= LENGTH_TOLERANCE || step_y <= LENGTH_TOLERANCE {
             return Path::new_from(border);
@@ -250,7 +250,7 @@ impl Rect {
 
     /// Path to draw a rect's outer border and criss cross filling
     pub fn filled_criss_cross(&self, pen_width: f32) -> super::Path {
-        let outer_border = self.get_points(SampleSettings::default());
+        let outer_border = self.points(SampleSettings::default());
 
         if self.height() <= pen_width * 0.5 || self.width() <= pen_width * 0.5 {
             return Path::new_from(outer_border);
@@ -277,7 +277,7 @@ impl Rect {
             return Vec::new();
         }
         if self.height() <= pen_width * 0.5 {
-            return self.get_points(SampleSettings::default());
+            return self.points(SampleSettings::default());
         }
 
         let num_lines = (self.height() / pen_width).ceil() as usize;
@@ -523,15 +523,15 @@ fn segments_intersect_or_touch(a: Line, b: Line) -> bool {
 }
 
 impl Plottable for Rect {
-    fn get_points(&self, _: SampleSettings) -> Vec<V2> {
+    fn points(&self, _: SampleSettings) -> Vec<V2> {
         vec![self.bl(), self.tl(), self.tr(), self.br(), self.bl()]
     }
-    fn get_points_from(
+    fn points_from(
         &self,
         _current_drawing_head_pos: V2,
         sample_settings: SampleSettings,
     ) -> Vec<V2> {
-        self.get_points(sample_settings)
+        self.points(sample_settings)
     }
 
     fn length(&self) -> f32 {

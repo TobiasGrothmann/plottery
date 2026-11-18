@@ -69,7 +69,7 @@ pub fn plot_shape<E: HardwareExecutor>(
     sample_settings: SampleSettings,
     plot_settings: &PlotSettings,
 ) {
-    let points = shape.get_points_from(hardware.get_pos(), sample_settings);
+    let points = shape.points_from(hardware.get_pos(), sample_settings);
     if points.len() < 2 {
         return;
     }

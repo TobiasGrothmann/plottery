@@ -87,8 +87,8 @@ impl NoiseSettings {
     /// Noise with the frequency taken as features per cm, seeded from the global RNG.
     pub fn noise(&self) -> Noise {
         Noise::new(self.noise_type)
-            .frequency(self.frequency)
-            .octaves(self.octaves.max(1))
+            .with_frequency(self.frequency)
+            .with_octaves(self.octaves.max(1))
     }
 
     /// Noise for a paper of `size`: with [`NoiseScale::PerPaper`] the frequency is divided by the
@@ -99,8 +99,8 @@ impl NoiseSettings {
             NoiseScale::PerPaper => self.frequency / size.min_axis().max(f32::EPSILON),
         };
         Noise::new(self.noise_type)
-            .frequency(frequency)
-            .octaves(self.octaves.max(1))
+            .with_frequency(frequency)
+            .with_octaves(self.octaves.max(1))
     }
 }
 
@@ -130,16 +130,16 @@ impl Noise {
     }
 
     #[must_use]
-    pub fn seed(self, seed: i32) -> Self {
+    pub fn with_seed(self, seed: i32) -> Self {
         Self::build(self.noise_type, seed, self.frequency, self.octaves)
     }
     #[must_use]
-    pub fn frequency(self, frequency: f32) -> Self {
+    pub fn with_frequency(self, frequency: f32) -> Self {
         Self::build(self.noise_type, self.seed, frequency, self.octaves)
     }
     /// Number of fractal (FBm) octaves, 1 disables the fractal.
     #[must_use]
-    pub fn octaves(self, octaves: u32) -> Self {
+    pub fn with_octaves(self, octaves: u32) -> Self {
         Self::build(self.noise_type, self.seed, self.frequency, octaves)
     }
 

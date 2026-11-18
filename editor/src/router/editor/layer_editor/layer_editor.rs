@@ -209,7 +209,7 @@ fn row_title(row: &LayerRow) -> String {
         [] => None,
         [pen] => Some(format!(
             "{} {}, {} mm pen",
-            pen.color.get_name().name,
+            pen.color.name().name,
             pen.color.hex(),
             format_number(pen.width_cm * 10.0)
         )),

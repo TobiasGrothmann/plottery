@@ -99,19 +99,19 @@ impl Hatch {
                 points.dedup();
                 Path::new_from(points)
             })
-            .filter(|path| path.get_points_ref().len() >= 2)
+            .filter(|path| path.as_slice().len() >= 2)
             .collect()
     }
 
     pub(crate) fn hatch_shape<P: Plottable>(&self, shape: &P) -> Layer {
-        self.hatch_rings(&[shape.get_points(self.sample_settings)])
+        self.hatch_rings(&[shape.points(self.sample_settings)])
     }
 
     pub(crate) fn hatch_layer(&self, layer: &Layer) -> Layer {
         let rings: Vec<Vec<V2>> = layer
             .iter()
             .filter(|shape| shape.is_closed())
-            .map(|shape| shape.get_points(self.sample_settings))
+            .map(|shape| shape.points(self.sample_settings))
             .collect();
         self.hatch_rings(&rings)
     }

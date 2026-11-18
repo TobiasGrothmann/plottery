@@ -318,7 +318,7 @@ impl Spline {
         match beziers.as_slice() {
             [] => Spline::default(),
             [single] if !closed => {
-                Spline::from_segments(vec![Line::new(single.from(), single.to()).into()], false)
+                Spline::from_segments(vec![Line::new(single.start(), single.end()).into()], false)
             }
             _ => Spline::from_segments(beziers.into_iter().map(Into::into).collect(), closed),
         }

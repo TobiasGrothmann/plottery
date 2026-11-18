@@ -23,7 +23,7 @@ pub fn ColorField(props: LeafProps) -> Element {
         };
     };
     let hex = color.hex();
-    let name = color.get_name().name.to_lowercase();
+    let name = color.name().name.to_lowercase();
     let picker_props = props.clone();
     let text_props = props.clone();
 

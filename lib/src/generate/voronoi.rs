@@ -18,7 +18,7 @@ pub struct VoronoiCell {
 impl VoronoiCell {
     #[must_use]
     pub fn outline(&self) -> Path {
-        Path::new_from(self.vertices.clone()).closed()
+        Path::new_from(self.vertices.clone()).close()
     }
 
     pub fn area(&self) -> f32 {

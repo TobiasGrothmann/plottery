@@ -12,7 +12,7 @@ mod test_noise {
         let _rng = seed_for_test(1);
         let mut rng = StdRng::seed_from_u64(1);
         for noise_type in [NoiseType::Perlin, NoiseType::Simplex, NoiseType::Worley] {
-            let noise = Noise::new(noise_type).frequency(0.01);
+            let noise = Noise::new(noise_type).with_frequency(0.01);
             for _ in 0..10000 {
                 let location = V2::new(rng.gen_range(-500.0..500.0), rng.gen_range(-500.0..500.0));
                 assert!((0.0..=1.0).contains(&noise.get(location)));
@@ -23,7 +23,7 @@ mod test_noise {
     #[test]
     fn as_fn_matches_get() {
         let _rng = seed_for_test(1);
-        let noise = Noise::perlin().seed(3);
+        let noise = Noise::perlin().with_seed(3);
         let field = noise.as_fn();
         let p = V2::new(0.3, 0.7);
         assert_eq!(field(p), noise.get(p));
@@ -58,8 +58,8 @@ mod test_noise {
             .with_scale(NoiseScale::PerPaper);
 
         // the same explicit seed, so the two noises can match
-        let per_paper = settings.noise_for(size).seed(7);
-        let absolute = settings.with_frequency(4.0 / 20.0).noise().seed(7);
+        let per_paper = settings.noise_for(size).with_seed(7);
+        let absolute = settings.with_frequency(4.0 / 20.0).noise().with_seed(7);
         for i in 0..20 {
             let p = V2::new(i as f32 * 1.3, i as f32 * 0.7);
             assert_eq!(per_paper.get(p), absolute.get(p));
@@ -68,10 +68,10 @@ mod test_noise {
         let per_cm = settings
             .with_scale(NoiseScale::PerCm)
             .noise_for(size)
-            .seed(7);
+            .with_seed(7);
         assert_eq!(
             per_cm.get(V2::xy(2.0)),
-            settings.noise().seed(7).get(V2::xy(2.0))
+            settings.noise().with_seed(7).get(V2::xy(2.0))
         );
     }
 }

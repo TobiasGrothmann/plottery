@@ -200,7 +200,7 @@ impl Blur<'_> {
     /// Even steps along the shape of at most `pen_width / density`. Closed shapes skip the repeated end.
     fn sample<P: Plottable>(&self, shape: &P) -> Option<Samples> {
         let max_spacing = (self.pen_width / self.density).max(MIN_SPACING);
-        let points = shape.get_points(SampleSettings::new(1.0 / max_spacing));
+        let points = shape.points(SampleSettings::new(1.0 / max_spacing));
         let lengths: Vec<f32> = points
             .windows(2)
             .map(|pair| pair[0].dist(pair[1]))

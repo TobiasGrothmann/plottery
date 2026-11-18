@@ -151,7 +151,7 @@ let bounds = frame.inner_rect();
 let even = PoissonDisk::new(bounds, 0.3).points();
 
 // denser where the noise is high: 0.1 cm apart at density 1, 0.5 cm at density 0
-let noise = Noise::perlin().frequency(0.3);
+let noise = Noise::perlin().with_frequency(0.3);
 let points = PoissonDisk::new(bounds, 0.1)
     .with_density_fn(0.5, noise.as_fn())
     .points();

@@ -32,10 +32,10 @@ impl Bezier {
     pub fn degree(&self) -> usize {
         self.controls.len() - 1
     }
-    pub fn from(&self) -> V2 {
+    pub fn start(&self) -> V2 {
         self.controls[0]
     }
-    pub fn to(&self) -> V2 {
+    pub fn end(&self) -> V2 {
         self.controls[self.controls.len() - 1]
     }
 
@@ -55,7 +55,7 @@ impl Bezier {
         if tangent.length_squared() > LENGTH_TOLERANCE * LENGTH_TOLERANCE {
             tangent
         } else {
-            self.to() - self.from()
+            self.end() - self.start()
         }
     }
 
@@ -77,15 +77,15 @@ impl Bezier {
     }
 
     /// Same curve with one more control point.
-    pub fn elevated(&self) -> Bezier {
+    pub fn elevate(&self) -> Bezier {
         let n = self.controls.len() as f32;
         let inner = self.controls.windows(2).enumerate().map(|(i, pair)| {
             let alpha = (i + 1) as f32 / n;
             pair[0] * alpha + pair[1] * (1.0 - alpha)
         });
-        let controls = std::iter::once(self.from())
+        let controls = std::iter::once(self.start())
             .chain(inner)
-            .chain(std::iter::once(self.to()))
+            .chain(std::iter::once(self.end()))
             .collect();
         Bezier { controls }
     }
@@ -96,7 +96,7 @@ impl Bezier {
     }
 
     fn length_recursive(&self, depth: usize) -> f32 {
-        let chord = self.from().dist(self.to());
+        let chord = self.start().dist(self.end());
         let polygon: f32 = self
             .controls
             .windows(2)
@@ -114,10 +114,13 @@ impl Bezier {
         resample_even(|t| self.point_at(t), self.length(), sample_settings)
     }
 
-    pub fn reversed(&self) -> Bezier {
+    pub fn reverse(&self) -> Bezier {
         Bezier {
             controls: self.controls.iter().rev().copied().collect(),
         }
+    }
+    pub fn reverse_mut(&mut self) {
+        self.controls.reverse();
     }
 
     pub(crate) fn map_points(&self, f: impl Fn(V2) -> V2) -> Bezier {

@@ -24,7 +24,7 @@ mod test_circle {
         let c = Circle::new_shape(center, radius);
         let sample_settings = SampleSettings::default();
 
-        let points = c.get_points(sample_settings);
+        let points = c.points(sample_settings);
         assert!(points.len() > 50); // enough points
         for point in points.iter() {
             assert!((point.dist(center) - radius).abs() < LENGTH_TOLERANCE); // radius distance from center
@@ -46,8 +46,8 @@ mod test_circle {
         let c_scaled = c.scale(2.0);
         assert_eq!(c.length() * 2.0, c_scaled.length());
 
-        let c_p = Path::new_shape_from(c.get_points(SampleSettings::default()));
-        let c_scaled_p = Path::new_shape_from(c_scaled.get_points(SampleSettings::default()));
+        let c_p = Path::new_shape_from(c.points(SampleSettings::default()));
+        let c_scaled_p = Path::new_shape_from(c_scaled.points(SampleSettings::default()));
         assert!((c_p.length() * 2.0 - c_scaled_p.length()).abs() < 0.001);
     }
 
@@ -106,13 +106,13 @@ mod test_circle {
         let c1 = Circle::new(V2::new(1.0, 0.0), 1.0);
         let c2 = Circle::new(V2::new(2.0, 0.0), 2.0);
 
-        println!("c1 {:?}", c1.get_intersections(&c2));
-        println!("c2 {:?}", c2.get_intersections(&c1));
+        println!("c1 {:?}", c1.intersections(&c2));
+        println!("c2 {:?}", c2.intersections(&c1));
 
-        assert_eq!(c1.get_intersections(&c2).len(), 1);
-        assert_eq!(c2.get_intersections(&c1).len(), 1);
-        assert_eq!(c1.get_intersections(&c2), vec![V2::new(0.0, 0.0)]);
-        assert_eq!(c2.get_intersections(&c1), vec![V2::new(0.0, 0.0)]);
+        assert_eq!(c1.intersections(&c2).len(), 1);
+        assert_eq!(c2.intersections(&c1).len(), 1);
+        assert_eq!(c1.intersections(&c2), vec![V2::new(0.0, 0.0)]);
+        assert_eq!(c2.intersections(&c1), vec![V2::new(0.0, 0.0)]);
     }
 
     #[test]
@@ -120,10 +120,10 @@ mod test_circle {
         let c1 = Circle::new(V2::new(0.0, 0.0), 1.0);
         let c2 = Circle::new(V2::new(2.0, 0.0), 1.0);
 
-        assert_eq!(c1.get_intersections(&c2).len(), 1);
-        assert_eq!(c2.get_intersections(&c1).len(), 1);
-        assert_eq!(c1.get_intersections(&c2)[0], V2::new(1.0, 0.0));
-        assert_eq!(c2.get_intersections(&c1)[0], V2::new(1.0, 0.0));
+        assert_eq!(c1.intersections(&c2).len(), 1);
+        assert_eq!(c2.intersections(&c1).len(), 1);
+        assert_eq!(c1.intersections(&c2)[0], V2::new(1.0, 0.0));
+        assert_eq!(c2.intersections(&c1)[0], V2::new(1.0, 0.0));
     }
 
     #[test]
@@ -131,10 +131,10 @@ mod test_circle {
         let c1 = Circle::new(V2::new(1.0, 1.0), 2.0_f32.sqrt());
         let c2 = Circle::new(V2::new(3.0, 3.0), 2.0_f32.sqrt());
 
-        assert_eq!(c1.get_intersections(&c2).len(), 1);
-        assert_eq!(c2.get_intersections(&c1).len(), 1);
-        assert_eq!(c1.get_intersections(&c2)[0], V2::new(2.0, 2.0));
-        assert_eq!(c2.get_intersections(&c1)[0], V2::new(2.0, 2.0));
+        assert_eq!(c1.intersections(&c2).len(), 1);
+        assert_eq!(c2.intersections(&c1).len(), 1);
+        assert_eq!(c1.intersections(&c2)[0], V2::new(2.0, 2.0));
+        assert_eq!(c2.intersections(&c1)[0], V2::new(2.0, 2.0));
     }
 
     #[test]
@@ -142,24 +142,24 @@ mod test_circle {
         let c1 = Circle::new(V2::new(1.0, 1.0), 1.0);
         let c2 = Circle::new(V2::new(2.0, 1.0), 1.0);
 
-        println!("c1 {:?}", c1.get_intersections(&c2));
+        println!("c1 {:?}", c1.intersections(&c2));
 
-        assert_eq!(c1.get_intersections(&c2).len(), 2);
-        assert_eq!(c2.get_intersections(&c1).len(), 2);
-        assert_eq!(c1.get_intersections(&c2)[0].x, 1.5);
-        assert_eq!(c1.get_intersections(&c2)[1].x, 1.5);
-        assert_eq!(c2.get_intersections(&c1)[0].x, 1.5);
-        assert_eq!(c2.get_intersections(&c1)[1].x, 1.5);
+        assert_eq!(c1.intersections(&c2).len(), 2);
+        assert_eq!(c2.intersections(&c1).len(), 2);
+        assert_eq!(c1.intersections(&c2)[0].x, 1.5);
+        assert_eq!(c1.intersections(&c2)[1].x, 1.5);
+        assert_eq!(c2.intersections(&c1)[0].x, 1.5);
+        assert_eq!(c2.intersections(&c1)[1].x, 1.5);
     }
 
     #[test]
-    fn get_points() {
+    fn points() {
         let c = Circle::new(V2::new(1.0, 1.0), 1.0);
         let start_point = V2::new(1.0, 5.0);
         let sample_settings = SampleSettings::default();
 
-        let points = c.get_points(sample_settings);
-        let points_from = c.get_points_from(start_point, sample_settings);
+        let points = c.points(sample_settings);
+        let points_from = c.points_from(start_point, sample_settings);
 
         assert_eq!(points.first().unwrap(), V2::new(2.0, 1.0));
         assert_eq!(points_from.first().unwrap(), V2::new(1.0, 2.0));

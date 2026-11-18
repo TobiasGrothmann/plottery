@@ -75,12 +75,12 @@ fn render(font: BundledFont) -> FontPreview {
         .unwrap_or_else(|| FALLBACK_TEXT.to_string());
 
     let polylines: Vec<_> = Text::new(text, &loaded)
-        .size(1.0)
+        .with_size(1.0)
         .to_layer(SampleSettings::new(POINTS_PER_EM))
         .map(|layer| {
             layer
                 .iter()
-                .map(|shape| shape.get_points(SampleSettings::new(POINTS_PER_EM)))
+                .map(|shape| shape.points(SampleSettings::new(POINTS_PER_EM)))
                 .filter(|points| points.len() >= 2)
                 .collect()
         })

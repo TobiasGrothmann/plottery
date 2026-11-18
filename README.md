@@ -109,10 +109,10 @@ Text is drawn with single-line fonts, so every glyph is a set of pen strokes. Th
 ```rust
 let font = Font::bundled(BundledFont::HersheyScript);
 let text = Text::new("Hello plotter", &font)
-    .size(1.5) // em height in cm
+    .with_size(1.5) // em height in cm
     .in_rect(frame.inner_rect()) // wraps words at the rect's width
-    .align(TextAlign::Center)
-    .vertical_align(VerticalAlign::Center)
+    .with_align(TextAlign::Center)
+    .with_vertical_align(VerticalAlign::Center)
     .to_layer(SampleSettings::default())
     .expect("text");
 l.push_layer(text);

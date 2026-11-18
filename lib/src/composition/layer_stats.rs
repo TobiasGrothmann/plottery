@@ -39,11 +39,11 @@ impl Layer {
     }
 }
 
-/// Where the plotter puts the pen down and lifts it when coming from `pos`, see `get_points_from`.
+/// Where the plotter puts the pen down and lifts it when coming from `pos`, see `points_from`.
 fn entry_and_exit(shape: &Shape, pos: V2) -> Option<(V2, V2)> {
     match shape {
         Shape::Path(path) => {
-            let points = path.get_points_ref();
+            let points = path.as_slice();
             let (first, last) = (*points.first()?, *points.last()?);
             if points.len() < 2 {
                 None

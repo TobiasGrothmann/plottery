@@ -179,7 +179,7 @@ pen. The layer tree you return is that panel, so build it for the user, not for 
 - Every part the user would look at, hide or plot on its own is a sublayer named with `with_name`,
   after what it shows: `hills`, `sky hatching`, `title`, `frame`. An unnamed layer shows as "layer 3".
 - With several pens, the pens are the top level: one sublayer per pen with `with_color` and
-  `with_pen_width_cm`, which its sublayers inherit, and the parts drawn with that pen below it.
+  `with_pen_width`, which its sublayers inherit, and the parts drawn with that pen below it.
 - A layer holds either shapes or sublayers. Shapes pushed next to sublayers, also in the root, end up
   in a nameless "shapes" row.
 - Names are unique among siblings and the same in every run. The editor finds hidden layers again by

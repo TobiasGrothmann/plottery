@@ -93,22 +93,22 @@ impl Shape {
 }
 
 impl Plottable for Shape {
-    fn get_points(&self, sample_settings: SampleSettings) -> Vec<V2> {
+    fn points(&self, sample_settings: SampleSettings) -> Vec<V2> {
         match self {
-            Shape::Circle(c) => c.get_points(sample_settings),
-            Shape::Rect(r) => r.get_points(sample_settings),
-            Shape::Path(p) => p.get_points(sample_settings),
+            Shape::Circle(c) => c.points(sample_settings),
+            Shape::Rect(r) => r.points(sample_settings),
+            Shape::Path(p) => p.points(sample_settings),
         }
     }
-    fn get_points_from(
+    fn points_from(
         &self,
         current_drawing_head_pos: V2,
         sample_settings: SampleSettings,
     ) -> Vec<V2> {
         match self {
-            Shape::Circle(c) => c.get_points_from(current_drawing_head_pos, sample_settings),
-            Shape::Rect(r) => r.get_points_from(current_drawing_head_pos, sample_settings),
-            Shape::Path(p) => p.get_points_from(current_drawing_head_pos, sample_settings),
+            Shape::Circle(c) => c.points_from(current_drawing_head_pos, sample_settings),
+            Shape::Rect(r) => r.points_from(current_drawing_head_pos, sample_settings),
+            Shape::Path(p) => p.points_from(current_drawing_head_pos, sample_settings),
         }
     }
 
@@ -322,7 +322,7 @@ impl Scale2D for Shape {
     fn scale_2d(&self, factor: V2) -> Self {
         match self {
             Shape::Circle(c) => {
-                let mut points = c.get_points(SampleSettings::default());
+                let mut points = c.points(SampleSettings::default());
                 for p in &mut points {
                     *p *= factor;
                 }
@@ -336,7 +336,7 @@ impl Scale2D for Shape {
     fn scale_2d_mut(&mut self, factor: V2) {
         match self {
             Shape::Circle(c) => {
-                let mut points = c.get_points(SampleSettings::default());
+                let mut points = c.points(SampleSettings::default());
                 for p in &mut points {
                     *p *= factor;
                 }
@@ -399,7 +399,7 @@ impl Transform for Shape {
     fn transform(&self, matrix: &TransformMatrix) -> Self {
         match self {
             Shape::Circle(c) => Shape::Path(
-                c.get_points(SampleSettings::default())
+                c.points(SampleSettings::default())
                     .iter()
                     .map(|p| matrix.mul_vector(*p))
                     .collect::<Path>(),
@@ -422,7 +422,7 @@ impl Transform for Shape {
         match self {
             Shape::Circle(c) => {
                 let points = c
-                    .get_points(SampleSettings::default())
+                    .points(SampleSettings::default())
                     .iter()
                     .map(|p| matrix.mul_vector(*p))
                     .collect::<Path>();

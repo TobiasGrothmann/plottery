@@ -113,7 +113,7 @@ impl ColorRgb {
     }
 
     /// Returns the closest [ColorName] from the list of predefined named colors [COLOR_NAMES].
-    pub fn get_name(&self) -> ColorName {
+    pub fn name(&self) -> ColorName {
         *COLOR_NAMES
             .iter()
             .min_by_key(|color| self.dist_euclidean(color.color).to_bits())

@@ -12,10 +12,10 @@ Use cases for the [`Text`] builder.
 # let settings = SampleSettings::default();
 # let rect = Rect::new(V2::zero(), V2::new(12.0, 5.0));
 let layer = Text::new("top right", &font)
-    .size(0.5)
+    .with_size(0.5)
     .in_rect(rect)
-    .align(TextAlign::Right)
-    .vertical_align(VerticalAlign::Top)
+    .with_align(TextAlign::Right)
+    .with_vertical_align(VerticalAlign::Top)
     .to_layer(settings)?;
 # Ok::<(), anyhow::Error>(())
 ```
@@ -33,11 +33,11 @@ let layer = Text::new("top right", &font)
 # let column = Rect::new(V2::zero(), V2::new(4.4, 3.4));
 # let paragraph = "Pen plotters draw text as strokes.";
 let layer = Text::new(paragraph, &font)
-    .size(0.42)
+    .with_size(0.42)
     .in_rect(column)
-    .align(TextAlign::Justify)
-    .wrap(Wrap::Balanced)
-    .vertical_align(VerticalAlign::Top)
+    .with_align(TextAlign::Justify)
+    .with_wrap(Wrap::Balanced)
+    .with_vertical_align(VerticalAlign::Top)
     .to_layer(settings)?;
 # Ok::<(), anyhow::Error>(())
 ```
@@ -55,9 +55,9 @@ let layer = Text::new(paragraph, &font)
 # let rect = Rect::new(V2::zero(), V2::new(7.0, 2.0));
 let layer = Text::new("fit inside", &font)
     .fit_inside(rect)
-    .wrap(Wrap::Balanced)
-    .align(TextAlign::Center)
-    .vertical_align(VerticalAlign::Center)
+    .with_wrap(Wrap::Balanced)
+    .with_align(TextAlign::Center)
+    .with_vertical_align(VerticalAlign::Center)
     .to_layer(settings)?;
 # Ok::<(), anyhow::Error>(())
 ```
@@ -74,7 +74,7 @@ let layer = Text::new("fit inside", &font)
 # let settings = SampleSettings::default();
 let layer = Text::new("Plottery", &font)
     .fit_width(8.0)
-    .vertical_align(VerticalAlign::Top)
+    .with_vertical_align(VerticalAlign::Top)
     .to_layer(settings)?;
 # Ok::<(), anyhow::Error>(())
 ```
@@ -83,7 +83,7 @@ let layer = Text::new("Plottery", &font)
 
 ## Rotation
 
-[`Text::rotation`] turns the finished block around its anchor point.
+[`Text::with_rotation`] turns the finished block around its anchor point.
 
 ```rust
 # use plottery_lib::*;
@@ -91,9 +91,9 @@ let layer = Text::new("Plottery", &font)
 # let settings = SampleSettings::default();
 # let anchor = V2::zero();
 let layer = Text::new("30 degrees", &font)
-    .size(0.6)
+    .with_size(0.6)
     .at(anchor)
-    .rotation(Angle::from_degrees(30.0))
+    .with_rotation(Angle::from_degrees(30.0))
     .to_layer(settings)?;
 # Ok::<(), anyhow::Error>(())
 ```
@@ -109,7 +109,7 @@ let layer = Text::new("30 degrees", &font)
 # let font = Font::bundled(BundledFont::EmsReadability);
 # let settings = SampleSettings::default();
 let layout = Text::new("Each line is a\nsublayer with an\norigin and a width", &font)
-    .size(0.7)
+    .with_size(0.7)
     .layout()?;
 let metrics = font.metrics(0.7);
 let mut layer = layout.to_layer_by_line(settings);

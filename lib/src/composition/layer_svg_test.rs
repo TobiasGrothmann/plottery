@@ -72,7 +72,7 @@ mod test_layer_svg {
 
         for shape in imported.iter() {
             match shape {
-                Shape::Path(path) => assert!(path.get_points_ref().len() >= 2),
+                Shape::Path(path) => assert!(path.as_slice().len() >= 2),
                 _ => panic!("Expected imported shape to be Path"),
             }
         }
@@ -115,7 +115,7 @@ mod test_layer_svg {
 
         for shape in imported.iter() {
             match shape {
-                Shape::Path(path) => assert!(path.get_points_ref().len() >= 2),
+                Shape::Path(path) => assert!(path.as_slice().len() >= 2),
                 _ => panic!("Expected imported shape to be Path"),
             }
         }
@@ -124,7 +124,7 @@ mod test_layer_svg {
         let Shape::Path(curved) = imported.iter().next().unwrap() else {
             panic!("Expected imported shape to be Path");
         };
-        assert!(curved.get_points_ref().len() > 8);
+        assert!(curved.as_slice().len() > 8);
     }
 
     #[test]
@@ -147,8 +147,8 @@ mod test_layer_svg {
             })
             .collect::<Vec<_>>();
 
-        assert_eq!(paths[0].get_points_ref().len(), 4);
-        assert_eq!(paths[1].get_points_ref().len(), 4);
+        assert_eq!(paths[0].as_slice().len(), 4);
+        assert_eq!(paths[1].as_slice().len(), 4);
     }
 
     #[test]
@@ -170,7 +170,7 @@ mod test_layer_svg {
             _ => panic!("Expected imported shape to be Path"),
         };
 
-        let points = path.get_points_ref();
+        let points = path.as_slice();
         assert_eq!(points.len(), 4);
 
         assert_eq!(points[0], V2::new(10.0, 10.0));
@@ -196,7 +196,7 @@ mod test_layer_svg {
             _ => panic!("Expected imported shape to be Path"),
         };
 
-        let points = path.get_points_ref();
+        let points = path.as_slice();
         assert_eq!(points.len(), 4);
         assert_eq!(points.first().unwrap(), points.last().unwrap());
     }
@@ -218,7 +218,7 @@ mod test_layer_svg {
             _ => panic!("Expected imported shape to be Path"),
         };
 
-        let points = path.get_points_ref();
+        let points = path.as_slice();
         assert_eq!(points.len(), 2);
         assert!((points[0].x - 1.0).abs() < 1e-5);
         assert!((points[1].x - 2.0).abs() < 1e-5);

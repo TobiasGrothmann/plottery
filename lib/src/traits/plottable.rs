@@ -17,7 +17,7 @@ impl SampleSettings {
     pub fn new(points_per_unit: f32) -> Self {
         Self { points_per_unit }
     }
-    pub fn get_num_points_for_length(&self, length: f32) -> i32 {
+    pub fn num_points_for_length(&self, length: f32) -> i32 {
         (length.abs() * self.points_per_unit).ceil() as i32
     }
     pub fn low_res() -> Self {
@@ -48,8 +48,8 @@ pub struct Masked {
 }
 
 pub trait Plottable: Clone + Into<Shape> + BoundingBox {
-    fn get_points(&self, _: SampleSettings) -> Vec<V2>;
-    fn get_points_from(
+    fn points(&self, _: SampleSettings) -> Vec<V2>;
+    fn points_from(
         &self,
         current_drawing_head_pos: V2,
         sample_settings: SampleSettings,
@@ -58,11 +58,11 @@ pub trait Plottable: Clone + Into<Shape> + BoundingBox {
     /// The shape sampled into a single [`Path`].
     #[must_use]
     fn to_path(&self, sample_settings: SampleSettings) -> Path {
-        Path::new_from(self.get_points(sample_settings))
+        Path::new_from(self.points(sample_settings))
     }
 
-    fn get_line_segments(&self, sample_settings: SampleSettings) -> Vec<Line> {
-        self.get_points(sample_settings)
+    fn line_segments(&self, sample_settings: SampleSettings) -> Vec<Line> {
+        self.points(sample_settings)
             .iter()
             .tuple_windows()
             .map(|(from, to)| Line::new(*from, *to))
@@ -78,14 +78,14 @@ pub trait Plottable: Clone + Into<Shape> + BoundingBox {
     fn reduce_points(&self, aggression_factor: f32) -> Self;
 
     /// Points of the shape with extra points inserted along segments longer than `1 / points_per_unit`.
-    fn get_points_oversampled(&self, sample_settings: SampleSettings) -> Vec<V2> {
-        let points = self.get_points(sample_settings);
+    fn points_oversampled(&self, sample_settings: SampleSettings) -> Vec<V2> {
+        let points = self.points(sample_settings);
         if points.is_empty() {
             return points;
         }
         let mut points_oversampled = vec![points[0]];
         for (from, to) in points.iter().tuple_windows() {
-            let num_steps = sample_settings.get_num_points_for_length(from.dist(*to));
+            let num_steps = sample_settings.num_points_for_length(from.dist(*to));
             if num_steps <= 1 {
                 points_oversampled.push(*to);
             } else {
@@ -101,7 +101,7 @@ pub trait Plottable: Clone + Into<Shape> + BoundingBox {
     /// Oversamples the shape and maps every point through `f`.
     /// Consider [`reduce_points`](Plottable::reduce_points) on the result.
     fn distort<F: Fn(V2) -> V2>(&self, sample_settings: SampleSettings, f: F) -> Path {
-        self.get_points_oversampled(sample_settings)
+        self.points_oversampled(sample_settings)
             .into_iter()
             .map(f)
             .collect()
@@ -125,7 +125,7 @@ pub trait Plottable: Clone + Into<Shape> + BoundingBox {
         sample_settings: SampleSettings,
         f: F,
     ) -> Layer {
-        let segments = self.get_line_segments(sample_settings);
+        let segments = self.line_segments(sample_settings);
         let total_length: f32 = segments.iter().map(|line| line.from.dist(line.to)).sum();
         let mut layer = Layer::new();
         if total_length <= 0.0 {
@@ -166,7 +166,7 @@ pub trait Plottable: Clone + Into<Shape> + BoundingBox {
                 }
             }
         }
-        if current.get_points_ref().len() > 1 {
+        if current.as_slice().len() > 1 {
             layer.push(current);
         }
         layer
@@ -184,16 +184,16 @@ pub trait Plottable: Clone + Into<Shape> + BoundingBox {
         hatch.hatch_shape(self)
     }
 
-    /// Like [`get_points_oversampled`](Plottable::get_points_oversampled), paired with the distance along the shape.
-    fn get_points_and_dist_oversampled(&self, sample_settings: SampleSettings) -> Vec<(V2, f32)> {
-        let points = self.get_points(sample_settings);
+    /// Like [`points_oversampled`](Plottable::points_oversampled), paired with the distance along the shape.
+    fn points_and_dist_oversampled(&self, sample_settings: SampleSettings) -> Vec<(V2, f32)> {
+        let points = self.points(sample_settings);
         let mut dist_along_path = 0.0;
         if points.is_empty() {
             return vec![];
         }
         let mut points_oversampled = vec![(points[0], 0.0)];
         for (from, to) in points.iter().tuple_windows() {
-            let num_steps = sample_settings.get_num_points_for_length(from.dist(*to));
+            let num_steps = sample_settings.num_points_for_length(from.dist(*to));
             let segment_length = from.dist(*to);
 
             if num_steps <= 1 {
@@ -222,7 +222,7 @@ pub trait Plottable: Clone + Into<Shape> + BoundingBox {
 
     fn as_geo_line_string(&self, sample_settings: SampleSettings) -> LineString<f32> {
         let coords = self
-            .get_points(sample_settings)
+            .points(sample_settings)
             .iter()
             .map(V2::as_geo_coord)
             .collect_vec();
@@ -302,7 +302,7 @@ pub trait Plottable: Clone + Into<Shape> + BoundingBox {
                 outside: self.to_layer(),
             };
         }
-        let points_shape = self.get_points_oversampled(sample_settings);
+        let points_shape = self.points_oversampled(sample_settings);
 
         let mut inside = Layer::new();
         let mut outside = Layer::new();

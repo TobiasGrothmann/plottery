@@ -77,16 +77,16 @@ impl Path {
         self.points.extend(points.into_iter().map(|p| *p.borrow()));
     }
 
-    pub fn close(&mut self) {
+    pub fn close_mut(&mut self) {
         if let Some(first) = self.points.first() {
             self.points.push(*first);
         }
     }
-    /// Consuming variant of [`Path::close`].
     #[must_use]
-    pub fn closed(mut self) -> Self {
-        self.close();
-        self
+    pub fn close(&self) -> Self {
+        let mut path = self.clone();
+        path.close_mut();
+        path
     }
     pub fn reverse_mut(&mut self) {
         self.points.reverse();
@@ -112,10 +112,7 @@ impl Path {
         self.points.iter_mut()
     }
 
-    pub fn get_points_ref(&self) -> &[V2] {
-        &self.points
-    }
-    pub fn points(&self) -> &[V2] {
+    pub fn as_slice(&self) -> &[V2] {
         &self.points
     }
     pub fn is_empty(&self) -> bool {
@@ -125,23 +122,23 @@ impl Path {
     pub fn is_degenerate(&self) -> bool {
         self.points.windows(2).all(|pair| pair[0] == pair[1])
     }
-    pub fn get_start(&self) -> Option<&V2> {
+    pub fn start(&self) -> Option<&V2> {
         self.points.first()
     }
-    pub fn get_end(&self) -> Option<&V2> {
+    pub fn end(&self) -> Option<&V2> {
         self.points.last()
     }
 
     #[must_use]
-    pub fn rounded_chaikins(&self, iterations: i32) -> Self {
+    pub fn round_chaikins(&self, iterations: i32) -> Self {
         let mut new_points = self.points.clone();
         for _ in 0..iterations {
-            new_points = Self::rounded_chaikins_iteration(new_points);
+            new_points = Self::round_chaikins_iteration(new_points);
         }
         Self::new_from(new_points)
     }
 
-    fn rounded_chaikins_iteration(points: Vec<V2>) -> Vec<V2> {
+    fn round_chaikins_iteration(points: Vec<V2>) -> Vec<V2> {
         if points.len() <= 2 {
             return points;
         }
@@ -182,7 +179,7 @@ impl Path {
         sample_settings: SampleSettings,
     ) -> Self {
         let arc_length = (to.to_rad() - from.to_rad()).abs() * radius;
-        let num_points = sample_settings.get_num_points_for_length(arc_length);
+        let num_points = sample_settings.num_points_for_length(arc_length);
 
         (0..=num_points)
             .map(|i| {
@@ -490,16 +487,16 @@ fn segments_intersect_or_touch(a: Line, b: Line) -> bool {
 }
 
 impl Plottable for Path {
-    fn get_points(&self, _: SampleSettings) -> Vec<V2> {
+    fn points(&self, _: SampleSettings) -> Vec<V2> {
         self.points.clone()
     }
 
-    fn get_points_from(
+    fn points_from(
         &self,
         current_drawing_head_pos: V2,
         sample_settings: SampleSettings,
     ) -> Vec<V2> {
-        let mut points = self.get_points(sample_settings);
+        let mut points = self.points(sample_settings);
         if points.is_empty() {
             return points;
         }
@@ -816,7 +813,7 @@ impl Mirror for Path {
 
 impl ClosestPoint for Path {
     fn closest_point(&self, sample_settings: SampleSettings, point: V2) -> Option<V2> {
-        self.get_line_segments(sample_settings)
+        self.line_segments(sample_settings)
             .par_iter()
             .map(|line| {
                 let closest_point = line.closest_point(point);

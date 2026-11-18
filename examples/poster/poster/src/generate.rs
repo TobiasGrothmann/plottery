@@ -44,8 +44,8 @@ pub fn generate(params: Params) -> Layer {
     let title = Text::new(params.title.as_str(), &Font::bundled(params.title_font))
         .fit_width(inner.width())
         .in_rect(inner)
-        .align(TextAlign::Center)
-        .vertical_align(VerticalAlign::Top)
+        .with_align(TextAlign::Center)
+        .with_vertical_align(VerticalAlign::Top)
         .to_layer(sample_settings)
         .expect("title");
     let title_bottom = title
@@ -57,11 +57,11 @@ pub fn generate(params: Params) -> Layer {
 
     let text_rect = Rect::new(inner.bl(), V2::new(inner.tr().x, rule_y - params.text_size));
     let text = Text::new(params.text.as_str(), &Font::bundled(params.text_font))
-        .size(params.text_size)
+        .with_size(params.text_size)
         .in_rect(text_rect)
-        .align(TextAlign::Left)
-        .wrap(Wrap::Balanced)
-        .vertical_align(VerticalAlign::Top)
+        .with_align(TextAlign::Left)
+        .with_wrap(Wrap::Balanced)
+        .with_vertical_align(VerticalAlign::Top)
         .to_layer(sample_settings)
         .expect("text");
 

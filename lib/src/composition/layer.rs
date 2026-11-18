@@ -121,9 +121,9 @@ impl Layer {
     }
     /// Helper to set the pen width of the layer. see [`Layer::with_props_inheritable`].
     #[must_use]
-    pub fn with_pen_width_cm(mut self, pen_width_cm: f32) -> Self {
+    pub fn with_pen_width(mut self, pen_width: f32) -> Self {
         self.props_inheritable =
-            Inheritable::Specified(self.own_props_inheritable().with_pen_width_cm(pen_width_cm));
+            Inheritable::Specified(self.own_props_inheritable().with_pen_width(pen_width));
         self
     }
     /// This layer's inheritable props field by field, all `Inherit` if none are set.
@@ -246,7 +246,7 @@ impl Layer {
         for shape in shape_iter {
             match shape {
                 Shape::Path(path) => {
-                    if path.get_points_ref().len() <= 1 {
+                    if path.as_slice().len() <= 1 {
                         continue;
                     }
                     combineable.push(path.clone());
@@ -516,7 +516,7 @@ impl Layer {
     fn optimize_shape_start_end(shape: &Shape) -> (V2, V2) {
         match shape {
             Shape::Path(path) => {
-                let points = path.get_points_ref();
+                let points = path.as_slice();
                 if let (Some(start), Some(end)) = (points.first(), points.last()) {
                     (*start, *end)
                 } else {

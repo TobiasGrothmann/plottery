@@ -22,7 +22,7 @@ mod test_layer {
         l.push(Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0)));
 
         for shape in l.iter() {
-            assert!(!shape.get_points(SampleSettings::default()).is_empty());
+            assert!(!shape.points(SampleSettings::default()).is_empty());
         }
 
         let l2: Layer = l.clone();
@@ -618,12 +618,12 @@ mod test_layer {
 
             println!("{:?}", shapes);
 
-            assert!(shapes[0].get_points(SampleSettings::default())[0] == V2::new(0.0, 1.0));
-            assert!(shapes[0].get_points(SampleSettings::default())[1] == V2::new(0.0, 0.0));
+            assert!(shapes[0].points(SampleSettings::default())[0] == V2::new(0.0, 1.0));
+            assert!(shapes[0].points(SampleSettings::default())[1] == V2::new(0.0, 0.0));
 
-            assert!(shapes[1].get_points(SampleSettings::default())[0].y <= LENGTH_TOLERANCE);
-            assert!(shapes[1].get_points(SampleSettings::default())[1] == V2::new(0.0, 0.0));
-            assert!(shapes[1].get_points(SampleSettings::default())[2].y <= LENGTH_TOLERANCE);
+            assert!(shapes[1].points(SampleSettings::default())[0].y <= LENGTH_TOLERANCE);
+            assert!(shapes[1].points(SampleSettings::default())[1] == V2::new(0.0, 0.0));
+            assert!(shapes[1].points(SampleSettings::default())[2].y <= LENGTH_TOLERANCE);
         }
     }
 
@@ -772,13 +772,13 @@ mod test_layer {
     fn with_color_and_pen_width_keep_each_other() {
         let expected = Inheritable::Specified(LayerPropsInheritable {
             color: Inheritable::Specified(ColorRgb::blue()),
-            pen_width_cm: Inheritable::Specified(0.1),
+            pen_width: Inheritable::Specified(0.1),
         });
         let color_first = Layer::new()
             .with_color(ColorRgb::blue())
-            .with_pen_width_cm(0.1);
+            .with_pen_width(0.1);
         let width_first = Layer::new()
-            .with_pen_width_cm(0.1)
+            .with_pen_width(0.1)
             .with_color(ColorRgb::blue());
 
         assert_eq!(color_first.props_inheritable, expected);

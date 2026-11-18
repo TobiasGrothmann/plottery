@@ -15,9 +15,9 @@ use crate::{Angle, BoundingBox, Layer, Rect, Rotate, SampleSettings, Spline, Tra
 /// # use plottery_lib::*;
 /// let font = Font::system("Helvetica").unwrap();
 /// let layer = Text::new("Hello", &font)
-///     .size(2.0)
+///     .with_size(2.0)
 ///     .at(V2::new(5.0, 5.0))
-///     .align(TextAlign::Center)
+///     .with_align(TextAlign::Center)
 ///     .to_layer(SampleSettings::default())
 ///     .unwrap();
 /// ```
@@ -96,22 +96,22 @@ impl Text {
         }
     }
 
-    /// Em size in cm; capitals are roughly 0.5 to 0.7 of it depending on the font, see [`Text::cap_height`].
-    pub fn size(mut self, em_cm: f32) -> Self {
-        self.size = em_cm;
+    /// Em size in cm; capitals are roughly 0.5 to 0.7 of it depending on the font, see [`Text::with_cap_height`].
+    pub fn with_size(mut self, em: f32) -> Self {
+        self.size = em;
         self.fit = None;
         self
     }
 
-    /// Em size such that the font's capitals are `cm` tall (0.7 em if the font does not say).
-    pub fn cap_height(self, cm: f32) -> Self {
+    /// Em size such that the font's capitals are `cap_height` tall (0.7 em if the font does not say).
+    pub fn with_cap_height(self, cap_height: f32) -> Self {
         let cap_per_em = self.font.metrics(1.0).cap_height.unwrap_or(0.7);
-        self.size(cm / cap_per_em)
+        self.with_size(cap_height / cap_per_em)
     }
 
-    /// Em size such that the widest line is exactly `cm` wide; nothing wraps.
-    pub fn fit_width(mut self, cm: f32) -> Self {
-        self.fit = Some(Fit::Width(cm));
+    /// Em size such that the widest line is exactly `width` wide; nothing wraps.
+    pub fn fit_width(mut self, width: f32) -> Self {
+        self.fit = Some(Fit::Width(width));
         self
     }
 
@@ -129,47 +129,47 @@ impl Text {
     }
 
     /// Anchors to the rect edge chosen by the alignments (`Baseline` puts the last baseline on
-    /// the bottom edge) and wraps at the rect's width unless [`Text::max_width`] is set.
+    /// the bottom edge) and wraps at the rect's width unless [`Text::with_max_width`] is set.
     pub fn in_rect(mut self, rect: Rect) -> Self {
         self.anchor = Anchor::Rect(rect);
         self
     }
 
-    pub fn align(mut self, align: TextAlign) -> Self {
+    pub fn with_align(mut self, align: TextAlign) -> Self {
         self.align = align;
         self
     }
 
-    pub fn vertical_align(mut self, align: VerticalAlign) -> Self {
+    pub fn with_vertical_align(mut self, align: VerticalAlign) -> Self {
         self.vertical_align = align;
         self
     }
 
-    /// Extra advance in cm after every glyph, spaces included.
-    pub fn letter_spacing(mut self, cm: f32) -> Self {
-        self.letter_spacing = cm;
+    /// Extra advance after every glyph, spaces included.
+    pub fn with_letter_spacing(mut self, letter_spacing: f32) -> Self {
+        self.letter_spacing = letter_spacing;
         self
     }
 
     /// Baseline distance as a factor of the em size.
-    pub fn line_spacing(mut self, factor: f32) -> Self {
+    pub fn with_line_spacing(mut self, factor: f32) -> Self {
         self.line_spacing = factor;
         self
     }
 
     /// Wraps at spaces and after hyphens. Words are shaped one by one, so kerning across a space is lost.
-    pub fn max_width(mut self, cm: f32) -> Self {
-        self.max_width = Some(cm);
+    pub fn with_max_width(mut self, max_width: f32) -> Self {
+        self.max_width = Some(max_width);
         self
     }
 
-    pub fn wrap(mut self, wrap: Wrap) -> Self {
+    pub fn with_wrap(mut self, wrap: Wrap) -> Self {
         self.wrap = wrap;
         self
     }
 
     /// Rotates the finished block around its anchor point.
-    pub fn rotation(mut self, angle: Angle) -> Self {
+    pub fn with_rotation(mut self, angle: Angle) -> Self {
         self.rotation = angle;
         self
     }

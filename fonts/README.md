@@ -13,7 +13,7 @@ use plottery_lib::*;
 
 let font = Font::bundled(BundledFont::HersheySans);
 let layer = Text::new("Hello plotter", &font)
-    .size(2.0) // em height in cm
+    .with_size(2.0) // em height in cm
     .to_layer(SampleSettings::default())?;
 layer.write_svg("hello.svg".into())?;
 ```
