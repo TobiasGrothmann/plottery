@@ -9,6 +9,7 @@ use std::path::PathBuf;
 use crate::project_param::ProjectParam;
 use crate::project_params_definition::PlotteryParams;
 use crate::project_params_list_wrapper::ProjectParamsListWrapper;
+use crate::protocol::PROTOCOL_VERSION;
 use crate::run_stream::{write_message, MessageKind};
 
 #[derive(Debug, Clone, Subcommand)]
@@ -33,6 +34,8 @@ enum RunCommand {
     },
     Dry {},
     Params {},
+    /// Prints [`PROTOCOL_VERSION`], asked by the caller before anything else.
+    ProtocolVersion {},
 }
 
 #[derive(Parser, Debug)]
@@ -131,6 +134,7 @@ where
             let binary = serialize(&params_list)?;
             stdout.write_all(&binary)?;
         }
+        RunCommand::ProtocolVersion {} => println!("{PROTOCOL_VERSION}"),
     }
     Ok(())
 }

@@ -15,6 +15,8 @@ mod project_scan;
 mod project_scan_test;
 mod project_test;
 mod project_util;
+mod protocol;
+mod protocol_test;
 mod run_stream;
 
 pub use cargo_project_template::*;
@@ -26,6 +28,7 @@ pub use project_params::*;
 pub use project_pipeline::*;
 pub use project_scan::*;
 pub use project_util::*;
+pub use protocol::PROTOCOL_VERSION;
 pub use run_stream::RunSocket;
 
 pub use util::*;

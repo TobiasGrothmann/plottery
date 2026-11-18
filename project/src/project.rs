@@ -2,6 +2,7 @@ use crate::{
     generate_cargo_project_to_disk, init_git_repo,
     project_params_list_wrapper::ProjectParamsListWrapper,
     project_util::{build_cargo_project_async, path_hash, run_project_executable_async},
+    protocol::check_binary_protocol,
     read_object_from_stdout,
     run_stream::RunSocket,
     write_agents_md, LibSource, ProjectConfig,
@@ -389,6 +390,7 @@ impl Project {
                 bin_path.to_string_lossy()
             )));
         }
+        check_binary_protocol(&bin_path).await?;
 
         let socket = RunSocket::bind()?;
         let mut arguments = vec![
@@ -424,6 +426,7 @@ impl Project {
                 bin_path.to_string_lossy()
             )));
         }
+        check_binary_protocol(&bin_path).await?;
         let arguments = vec!["params"];
         Ok(run_project_executable_async(&bin_path, &arguments, None, &self.dir).await?)
     }
