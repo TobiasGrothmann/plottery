@@ -3,19 +3,51 @@
   flex-direction: column;
   gap: 1px;
   padding: 6px;
-  cursor: pointer;
 }
 
 .layers-empty {
   padding: 12px;
 }
 
+/* Says that the drawing is not shown in full. Stays in view while the rows scroll. */
+.layers-status {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 6px 4px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-2);
+}
+.layers-status-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--fg-1);
+}
+.layers-status .btn {
+  flex: none;
+}
+
 .layer {
   padding-right: 2px;
 }
-.layer.off .layer-name,
-.layer.off .layer-dot {
+.layer.expandable {
+  cursor: pointer;
+}
+/* Nothing of the row is drawn: hidden itself, by a parent, or by a solo. */
+.layer.muted .layer-name,
+.layer.muted .pen-chip,
+.layer.muted .count {
   opacity: 0.45;
+}
+.layer-more:hover {
+  background: transparent;
 }
 
 .layer-chevron {
@@ -44,4 +76,40 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Keeps the counts in one column on rows without an eye. */
+.layer-eye {
+  width: 24px;
+  flex: none;
+}
+
+/* A paper disc with a ring in the pen's color and width, so dark pens show on the dark panel. */
+.pen-chips {
+  flex: none;
+  display: flex;
+}
+.pen-chip {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--paper);
+}
+.pen-chip.none {
+  background: transparent;
+}
+/* Several pens overlap like a stack of coins. */
+.pen-chip + .pen-chip {
+  margin-left: -7px;
+  box-shadow: -1px 0 0 rgba(0, 0, 0, 0.35);
+}
+.pen-ring {
+  width: 12px;
+  height: 12px;
+  box-sizing: border-box;
+  border-style: solid;
+  border-radius: 50%;
 }

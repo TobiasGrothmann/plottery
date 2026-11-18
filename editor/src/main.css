@@ -94,7 +94,6 @@ button,input,select{font:inherit;color:inherit}
 .scroll::-webkit-scrollbar-corner{background:transparent}
 .layer{display:flex;align-items:center;gap:6px;height:28px;padding:0 6px;border-radius:var(--r-sm);font-size:12px;color:var(--fg-1)}
 .layer:hover{background:var(--bg-3)}
-.layer.sel{background:var(--accent-soft);color:var(--fg-0)}
 .log{display:grid;grid-template-columns:64px 44px 1fr;gap:8px;padding:2px 12px;font:400 12px/1.6 'JetBrains Mono',monospace;color:var(--fg-1)}
 .scrim{position:fixed;inset:0;background:rgba(6,6,8,.62);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;z-index:20}
 .modal{width:560px;max-height:calc(100% - 64px);display:flex;flex-direction:column;background:var(--bg-1);border:1px solid var(--line-2);border-radius:var(--r-lg);box-shadow:0 24px 64px rgba(0,0,0,.5)}

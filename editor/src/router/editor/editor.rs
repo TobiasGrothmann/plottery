@@ -9,12 +9,17 @@ use crate::{
         resizer::{Axis, Resizer},
         ui::{Button, IconButton, PanelHeader, Size, StatusPill, Switch, Tone, Variant},
     },
-    model::app_state::{AppState, Panel},
+    model::{
+        app_state::{AppState, Panel},
+        layer_view::{
+            filter_visible, LayerKey, LayerRows, LayerSummary, LayerViewState, RowTarget,
+        },
+    },
     router::editor::{
         console::Console,
         console_messages::ConsoleMessages,
         external_editor_button::ExternalEditorButton,
-        layer_editor::{layer_editor::LayerEditor, layer_tree_ref::LayerTreeReference},
+        layer_editor::layer_editor::LayerEditor,
         params_editor::{
             param_tree::{get_param_value_mut_by_path, leaf_value_mut},
             params_editor::ParamsEditor,
@@ -34,9 +39,10 @@ use dioxus::prelude::*;
 use dioxus_logger::tracing;
 use dioxus_router::hooks::use_navigator;
 use notify::FsEventWatcher;
-use plottery_lib::{BoundingBox, Layer, LayerPropsInheritable, SampleSettings, V2};
+use plottery_lib::{BoundingBox, Layer, SampleSettings, V2};
 use plottery_project::{
     project_param_value::ProjectParamValue, project_params_list_wrapper::ProjectParamsListWrapper,
+    Project,
 };
 use plottery_server_lib::{
     estimation::estimate_plot_layer_duration, plot_setting::PlotSettings, task::send_task,
@@ -108,6 +114,12 @@ fn parent_crumbs(dir: &Path) -> Vec<(String, PathBuf)> {
         .collect();
     crumbs.reverse();
     crumbs
+}
+
+fn save_preview(project: &Project, svg: &str) {
+    if let Err(e) = project.save_editor_preview(svg) {
+        tracing::error!("Failed to write editor preview: {:?}", e);
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -247,14 +259,35 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
         });
     }
 
-    let mut layer_tree_ref = use_signal_sync(move || None);
-    use_effect(move || {
-        let layer_tree = layer
-            .read()
-            .layer
-            .as_ref()
-            .map(|layer| LayerTreeReference::new(layer, &LayerPropsInheritable::default()));
-        layer_tree_ref.set(layer_tree)
+    // layers panel
+    // Hidden and collapsed layers are kept by layer name, so they outlive runs and restarts.
+    let saved_layer_view = use_hook(|| {
+        AppState::load_or_default()
+            .layer_views
+            .remove(&project.peek().dir)
+            .unwrap_or_default()
+    });
+    let mut layer_visibility = use_signal({
+        let visibility = saved_layer_view.visibility.clone();
+        move || visibility
+    });
+    let mut layer_expansion = use_signal(move || saved_layer_view.expansion);
+    let save_layer_view = move || {
+        let mut state = AppState::load_or_default();
+        state.set_layer_view(
+            &project.peek().dir,
+            LayerViewState {
+                visibility: layer_visibility.peek().clone(),
+                expansion: layer_expansion.peek().clone(),
+            },
+        );
+        state.save();
+    };
+    let layer_summary = use_memo(move || layer.read().layer.as_ref().map(LayerSummary::new));
+    let layer_rows = use_memo(move || {
+        layer_summary.read().as_ref().map(|summary| {
+            LayerRows::new(summary, &layer_visibility.read(), &layer_expansion.read())
+        })
     });
 
     let mut layer_only_visible_change_counter = use_signal(|| 0);
@@ -263,17 +296,22 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
         let new_count = *cc + 1;
         *cc = new_count;
 
-        let layer_read = layer.read();
-        match (layer_tree_ref(), layer_read.layer.as_ref()) {
-            (Some(layer_tree_ref), Some(layer)) => LayerChangeWrapper {
-                layer: Some(layer_tree_ref.filter_layer_by_visibility(layer)),
-                change_counter: new_count,
-            },
-            _ => LayerChangeWrapper {
-                layer: None,
-                change_counter: new_count,
-            },
+        LayerChangeWrapper {
+            layer: layer
+                .read()
+                .layer
+                .as_ref()
+                .map(|layer| filter_visible(layer, &layer_visibility.read())),
+            change_counter: new_count,
         }
+    });
+    // Extent of the whole drawing, so the preview stays in place while layers are hidden.
+    let layer_bbox = use_memo(move || {
+        layer
+            .read()
+            .layer
+            .as_ref()
+            .and_then(|layer| layer.bounding_box())
     });
 
     let mut estimated_plot_duration = use_signal_sync(|| None as Option<Duration>);
@@ -339,11 +377,16 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
     let svg = use_signal_sync(|| None as Option<String>);
     use_effect(move || {
         let layer = layer_only_visible().layer;
+        let view = layer_bbox();
 
         if let Some(layer) = layer {
             let mut svg = svg;
             tokio::spawn(async move {
-                match tokio::task::spawn_blocking(move || layer.to_svg().to_string()).await {
+                let render = move || match view {
+                    Some(view) => layer.to_svg_in(view).to_string(),
+                    None => layer.to_svg().to_string(),
+                };
+                match tokio::task::spawn_blocking(render).await {
                     Ok(svg_str) => {
                         if let Ok(mut svg_write) = svg.try_write() {
                             *svg_write = Some(svg_str);
@@ -360,13 +403,21 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                 tracing::error!("Failed to write layer to file: {:?}", e);
             }
         }
-
-        if let Some(svg) = svg() {
+    });
+    // The cached preview and the thumbnail show the whole drawing: the svg on screen while
+    // nothing is hidden, otherwise one more render of each new layer.
+    use_effect(move || {
+        if let Some(svg) = svg().filter(|_| !layer_visibility.peek().hides_anything()) {
+            let project = project();
+            tokio::task::spawn_blocking(move || save_preview(&project, &svg));
+        }
+    });
+    use_effect(move || {
+        let whole_layer = layer.read().layer.clone();
+        if let Some(layer) = whole_layer.filter(|_| layer_visibility.peek().hides_anything()) {
             let project = project();
             tokio::task::spawn_blocking(move || {
-                if let Err(e) = project.save_editor_preview(&svg) {
-                    tracing::error!("Failed to write editor preview: {:?}", e);
-                }
+                save_preview(&project, &layer.to_svg().to_string())
             });
         }
     });
@@ -385,12 +436,6 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
     // click-to-pick for V2 params
     let mut pick_target = use_context_provider(|| PickTarget {
         path: Signal::new(None),
-    });
-    let layer_bbox = use_memo(move || {
-        layer_only_visible()
-            .layer
-            .as_ref()
-            .and_then(|layer| layer.bounding_box())
     });
     let mut project_params_for_pick = project_params;
     let onpick = move |point: V2| {
@@ -911,8 +956,22 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                         }
                         div { class: "panel-body scroll",
                             LayerEditor {
-                                layer_tree_ref,
-                                running_state: running_state,
+                                rows: layer_rows,
+                                on_toggle_visible: move |target: RowTarget| {
+                                    layer_visibility.write().toggle(&target);
+                                    save_layer_view();
+                                },
+                                on_solo: move |target: RowTarget| {
+                                    layer_visibility.write().toggle_solo(target)
+                                },
+                                on_set_expanded: move |(key, expanded): (LayerKey, bool)| {
+                                    layer_expansion.write().set(key, expanded);
+                                    save_layer_view();
+                                },
+                                on_show_all: move |_| {
+                                    layer_visibility.write().show_all();
+                                    save_layer_view();
+                                },
                             }
                         }
                     }

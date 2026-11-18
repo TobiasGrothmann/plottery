@@ -2,10 +2,12 @@ use dioxus_logger::tracing;
 use path_absolutize::Absolutize;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::BTreeSet,
+    collections::{BTreeMap, BTreeSet},
     fs::File,
     path::{Path, PathBuf},
 };
+
+use super::layer_view::LayerViewState;
 
 pub const TILE_SIZE_MIN: u32 = 140;
 pub const TILE_SIZE_MAX: u32 = 600;
@@ -102,6 +104,9 @@ pub struct AppState {
     /// Param sections the user collapsed, keyed `"{project_dir}#{section path}"`.
     #[serde(default)]
     pub collapsed_param_sections: BTreeSet<String>,
+    /// Hidden and collapsed layers of the layers panel, by project folder.
+    #[serde(default)]
+    pub layer_views: BTreeMap<PathBuf, LayerViewState>,
 }
 
 fn default_tile_size() -> u32 {
@@ -118,6 +123,7 @@ impl Default for AppState {
             panel_layout: PanelLayout::default(),
             collapsed_sections: BTreeSet::new(),
             collapsed_param_sections: BTreeSet::new(),
+            layer_views: BTreeMap::new(),
         }
     }
 }
@@ -212,6 +218,15 @@ impl AppState {
     pub fn toggle_param_section(&mut self, key: String) {
         if !self.collapsed_param_sections.remove(&key) {
             self.collapsed_param_sections.insert(key);
+        }
+    }
+
+    /// Stores the layers panel state of a project, or forgets it when nothing is left to store.
+    pub fn set_layer_view(&mut self, project_dir: &Path, view: LayerViewState) {
+        if view == LayerViewState::default() {
+            self.layer_views.remove(project_dir);
+        } else {
+            self.layer_views.insert(project_dir.to_path_buf(), view);
         }
     }
 
