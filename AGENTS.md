@@ -44,7 +44,7 @@ A **Plottery Project** is a user-created artwork generator: a standalone Cargo p
 ## Code Style
 
 - Idiomatic Rust: iterators, builder types, functional style.
-- Build `Path`s and `Layer`s with one iterator chain and `collect()`, or preallocate with `with_capacity`. Avoid `new()` followed by `push()`/`extend()`.
+- Prefer one iterator chain with `collect()` to build `Path`s and `Layer`s where that reads naturally. `new()` with `push()`/`extend()` is fine when it is clearer.
 - `///` docstrings are one short line, and only where the signature alone is unclear.
 - Transformations come in pairs: `rotate` returns a new value, `rotate_mut` changes it in place.
 - Error handling: `anyhow::Result`.
