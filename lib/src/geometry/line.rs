@@ -34,9 +34,7 @@ pub enum PointLineRelation {
 /// Represents the result of a line intersection check.
 #[derive(Debug, Clone, PartialEq)]
 pub enum LineIntersection {
-    /// The lines do not intersect.
     NoIntersection,
-    /// The lines intersect at the given point.
     Intersection(V2),
 }
 
@@ -50,12 +48,10 @@ impl Line {
         self.to - self.from
     }
 
-    /// Returns the midpoint of the line.
     pub fn mid(&self) -> V2 {
         (self.from + self.to) * 0.5
     }
 
-    /// Length of the segment.
     pub fn length(&self) -> f32 {
         self.vector().length()
     }

@@ -13,7 +13,6 @@ pub fn seed(seed: i32) {
     }
 }
 
-/// Seeds the global random number generator with a random seed.
 pub fn seed_random() {
     seed(rand::thread_rng().gen::<i32>());
 }

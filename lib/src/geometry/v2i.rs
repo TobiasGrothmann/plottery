@@ -16,12 +16,10 @@ impl V2i {
         Self { x, y }
     }
 
-    /// Converts to a [`V2`] with x and y cast to float.
     pub fn to_float(&self) -> V2 {
         V2::new(self.x as f32, self.y as f32)
     }
 
-    /// Returns a new V2i with the absolute values of x and y.
     #[must_use]
     pub fn abs(&self) -> Self {
         Self {
@@ -30,7 +28,6 @@ impl V2i {
         }
     }
 
-    /// Checks if this vector is (0, 0).
     pub fn is_zero(&self) -> bool {
         self.x == 0 && self.y == 0
     }

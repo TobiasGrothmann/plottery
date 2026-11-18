@@ -9,7 +9,6 @@ pub struct FloatInterpolator<T> {
 }
 
 impl<T: FloatInterpolation> FloatInterpolator<T> {
-    /// Creates a new interpolator between two float values.
     pub fn new(start: T, end: T, steps: usize) -> Self {
         Self {
             start,
@@ -36,18 +35,15 @@ impl<T: FloatInterpolation> Iterator for FloatInterpolator<T> {
 
 /// Trait for interpolating between float values.
 pub trait FloatInterpolation: Float + FromPrimitive {
-    /// Linearly interpolates between self and end with the given parameter t.
     fn lerp(self, end: Self, t: Self) -> Self {
         self * (Self::one() - t) + end * t
     }
 
-    /// Creates an iterator that interpolates between self and end with the given step size.
     fn lerp_iter(self, end: Self, step_size: Self) -> FloatInterpolator<Self> {
         let steps = ((end - self) / step_size).abs().round().to_usize().unwrap();
         FloatInterpolator::new(self, end, steps)
     }
 
-    /// Creates an iterator that interpolates between self and end with a fixed number of steps.
     fn lerp_iter_fixed(self, end: Self, steps: usize) -> FloatInterpolator<Self> {
         FloatInterpolator::new(self, end, steps)
     }

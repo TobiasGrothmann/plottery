@@ -9,13 +9,6 @@ use super::TransformMatrixBuilder;
 /// | 0  0  1 |
 /// ```
 ///
-/// This 3x3 matrix can represent various 2D transformations including:
-/// - Translation
-/// - Rotation
-/// - Scaling
-/// - Shearing
-/// - Combinations of these transformations
-///
 /// The bottom row is implicit as [0, 0, 1] and not stored.
 ///
 /// ### Example

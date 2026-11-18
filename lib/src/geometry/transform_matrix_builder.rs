@@ -30,14 +30,12 @@ impl TransformMatrixBuilder {
         TransformMatrix::combine_transforms(&self.transforms)
     }
 
-    /// Adds a non-uniform scale transformation using different scale factors for x and y.
     #[must_use]
     pub fn scale_2d(mut self, scale: V2) -> Self {
         self.transforms.push(TransformMatrix::scale_2d(scale));
         self
     }
 
-    /// Adds a uniform scale transformation using the same scale factor for both x and y.
     #[must_use]
     pub fn scale(mut self, scalar: f32) -> Self {
         self.transforms
@@ -45,7 +43,6 @@ impl TransformMatrixBuilder {
         self
     }
 
-    /// Adds a rotation transformation by the specified angle.
     #[must_use]
     pub fn rotate(mut self, angle: Angle) -> Self {
         self.transforms.push(TransformMatrix::rotate(angle));
@@ -73,7 +70,6 @@ impl TransformMatrixBuilder {
         self
     }
 
-    /// Adds a translation transformation that moves points by the specified offset.
     #[must_use]
     pub fn translate(mut self, offset: V2) -> Self {
         self.transforms.push(TransformMatrix::translate(offset));

@@ -20,15 +20,12 @@ pub struct Angle {
 }
 
 impl Angle {
-    /// Creates a zero angle.
     pub fn zero() -> Self {
         Self { rad: 0.0 }
     }
-    /// Creates a new angle from radians.
     pub fn from_rad(rad: f32) -> Self {
         Self { rad }
     }
-    /// Creates a new angle from degrees.
     pub fn from_degrees(degree: f32) -> Self {
         Self {
             rad: (degree / 360.0) * 2.0 * PI,
@@ -53,15 +50,12 @@ impl Angle {
         }
     }
 
-    /// Returns an angle representing a quarter rotation (90°).
     pub fn quarter_rotation() -> Self {
         Self::from_rotations(0.25)
     }
-    /// Returns an angle representing a half rotation (180°).
     pub fn half_rotation() -> Self {
         Self::from_rotations(0.5)
     }
-    /// Returns an angle representing a full rotation (360°).
     pub fn full_rotation() -> Self {
         Self::from_rotations(1.0)
     }
@@ -123,15 +117,12 @@ impl Angle {
         Self::from_rotations(1.0 / 2.0_f32.sqrt())
     }
 
-    /// Gets the angle in radians.
     pub fn to_rad(&self) -> f32 {
         self.rad
     }
-    /// Gets the angle in degrees.
     pub fn to_degree(&self) -> f32 {
         360.0 * (self.rad / (2.0 * PI))
     }
-    /// Gets the angle as a number of rotations.
     pub fn to_rotations(&self) -> f32 {
         self.rad / (2.0 * PI)
     }
@@ -168,7 +159,6 @@ impl Angle {
         }
     }
 
-    /// Returns the absolute value of the angle.
     #[must_use]
     pub fn abs(&self) -> Self {
         Angle::from_rad(self.rad.abs())
@@ -266,7 +256,6 @@ impl Angle {
         angle_diff_abs.min(Angle::full_rotation() - angle_diff_abs)
     }
 
-    /// Returns the smaller of `self` and `other`.
     pub fn min(&self, other: Angle) -> Angle {
         if self.rad < other.rad {
             *self
@@ -274,7 +263,6 @@ impl Angle {
             other
         }
     }
-    /// Returns the larger of `self` and `other`.
     pub fn max(&self, other: Angle) -> Angle {
         if self.rad > other.rad {
             *self
@@ -337,34 +325,28 @@ pub trait ToAngle {
 }
 
 impl ToAngle for f32 {
-    /// new [`Angle`] from f32 as degrees
     fn degrees(self) -> Angle {
         Angle::from_degrees(self)
     }
 
-    /// new [`Angle`] from f32 as number of rotations
     fn rotations(self) -> Angle {
         Angle::from_rotations(self)
     }
 
-    /// new [`Angle`] from f32 as radians
     fn rad(self) -> Angle {
         Angle::from_rad(self)
     }
 }
 
 impl ToAngle for i32 {
-    /// new [`Angle`] from i32 as degrees
     fn degrees(self) -> Angle {
         Angle::from_degrees(self as f32)
     }
 
-    /// new [`Angle`] from i32 as number of rotations
     fn rotations(self) -> Angle {
         Angle::from_rotations(self as f32)
     }
 
-    /// new [`Angle`] from i32 as radians
     fn rad(self) -> Angle {
         Angle::from_rad(self as f32)
     }
