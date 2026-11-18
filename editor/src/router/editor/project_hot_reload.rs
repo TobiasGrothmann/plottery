@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use dioxus::signals::{ReadableExt, SyncSignal, WritableExt};
 use dioxus_logger::tracing;
-use notify::{Config, FsEventWatcher, RecommendedWatcher, RecursiveMode, Watcher};
+use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use plottery_runtime::project_params_list_wrapper::ProjectParamsListWrapper;
 use tokio::task::JoinHandle;
 
@@ -20,7 +20,7 @@ pub fn start_hot_reload(
     console: SyncSignal<ConsoleMessages>,
     params_file: ParamsFile,
     mut project_params: SyncSignal<ProjectParamsListWrapper>,
-) -> notify::Result<(JoinHandle<()>, FsEventWatcher)> {
+) -> notify::Result<(JoinHandle<()>, RecommendedWatcher)> {
     // async channel: a blocking `recv` would hold a runtime thread and stall the runs spawned below
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
     let mut watcher = RecommendedWatcher::new(

@@ -38,7 +38,7 @@ use crate::{
 use dioxus::prelude::*;
 use dioxus_logger::tracing;
 use dioxus_router::hooks::use_navigator;
-use notify::FsEventWatcher;
+use notify::RecommendedWatcher;
 use plottery_lib::{BoundingBox, Layer, SampleSettings, V2};
 use plottery_project::Project;
 use plottery_runtime::{
@@ -489,7 +489,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
     };
 
     // hot reload
-    let mut hot_reload_watcher = use_signal_sync(|| None as Option<FsEventWatcher>);
+    let mut hot_reload_watcher = use_signal_sync(|| None as Option<RecommendedWatcher>);
     let mut hot_reload_join_handle = use_signal_sync(|| None as Option<JoinHandle<()>>);
     let hot_reload_path_to_watch = cargo_path.join("src");
     let hot_reload_is_enabled = move || hot_reload_watcher.read().is_some();
