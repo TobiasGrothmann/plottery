@@ -114,24 +114,14 @@ impl Layer {
         Ok(serialize(self)?)
     }
 
-    /// set the inheritable properties of the layer
-    pub fn set_props_inheritable(&mut self, props: Inheritable<LayerPropsInheritable>) {
-        self.props_inheritable = props;
-    }
-    /// set the inheritable properties of the layer
     #[must_use]
     pub fn with_props_inheritable(mut self, props: Inheritable<LayerPropsInheritable>) -> Self {
-        self.set_props_inheritable(props);
+        self.props_inheritable = props;
         self
     }
-    /// set the non-inheritable properties of the layer
-    pub fn set_props(&mut self, props: LayerProps) {
-        self.props = props;
-    }
-    /// set the non-inheritable properties of the layer
     #[must_use]
     pub fn with_props(mut self, props: LayerProps) -> Self {
-        self.set_props(props);
+        self.props = props;
         self
     }
 
