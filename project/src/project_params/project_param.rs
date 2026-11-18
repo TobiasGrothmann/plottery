@@ -14,62 +14,26 @@ pub struct ProjectParam {
 
 impl PartialEq for ProjectParam {
     fn eq(&self, other: &Self) -> bool {
-        // section and description are display-only, so moving a field keeps its saved value.
+        // section, description and `#[range]` don't decide whether a saved value is kept.
         self.name == other.name && value_schema_equal(&self.value, &other.value)
     }
 }
 
+/// Same type, whatever the values and `#[range]`s.
 fn value_schema_equal(left: &ProjectParamValue, right: &ProjectParamValue) -> bool {
+    use ProjectParamValue::{Enum, Float, FloatRanged, Int, IntRanged, Optional, Struct, Vec};
     match (left, right) {
-        (
-            ProjectParamValue::FloatRanged { val: _, min, max },
-            ProjectParamValue::FloatRanged {
-                val: _,
-                min: min_other,
-                max: max_other,
-            },
-        ) => min == min_other && max == max_other,
-        (
-            ProjectParamValue::IntRanged { val: _, min, max },
-            ProjectParamValue::IntRanged {
-                val: _,
-                min: min_other,
-                max: max_other,
-            },
-        ) => min == min_other && max == max_other,
-        (ProjectParamValue::Struct(left_struct), ProjectParamValue::Struct(right_struct)) => {
-            left_struct.fields.len() == right_struct.fields.len()
-                && left_struct
-                    .fields
-                    .iter()
-                    .zip(right_struct.fields.iter())
-                    .all(|(left_field, right_field)| left_field == right_field)
+        (Float(_) | FloatRanged { .. }, Float(_) | FloatRanged { .. }) => true,
+        (Int(_) | IntRanged { .. }, Int(_) | IntRanged { .. }) => true,
+        (Struct(left_struct), Struct(right_struct)) => left_struct.fields == right_struct.fields,
+        (Optional(left_optional), Optional(right_optional)) => {
+            value_schema_equal(&left_optional.value, &right_optional.value)
         }
-        (
-            ProjectParamValue::Optional(left_optional),
-            ProjectParamValue::Optional(right_optional),
-        ) => value_schema_equal(&left_optional.value, &right_optional.value),
-        (ProjectParamValue::Vec(left_vec), ProjectParamValue::Vec(right_vec)) => {
+        (Vec(left_vec), Vec(right_vec)) => {
             value_schema_equal(&left_vec.item_prototype, &right_vec.item_prototype)
         }
-        (
-            ProjectParamValue::RangeF32 { bounds, .. },
-            ProjectParamValue::RangeF32 {
-                bounds: bounds_other,
-                ..
-            },
-        ) => bounds == bounds_other,
-        (
-            ProjectParamValue::RangeI32 { bounds, .. },
-            ProjectParamValue::RangeI32 {
-                bounds: bounds_other,
-                ..
-            },
-        ) => bounds == bounds_other,
-        (ProjectParamValue::Enum(left_enum), ProjectParamValue::Enum(right_enum)) => {
-            left_enum.variants == right_enum.variants
-        }
-        _ => left.type_name() == right.type_name(),
+        (Enum(left_enum), Enum(right_enum)) => left_enum.variants == right_enum.variants,
+        _ => std::mem::discriminant(left) == std::mem::discriminant(right),
     }
 }
 

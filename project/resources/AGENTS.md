@@ -161,9 +161,11 @@ Choosing well:
 - Name fields the way the label should read: `circle_size` shows as "circle size". Describe every
   param with `///` and give its unit; it shows as a tooltip.
 
-The user's values are kept across code changes while a field's name, type and `#[range]` stay the same.
+The user's values are kept across code changes while a field's name and type stay the same.
 Changing `#[value]` doesn't touch a kept value, so the user won't see a new default. Renaming a field or
-changing its type or range resets it to the default. Moving it to another section keeps it. Also:
+changing its type resets it to the default. Moving it to another section keeps it. Also:
+
+- Adding, changing or removing `#[range]` keeps the value and clamps it into the new range.
 
 - Wrapping a field in `Option` changes its type, so it resets.
 - Inside a nested struct the rules apply per field, and an `Option` around it keeps its on/off state.

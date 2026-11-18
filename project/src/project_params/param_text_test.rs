@@ -178,6 +178,17 @@ mod tests {
         );
         assert_eq!(
             error(
+                Value::FloatRanged {
+                    val: 1.0,
+                    min: 0.0,
+                    max: 100.0
+                },
+                "NaN"
+            ),
+            "NaN is outside 0..100"
+        );
+        assert_eq!(
+            error(
                 Value::RangeI32 {
                     min: 1,
                     max: 2,

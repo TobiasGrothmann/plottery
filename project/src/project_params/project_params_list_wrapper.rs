@@ -5,6 +5,7 @@ use super::project_param_enum::ProjectParamEnum;
 use super::project_param_optional::ProjectParamOptional;
 use super::project_param_struct::ProjectParamStruct;
 use super::project_param_value::ProjectParamValue;
+use super::project_param_vec::ProjectParamVec;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ProjectParamsListWrapper {
@@ -32,7 +33,7 @@ impl ProjectParamsListWrapper {
         }
     }
 
-    /// Follows the order of `new` (the struct definition), keeping old values where the schema still matches.
+    /// Follows the order of `new` (the struct definition), keeping old values of the same type, clamped into the new `#[range]`.
     fn combine_lists(old: &[ProjectParam], new: &[ProjectParam]) -> Vec<ProjectParam> {
         new.iter()
             .map(|new_el| {
@@ -84,15 +85,67 @@ impl ProjectParamsListWrapper {
                 let known = plottery_lib::BundledFont::from_name(old_name).is_some();
                 Some(if known { old.clone() } else { new.clone() })
             }
-            _ => {
-                let old_schema = ProjectParam::new("__schema", old.clone());
-                let new_schema = ProjectParam::new("__schema", new.clone());
-                if old_schema == new_schema {
-                    Some(old.clone())
-                } else {
-                    None
-                }
+            (
+                ProjectParamValue::Float(_) | ProjectParamValue::FloatRanged { .. },
+                ProjectParamValue::FloatRanged { min, max, .. },
+            ) => Some(ProjectParamValue::FloatRanged {
+                val: old.get_f32().ok()?.clamp(*min, *max),
+                min: *min,
+                max: *max,
+            }),
+            (ProjectParamValue::FloatRanged { val, .. }, ProjectParamValue::Float(_)) => {
+                Some(ProjectParamValue::Float(*val))
             }
+            (
+                ProjectParamValue::Int(_) | ProjectParamValue::IntRanged { .. },
+                ProjectParamValue::IntRanged { min, max, .. },
+            ) => Some(ProjectParamValue::IntRanged {
+                val: old.get_i32().ok()?.clamp(*min, *max),
+                min: *min,
+                max: *max,
+            }),
+            (ProjectParamValue::IntRanged { val, .. }, ProjectParamValue::Int(_)) => {
+                Some(ProjectParamValue::Int(*val))
+            }
+            (
+                ProjectParamValue::RangeF32 { min, max, .. },
+                ProjectParamValue::RangeF32 { bounds, .. },
+            ) => {
+                let clamp = |v: f32| bounds.map_or(v, |(low, high)| v.clamp(low, high));
+                Some(ProjectParamValue::RangeF32 {
+                    min: clamp(*min),
+                    max: clamp(*max),
+                    bounds: *bounds,
+                })
+            }
+            (
+                ProjectParamValue::RangeI32 { min, max, .. },
+                ProjectParamValue::RangeI32 { bounds, .. },
+            ) => {
+                let clamp = |v: i32| bounds.map_or(v, |(low, high)| v.clamp(low, high));
+                Some(ProjectParamValue::RangeI32 {
+                    min: clamp(*min),
+                    max: clamp(*max),
+                    bounds: *bounds,
+                })
+            }
+            (ProjectParamValue::Vec(old_vec), ProjectParamValue::Vec(new_vec)) => {
+                let prototype = new_vec.item_prototype.as_ref();
+                // ProjectParam's equality compares the type only.
+                if ProjectParam::new("", old.clone()) != ProjectParam::new("", new.clone()) {
+                    return None;
+                }
+                let items = old_vec
+                    .items
+                    .iter()
+                    .map(|item| Self::combine_values(item, prototype))
+                    .collect::<Option<Vec<_>>>()?;
+                Some(ProjectParamValue::Vec(ProjectParamVec::new(
+                    prototype.clone(),
+                    items,
+                )))
+            }
+            _ => (std::mem::discriminant(old) == std::mem::discriminant(new)).then(|| old.clone()),
         }
     }
 }

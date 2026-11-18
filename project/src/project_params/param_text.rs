@@ -202,7 +202,8 @@ fn parse<T: FromStr>(text: &str) -> Result<T> {
 
 fn parse_in<T: FromStr + PartialOrd + std::fmt::Display>(text: &str, min: T, max: T) -> Result<T> {
     let value = parse(text)?;
-    if value < min || value > max {
+    // Written so that NaN is outside too.
+    if !(value >= min && value <= max) {
         bail!("{value} is outside {min}..{max}");
     }
     Ok(value)
