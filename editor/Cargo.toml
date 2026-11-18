@@ -10,15 +10,6 @@ repository.workspace = true
 keywords.workspace = true
 exclude = ["screenshots"]
 
-[package.metadata.bundle]
-name = "Plottery Editor"
-icon = ["public/app_icon/icon_512.png"]
-identifier = "de.tobiasgrothmann.plottery"
-copyright = "Copyright (c) Tobias Grothmann 2023"
-category = "Creative Coding"
-short_description = "Graphical Editor of Plottery, a creative coding framework for generative vector graphics and pen plotting."
-long_description = "Graphical Editor of Plottery, a creative coding framework for generative vector graphics and pen plotting."
-
 [package.metadata.release]
 pre-release-hook = ["../scripts/release_editor.sh", "{{version}}", "false"]
 
