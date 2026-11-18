@@ -116,14 +116,14 @@ impl PlotTimeline {
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct TimeEstimatorExecutor {
-    last_steps_timestamp_nanos: [u128; 3],
+    last_steps_timestamp_nanos: [u128; Axis::COUNT],
     now_nanos: u128,
 }
 
 impl TimeEstimatorExecutor {
     pub(crate) fn new() -> Self {
         Self {
-            last_steps_timestamp_nanos: [0, 0, 0],
+            last_steps_timestamp_nanos: [0; Axis::COUNT],
             now_nanos: 0,
         }
     }
@@ -153,7 +153,8 @@ impl HardwareExecutor for TimeEstimatorExecutor {
     }
 
     fn wait_xy(&mut self, delay_nanos: u32) {
-        let last_xy = self.last_steps_timestamp_nanos[0].max(self.last_steps_timestamp_nanos[1]);
+        let last_xy = self.last_steps_timestamp_nanos[Axis::X.index()]
+            .max(self.last_steps_timestamp_nanos[Axis::Y.index()]);
         self.now_nanos = self.now_nanos.max(last_xy + delay_nanos as u128);
     }
 

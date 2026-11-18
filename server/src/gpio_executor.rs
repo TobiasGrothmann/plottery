@@ -2,6 +2,8 @@ use plottery_server_lib::{hardware::HardwareExecutor, pins::PinSettings, Axis};
 use std::time::{Duration, Instant};
 
 #[cfg(feature = "raspi")]
+use plottery_server_lib::pins::Motor;
+#[cfg(feature = "raspi")]
 use rppal::gpio::{Gpio, OutputPin};
 
 /// Setup time for the A4988: STEP low for at least 1 µs before the rising
@@ -124,10 +126,10 @@ impl StepStats {
 
 #[derive(Debug)]
 pub struct GpioExecutor {
-    last_steps_timestamp: [Instant; 3],
+    last_steps_timestamp: [Instant; Axis::COUNT],
     /// Delay passed to the last `wait_axis` call per axis, i.e. the
     /// commanded delay of the step that follows it.
-    pending_delay: [Duration; 3],
+    pending_delay: [Duration; Axis::COUNT],
     /// End time and commanded delay of the last step on any axis within the
     /// current task. `None` at task start so the first step does not
     /// register a spurious gap.
@@ -151,11 +153,11 @@ impl GpioExecutor {
         {
             let gpio = Gpio::new()?;
 
-            let mut pins_dir = Vec::with_capacity(4);
-            let mut pins_step = Vec::with_capacity(4);
-            let mut pins_enable = Vec::with_capacity(4);
-            let mut pins_micstep = Vec::with_capacity(4);
-            for i in 0..4 {
+            let mut pins_dir = Vec::with_capacity(Motor::COUNT);
+            let mut pins_step = Vec::with_capacity(Motor::COUNT);
+            let mut pins_enable = Vec::with_capacity(Motor::COUNT);
+            let mut pins_micstep = Vec::with_capacity(Motor::COUNT);
+            for i in 0..Motor::COUNT {
                 pins_dir.push(gpio.get(_pin_settings.dir_pins[i])?.into_output());
                 pins_step.push(gpio.get(_pin_settings.step_pins[i])?.into_output());
                 pins_enable.push(gpio.get(_pin_settings.enable_pins[i])?.into_output());
@@ -177,7 +179,7 @@ impl GpioExecutor {
             }
 
             // set microstepping
-            for motor_i in 0..4 {
+            for motor_i in 0..Motor::COUNT {
                 for value_i in 0..3 {
                     let pin = &mut pins_micstep[motor_i][value_i];
                     if _pin_settings.micstep_vals[motor_i][value_i] {
@@ -189,8 +191,8 @@ impl GpioExecutor {
             }
 
             return Ok(Self {
-                last_steps_timestamp: [Instant::now(), Instant::now(), Instant::now()],
-                pending_delay: [Duration::ZERO; 3],
+                last_steps_timestamp: [Instant::now(); Axis::COUNT],
+                pending_delay: [Duration::ZERO; Axis::COUNT],
                 last_step: None,
                 stats: StepStats::default(),
                 last_report: Instant::now(),
@@ -204,8 +206,8 @@ impl GpioExecutor {
         #[cfg(not(feature = "raspi"))]
         {
             Ok(Self {
-                last_steps_timestamp: [Instant::now(), Instant::now(), Instant::now()],
-                pending_delay: [Duration::ZERO; 3],
+                last_steps_timestamp: [Instant::now(); Axis::COUNT],
+                pending_delay: [Duration::ZERO; Axis::COUNT],
                 last_step: None,
                 stats: StepStats::default(),
                 last_report: Instant::now(),
@@ -268,29 +270,17 @@ impl HardwareExecutor for GpioExecutor {
 
     #[cfg(feature = "raspi")]
     fn set_dir(&mut self, axis: Axis, forward: bool) {
-        match axis {
-            Axis::X => {
-                if forward {
-                    self.pins_dir[2].set_low();
-                } else {
-                    self.pins_dir[2].set_high();
-                };
-            }
-            Axis::Y => {
-                if forward {
-                    self.pins_dir[0].set_low();
-                    self.pins_dir[1].set_low();
-                } else {
-                    self.pins_dir[0].set_high();
-                    self.pins_dir[1].set_high();
-                };
-            }
-            Axis::Head => {
-                if forward {
-                    self.pins_dir[3].set_high();
-                } else {
-                    self.pins_dir[3].set_low();
-                }
+        // the head's DIR is wired the other way round
+        let high = match axis {
+            Axis::X | Axis::Y => !forward,
+            Axis::Head => forward,
+        };
+        for motor in Motor::of_axis(axis) {
+            let pin = &mut self.pins_dir[motor.index()];
+            if high {
+                pin.set_high();
+            } else {
+                pin.set_low();
             }
         }
         settle();
@@ -301,24 +291,13 @@ impl HardwareExecutor for GpioExecutor {
 
         #[cfg(feature = "raspi")]
         {
-            match axis {
-                Axis::X => {
-                    self.pins_step[2].set_low();
-                    settle();
-                    self.pins_step[2].set_high();
-                }
-                Axis::Y => {
-                    self.pins_step[0].set_low();
-                    self.pins_step[1].set_low();
-                    settle();
-                    self.pins_step[0].set_high();
-                    self.pins_step[1].set_high();
-                }
-                Axis::Head => {
-                    self.pins_step[3].set_low();
-                    settle();
-                    self.pins_step[3].set_high();
-                }
+            let motors = Motor::of_axis(axis);
+            for motor in motors {
+                self.pins_step[motor.index()].set_low();
+            }
+            settle();
+            for motor in motors {
+                self.pins_step[motor.index()].set_high();
             }
         }
 

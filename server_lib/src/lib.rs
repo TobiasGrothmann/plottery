@@ -35,6 +35,8 @@ pub enum Axis {
 }
 
 impl Axis {
+    pub const COUNT: usize = 3;
+
     pub fn index(self) -> usize {
         match self {
             Axis::X => 0,
