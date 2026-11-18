@@ -1,14 +1,14 @@
-pub mod line;
+pub(crate) mod line;
 mod line_test;
-pub mod spatial_grid;
+pub(crate) mod spatial_grid;
 mod spatial_grid_test;
-pub mod transform_matrix;
-pub mod transform_matrix_builder;
+pub(crate) mod transform_matrix;
+pub(crate) mod transform_matrix_builder;
 mod transform_matrix_test;
-pub mod v2;
-pub mod v2_operators;
+pub(crate) mod v2;
+pub(crate) mod v2_operators;
 mod v2_test;
-pub mod v2i;
+pub(crate) mod v2i;
 
 pub use line::*;
 pub use spatial_grid::*;

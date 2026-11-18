@@ -23,7 +23,7 @@ pub enum CellState {
 ///
 /// # Example
 /// ```rust
-/// # use plottery_lib::{Rect, V2, composition::grid::Grid};
+/// # use plottery_lib::{Grid, Rect, V2};
 /// # let bounding_box = Rect::new(V2::new(0.0, 0.0), V2::new(100.0, 100.0));
 /// let grid = Grid::new(bounding_box, 5, 5, 2.0);
 /// let mut combineable_grid = grid.to_combineable();

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use plottery_lib::maths::FloatInterpolation;
+use plottery_lib::FloatInterpolation;
 use plottery_lib::V2;
 use serde::{Deserialize, Serialize};
 

@@ -1,13 +1,13 @@
-pub mod circle;
+pub(crate) mod circle;
 mod circle_test;
-pub mod containment;
-pub mod path;
+pub(crate) mod containment;
+pub(crate) mod path;
 mod path_test;
-pub mod rect;
+pub(crate) mod rect;
 mod rect_test;
-pub mod shape;
+pub(crate) mod shape;
 mod shape_test;
-pub mod spline;
+pub(crate) mod spline;
 
 pub use circle::*;
 pub use containment::*;

@@ -6,7 +6,7 @@ lazy_static::lazy_static! {
     pub static ref RNG: Mutex<StdRng> = Mutex::new(StdRng::from_entropy());
 }
 
-/// Seeds the global random number generator behind [`crate::random`] and new [`crate::Noise`]s.
+/// Seeds the global random number generator behind the `rand_*` functions and new [`crate::Noise`]s.
 pub fn seed(seed: i32) {
     if let Ok(mut rng) = RNG.lock() {
         *rng = StdRng::seed_from_u64(seed as u64);

@@ -3,7 +3,7 @@ use std::sync::{
     Arc,
 };
 
-use plottery_lib::{geometry::v2i::V2i, *};
+use plottery_lib::*;
 
 use crate::{
     accelleration::{accelleration_path::V2Speed, speed_delay_handler::SpeedDelayHandler},

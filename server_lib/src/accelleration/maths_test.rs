@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use plottery_lib::{geometry::TransformMatrix, Angle, V2};
+    use plottery_lib::{Angle, TransformMatrix, V2};
 
     use crate::accelleration::maths::get_corner_sharpness;
 

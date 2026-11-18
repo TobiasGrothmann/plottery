@@ -1,16 +1,16 @@
-pub mod bounding_box;
-pub mod closest_point;
-pub mod fit;
+pub(crate) mod bounding_box;
+pub(crate) mod closest_point;
+pub(crate) mod fit;
 mod fit_test;
-pub mod mirror;
-pub mod plottable;
+pub(crate) mod mirror;
+pub(crate) mod plottable;
 mod plottable_test;
-pub mod rotate;
-pub mod rotate90;
-pub mod scale;
-pub mod scale2d;
-pub mod transform;
-pub mod translate;
+pub(crate) mod rotate;
+pub(crate) mod rotate90;
+pub(crate) mod scale;
+pub(crate) mod scale2d;
+pub(crate) mod transform;
+pub(crate) mod translate;
 
 pub use bounding_box::*;
 pub use closest_point::*;

@@ -1,16 +1,16 @@
-pub mod angle;
-pub mod angle_operators;
+pub(crate) mod angle;
+pub(crate) mod angle_operators;
 mod angle_test;
-pub mod consts;
-pub mod easing;
+pub(crate) mod consts;
+pub(crate) mod easing;
 mod easing_test;
-pub mod float;
+pub(crate) mod float;
 mod float_test;
-pub mod noise;
+pub(crate) mod noise;
 mod noise_test;
-pub mod random;
+pub(crate) mod random;
 mod random_test;
-pub mod range;
+pub(crate) mod range;
 mod range_test;
 mod global_rng;
 

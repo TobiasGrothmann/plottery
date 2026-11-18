@@ -65,7 +65,7 @@ pub trait FloatInterpolation: Float + FromPrimitive {
     ///
     /// # Example
     /// ```
-    /// use plottery_lib::maths::FloatInterpolation;
+    /// use plottery_lib::FloatInterpolation;
     /// let x = 5.0_f32;
     /// let y = x.linlin(0.0, 10.0, 0.0, 100.0); // Maps 5.0 from [0,10] to [0,100]
     /// assert_eq!(y, 50.0);

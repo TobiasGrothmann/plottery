@@ -1,13 +1,13 @@
-pub mod bezier;
+pub(crate) mod bezier;
 mod bezier_test;
-pub mod builder;
+pub(crate) mod builder;
 mod builder_test;
-pub mod hobby;
+pub(crate) mod hobby;
 mod hobby_test;
-pub mod segment;
-pub mod sink;
+pub(crate) mod segment;
+pub(crate) mod sink;
 #[allow(clippy::module_inception)]
-pub mod spline;
+pub(crate) mod spline;
 mod spline_test;
 
 pub use bezier::*;

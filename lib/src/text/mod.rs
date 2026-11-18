@@ -1,12 +1,12 @@
 #![doc = include_str!("../../samples/text/README.md")]
 
-pub mod bundled;
+pub(crate) mod bundled;
 mod bundled_test;
-pub mod font;
-pub mod glyph;
-pub mod layout;
+pub(crate) mod font;
+pub(crate) mod glyph;
+pub(crate) mod layout;
 mod layout_test;
-pub mod metrics;
+pub(crate) mod metrics;
 mod outline_font;
 mod outline_font_test;
 mod stroke_font;
@@ -15,7 +15,7 @@ mod svg_glyph;
 mod svg_glyph_test;
 mod system;
 #[allow(clippy::module_inception)]
-pub mod text;
+pub(crate) mod text;
 mod text_test;
 
 pub use font::*;

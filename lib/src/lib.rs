@@ -1,14 +1,14 @@
 #![doc = include_str!("../README.md")]
 
-pub mod composition;
-pub mod effects;
-pub mod generate;
-pub mod geometry;
-pub mod maths;
-pub mod sampling;
-pub mod shapes;
-pub mod text;
-pub mod traits;
+mod composition;
+mod effects;
+mod generate;
+mod geometry;
+mod maths;
+mod sampling;
+mod shapes;
+mod text;
+mod traits;
 
 pub use composition::*;
 pub use effects::*;

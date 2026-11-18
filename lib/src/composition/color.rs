@@ -112,7 +112,7 @@ impl ColorRgb {
         (dr * dr + dg * dg + db * db).sqrt()
     }
 
-    /// Returns the closest [ColorName] from the list of predefined named colors [COLOR_NAMES].
+    /// Returns the name of the closest predefined named color.
     pub fn name(&self) -> ColorName {
         *COLOR_NAMES
             .iter()

@@ -1,6 +1,6 @@
-pub mod histogram;
+pub(crate) mod histogram;
 mod histogram_test;
-pub mod image;
+pub(crate) mod image;
 mod image_test;
 
 pub use histogram::*;

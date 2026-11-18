@@ -1,3 +1,3 @@
-pub mod marching_squares;
+pub(crate) mod marching_squares;
 mod marching_squares_test;
 mod stitch;
