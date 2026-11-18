@@ -19,7 +19,7 @@ use crate::{
         console::Console,
         console_messages::{ActiveConsole, ConsoleMessages},
         editor_ctx::EditorCtx,
-        external_editor_button::ExternalEditorButton,
+        external_editor_button::{installed_external_editors, ExternalEditorButton, OpensDir},
         layer_editor::layer_editor::LayerEditor,
         params_editor::{
             param_tree::{get_param_value_mut_by_path, leaf_value_mut},
@@ -52,26 +52,6 @@ use std::{
     time::Duration,
 };
 use tokio::task::JoinHandle;
-
-fn is_gitkraken_installed() -> bool {
-    which::which("GitKraken").is_ok()
-}
-
-fn is_vscode_installed() -> bool {
-    which::which("code").is_ok()
-}
-
-fn is_zed_installed() -> bool {
-    which::which("zed").is_ok()
-}
-
-fn is_cursor_installed() -> bool {
-    which::which("cursor").is_ok()
-}
-
-fn is_sublime_installed() -> bool {
-    which::which("subl").is_ok()
-}
 
 /// Header pill for the run state; nothing while idle.
 fn run_status(state: &RunningState) -> Option<(Tone, &'static str)> {
@@ -166,11 +146,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
 
     let release = true;
 
-    let gitkraken_installed = use_signal(is_gitkraken_installed);
-    let vscode_installed = use_signal(is_vscode_installed);
-    let zed_installed = use_signal(is_zed_installed);
-    let cursor_installed = use_signal(is_cursor_installed);
-    let sublime_installed = use_signal(is_sublime_installed);
+    let external_editors = use_hook(installed_external_editors);
 
     // console
     let console_change_counter = use_signal_sync(|| 0);
@@ -676,37 +652,8 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                             let cargo_dir = use_memo(move || cargo_path.clone());
                             let project_dir = use_memo(move || project().get_dir());
                             rsx! {
-                                if vscode_installed() {
-                                    ExternalEditorButton {
-                                        editor_name: "VS Code".to_string(),
-                                        editor_command: "code".to_string(),
-                                        icon_svg: include_bytes!("../../../public/icons/vscode.svg"),
-                                        project_dir: cargo_dir,
-                                    }
-                                }
-                                if zed_installed() {
-                                    ExternalEditorButton {
-                                        editor_name: "Zed".to_string(),
-                                        editor_command: "zed".to_string(),
-                                        icon_svg: include_bytes!("../../../public/icons/zed.svg"),
-                                        project_dir: cargo_dir,
-                                    }
-                                }
-                                if cursor_installed() {
-                                    ExternalEditorButton {
-                                        editor_name: "Cursor".to_string(),
-                                        editor_command: "cursor".to_string(),
-                                        icon_svg: include_bytes!("../../../public/icons/cursor.svg"),
-                                        project_dir: cargo_dir,
-                                    }
-                                }
-                                if sublime_installed() {
-                                    ExternalEditorButton {
-                                        editor_name: "Sublime Text".to_string(),
-                                        editor_command: "subl".to_string(),
-                                        icon_svg: include_bytes!("../../../public/icons/sublime-text.svg"),
-                                        project_dir: cargo_dir,
-                                    }
+                                for editor in external_editors.iter().filter(|e| e.opens == OpensDir::Cargo) {
+                                    ExternalEditorButton { editor: *editor, dir: cargo_dir }
                                 }
                                 button {
                                     r#type: "button",
@@ -721,14 +668,8 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                                     },
                                     img { src: "{icon_folder}", alt: "" }
                                 }
-                                if gitkraken_installed() {
-                                    ExternalEditorButton {
-                                        editor_name: "GitKraken".to_string(),
-                                        editor_command: "GitKraken".to_string(),
-                                        icon_svg: include_bytes!("../../../public/icons/gitkraken.svg"),
-                                        project_dir: project_dir,
-                                        extra_args: vec!["-p".to_string()],
-                                    }
+                                for editor in external_editors.iter().filter(|e| e.opens == OpensDir::Project) {
+                                    ExternalEditorButton { editor: *editor, dir: project_dir }
                                 }
                             }
                         }
