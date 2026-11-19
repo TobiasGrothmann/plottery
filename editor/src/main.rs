@@ -5,6 +5,7 @@ use crate::{
         app_state::{update_app_state, AppState},
         window_state::WindowState,
     },
+    menu::{use_menu_action, MenuAction},
     router::editor::console_messages::ActiveConsole,
     routes::Route,
     util::editor_route,
@@ -28,6 +29,7 @@ use std::{
 };
 
 mod components;
+mod menu;
 mod model;
 mod router;
 mod routes;
@@ -112,7 +114,12 @@ fn app() -> Element {
             }
         }
     });
-    use_context_provider(|| RemoteOpen(Signal::new(false)));
+    let RemoteOpen(mut remote_open) = use_context_provider(|| RemoteOpen(Signal::new(false)));
+    use_menu_action(move |action| {
+        if action == MenuAction::PlotterRemote {
+            remote_open.toggle();
+        }
+    });
     use_context_provider(|| PlotterState(Signal::new(PlotterStatus::Connecting)));
 
     rsx! {
@@ -144,6 +151,7 @@ fn main() {
 
     let desktop_config = Config::default()
         .with_window(window)
+        .with_menu(menu::menu_bar())
         .with_close_behaviour(WindowCloseBehaviour::WindowCloses)
         // Sees events before mount; once mounted, the app's own handler takes them.
         .with_custom_event_handler(|event, _| {

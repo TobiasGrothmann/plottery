@@ -178,7 +178,7 @@ pub fn PanelToggles(layout: PanelLayout, on_toggle: Callback<Panel>) -> Element 
         IconButton {
             icon: IconName::PanelBottom,
             label: "Toggle console",
-            title: "Toggle console ({shortcut(\"J\")})",
+            title: "Toggle console ({shortcut(\"3\")})",
             active: layout.console_open,
             onclick: move |_| on_toggle.call(Panel::Console),
         }

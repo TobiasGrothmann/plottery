@@ -6,6 +6,7 @@ use crate::{
         resizer::{Axis, Resizer},
         ui::{Button, IconButton, PanelHeader, Size, Variant},
     },
+    menu::{use_menu_action, MenuAction},
     model::{
         app_state::{update_app_state, AppState, Panel},
         layer_view::{LayerKey, RowTarget},
@@ -156,6 +157,22 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
             save_layout();
         })
     };
+    use_menu_action(move |action| match action {
+        MenuAction::Run => ctx.trigger_run(),
+        MenuAction::PlotSettings => show_plot_settings.set(true),
+        MenuAction::BackToProjects => {
+            nav.push(Route::Browser {});
+        }
+        MenuAction::ToggleParams => toggle_panel(Panel::Params),
+        MenuAction::ToggleLayers => toggle_panel(Panel::Layers),
+        MenuAction::ToggleConsole => toggle_panel(Panel::Console),
+        MenuAction::ToggleFullscreenPreview => {
+            fullscreen.toggle();
+            preview_zoom.set(PreviewZoom::default());
+        }
+        MenuAction::ResetZoom => preview_zoom.set(PreviewZoom::default()),
+        MenuAction::PlotterRemote => {}
+    });
     let current_layout = layout();
     let (params_min, params_max, params_default) = Panel::Params.size_limits();
     let (layers_min, layers_max, layers_default) = Panel::Layers.size_limits();
@@ -175,7 +192,6 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
             onkeydown: move |event| {
                 let modifiers = event.modifiers();
                 let command = modifiers.meta() || modifiers.ctrl();
-                let zero = matches!(event.key(), Key::Character(ref key) if key == "0");
                 let f = matches!(event.key(), Key::Character(ref key) if key.eq_ignore_ascii_case("f"));
                 if f && !command && !modifiers.alt() {
                     spawn(async move {
@@ -193,25 +209,10 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                     preview_zoom.set(PreviewZoom::default());
                     return;
                 }
-                if event.key() == Key::Escape || (command && zero) {
-                    if !preview_zoom.peek().is_fit() {
-                        event.prevent_default();
-                        preview_zoom.set(PreviewZoom::default());
-                    }
-                    return;
+                if event.key() == Key::Escape && !preview_zoom.peek().is_fit() {
+                    event.prevent_default();
+                    preview_zoom.set(PreviewZoom::default());
                 }
-                if !command {
-                    return;
-                }
-                let Key::Character(key) = event.key() else { return };
-                let panel = match key.to_lowercase().as_str() {
-                    "1" => Panel::Params,
-                    "j" => Panel::Console,
-                    "2" => Panel::Layers,
-                    _ => return,
-                };
-                event.prevent_default();
-                toggle_panel(panel);
             },
             header { class: "app-header",
                 div { class: "hgroup",
