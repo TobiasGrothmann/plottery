@@ -81,7 +81,19 @@ echo -e "${YELLOW}Creating $RENAMED_DMG_NAME...${NC}"
 STAGING=$(mktemp -d)
 cp -R "$APP" "$STAGING/"
 ln -s /Applications "$STAGING/Applications"
-hdiutil create -volname PlotteryEditor -srcfolder "$STAGING" -ov -format UDZO "$RENAMED_DMG"
+# hdiutil sometimes fails with "Resource busy" right after the bundle is written, so retry
+for attempt in 1 2 3 4 5; do
+  if hdiutil create -volname PlotteryEditor -srcfolder "$STAGING" -ov -format UDZO "$RENAMED_DMG"; then
+    break
+  fi
+  if [ "$attempt" = 5 ]; then
+    rm -rf "$STAGING"
+    echo -e "${RED}✗ Error: hdiutil failed 5 times${NC}"
+    exit 1
+  fi
+  echo -e "${YELLOW}hdiutil failed, retrying in 3 s...${NC}"
+  sleep 3
+done
 rm -rf "$STAGING"
 echo -e "${GREEN}✓ DMG created${NC}"
 echo ""
