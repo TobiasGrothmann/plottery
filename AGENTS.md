@@ -13,7 +13,7 @@ Generative art engine for pen-plotters written in Rust.
 | `project/` | `plottery_project` | Host side: project creation and management, template, building and running project binaries, cache, previews |
 | `cli/` | `plottery_cli` | Command-line tool for creating and running projects, binary `plottery` |
 | `editor/` | `plottery_editor` | Desktop GUI (Dioxus) for previewing, editing params and plotting |
-| `server/` | `plottery_server` | Pen-plotter controller on a Raspberry Pi (Rocket HTTP, GPIO) |
+| `server/` | `plottery_server` | Pen-plotter controller on a Raspberry Pi (axum HTTP, GPIO) |
 | `server_lib/` | `plottery_server_lib` | Types shared by editor and server |
 
 ## Plottery vs Plottery Projects

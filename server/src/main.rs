@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate rocket;
-
 mod gpio_executor;
 mod gpio_executor_test;
 mod job;
@@ -15,16 +12,18 @@ use std::{
     time::{Instant, SystemTime, UNIX_EPOCH},
 };
 
+use axum::{
+    body::Bytes,
+    extract::{DefaultBodyLimit, State},
+    http::StatusCode,
+    routing::{get, post},
+    Router,
+};
 use job::JobState;
 use plottery_server_lib::{
     discovery::{self, Advertisement},
     task::Task,
     Telemetry,
-};
-use rocket::{
-    data::{Limits, ToByteUnit},
-    http::Status,
-    Config, State,
 };
 use task_handler::start_server;
 use tokio::sync::mpsc::{channel, Sender};
@@ -36,27 +35,25 @@ struct ManagedState {
     abort: Arc<AtomicBool>,
 }
 
-#[post("/task", data = "<task_data>")]
 async fn set_task(
-    managed_state: &State<ManagedState>,
-    task_data: &[u8],
-) -> Result<(), (Status, String)> {
-    let task =
-        Task::from_binary(task_data).map_err(|err| (Status::BadRequest, format!("{err:#}")))?;
+    State(managed_state): State<Arc<ManagedState>>,
+    task_data: Bytes,
+) -> Result<(), (StatusCode, String)> {
+    let task = Task::from_binary(&task_data)
+        .map_err(|err| (StatusCode::BAD_REQUEST, format!("{err:#}")))?;
     if matches!(task, Task::Abort) {
         managed_state.abort.store(true, Ordering::Relaxed);
         return Ok(());
     }
     managed_state.task_sender.send(task).await.map_err(|_| {
         (
-            Status::InternalServerError,
+            StatusCode::INTERNAL_SERVER_ERROR,
             "The task handler has stopped, restart the server.".to_string(),
         )
     })
 }
 
-#[get("/state")]
-async fn get_state(managed_state: &State<ManagedState>) -> Vec<u8> {
+async fn get_state(State(managed_state): State<Arc<ManagedState>>) -> Vec<u8> {
     let reading = managed_state.telemetry.read();
     let aborting = managed_state.abort.load(Ordering::Relaxed);
     let state = managed_state
@@ -102,12 +99,7 @@ async fn async_main() {
         }
     }
 
-    let config = Config::figment()
-        .merge(("limits", Limits::default().limit("bytes", 1.gigabytes())))
-        .merge(("address", "0.0.0.0"))
-        .merge(("port", discovery::PORT));
-
-    // Dropped after launch returns, e.g. on SIGTERM, which tells browsers the server is gone.
+    // Dropped when the server returns, e.g. on SIGTERM, which tells browsers the server is gone.
     let _advertisement = match Advertisement::start() {
         Ok(advertisement) => advertisement,
         Err(e) => {
@@ -116,10 +108,27 @@ async fn async_main() {
         }
     };
 
-    rocket::custom(config)
-        .mount("/", routes![set_task, get_state])
-        .manage(managed_state)
-        .launch()
+    let app = Router::new()
+        .route("/task", post(set_task))
+        .route("/state", get(get_state))
+        .layer(DefaultBodyLimit::max(1 << 30))
+        .with_state(Arc::new(managed_state));
+    let listener = tokio::net::TcpListener::bind(("0.0.0.0", discovery::PORT))
         .await
-        .expect("Failed to launch Rocket server");
+        .expect("Failed to bind the server port");
+    println!("Listening on port {}", discovery::PORT);
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await
+        .expect("Failed to run the server");
+}
+
+/// Resolves on Ctrl-C or SIGTERM (systemd stop).
+async fn shutdown_signal() {
+    let mut terminate = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+        .expect("Failed to listen for SIGTERM");
+    tokio::select! {
+        _ = tokio::signal::ctrl_c() => {}
+        _ = terminate.recv() => {}
+    }
 }
