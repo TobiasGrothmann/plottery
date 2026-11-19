@@ -1,14 +1,14 @@
 use std::path::{Path, PathBuf};
 
-use dioxus::signals::{ReadableExt, SyncSignal, WritableExt};
+use dioxus::prelude::*;
 use dioxus_logger::tracing;
 use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use plottery_runtime::project_params_list_wrapper::ProjectParamsListWrapper;
 use tokio::task::JoinHandle;
 
 use super::{
-    console_messages::ConsoleMessages, params_file::ParamsFile, project_runner::ProjectRunner,
-    running_state::RunningState,
+    console_messages::ConsoleMessages, editor_ctx::EditorCtx, params_file::ParamsFile,
+    project_runner::ProjectRunner, running_state::RunningState,
 };
 
 /// Reruns on source changes, and on params changed by someone else, e.g. `plottery set`.
@@ -128,4 +128,55 @@ pub fn start_hot_reload(
     });
 
     Ok((hot_reload_handle, watcher))
+}
+
+/// Hot reload of the project at `cargo_path`: whether it is on, and a callback to switch it.
+pub fn use_hot_reload(
+    ctx: EditorCtx,
+    cargo_path: PathBuf,
+    params_file: ParamsFile,
+) -> (bool, Callback<bool>) {
+    let mut watcher = use_signal_sync(|| None as Option<RecommendedWatcher>);
+    let mut join_handle = use_signal_sync(|| None as Option<JoinHandle<()>>);
+    let set_enabled = use_callback(move |enabled: bool| {
+        if enabled == watcher.peek().is_some() {
+            return;
+        }
+        if !enabled {
+            watcher.set(None);
+            join_handle.set(None);
+            return;
+        }
+        let mut project_params = ctx.project_params;
+        // pick up changes made while hot reload was off, the run below would overwrite them
+        match params_file.read_external() {
+            Ok(Some(params)) => project_params.set(params),
+            Ok(None) => {}
+            Err(e) => ctx
+                .console
+                .peek()
+                .error(&format!("Failed to read params: {e:#}")),
+        }
+        match start_hot_reload(
+            cargo_path.join("src"),
+            ctx.release,
+            ctx.project_runner.peek().clone(),
+            ctx.running_state,
+            ctx.console,
+            params_file.clone(),
+            project_params,
+        ) {
+            Ok((handle, new_watcher)) => {
+                join_handle.set(Some(handle));
+                watcher.set(Some(new_watcher));
+                ctx.trigger_run();
+            }
+            Err(e) => ctx
+                .console
+                .peek()
+                .error(&format!("Failed to start hot reload: {e}")),
+        }
+    });
+    let enabled = watcher.read().is_some();
+    (enabled, set_enabled)
 }

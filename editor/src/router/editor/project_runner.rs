@@ -9,7 +9,7 @@ use dioxus_logger::tracing;
 use plottery_project::{Project, RunError, RunEvent, RunStage};
 use plottery_runtime::project_params_list_wrapper::ProjectParamsListWrapper;
 
-use super::{console_messages::ConsoleMessages, editor::LayerChangeWrapper};
+use super::{console_messages::ConsoleMessages, editor_data::LayerChangeWrapper};
 
 /// Clones share the run state, so hot reload and the UI cancel each other's runs.
 #[derive(Clone)]
