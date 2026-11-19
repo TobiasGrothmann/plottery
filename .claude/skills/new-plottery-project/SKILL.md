@@ -9,7 +9,8 @@ The goal is a first sketch of the user's idea that renders, quickly. Rough is fi
 from there in the editor, with you changing the code. Don't polish before they have seen it.
 
 This skill only says what to do and where to look. The details live in the sources it points to;
-read them there.
+read them there. How to handle a project is in the `AGENTS.md` that `plottery new` generates in the
+project root: reading it is step 5, and nothing in it is repeated here.
 
 ## 1. Pin down the idea
 
@@ -44,7 +45,8 @@ Reusing a working piece is faster than writing it again. Look here, and tell the
 - **Plottery's examples:** `examples/` in the Plottery checkout. Each `generate.rs` opens with a
   comment saying what it shows, and `preview.png` is its render.
 - **The template:** `project/cargo_project_template/src/generate.rs`, what every new project starts with.
-- **The library:** the "What Plottery already has" table in the new project's `AGENTS.md`.
+- **The library:** the "What Plottery already has" table in the project's `AGENTS.md`. Before the
+  project exists, read it in `project/resources/AGENTS.md` in the Plottery checkout, its template.
 
 The Plottery checkout is the one set with `plottery set-home` (`plottery_home` in
 `project/src/plottery_config.rs`), or at the `path` dependency in an existing project's `Cargo.toml`.
@@ -58,10 +60,14 @@ Skip this if you use the project you are in. Otherwise run `plottery new` at the
 `plottery new --help` has the syntax. For the library source, use whatever the user's other projects
 use. Look at their `Cargo.toml`.
 
-**Then read the project's `AGENTS.md` completely** and follow it from here on: layout, the CLI
-loop, params, conventions and when work counts as done.
+## 5. Read the project's `AGENTS.md`
 
-## 5. Write the first sketch
+Never skip this, also not in a project that already existed. Read the `AGENTS.md` in the project
+root completely before writing any code, and follow it from here on. It is the source for how to
+handle a project: how the user works with it, layout, the CLI loop, params, layers, conventions and
+when work counts as done.
+
+## 6. Write the first sketch
 
 Replace the template in `generate.rs`:
 
@@ -77,7 +83,7 @@ Replace the template in `generate.rs`:
 Build and render with the CLI as `AGENTS.md` describes, look at every png, and stop after a few rounds,
 once it reads as the idea.
 
-## 6. Hand it over
+## 7. Hand it over
 
 - `plottery run` once: the project is new, so it overwrites nothing of the user's, and the editor tile
   gets a thumbnail. After that, follow `AGENTS.md` on when not to use it.
