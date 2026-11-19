@@ -104,10 +104,6 @@ impl Angle {
     pub fn golden_angle() -> Self {
         Self::from_rotations(1.0 - 1.0 / GOLDEN_RATIO)
     }
-    /// Creates an angle with 1.0 / √2 number of rotations.
-    pub fn root_two_inverse() -> Self {
-        Self::from_rotations(1.0 / 2.0_f32.sqrt())
-    }
 
     pub fn to_rad(&self) -> f32 {
         self.rad
