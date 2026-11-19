@@ -2,6 +2,7 @@ pub use crate::shapes::circle::Circle;
 pub use crate::shapes::path::Path;
 pub use crate::shapes::rect::Rect;
 
+use super::containment::contains_shape_by_variant;
 use crate::{
     geometry::TransformMatrix,
     traits::{ClosestPoint, Fit, Scale, Scale2D, Transform, Translate},
@@ -83,13 +84,7 @@ impl Shape {
         }
     }
 
-    pub fn contains(&self, other: &Shape) -> Containment {
-        match other {
-            Shape::Circle(c) => self.contains_circle(c),
-            Shape::Rect(r) => self.contains_rect(r),
-            Shape::Path(p) => self.contains_path(p),
-        }
-    }
+    contains_shape_by_variant!();
 }
 
 impl Plottable for Shape {

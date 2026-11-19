@@ -227,9 +227,9 @@ mod test_shape {
             V2::new(10.0, 11.0),
         ]));
 
-        assert_eq!(outer_rect.contains(&inner_circle), Containment::Full);
-        assert_eq!(outer_rect.contains(&touching_rect), Containment::Partial);
-        assert_eq!(outer_rect.contains(&far_path), Containment::None);
+        assert_eq!(outer_rect.contains_shape(&inner_circle), Containment::Full);
+        assert_eq!(outer_rect.contains_shape(&touching_rect), Containment::Partial);
+        assert_eq!(outer_rect.contains_shape(&far_path), Containment::None);
     }
 
     #[test]
