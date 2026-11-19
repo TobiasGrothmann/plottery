@@ -78,6 +78,7 @@ impl SplineSink {
     }
 
     /// Ends the contour open, keeping the current point.
+    #[cfg(feature = "text")]
     pub(crate) fn end(&mut self) {
         self.flush(false);
     }
