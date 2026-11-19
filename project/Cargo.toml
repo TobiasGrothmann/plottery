@@ -17,11 +17,11 @@ plottery_lib = { path = "../lib", version = "^0.18.0" }
 anyhow.workspace = true
 bincode.workspace = true
 path-absolutize.workspace = true
-directories = "5.0.1"
+directories = "6"
 chrono = { workspace = true, features = ["serde"] }
 serde.workspace = true
 serde_json.workspace = true
-toml = "0.8.8"
+toml = "1"
 tempfile.workspace = true
 resvg = "0.37.0"
 async-process = "2.0.1"
@@ -29,6 +29,6 @@ async-io = "2.3.0"
 futures-lite.workspace = true
 tokio = { workspace = true, features = ["rt"] }
 rust-embed = "8.0.0"
-vfs = { version = "0.12.0", features = ["embedded-fs"] }
+vfs = { version = "0.13", features = ["embedded-fs"] }
 walkdir = "2.5"
-nix = { version = "0.29", features = ["signal"] }
+nix = { version = "0.32", features = ["signal"] }
