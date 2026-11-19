@@ -11,7 +11,7 @@ repository.workspace = true
 keywords.workspace = true
 
 [dependencies]
-bincode.workspace = true
+postcard.workspace = true
 anyhow.workspace = true
 itertools.workspace = true
 plottery_lib = { path = "../lib", version = "^0.18.0" }

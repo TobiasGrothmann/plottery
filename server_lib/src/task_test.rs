@@ -23,12 +23,12 @@ mod tests {
     #[test]
     fn unversioned_and_damaged_tasks_are_errors() {
         // a task as sent before requests had a version
-        let unversioned = bincode::serialize(&Task::Abort).unwrap();
+        let unversioned = postcard::to_stdvec(&Task::Abort).unwrap();
         let msg = Task::from_binary(&unversioned).unwrap_err().to_string();
         assert!(msg.contains("no protocol version"));
 
         let mut damaged = Task::SetHead(true).to_binary().unwrap();
-        damaged.truncate(8);
+        damaged.truncate(7);
         assert!(Task::from_binary(&damaged).is_err());
     }
 }

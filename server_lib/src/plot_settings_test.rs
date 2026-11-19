@@ -11,24 +11,25 @@ mod tests {
     #[test]
     fn round_trip() {
         let bytes = settings().to_file_bytes().unwrap();
-        assert_eq!(&bytes[..6], b"PLTS\x01\x00");
+        assert_eq!(&bytes[..6], b"PLTS\x02\x00");
         let read = PlotSettings::from_file_bytes(&bytes).unwrap();
         assert_eq!(read.to_file_bytes().unwrap(), bytes);
     }
 
     #[test]
-    fn headerless_file_is_read_as_the_old_layout() {
-        let legacy = bincode::serialize(&settings()).unwrap();
-        let read = PlotSettings::from_file_bytes(&legacy).unwrap();
-        assert_eq!(read.speed_draw.max, 1.25);
+    fn old_version_is_an_error() {
+        let mut old = settings().to_file_bytes().unwrap();
+        old[4] = 1;
+        let err = PlotSettings::from_file_bytes(&old).unwrap_err();
+        assert!(err.to_string().contains("old format version 1"));
     }
 
     #[test]
     fn newer_version_and_garbage_are_errors() {
         let mut newer = settings().to_file_bytes().unwrap();
-        newer[4] = 2;
+        newer[4] = 3;
         let err = PlotSettings::from_file_bytes(&newer).unwrap_err();
-        assert!(err.to_string().contains("format version 2"));
+        assert!(err.to_string().contains("format version 3"));
         assert!(PlotSettings::from_file_bytes(&[1, 2, 3]).is_err());
     }
 

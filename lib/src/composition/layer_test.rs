@@ -816,7 +816,7 @@ mod test_layer {
         )]));
 
         let binary = layer.to_binary().unwrap();
-        assert_eq!(&binary[..6], b"PLTL\x01\x00");
+        assert_eq!(&binary[..6], b"PLTL\x02\x00");
         let read = Layer::new_from_binary(&binary).unwrap();
         assert_eq!(read.to_binary().unwrap(), binary);
         assert_eq!(read.sublayers.len(), 1);

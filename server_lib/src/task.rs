@@ -35,8 +35,8 @@ pub enum Task {
     },
 }
 
-/// Version of the task request, sent in front of the task. Changes with the bincode layout of [`Task`].
-pub const TASK_PROTOCOL_VERSION: u16 = 1;
+/// Version of the task request, sent in front of the task. Changes with the postcard layout of [`Task`].
+pub const TASK_PROTOCOL_VERSION: u16 = 2;
 const TASK_MAGIC: [u8; 4] = *b"PLTT";
 
 impl Task {
@@ -44,7 +44,7 @@ impl Task {
     pub fn from_binary(data: &[u8]) -> anyhow::Result<Self> {
         match split_file_header(&TASK_MAGIC, data) {
             Some((TASK_PROTOCOL_VERSION, payload)) => {
-                bincode::deserialize(payload).context("The task could not be decoded")
+                postcard::from_bytes(payload).context("The task could not be decoded")
             }
             Some((version, _)) => bail!(
                 "The sender uses plotter protocol version {version}, the server version \
@@ -60,7 +60,7 @@ impl Task {
         Ok(with_file_header(
             &TASK_MAGIC,
             TASK_PROTOCOL_VERSION,
-            &bincode::serialize(self)?,
+            &postcard::to_stdvec(self)?,
         ))
     }
 }
@@ -79,7 +79,10 @@ pub async fn send_task(task: Task) -> anyhow::Result<()> {
     let status = response.status();
     if !status.is_success() {
         let message = response.text().await.unwrap_or_default();
-        bail!("The plotter server refused the task ({status}): {}", message.trim());
+        bail!(
+            "The plotter server refused the task ({status}): {}",
+            message.trim()
+        );
     }
     Ok(())
 }

@@ -1,5 +1,4 @@
 use anyhow::{bail, Context, Ok, Result};
-use bincode::{deserialize, serialize};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -8,8 +7,8 @@ use std::{iter::FromIterator, path::PathBuf, vec};
 use crate::{
     geometry::TransformMatrix,
     traits::{Fit, Scale, Scale2D, Transform, Translate},
-    Angle, Blur, BoundingBox, Hatch, Circle, Masked, Mirror, Path, Plottable, Rect, Rotate, Rotate90,
-    SampleSettings, Shape, SpatialGrid, V2,
+    Angle, Blur, BoundingBox, Circle, Hatch, Masked, Mirror, Path, Plottable, Rect, Rotate,
+    Rotate90, SampleSettings, Shape, SpatialGrid, V2,
 };
 
 use super::{
@@ -43,8 +42,8 @@ pub struct Layer {
 
 impl Layer {
     const FILE_MAGIC: [u8; 4] = *b"PLTL";
-    /// Changes with every change to the bincode layout of `Layer`.
-    const FILE_VERSION: u16 = 1;
+    /// Changes with every change to the postcard layout of `Layer`.
+    const FILE_VERSION: u16 = 2;
 
     pub fn new() -> Self {
         Self {
@@ -97,16 +96,18 @@ impl Layer {
     /// Reads the `.plotl` format written by [`Layer::to_binary`]. There is no migration between its versions.
     pub fn new_from_binary(binary_data: &[u8]) -> Result<Layer> {
         match split_file_header(&Self::FILE_MAGIC, binary_data) {
-            Some((Self::FILE_VERSION, payload)) => Ok(deserialize(payload)?),
-            _ => bail!("The layer is from another Plottery version and can't be read, render it again."),
+            Some((Self::FILE_VERSION, payload)) => Ok(postcard::from_bytes(payload)?),
+            _ => bail!(
+                "The layer is from another Plottery version and can't be read, render it again."
+            ),
         }
     }
-    /// The `.plotl` format: a file header followed by the bincode of the `Layer`.
+    /// The `.plotl` format: a file header followed by the postcard of the `Layer`.
     pub fn to_binary(&self) -> Result<Vec<u8>> {
         Ok(with_file_header(
             &Self::FILE_MAGIC,
             Self::FILE_VERSION,
-            &serialize(self)?,
+            &postcard::to_stdvec(self)?,
         ))
     }
 

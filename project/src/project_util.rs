@@ -1,6 +1,5 @@
 use anyhow::Result;
 use async_process::{Child, Command, Stdio};
-use bincode::{deserialize_from, serialize};
 use futures_lite::io::{AsyncRead, BufReader};
 use futures_lite::prelude::*;
 use futures_lite::{AsyncReadExt, AsyncWriteExt};
@@ -115,7 +114,7 @@ pub async fn run_project_executable_async(
 
     if let Some(params) = params {
         if let Some(mut stdin) = child_process.stdin.take() {
-            let binary = serialize(&params)?;
+            let binary = postcard::to_stdvec(&params)?;
             stdin.write_all(&binary).await?;
         } else {
             return Err(anyhow::Error::msg("Failed to open stdin on child process"));
@@ -133,7 +132,7 @@ where
     if let Some(stdout) = &mut child_process.stdout {
         (*stdout).read_to_end(&mut buf).await?;
     }
-    anyhow::Ok(deserialize_from(buf.as_slice())?)
+    anyhow::Ok(postcard::from_bytes(&buf)?)
 }
 
 pub async fn process_lines_to_end<R, F>(stream: R, mut line_handler: F) -> Result<()>

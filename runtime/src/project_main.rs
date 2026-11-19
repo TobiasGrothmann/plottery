@@ -1,4 +1,3 @@
-use bincode::serialize;
 use clap::{Parser, Subcommand};
 use plottery_lib::{record_frames, Layer};
 use std::error::Error;
@@ -51,7 +50,7 @@ struct Args {
 fn read_params_from_stdin() -> Result<Vec<ProjectParam>, Box<dyn Error>> {
     let mut buffer = Vec::new();
     io::stdin().read_to_end(&mut buffer)?;
-    let params_list_wrapper: ProjectParamsListWrapper = bincode::deserialize(&buffer)?;
+    let params_list_wrapper: ProjectParamsListWrapper = postcard::from_bytes(&buffer)?;
     Ok(params_list_wrapper.list)
 }
 
@@ -131,7 +130,7 @@ where
         RunCommand::Params {} => {
             let mut stdout = io::stdout().lock();
             let params_list = ProjectParamsListWrapper::new(P::param_defaults_list());
-            let binary = serialize(&params_list)?;
+            let binary = postcard::to_stdvec(&params_list)?;
             stdout.write_all(&binary)?;
         }
         RunCommand::ProtocolVersion {} => println!("{PROTOCOL_VERSION}"),

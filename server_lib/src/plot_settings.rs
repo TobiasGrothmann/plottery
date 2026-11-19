@@ -1,7 +1,6 @@
 use std::path::Path;
 
 use anyhow::{bail, Context, Result};
-use bincode::Options;
 use plottery_lib::{split_file_header, with_file_header};
 use serde::{Deserialize, Serialize};
 
@@ -59,31 +58,29 @@ impl Default for PlotSettings {
 
 impl PlotSettings {
     const FILE_MAGIC: [u8; 4] = *b"PLTS";
-    const FILE_VERSION: u16 = 1;
+    const FILE_VERSION: u16 = 2;
 
-    /// The `.plots` format: a file header followed by the bincode of the settings.
+    /// The `.plots` format: a file header followed by the postcard of the settings.
     pub fn to_file_bytes(&self) -> Result<Vec<u8>> {
         Ok(with_file_header(
             &Self::FILE_MAGIC,
             Self::FILE_VERSION,
-            &bincode::serialize(self)?,
+            &postcard::to_stdvec(self)?,
         ))
     }
 
     pub fn from_file_bytes(bytes: &[u8]) -> Result<Self> {
-        // leftover bytes are an error
-        let bincode = bincode::options().with_fixint_encoding();
         let Some((version, payload)) = split_file_header(&Self::FILE_MAGIC, bytes) else {
-            // written before files had a header
-            return bincode
-                .deserialize(bytes)
-                .context("not a plot settings file of this or an older Plottery version");
+            bail!("not a plot settings file of this Plottery version");
         };
         // a changed `PlotSettings` gets a new version, and the old one an arm here that migrates it
         match version {
-            Self::FILE_VERSION => bincode
-                .deserialize(payload)
-                .context("the plot settings file is damaged"),
+            Self::FILE_VERSION => {
+                postcard::from_bytes(payload).context("the plot settings file is damaged")
+            }
+            _ if version < Self::FILE_VERSION => bail!(
+                "the plot settings file has the old format version {version}, which this Plottery can't read anymore."
+            ),
             _ => bail!(
                 "the plot settings file has format version {version}, this Plottery reads up to {}. Update Plottery.",
                 Self::FILE_VERSION

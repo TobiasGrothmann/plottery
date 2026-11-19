@@ -1,6 +1,6 @@
 //! How a running project hands its frames and its final layer to the caller: through one Unix
 //! domain socket, as messages of `kind: u8`, `len: u64` (little endian) and `len` bytes of
-//! bincode [`Layer`]. Any number of snapshots come first, then exactly one final layer.
+//! `.plotl` [`Layer`]. Any number of snapshots come first, then exactly one final layer.
 //!
 //! A socket and not a FIFO, because opening a FIFO waits for the other side: a project that dies
 //! early would leave the caller hanging.

@@ -37,29 +37,29 @@ mod tests {
     #[test]
     fn round_trip() {
         let bytes = params().to_file_bytes().unwrap();
-        assert_eq!(&bytes[..6], b"PLTP\x01\x00");
+        assert_eq!(&bytes[..6], b"PLTP\x02\x00");
         let (read, skipped) = ProjectParamsListWrapper::from_file_bytes(&bytes).unwrap();
         assert_same(&read.list, &params().list);
         assert!(skipped.is_empty());
     }
 
     #[test]
-    fn headerless_file_is_read_as_the_old_layout() {
-        let legacy = bincode::serialize(&params()).unwrap();
-        let (read, skipped) = ProjectParamsListWrapper::from_file_bytes(&legacy).unwrap();
-        assert_same(&read.list, &params().list);
-        assert!(skipped.is_empty());
+    fn old_version_is_an_error() {
+        let mut old = params().to_file_bytes().unwrap();
+        old[4] = 1;
+        let err = ProjectParamsListWrapper::from_file_bytes(&old).unwrap_err();
+        assert!(err.to_string().contains("old format version 1"));
     }
 
     #[test]
     fn undecodable_records_are_skipped_and_named() {
         let mut bytes = params().to_file_bytes().unwrap();
-        // header 6, count 8, then per record: name (8 + 1), type tag 4, value (8 + n), section 1, description 1
-        let a_value = 6 + 8 + 9 + 4 + 8;
-        let b_type_tag = a_value + 1 + 2 + 9;
+        // header 6, count 1, then per record: name (1 + 1), type tag 1, value (1 + n), section 1, description 1
+        let a_value = 6 + 1 + 2 + 1 + 1;
+        let b_type_tag = a_value + 1 + 2 + 2;
         assert_eq!(bytes[a_value], 1);
         bytes[a_value] = 7; // not a bool
-        bytes[b_type_tag..b_type_tag + 4].copy_from_slice(&9999u32.to_le_bytes()); // unknown type
+        bytes[b_type_tag] = 0x7f; // unknown type
 
         let (read, skipped) = ProjectParamsListWrapper::from_file_bytes(&bytes).unwrap();
         assert_eq!(skipped, ["a", "b"]);
@@ -69,9 +69,9 @@ mod tests {
     #[test]
     fn newer_version_and_garbage_are_errors() {
         let mut newer = params().to_file_bytes().unwrap();
-        newer[4] = 2;
+        newer[4] = 3;
         let err = ProjectParamsListWrapper::from_file_bytes(&newer).unwrap_err();
-        assert!(err.to_string().contains("format version 2"));
+        assert!(err.to_string().contains("format version 3"));
 
         let mut truncated = params().to_file_bytes().unwrap();
         truncated.truncate(30);

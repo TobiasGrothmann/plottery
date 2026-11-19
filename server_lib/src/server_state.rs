@@ -68,10 +68,10 @@ pub enum PlotOutcome {
 
 impl ServerState {
     pub fn from_binary(data: &[u8]) -> anyhow::Result<Self> {
-        Ok(bincode::deserialize(data)?)
+        Ok(postcard::from_bytes(data)?)
     }
     pub fn to_binary(&self) -> anyhow::Result<Vec<u8>> {
-        Ok(bincode::serialize(self)?)
+        Ok(postcard::to_stdvec(self)?)
     }
 }
 
