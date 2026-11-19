@@ -13,14 +13,14 @@ exclude = ["samples/**/*.svg"]
 
 [dependencies]
 plottery_fonts = { path = "../fonts", version = "^0.18.0" }
-geo = "0.33.1"
+geo = { version = "0.33.1", default-features = false, features = ["multithreading"] }
 voronoice = "0.2.0"
 geo-types = "0.7.12"
 geometry-predicates = "0.3.0"
 image.workspace = true
 itertools.workspace = true
 anyhow.workspace = true
-svg = "0.17.0"
+svg = "0.18"
 serde.workspace = true
 bincode.workspace = true
 fastnoise-lite = "1.1.1"
@@ -30,8 +30,8 @@ ramer_douglas_peucker = "0.2.2"
 mint = "0.5.9"
 rayon.workspace = true
 num-traits = "0.2"
-skrifa = "0.49"
-harfrust = "0.15"
+skrifa = "0.50"
+harfrust = "0.16"
 flate2 = "1"
 rustc-hash = "2"
 
