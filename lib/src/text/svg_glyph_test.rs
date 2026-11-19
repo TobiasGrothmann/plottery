@@ -24,7 +24,7 @@ mod test_svg_glyph {
         assert_eq!(contours.len(), 2);
         assert_eq!(contours[0].start_point(), Some(V2::new(126.0, 375.0)));
         assert!(contours[1].is_closed());
-        assert_eq!(contours[1].segments()[1].to(), V2::new(15.0, 10.0));
+        assert_eq!(contours[1].segments()[1].end(), V2::new(15.0, 10.0));
     }
 
     #[test]

@@ -1,6 +1,6 @@
 use std::f32::consts::SQRT_2;
 
-use crate::{Angle, Bezier, Line, Rotate, Spline, LARGE_EPSILON, V2};
+use crate::{Angle, Bezier, Line, Rotate, Spline, LENGTH_TOLERANCE, V2};
 
 /// Boundary condition at one end of an open Hobby run.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -14,7 +14,7 @@ pub(crate) enum EndCondition {
 /// Removes zero-length chords.
 fn dedup_points(points: &[V2]) -> Vec<V2> {
     points.iter().fold(Vec::new(), |mut acc: Vec<V2>, p| {
-        if acc.last().is_none_or(|last| last.dist(*p) > LARGE_EPSILON) {
+        if acc.last().is_none_or(|last| last.dist(*p) > LENGTH_TOLERANCE) {
             acc.push(*p);
         }
         acc
@@ -30,7 +30,7 @@ fn turning_angle(a: V2, b: V2) -> f32 {
     (a.x * b.y - a.y * b.x).atan2(a.dot(b))
 }
 
-/// MetaPost's `curl_ratio`: coefficient relating the end angle to its neighbour under curl `gamma`.
+/// MetaPost's `curl_ratio`: coefficient relating the end angle to its neighbor under curl `gamma`.
 fn curl_ratio(gamma: f32, alpha: f32, beta: f32) -> f32 {
     let ratio = ((3.0 - alpha) * alpha * alpha * gamma + beta * beta * beta)
         / (alpha * alpha * alpha * gamma + (3.0 - beta) * beta * beta);
@@ -216,7 +216,7 @@ pub(crate) fn hobby_open(
 /// Hobby's algorithm for a closed run of knots, one tension per knot. Returns one cubic per chord, the last one returning to the first knot.
 pub(crate) fn hobby_closed(points: &[V2], tensions: &[f32]) -> Vec<Bezier> {
     let mut points = dedup_points(points);
-    if points.len() > 1 && points[0].dist(points[points.len() - 1]) <= LARGE_EPSILON {
+    if points.len() > 1 && points[0].dist(points[points.len() - 1]) <= LENGTH_TOLERANCE {
         points.pop();
     }
     let n = points.len();
@@ -251,7 +251,7 @@ pub(crate) fn hobby_closed(points: &[V2], tensions: &[f32]) -> Vec<Bezier> {
         .collect();
 
     let theta = if n == 2 {
-        // both neighbours are the same knot, so the corner entries merge into one coefficient
+        // both neighbors are the same knot, so the corner entries merge into one coefficient
         let (a0, b0, c0, d0) = coefficients[0];
         let (a1, b1, c1, d1) = coefficients[1];
         let (m00, m01, m10, m11) = (b0 + c0, a0 + d0, a1 + d1, b1 + c1);
@@ -318,7 +318,7 @@ impl Spline {
         match beziers.as_slice() {
             [] => Spline::default(),
             [single] if !closed => {
-                Spline::from_segments(vec![Line::new(single.from(), single.to()).into()], false)
+                Spline::from_segments(vec![Line::new(single.start(), single.end()).into()], false)
             }
             _ => Spline::from_segments(beziers.into_iter().map(Into::into).collect(), closed),
         }

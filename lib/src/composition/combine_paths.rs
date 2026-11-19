@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{Angle, Path, LARGE_EPSILON, V2};
+use crate::{Angle, Path, LENGTH_TOLERANCE, V2};
 
 use super::path_end::PathEnd;
 
@@ -38,7 +38,7 @@ impl EndIndex {
         let (x, y) = cell(point);
         (-1..=1)
             .flat_map(|dx| (-1..=1).map(move |dy| (x + dx, y + dy)))
-            .filter_map(|neighbour| self.buckets.get(&neighbour))
+            .filter_map(|neighbor| self.buckets.get(&neighbor))
             .flatten()
             .copied()
             .filter(|&entry| matches(entry))
@@ -46,9 +46,9 @@ impl EndIndex {
     }
 }
 
-/// Points closer than [`LARGE_EPSILON`] per axis always fall into neighbouring cells.
+/// Points closer than [`LENGTH_TOLERANCE`] per axis always fall into neighboring cells.
 fn cell(point: V2) -> Cell {
-    let epsilon = f64::from(LARGE_EPSILON);
+    let epsilon = f64::from(LENGTH_TOLERANCE);
     (
         (f64::from(point.x) / epsilon).floor() as i64,
         (f64::from(point.y) / epsilon).floor() as i64,
@@ -76,11 +76,11 @@ pub(crate) fn combine_paths(paths: Vec<Path>, max_angle_delta: Option<Angle>) ->
                 return None;
             }
             joiner.take(i);
-            let mut forward = paths[i].points().to_vec();
+            let mut forward = paths[i].as_slice().to_vec();
             joiner.extend(ends[i][1], &mut forward);
             // Walking backward is walking forward on the reversed chain, so these points come out reversed.
             let mut backward = Vec::new();
-            joiner.extend(ends[i][0].flipped(), &mut backward);
+            joiner.extend(ends[i][0].flip(), &mut backward);
 
             Some(backward.into_iter().rev().chain(forward).collect())
         })
@@ -107,16 +107,16 @@ impl Joiner<'_> {
             let candidate = &self.ends[entry / 2];
             match entry % 2 {
                 0 => tail.is_compatible(&candidate[0], &self.max_angle_delta),
-                _ => tail.is_compatible(&candidate[1].flipped(), &self.max_angle_delta),
+                _ => tail.is_compatible(&candidate[1].flip(), &self.max_angle_delta),
             }
         }) {
-            let (j, candidate) = (entry / 2, self.paths[entry / 2].points());
+            let (j, candidate) = (entry / 2, self.paths[entry / 2].as_slice());
             if entry % 2 == 0 {
                 points.extend(candidate.iter().skip(1));
                 tail = self.ends[j][1];
             } else {
                 points.extend(candidate.iter().rev().skip(1));
-                tail = self.ends[j][0].flipped();
+                tail = self.ends[j][0].flip();
             }
             self.take(j);
         }

@@ -2,7 +2,7 @@ use std::{rc::Rc, sync::Arc};
 
 use dioxus::prelude::*;
 use plottery_lib::BundledFont;
-use plottery_project::project_param_value::ProjectParamValue;
+use plottery_runtime::project_param_value::ProjectParamValue;
 
 use crate::router::editor::params_editor::{
     font_preview::{cached_preview, font_label, preview, FontPreview},

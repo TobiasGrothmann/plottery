@@ -1,17 +1,35 @@
 #[cfg(test)]
 mod test_layer {
-    use std::collections::HashMap;
-
     use itertools::Itertools;
     use rand::{seq::SliceRandom, SeedableRng};
-    use svg::parser::Event;
 
     use crate::{
+        maths::seed_for_test,
+        rand_range,
         traits::{fit::Alignment, Translate},
         Angle, BoundingBox, Circle, ColorRgb, Fit, FloatInterpolation, Inheritable, Layer,
-        LayerPropsInheritable, Path, Plottable, Rect, Rotate, SampleSettings, Shape, ToAngle,
-        LARGE_EPSILON, V2,
+        LayerPropsInheritable, Path, Plottable, Rect, Rotate, SampleSettings, Shape,
+        LENGTH_TOLERANCE, V2,
     };
+
+    #[test]
+    fn map_recursive_draws_from_the_global_rng_in_shape_order() {
+        let circles = |offset: f32| -> Vec<Circle> {
+            (0..500)
+                .map(|i| Circle::new(V2::new(i as f32, offset), 1.0))
+                .collect()
+        };
+        let mut layer = Layer::new_from(circles(0.0));
+        layer.push_layer(Layer::new_from(circles(1.0)));
+        let jitter = |shape: &Shape| shape.translate(V2::new(rand_range(0.0, 1.0), 0.0));
+
+        let _rng = seed_for_test(5);
+        let mapped: Vec<Shape> = layer.map_recursive(jitter).iter().cloned().collect();
+        crate::seed(5);
+        let expected: Vec<Shape> = layer.iter().map(jitter).collect();
+
+        assert_eq!(mapped, expected);
+    }
 
     #[test]
     fn iterator() {
@@ -25,7 +43,7 @@ mod test_layer {
         l.push(Rect::new_shape(V2::new(0.0, 0.0), V2::new(1.0, 1.0)));
 
         for shape in l.iter() {
-            assert!(!shape.get_points(SampleSettings::default()).is_empty());
+            assert!(!shape.points(SampleSettings::default()).is_empty());
         }
 
         let l2: Layer = l.clone();
@@ -327,224 +345,6 @@ mod test_layer {
     }
 
     #[test]
-    fn svg() {
-        let mut l = Layer::new();
-
-        l.push(Circle::new_shape(V2::new(1.0, 1.0), 1.0));
-        l.push(Path::new_shape_from(vec![
-            V2::new(-0.5, 0.0),
-            V2::new(2.0, 2.0),
-        ]));
-        l.push(Rect::new_shape(V2::new(0.0, 0.0), V2::new(3.0, 1.0)));
-
-        let temp_dir = tempfile::tempdir().unwrap();
-        let svg_path = temp_dir.path().join("test.svg");
-        l.write_svg(svg_path.clone()).unwrap();
-
-        // load svg and check
-        let mut svg_content = String::new();
-        let mut paths_count: HashMap<&str, usize> = std::collections::HashMap::new();
-        for event in svg::open(svg_path, &mut svg_content).unwrap() {
-            match event {
-                Event::Tag(path, _type, _attributes) => {
-                    if !paths_count.contains_key(path) {
-                        paths_count.insert(path, 0);
-                    }
-                    *paths_count.get_mut(path).unwrap() += 1;
-                }
-                Event::Error(_) => todo!(),
-                Event::Text(_) => {}
-                Event::Comment(_) => todo!(),
-                Event::Declaration(_) => todo!(),
-                Event::Instruction(_) => todo!(),
-            }
-        }
-
-        assert!(paths_count.contains_key("svg"));
-
-        assert!(paths_count.contains_key("path"));
-        assert_eq!(*paths_count.get("path").unwrap(), 1);
-
-        assert!(paths_count.contains_key("circle"));
-        assert_eq!(*paths_count.get("circle").unwrap(), 1);
-
-        assert!(paths_count.contains_key("rect"));
-        assert_eq!(*paths_count.get("rect").unwrap(), 1);
-    }
-
-    #[test]
-    fn new_from_svg() {
-        let mut l = Layer::new();
-        l.push(Path::new_from(vec![
-            V2::new(0.0, 0.0),
-            V2::new(1.0, 0.0),
-            V2::new(1.0, 1.0),
-            V2::new(0.0, 0.0),
-        ]));
-        l.push(Path::new_from(vec![V2::new(2.0, 2.0), V2::new(3.0, 3.0)]));
-
-        let temp_dir = tempfile::tempdir().unwrap();
-        let svg_path = temp_dir.path().join("test_import.svg");
-        l.write_svg(svg_path.clone()).unwrap();
-
-        let imported = Layer::new_from_svg(&svg_path).unwrap();
-        assert_eq!(imported.len(), 2);
-
-        for shape in imported.iter() {
-            match shape {
-                Shape::Path(path) => assert!(path.get_points_ref().len() >= 2),
-                _ => panic!("Expected imported shape to be Path"),
-            }
-        }
-
-        let original_paths: Vec<Path> = l
-            .iter()
-            .map(|shape| match shape {
-                Shape::Path(path) => path.clone(),
-                _ => panic!("Expected original shape to be Path"),
-            })
-            .collect();
-
-        let imported_paths: Vec<Path> = imported
-            .iter()
-            .map(|shape| match shape {
-                Shape::Path(path) => path.clone(),
-                _ => panic!("Expected imported shape to be Path"),
-            })
-            .collect();
-
-        assert_eq!(original_paths, imported_paths);
-    }
-
-    #[test]
-    fn new_from_svg_curves_and_polylines() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        let svg_path = temp_dir.path().join("test_import_complex.svg");
-        let svg = r#"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
-            <path d='M 0 0 C 10 0, 10 10, 20 10 S 30 20, 40 20 Q 50 20, 60 30 T 70 40 A 5 5 0 0 1 80 50 L 90 50 Z' />
-            <line x1='0' y1='90' x2='10' y2='95' />
-            <polyline points='20,90 30,95 40,90' />
-            <polygon points='50,90 60,95 70,90' />
-        </svg>"#;
-        std::fs::write(&svg_path, svg).unwrap();
-
-        let imported = Layer::new_from_svg(&svg_path).unwrap();
-
-        // one path + one line + one polyline + one polygon
-        assert_eq!(imported.len(), 4);
-
-        for shape in imported.iter() {
-            match shape {
-                Shape::Path(path) => assert!(path.get_points_ref().len() >= 2),
-                _ => panic!("Expected imported shape to be Path"),
-            }
-        }
-
-        // the curve commands are sampled, not approximated by their end points
-        let Shape::Path(curved) = imported.iter().next().unwrap() else {
-            panic!("Expected imported shape to be Path");
-        };
-        assert!(curved.get_points_ref().len() > 8);
-    }
-
-    #[test]
-    fn new_from_svg_close_then_relative_line() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        let svg_path = temp_dir.path().join("test_import_close_then_line.svg");
-        let svg = r#"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
-            <path d='M 10 10 L 20 10 L 20 20 Z l 10 0 l 0 10 z' />
-        </svg>"#;
-        std::fs::write(&svg_path, svg).unwrap();
-
-        let imported = Layer::new_from_svg(&svg_path).unwrap();
-        assert_eq!(imported.len(), 2);
-
-        let paths = imported
-            .iter()
-            .map(|shape| match shape {
-                Shape::Path(path) => path.clone(),
-                _ => panic!("Expected imported shape to be Path"),
-            })
-            .collect::<Vec<_>>();
-
-        assert_eq!(paths[0].get_points_ref().len(), 4);
-        assert_eq!(paths[1].get_points_ref().len(), 4);
-    }
-
-    #[test]
-    fn new_from_svg_group_transform_matrix() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        let svg_path = temp_dir.path().join("test_import_group_transform.svg");
-        let svg = r#"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
-            <g transform='matrix(2,0,0,2,10,20)'>
-                <path d='m 0 0 l 5 0 l 0 5 z' />
-            </g>
-        </svg>"#;
-        std::fs::write(&svg_path, svg).unwrap();
-
-        let imported = Layer::new_from_svg(&svg_path).unwrap();
-        assert_eq!(imported.len(), 1);
-
-        let path = match imported.iter().next().unwrap() {
-            Shape::Path(path) => path,
-            _ => panic!("Expected imported shape to be Path"),
-        };
-
-        let points = path.get_points_ref();
-        assert_eq!(points.len(), 4);
-
-        assert_eq!(points[0], V2::new(10.0, 10.0));
-        assert_eq!(points[1], V2::new(20.0, 10.0));
-        assert_eq!(points[2], V2::new(20.0, 0.0));
-        assert_eq!(points[3], V2::new(10.0, 10.0));
-    }
-
-    #[test]
-    fn new_from_svg_fill_closes_path_without_z() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        let svg_path = temp_dir.path().join("test_import_fill_close.svg");
-        let svg = r#"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
-            <path style='fill:#000000;stroke-width:0' d='m 10,10 20,0 0,20' />
-        </svg>"#;
-        std::fs::write(&svg_path, svg).unwrap();
-
-        let imported = Layer::new_from_svg(&svg_path).unwrap();
-        assert_eq!(imported.len(), 1);
-
-        let path = match imported.iter().next().unwrap() {
-            Shape::Path(path) => path,
-            _ => panic!("Expected imported shape to be Path"),
-        };
-
-        let points = path.get_points_ref();
-        assert_eq!(points.len(), 4);
-        assert_eq!(points.first().unwrap(), points.last().unwrap());
-    }
-
-    #[test]
-    fn new_from_svg_mm_scales_to_cm() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        let svg_path = temp_dir.path().join("test_import_mm_to_cm.svg");
-        let svg = r#"<svg xmlns='http://www.w3.org/2000/svg' width='210mm' height='297mm' viewBox='0 0 210 297'>
-            <path d='M 10 10 L 20 10' />
-        </svg>"#;
-        std::fs::write(&svg_path, svg).unwrap();
-
-        let imported = Layer::new_from_svg(&svg_path).unwrap();
-        assert_eq!(imported.len(), 1);
-
-        let path = match imported.iter().next().unwrap() {
-            Shape::Path(path) => path,
-            _ => panic!("Expected imported shape to be Path"),
-        };
-
-        let points = path.get_points_ref();
-        assert_eq!(points.len(), 2);
-        assert!((points[0].x - 1.0).abs() < 1e-5);
-        assert!((points[1].x - 2.0).abs() < 1e-5);
-    }
-
-    #[test]
     fn translate() {
         let mut l = Layer::new();
 
@@ -751,10 +551,10 @@ mod test_layer {
         let center = V2::new(3.5, 5.0);
 
         for angle_diff_deg in (-85.0).lerp_iter_fixed(85.0, 20) {
-            let angle_diff = angle_diff_deg.degrees();
+            let angle_diff = Angle::from_degrees(angle_diff_deg);
 
             for start_angle_deg in 0.0.lerp_iter_fixed(360.0, 20) {
-                let start_angle = start_angle_deg.degrees();
+                let start_angle = Angle::from_degrees(start_angle_deg);
                 let end_angle = start_angle + angle_diff;
 
                 let point_before = center - V2::polar(start_angle, 1.0);
@@ -798,12 +598,12 @@ mod test_layer {
                     let combined = layer.combine_shapes_flat(None);
                     assert_eq!(combined.len(), 1);
 
-                    let combined =
-                        layer.combine_shapes_flat(Some(angle_diff.abs() + 2.0.degrees()));
+                    let combined = layer
+                        .combine_shapes_flat(Some(angle_diff.abs() + Angle::from_degrees(2.0)));
                     assert_eq!(combined.len(), 1);
 
-                    let combined =
-                        layer.combine_shapes_flat(Some(angle_diff.abs() - 2.0.degrees()));
+                    let combined = layer
+                        .combine_shapes_flat(Some(angle_diff.abs() - Angle::from_degrees(2.0)));
                     assert_eq!(combined.len(), 2);
                 }
             }
@@ -813,9 +613,9 @@ mod test_layer {
     #[test]
     fn combine_shapes_three() {
         let center = V2::new(0.0, 0.0);
-        let angle_a = 180.degrees();
-        let angle_b = 90.degrees();
-        let angle_c = 0.degrees();
+        let angle_a = Angle::from_degrees(180.0);
+        let angle_b = Angle::from_degrees(90.0);
+        let angle_c = Angle::from_degrees(0.0);
 
         let a = Path::new_shape_from(vec![center + V2::polar(angle_a, 1.0), center]);
         let b = Path::new_shape_from(vec![center + V2::polar(angle_b, 1.0), center]);
@@ -829,7 +629,7 @@ mod test_layer {
         let layer_f = Layer::new_from(vec![c.clone(), b.clone(), a.clone()]);
 
         for layer in [layer_a, layer_b, layer_c, layer_d, layer_e, layer_f].iter() {
-            let combined = layer.combine_shapes_flat(Some(10.degrees()));
+            let combined = layer.combine_shapes_flat(Some(Angle::from_degrees(10.0)));
             assert_eq!(combined.len(), 2);
 
             let shapes: Vec<_> = combined
@@ -839,12 +639,12 @@ mod test_layer {
 
             println!("{:?}", shapes);
 
-            assert!(shapes[0].get_points(SampleSettings::default())[0] == V2::new(0.0, 1.0));
-            assert!(shapes[0].get_points(SampleSettings::default())[1] == V2::new(0.0, 0.0));
+            assert!(shapes[0].points(SampleSettings::default())[0] == V2::new(0.0, 1.0));
+            assert!(shapes[0].points(SampleSettings::default())[1] == V2::new(0.0, 0.0));
 
-            assert!(shapes[1].get_points(SampleSettings::default())[0].y <= LARGE_EPSILON);
-            assert!(shapes[1].get_points(SampleSettings::default())[1] == V2::new(0.0, 0.0));
-            assert!(shapes[1].get_points(SampleSettings::default())[2].y <= LARGE_EPSILON);
+            assert!(shapes[1].points(SampleSettings::default())[0].y <= LENGTH_TOLERANCE);
+            assert!(shapes[1].points(SampleSettings::default())[1] == V2::new(0.0, 0.0));
+            assert!(shapes[1].points(SampleSettings::default())[2].y <= LENGTH_TOLERANCE);
         }
     }
 
@@ -993,16 +793,45 @@ mod test_layer {
     fn with_color_and_pen_width_keep_each_other() {
         let expected = Inheritable::Specified(LayerPropsInheritable {
             color: Inheritable::Specified(ColorRgb::blue()),
-            pen_width_cm: Inheritable::Specified(0.1),
+            pen_width: Inheritable::Specified(0.1),
         });
         let color_first = Layer::new()
             .with_color(ColorRgb::blue())
-            .with_pen_width_cm(0.1);
+            .with_pen_width(0.1);
         let width_first = Layer::new()
-            .with_pen_width_cm(0.1)
+            .with_pen_width(0.1)
             .with_color(ColorRgb::blue());
 
         assert_eq!(color_first.props_inheritable, expected);
         assert_eq!(width_first.props_inheritable, expected);
+    }
+
+    #[test]
+    fn binary_round_trip() {
+        let mut layer = Layer::new();
+        layer.push(Circle::new_shape(V2::new(1.0, 2.0), 3.0));
+        layer.push_layer(Layer::new_from(vec![Rect::new_shape(
+            V2::new(0.0, 0.0),
+            V2::new(1.0, 1.0),
+        )]));
+
+        let binary = layer.to_binary().unwrap();
+        assert_eq!(&binary[..6], b"PLTL\x02\x00");
+        let read = Layer::new_from_binary(&binary).unwrap();
+        assert_eq!(read.to_binary().unwrap(), binary);
+        assert_eq!(read.sublayers.len(), 1);
+    }
+
+    #[test]
+    fn binary_of_another_version_is_an_error() {
+        let binary = Layer::new().to_binary().unwrap();
+        let headerless = binary[6..].to_vec();
+        let mut newer = binary.clone();
+        newer[4] += 1;
+
+        for unreadable in [headerless, newer, b"PLT".to_vec()] {
+            let err = Layer::new_from_binary(&unreadable).unwrap_err();
+            assert!(err.to_string().contains("another Plottery version"));
+        }
     }
 }

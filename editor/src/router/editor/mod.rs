@@ -1,6 +1,9 @@
 pub mod console;
 pub mod console_messages;
 pub mod editor;
+pub mod editor_ctx;
+pub mod editor_data;
+pub mod editor_header;
 pub mod external_editor_button;
 pub mod layer_editor;
 pub mod params_editor;
@@ -8,6 +11,7 @@ pub mod params_file;
 mod params_file_test;
 pub mod pick_target;
 pub mod plot_settings_editor;
+pub mod preview_stage;
 pub mod project_hot_reload;
 pub mod project_runner;
 pub mod running_state;

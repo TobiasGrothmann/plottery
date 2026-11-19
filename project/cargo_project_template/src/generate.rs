@@ -1,5 +1,5 @@
 use plottery_lib::*;
-use plottery_project::*;
+use plottery_runtime::*;
 
 // Every field shows up in the editor.
 // `///` comments become tooltips on the param labels.
@@ -18,7 +18,7 @@ pub struct Params {
     #[range(0.02, 0.35)]
     pub circle_size: Range<f32>,
 
-    /// distance between neighbouring circles in the spiral
+    /// distance between neighboring circles in the spiral
     #[value(0.5)]
     #[range(0.2, 2.0)]
     pub spacing: f32,
@@ -35,7 +35,7 @@ pub fn generate(params: Params) -> Layer {
     // circles in a golden-angle spiral, keeping only those inside the frame
     let circles = (1..)
         .map(|i| {
-            let angle = Angle::golden_ratio() * i as f32;
+            let angle = Angle::golden_angle() * i as f32;
             let distance = (i as f32).sqrt() * params.spacing;
             spiral_center + V2::polar(angle, distance)
         })

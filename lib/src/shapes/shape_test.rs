@@ -102,7 +102,7 @@ mod test_shape {
 
     #[test]
     fn intersects_path_keeps_touch_tolerance_across_bounding_boxes() {
-        // boxes are apart by less than LARGE_EPSILON, which the segment test still counts as touching
+        // boxes are apart by less than LENGTH_TOLERANCE, which the segment test still counts as touching
         let vertical = Path::new_from(vec![V2::new(0.0, 0.0), V2::new(0.0, 1.0)]);
         let horizontal = Path::new_from(vec![V2::new(0.000_005, 0.5), V2::new(1.0, 0.5)]);
 
@@ -227,9 +227,9 @@ mod test_shape {
             V2::new(10.0, 11.0),
         ]));
 
-        assert_eq!(outer_rect.contains(&inner_circle), Containment::Full);
-        assert_eq!(outer_rect.contains(&touching_rect), Containment::Partial);
-        assert_eq!(outer_rect.contains(&far_path), Containment::None);
+        assert_eq!(outer_rect.contains_shape(&inner_circle), Containment::Full);
+        assert_eq!(outer_rect.contains_shape(&touching_rect), Containment::Partial);
+        assert_eq!(outer_rect.contains_shape(&far_path), Containment::None);
     }
 
     #[test]

@@ -1,3 +1,5 @@
+use std::ops::Mul;
+
 use crate::{Angle, V2};
 
 use super::TransformMatrixBuilder;
@@ -8,13 +10,6 @@ use super::TransformMatrixBuilder;
 /// | bl br v |
 /// | 0  0  1 |
 /// ```
-///
-/// This 3x3 matrix can represent various 2D transformations including:
-/// - Translation
-/// - Rotation
-/// - Scaling
-/// - Shearing
-/// - Combinations of these transformations
 ///
 /// The bottom row is implicit as [0, 0, 1] and not stored.
 ///
@@ -154,7 +149,7 @@ impl TransformMatrix {
         }
     }
 
-    /// new TransformMatrix that mirrors a [`V2`] across the x-axis.
+    /// new TransformMatrix that negates `x`, mirroring a [`V2`] across the y-axis.
     ///
     /// ### Example
     /// ```
@@ -175,7 +170,7 @@ impl TransformMatrix {
         }
     }
 
-    /// new TransformMatrix that mirrors a [`V2`] across the y-axis.
+    /// new TransformMatrix that negates `y`, mirroring a [`V2`] across the x-axis.
     ///
     /// ### Example
     /// ```
@@ -218,7 +213,7 @@ impl TransformMatrix {
     }
 
     /// Multiplies two transformation matrices to create a new transformation that applies
-    /// the effects of both matrices in sequence (first `other`, then `self`).
+    /// the effects of both matrices in sequence (first `other`, then `self`). Same as `self * other`.
     ///
     /// ### Example
     /// ```
@@ -268,7 +263,7 @@ impl TransformMatrix {
 
     /// Combines multiple transformations into a single transformation matrix.
     ///
-    /// Transformations are applied in reverse order (from last to first in the array).
+    /// Transformations are applied in slice order (from first to last).
     ///
     /// ### Example
     /// ```
@@ -294,5 +289,14 @@ impl TransformMatrix {
             .iter()
             .rev()
             .fold(TransformMatrix::identity(), |acc, t| acc.mul_matrix(t))
+    }
+}
+
+/// `a * b` applies `b` first, then `a`, see [`TransformMatrix::mul_matrix`].
+impl Mul for TransformMatrix {
+    type Output = TransformMatrix;
+
+    fn mul(self, rhs: TransformMatrix) -> TransformMatrix {
+        self.mul_matrix(&rhs)
     }
 }

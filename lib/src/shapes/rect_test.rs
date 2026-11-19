@@ -3,7 +3,7 @@ mod test_rect {
     use crate::{
         maths::seed_for_test,
         traits::{ClosestPoint, Scale},
-        Angle, Plottable, Rect, Rotate90, SampleSettings, LARGE_EPSILON, V2,
+        Angle, Plottable, Rect, Rotate90, SampleSettings, LENGTH_TOLERANCE, V2,
     };
 
     #[test]
@@ -30,7 +30,7 @@ mod test_rect {
     #[test]
     fn rect_points() {
         let r = Rect::new_shape(V2::new(1.0, 2.0), V2::new(4.0, 4.0));
-        let points: Vec<_> = r.get_points(SampleSettings::default());
+        let points: Vec<_> = r.points(SampleSettings::default());
         assert_eq!(points.first().unwrap(), points.last().unwrap()); // is closed
         assert_eq!(points.len(), 5);
     }
@@ -98,7 +98,7 @@ mod test_rect {
     fn filled_criss_cross_small_rect_large_pen_skips_inner_fill() {
         let rect = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
         let path = rect.filled_criss_cross(2.0);
-        let points = path.get_points(SampleSettings::default());
+        let points = path.points(SampleSettings::default());
 
         assert_eq!(
             points,
@@ -111,7 +111,7 @@ mod test_rect {
         let rect = Rect::new(V2::new(10.0, 20.0), V2::new(11.0, 21.0));
         let path = rect.filled_criss_cross(2.0);
 
-        for point in path.get_points(SampleSettings::default()) {
+        for point in path.points(SampleSettings::default()) {
             assert!(point.x >= rect.bl().x && point.x <= rect.tr().x);
             assert!(point.y >= rect.bl().y && point.y <= rect.tr().y);
         }
@@ -134,8 +134,8 @@ mod test_rect {
         );
         assert!(r.contains_point(r.random_point()));
 
-        let rotated = r.rotated(Angle::half_rotation());
-        assert!(rotated[0].dist(r.tr()) < LARGE_EPSILON);
+        let rotated = r.rotate(Angle::half_rotation());
+        assert!(rotated[0].dist(r.tr()) < LENGTH_TOLERANCE);
         assert_eq!(rotated.len(), 5);
     }
 }

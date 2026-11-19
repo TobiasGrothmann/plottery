@@ -1,5 +1,5 @@
 use plottery_lib::{Layer, Paper, Rect};
-use plottery_project::{ProjectParam, ProjectParamValue};
+use plottery_runtime::{ProjectParam, ProjectParamValue};
 
 /// Counts, lengths and bounds of `layer`, checked against the first top-level paper param.
 pub fn format_stats(layer: &Layer, params: &[ProjectParam]) -> String {

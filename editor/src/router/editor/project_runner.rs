@@ -6,11 +6,10 @@ use std::sync::{
 use crate::router::editor::running_state::RunningState;
 use dioxus::signals::{ReadableExt, SyncSignal, WritableExt};
 use dioxus_logger::tracing;
-use plottery_project::{
-    project_params_list_wrapper::ProjectParamsListWrapper, Project, RunError, RunEvent, RunStage,
-};
+use plottery_project::{Project, RunError, RunEvent, RunStage};
+use plottery_runtime::project_params_list_wrapper::ProjectParamsListWrapper;
 
-use super::{console_messages::ConsoleMessages, editor::LayerChangeWrapper};
+use super::{console_messages::ConsoleMessages, editor_data::LayerChangeWrapper};
 
 /// Clones share the run state, so hot reload and the UI cancel each other's runs.
 #[derive(Clone)]
@@ -26,21 +25,21 @@ pub struct ProjectRunner {
 fn stage_starting(stage: RunStage) -> (&'static str, RunningState) {
     match stage {
         RunStage::Build => (
-            "...starting build",
+            "Starting build…",
             RunningState::StartingBuild {
-                msg: "starting build".to_string(),
+                msg: "Starting build…".to_string(),
             },
         ),
         RunStage::GetParams => (
-            "...starting getting params",
+            "Starting to read params…",
             RunningState::StartingGetParams {
-                msg: "starting getting params".to_string(),
+                msg: "Starting to read params…".to_string(),
             },
         ),
         RunStage::Run => (
-            "...starting run",
+            "Starting run…",
             RunningState::StartingRun {
-                msg: "starting run".to_string(),
+                msg: "Starting run…".to_string(),
             },
         ),
     }
@@ -49,21 +48,21 @@ fn stage_starting(stage: RunStage) -> (&'static str, RunningState) {
 fn stage_running(stage: RunStage) -> (&'static str, RunningState) {
     match stage {
         RunStage::Build => (
-            "...building",
+            "Building…",
             RunningState::Building {
-                msg: "building".to_string(),
+                msg: "Building…".to_string(),
             },
         ),
         RunStage::GetParams => (
-            "...getting params",
+            "Reading params…",
             RunningState::GetParams {
-                msg: "getting params".to_string(),
+                msg: "Reading params…".to_string(),
             },
         ),
         RunStage::Run => (
-            "...running",
+            "Running…",
             RunningState::Running {
-                msg: "running".to_string(),
+                msg: "Running…".to_string(),
             },
         ),
     }
@@ -90,7 +89,7 @@ fn set_state(mut running_state: SyncSignal<RunningState>, state: RunningState) {
     }
 }
 
-/// Starts a run of the editor's project, cancelling the previous one.
+/// Starts a run of the editor's project, canceling the previous one.
 pub fn trigger_run(
     project_runner: SyncSignal<ProjectRunner>,
     running_state: SyncSignal<RunningState>,
@@ -127,7 +126,7 @@ impl ProjectRunner {
         set_state(
             running_state,
             RunningState::Preparing {
-                msg: "preparing".to_string(),
+                msg: "Preparing…".to_string(),
             },
         );
         let run_id = self.current_run.fetch_add(1, Ordering::SeqCst) + 1;
@@ -148,7 +147,6 @@ impl ProjectRunner {
             return;
         };
 
-        log(console, |c| c.info("spawning new task to run project"));
         tokio::spawn(async move {
             let is_current = || current_run.load(Ordering::SeqCst) == run_id;
             let on_event = move |event: RunEvent| {
@@ -184,16 +182,16 @@ impl ProjectRunner {
             {
                 Err(RunError::Killed { stage }) => {
                     log(console, |c| {
-                        c.warn(format!("previous run aborted during {stage}").as_str())
+                        c.warn(format!("Previous run stopped during {stage}").as_str())
                     });
                 }
                 _ if !is_current() => {}
                 Ok((_, new_layer)) => {
-                    log(console, |c| c.info("...updating editor"));
+                    log(console, |c| c.info("Updating editor…"));
                     set_state(
                         running_state,
                         RunningState::Updating {
-                            msg: "updating editor".to_string(),
+                            msg: "Updating editor…".to_string(),
                         },
                     );
                     let mut layer = layer;
@@ -201,7 +199,7 @@ impl ProjectRunner {
                         current.layer = Some(new_layer);
                         current.change_counter += 1;
                     }
-                    log(console, |c| c.info("done"));
+                    log(console, |c| c.success("Done"));
                     set_state(running_state, RunningState::Idle);
                 }
                 Err(RunError::Failed { stage, msg }) => {

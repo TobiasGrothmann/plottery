@@ -1,11 +1,12 @@
 [workspace]
 resolver = "2"
-members = ["lib", "fonts", "cli", "editor", "project", "server", "server_lib"]
+members = ["lib", "fonts", "cli", "editor", "project", "runtime", "server", "server_lib"]
 
 [workspace.package]
 version = "0.18.0"
+rust-version = "1.88"
 authors = ["Tobias Grothmann <tobiasgrothmannplotterart@gmail.com>"]
-license = "GPL-3.0"
+license = "GPL-3.0-only"
 repository = "https://github.com/TobiasGrothmann/plottery"
 categories = [
     "algorithms",
@@ -16,6 +17,21 @@ categories = [
 ]
 keywords = ["plotter", "pen-plotter", "generative-art", "creative-coding", "svg"]
 
+[workspace.dependencies]
+anyhow = "1.0.96"
+postcard = { version = "1.1", default-features = false, features = ["use-std"] }
+chrono = "0.4.31"
+clap = { version = "4.4.18", features = ["derive"] }
+futures-lite = "2.2.0"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+itertools = "0.15"
+open = "5.3.2"
+path-absolutize = "3.1.1"
+rayon = "1.8"
+serde = { version = "1.0.195", features = ["derive"] }
+serde_json = "1.0"
+tempfile = "3.8.1"
+tokio = "1.43.0"
 
 # Dioxus
 [profile]

@@ -22,7 +22,7 @@ mod test_hatch {
             .chain(teeth.skip(1))
             .map(|(x, y)| V2::new(x, y) * unit)
             .collect();
-        Path::new_from(points).closed()
+        Path::new_from(points).close()
     }
 
     fn paths(layer: &Layer) -> Vec<&Path> {
@@ -65,7 +65,7 @@ mod test_hatch {
         let hatch = Hatch::new(GRID).with_angle(angle).with_offset(0.0);
         let connected = shape.hatch(&hatch);
         for path in paths(&connected) {
-            let points = path.get_points_ref();
+            let points = path.as_slice();
             assert!(points.len() >= 2);
             assert!(points.windows(2).all(|w| w[0].dist(w[1]) > 1e-6));
         }
@@ -74,8 +74,8 @@ mod test_hatch {
         let lines: Vec<(V2, V2)> = paths(&shape.hatch(&hatch.with_connected(false)))
             .iter()
             .map(|path| {
-                let [a, b] = path.get_points_ref()[..] else {
-                    panic!("plain line with {} points", path.get_points_ref().len());
+                let [a, b] = path.as_slice()[..] else {
+                    panic!("plain line with {} points", path.as_slice().len());
                 };
                 (a.rotate(to_frame), b.rotate(to_frame))
             })
@@ -119,10 +119,10 @@ mod test_hatch {
         let layer = Circle::new(V2::new(1.0, 2.0), 1.5).hatch(&hatch);
         assert!(layer.len() > 20);
         for path in paths(&layer) {
-            let [a, b] = path.get_points_ref()[..] else {
-                panic!("plain line with {} points", path.get_points_ref().len());
+            let [a, b] = path.as_slice()[..] else {
+                panic!("plain line with {} points", path.as_slice().len());
             };
-            let degrees = (b - a).angle().to_degree().rem_euclid(180.0);
+            let degrees = (b - a).angle().to_degrees().rem_euclid(180.0);
             assert!((degrees - 30.0).abs() < 0.01, "line at {degrees}°");
         }
     }
@@ -143,8 +143,7 @@ mod test_hatch {
             let layer = shape.hatch(&hatch);
             assert!(!layer.is_empty());
             for path in paths(&layer) {
-                let phase = (path.get_points_ref()[0].dot(normal) / LINE_DIST - offset)
-                    .rem_euclid(1.0);
+                let phase = (path.as_slice()[0].dot(normal) / LINE_DIST - offset).rem_euclid(1.0);
                 let off_grid = phase.min(1.0 - phase);
                 assert!(off_grid < 1e-2, "line {off_grid} line distances off the grid");
             }

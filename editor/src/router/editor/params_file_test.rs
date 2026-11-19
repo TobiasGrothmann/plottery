@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod test_params_file {
-    use plottery_project::{
-        project_params_list_wrapper::ProjectParamsListWrapper, Project, ProjectParam,
-        ProjectParamValue,
+    use plottery_project::Project;
+    use plottery_runtime::{
+        project_params_list_wrapper::ProjectParamsListWrapper, ProjectParam, ProjectParamValue,
     };
     use tempfile::TempDir;
 
@@ -54,15 +54,21 @@ mod test_params_file {
     }
 
     #[test]
-    fn broken_file_errors_and_next_write_is_seen() {
+    fn broken_file_errors_is_kept_and_next_write_is_seen() {
         let (_temp_dir, project) = temp_project();
         let params_file = ParamsFile::new(project.clone());
         params_file.save(&params(1.0)).unwrap();
 
         std::fs::write(project.get_editor_params_path(), [1, 2, 3]).unwrap();
         assert!(params_file.read_external().is_err());
+        assert!(params_file.save(&params(2.0)).is_err());
+        assert_eq!(
+            std::fs::read(project.get_editor_params_path()).unwrap(),
+            [1, 2, 3]
+        );
 
-        project.save_editor_params(&params(3.0)).unwrap();
+        let fixed = params(3.0).to_file_bytes().unwrap();
+        std::fs::write(project.get_editor_params_path(), fixed).unwrap();
         let changed = params_file.read_external().unwrap().unwrap();
         assert_eq!(size(&changed), 3.0);
     }

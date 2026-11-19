@@ -11,11 +11,7 @@ use crate::{
 
 /// Pens a group row shows, the tooltip has their number.
 const MAX_PENS_SHOWN: usize = 3;
-const SOLO_CLICK: &str = if cfg!(target_os = "macos") {
-    "⌥-click"
-} else {
-    "Alt-click"
-};
+const SOLO_CLICK: &str = "⌥-click";
 
 #[component]
 pub fn LayerEditor(
@@ -209,7 +205,7 @@ fn row_title(row: &LayerRow) -> String {
         [] => None,
         [pen] => Some(format!(
             "{} {}, {} mm pen",
-            pen.color.get_name().name,
+            pen.color.name().name,
             pen.color.hex(),
             format_number(pen.width_cm * 10.0)
         )),

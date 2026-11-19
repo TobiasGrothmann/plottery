@@ -1,6 +1,5 @@
 use anyhow::Result;
 use async_process::{Child, Command, Stdio};
-use bincode::{deserialize_from, serialize};
 use futures_lite::io::{AsyncRead, BufReader};
 use futures_lite::prelude::*;
 use futures_lite::{AsyncReadExt, AsyncWriteExt};
@@ -11,7 +10,7 @@ use std::{
     process::ExitStatus,
 };
 
-use crate::project_params_list_wrapper::ProjectParamsListWrapper;
+use plottery_runtime::ProjectParamsListWrapper;
 
 fn find_cargo_executable() -> Result<PathBuf> {
     let output = std::process::Command::new("which").arg("cargo").output()?;
@@ -115,7 +114,7 @@ pub async fn run_project_executable_async(
 
     if let Some(params) = params {
         if let Some(mut stdin) = child_process.stdin.take() {
-            let binary = serialize(&params)?;
+            let binary = postcard::to_stdvec(&params)?;
             stdin.write_all(&binary).await?;
         } else {
             return Err(anyhow::Error::msg("Failed to open stdin on child process"));
@@ -133,17 +132,7 @@ where
     if let Some(stdout) = &mut child_process.stdout {
         (*stdout).read_to_end(&mut buf).await?;
     }
-    anyhow::Ok(deserialize_from(buf.as_slice())?)
-}
-
-pub async fn read_stdout_as_string_to_end(
-    child_process: &mut Child,
-) -> Result<(ExitStatus, String)> {
-    let mut data = String::new();
-    if let Some(stdout) = &mut child_process.stdout {
-        (*stdout).read_to_string(&mut data).await?;
-    }
-    Ok((child_process.status().await?, data))
+    anyhow::Ok(postcard::from_bytes(&buf)?)
 }
 
 pub async fn process_lines_to_end<R, F>(stream: R, mut line_handler: F) -> Result<()>
@@ -156,22 +145,6 @@ where
         line_handler(line?);
     }
     Ok(())
-}
-
-pub async fn process_stdout_lines<F>(
-    child_process: &mut Child,
-    mut line_handler: F,
-) -> Result<ExitStatus>
-where
-    F: FnMut(String),
-{
-    let stdout = child_process
-        .stdout
-        .take()
-        .ok_or_else(|| anyhow::Error::msg("Failed to get stdout handle"))?;
-
-    process_lines_to_end(stdout, &mut line_handler).await?;
-    Ok(child_process.status().await?)
 }
 
 pub async fn process_stderr_lines<F>(

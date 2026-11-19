@@ -69,9 +69,9 @@ fi
 echo -e "${GREEN}✓ Build complete${NC}"
 echo ""
 
-# dx 0.7.9 can't add document types to the Info.plist it generates, so merge them in afterwards
-echo -e "${YELLOW}Registering .plottery files in Info.plist...${NC}"
-/usr/libexec/PlistBuddy -c "Merge $EDITOR_DIR/document_types.plist" "$APP/Contents/Info.plist"
+# dx 0.7.9 can't add keys to the Info.plist it generates, so merge them in afterwards
+echo -e "${YELLOW}Adding document types and local network access to Info.plist...${NC}"
+/usr/libexec/PlistBuddy -c "Merge $EDITOR_DIR/info_plist_additions.plist" "$APP/Contents/Info.plist"
 echo -e "${GREEN}✓ Info.plist updated${NC}"
 echo ""
 

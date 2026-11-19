@@ -110,7 +110,7 @@ impl JobState {
             (Phase::Plot(_), None) => Activity::Preparing,
             (Phase::Plot(_), Some(plot)) if reading.shape >= plot.shapes => Activity::Returning,
             (Phase::Plot(_), Some(_)) if reading.head_down => Activity::Drawing,
-            (Phase::Plot(_), Some(_)) => Activity::Travelling,
+            (Phase::Plot(_), Some(_)) => Activity::Traveling,
         };
 
         ServerState {

@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use plottery_lib::V2;
 use plottery_server_lib::{
-    server_state::ServerState, task::send_task, Activity, PlotOutcome, PlotSettings, Task,
+    send_task, server_state::ServerState, Activity, PlotOutcome, PlotSettings, Task,
 };
 
 use crate::{
@@ -10,12 +10,16 @@ use crate::{
         remote::{poke_plotter, PlotterState, PlotterStatus},
         ui::{Button, StatusPill, Switch, Tone, Variant},
     },
+    router::editor::console_messages::ActiveConsole,
     util::format_plot_duration,
 };
 
 /// Sends `task` and polls the plotter right after, so the modal shows the effect.
 async fn send(task: Task) {
-    send_task(task).await.ok();
+    let console = consume_context::<ActiveConsole>();
+    if let Err(err) = send_task(task).await {
+        console.error(&format!("Failed to send the task to the plotter: {err:#}"));
+    }
     poke_plotter();
 }
 
@@ -23,7 +27,7 @@ fn activity_label(activity: Activity) -> &'static str {
     match activity {
         Activity::Idle => "Idle",
         Activity::Preparing => "Preparing",
-        Activity::Travelling => "Travelling",
+        Activity::Traveling => "Traveling",
         Activity::Drawing => "Drawing",
         Activity::Returning => "Returning to origin",
         Activity::Moving => "Moving",

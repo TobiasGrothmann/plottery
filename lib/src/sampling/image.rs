@@ -87,7 +87,7 @@ impl Image {
     }
 
     #[must_use]
-    pub fn out_of_bounds(mut self, out_of_bounds: OutOfBounds) -> Self {
+    pub fn with_out_of_bounds(mut self, out_of_bounds: OutOfBounds) -> Self {
         self.out_of_bounds = out_of_bounds;
         self
     }

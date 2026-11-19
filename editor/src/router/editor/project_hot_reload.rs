@@ -1,14 +1,14 @@
 use std::path::{Path, PathBuf};
 
-use dioxus::signals::{ReadableExt, SyncSignal, WritableExt};
+use dioxus::prelude::*;
 use dioxus_logger::tracing;
-use notify::{Config, FsEventWatcher, RecommendedWatcher, RecursiveMode, Watcher};
-use plottery_project::project_params_list_wrapper::ProjectParamsListWrapper;
+use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
+use plottery_runtime::project_params_list_wrapper::ProjectParamsListWrapper;
 use tokio::task::JoinHandle;
 
 use super::{
-    console_messages::ConsoleMessages, params_file::ParamsFile, project_runner::ProjectRunner,
-    running_state::RunningState,
+    console_messages::ConsoleMessages, editor_ctx::EditorCtx, params_file::ParamsFile,
+    project_runner::ProjectRunner, running_state::RunningState,
 };
 
 /// Reruns on source changes, and on params changed by someone else, e.g. `plottery set`.
@@ -20,7 +20,7 @@ pub fn start_hot_reload(
     console: SyncSignal<ConsoleMessages>,
     params_file: ParamsFile,
     mut project_params: SyncSignal<ProjectParamsListWrapper>,
-) -> (JoinHandle<()>, FsEventWatcher) {
+) -> notify::Result<(JoinHandle<()>, RecommendedWatcher)> {
     // async channel: a blocking `recv` would hold a runtime thread and stall the runs spawned below
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
     let mut watcher = RecommendedWatcher::new(
@@ -28,11 +28,8 @@ pub fn start_hot_reload(
             let _ = tx.send(event);
         },
         Config::default(),
-    )
-    .unwrap();
-    watcher
-        .watch(&path_to_watch, RecursiveMode::Recursive)
-        .unwrap();
+    )?;
+    watcher.watch(&path_to_watch, RecursiveMode::Recursive)?;
 
     // the editor writes its layer and previews here too, only the params file counts
     let params_path = params_file.path();
@@ -44,7 +41,9 @@ pub fn start_hot_reload(
         .map_err(notify::Error::io)
         .and_then(|_| watcher.watch(&resource_dir, RecursiveMode::NonRecursive))
     {
-        tracing::error!("Failed to watch {:?}: {:?}", resource_dir, e);
+        console
+            .peek()
+            .error(&format!("Failed to watch {}: {e}", resource_dir.display()));
     }
     // events carry resolved paths, e.g. /private/var for /var
     let resource_dirs = [resource_dir.canonicalize().ok(), Some(resource_dir)];
@@ -70,11 +69,17 @@ pub fn start_hot_reload(
                                 tracing::info!("Params changed on disk");
                                 project_runner.trigger_run_project(release, running_state, console);
                                 if let Ok(console) = console.try_read() {
-                                    console.info("params changed on disk");
+                                    console.info("Params changed on disk, rerunning…");
                                 }
                             }
                             Ok(None) => {}
-                            Err(e) => tracing::error!("Failed to read changed params: {:?}", e),
+                            Err(e) => {
+                                if let Ok(console) = console.try_read() {
+                                    console.error(&format!(
+                                        "Failed to read the changed params: {e:#}"
+                                    ));
+                                }
+                            }
                         }
                         continue;
                     }
@@ -85,8 +90,7 @@ pub fn start_hot_reload(
                     let ignore_list = [".DS_Store"];
                     let changed_paths = event.paths.iter().filter(|p| {
                         p.file_name()
-                            .map(|s| !ignore_list.contains(&s.to_str().unwrap()))
-                            .unwrap_or(false)
+                            .is_some_and(|name| !ignore_list.iter().any(|ignored| name == *ignored))
                     });
                     if changed_paths.count() == 0 {
                         continue;
@@ -113,11 +117,66 @@ pub fn start_hot_reload(
                     tracing::info!("Hot reload triggered");
                     project_runner.trigger_run_project(release, running_state, console);
                 }
-                Err(e) => tracing::error!("Hot reload error: {:?}", e),
+                Err(e) => {
+                    if let Ok(console) = console.try_read() {
+                        console.error(&format!("Hot reload error: {e}"));
+                    }
+                }
             }
         }
         tracing::info!("Hot reload thread finished");
     });
 
-    (hot_reload_handle, watcher)
+    Ok((hot_reload_handle, watcher))
+}
+
+/// Hot reload of the project at `cargo_path`: whether it is on, and a callback to switch it.
+pub fn use_hot_reload(
+    ctx: EditorCtx,
+    cargo_path: PathBuf,
+    params_file: ParamsFile,
+) -> (bool, Callback<bool>) {
+    let mut watcher = use_signal_sync(|| None as Option<RecommendedWatcher>);
+    let mut join_handle = use_signal_sync(|| None as Option<JoinHandle<()>>);
+    let set_enabled = use_callback(move |enabled: bool| {
+        if enabled == watcher.peek().is_some() {
+            return;
+        }
+        if !enabled {
+            watcher.set(None);
+            join_handle.set(None);
+            return;
+        }
+        let mut project_params = ctx.project_params;
+        // pick up changes made while hot reload was off, the run below would overwrite them
+        match params_file.read_external() {
+            Ok(Some(params)) => project_params.set(params),
+            Ok(None) => {}
+            Err(e) => ctx
+                .console
+                .peek()
+                .error(&format!("Failed to read params: {e:#}")),
+        }
+        match start_hot_reload(
+            cargo_path.join("src"),
+            ctx.release,
+            ctx.project_runner.peek().clone(),
+            ctx.running_state,
+            ctx.console,
+            params_file.clone(),
+            project_params,
+        ) {
+            Ok((handle, new_watcher)) => {
+                join_handle.set(Some(handle));
+                watcher.set(Some(new_watcher));
+                ctx.trigger_run();
+            }
+            Err(e) => ctx
+                .console
+                .peek()
+                .error(&format!("Failed to start hot reload: {e}")),
+        }
+    });
+    let enabled = watcher.read().is_some();
+    (enabled, set_enabled)
 }

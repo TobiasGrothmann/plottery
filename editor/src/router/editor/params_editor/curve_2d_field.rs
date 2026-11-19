@@ -1,17 +1,12 @@
 use dioxus::{html::input_data::MouseButton, prelude::*};
 use dioxus_logger::tracing;
 use plottery_lib::V2;
-use plottery_project::{
-    project_param::ProjectParam, project_param_value::ProjectParamValue,
-    project_params_list_wrapper::ProjectParamsListWrapper,
-};
+use plottery_runtime::{project_param::ProjectParam, project_param_value::ProjectParamValue};
 
 use crate::router::editor::{
-    console_messages::ConsoleMessages,
+    editor_ctx::EditorCtx,
     params_editor::param_tree::{get_param_value_by_path, get_param_value_mut_by_path},
     params_editor::widgets::slider_input::ALT_SPEED_FACTOR,
-    project_runner::{trigger_run, ProjectRunner},
-    running_state::RunningState,
 };
 
 // Margin is constant, dimensions are detected from CSS
@@ -62,11 +57,6 @@ fn move_curve_point(value: &mut ProjectParamValue, index: usize, point: V2) {
 pub struct Curve2DNormProps {
     param: ProjectParam,
     path: Vec<String>,
-    project_params: SyncSignal<ProjectParamsListWrapper>,
-    project_runner: SyncSignal<ProjectRunner>,
-    running_state: SyncSignal<RunningState>,
-    console: SyncSignal<ConsoleMessages>,
-    release: bool,
 }
 
 /// `ProjectParam` only compares its schema, so compare the value too or Dioxus will not re-render.
@@ -75,16 +65,12 @@ impl PartialEq for Curve2DNormProps {
         self.param.name == other.param.name
             && self.param.value == other.param.value
             && self.path == other.path
-            && self.project_params == other.project_params
-            && self.project_runner == other.project_runner
-            && self.running_state == other.running_state
-            && self.console == other.console
-            && self.release == other.release
     }
 }
 
 #[component]
-pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
+pub fn Curve2DField(props: Curve2DNormProps) -> Element {
+    let mut ctx = use_context::<EditorCtx>();
     let mut drag = use_signal(|| None::<CurveDrag>);
     let param_path = use_memo(move || props.path.clone());
 
@@ -116,11 +102,11 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
         } else {
             pos
         };
-        let mut new_params = props.project_params.read().clone();
+        let mut new_params = ctx.project_params.read().clone();
         if let Some(value) = get_param_value_mut_by_path(&mut new_params.list, &param_path.read()) {
             move_curve_point(value, state.index, point);
         }
-        props.project_params.set(new_params);
+        ctx.project_params.set(new_params);
         drag.set(Some(CurveDrag {
             last: client,
             pos,
@@ -132,12 +118,7 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
         let was_active = drag().is_some_and(|state| state.active);
         drag.set(None);
         if was_active {
-            trigger_run(
-                props.project_runner,
-                props.running_state,
-                props.console,
-                props.release,
-            );
+            ctx.trigger_run();
         }
     };
 
@@ -146,7 +127,7 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
         div { class: "Curve2D",
             {
                 let path = param_path.read().clone();
-                let raw_param_value = get_param_value_by_path(&props.project_params.read().list, &path)
+                let raw_param_value = get_param_value_by_path(&ctx.project_params.read().list, &path)
                 .unwrap_or_else(|| {
                     tracing::warn!("Curve2D parameter path '{:?}' not found, using default", path);
                     ProjectParamValue::Curve2DNorm(Default::default())
@@ -191,7 +172,7 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                         value: "{curve.mapped_to.x_start}",
                                         onchange: move |event| {
                                             if let Ok(val) = event.value().parse::<f32>() {
-                                                let mut new_params = props.project_params.read().clone();
+                                                let mut new_params = ctx.project_params.read().clone();
                                                 let path = param_path.read().clone();
                                                 if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, &path) {
                                                     match param_value {
@@ -204,8 +185,8 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                                         _ => {}
                                                     }
                                                 }
-                                                props.project_params.set(new_params);
-                                                trigger_run(props.project_runner, props.running_state, props.console, props.release);
+                                                ctx.project_params.set(new_params);
+                                                ctx.trigger_run();
                                             }
                                         }
                                     }
@@ -219,7 +200,7 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                         value: "{curve.mapped_to.x_end}",
                                         onchange: move |event| {
                                             if let Ok(val) = event.value().parse::<f32>() {
-                                                let mut new_params = props.project_params.read().clone();
+                                                let mut new_params = ctx.project_params.read().clone();
                                                 let path = param_path.read().clone();
                                                 if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, &path) {
                                                     match param_value {
@@ -232,8 +213,8 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                                         _ => {}
                                                     }
                                                 }
-                                                props.project_params.set(new_params);
-                                                trigger_run(props.project_runner, props.running_state, props.console, props.release);
+                                                ctx.project_params.set(new_params);
+                                                ctx.trigger_run();
                                             }
                                         }
                                     }
@@ -247,7 +228,7 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                         value: "{curve.mapped_to.y_start}",
                                         onchange: move |event| {
                                             if let Ok(val) = event.value().parse::<f32>() {
-                                                let mut new_params = props.project_params.read().clone();
+                                                let mut new_params = ctx.project_params.read().clone();
                                                 let path = param_path.read().clone();
                                                 if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, &path) {
                                                     match param_value {
@@ -260,8 +241,8 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                                         _ => {}
                                                     }
                                                 }
-                                                props.project_params.set(new_params);
-                                                trigger_run(props.project_runner, props.running_state, props.console, props.release);
+                                                ctx.project_params.set(new_params);
+                                                ctx.trigger_run();
                                             }
                                         }
                                     }
@@ -275,7 +256,7 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                         value: "{curve.mapped_to.y_end}",
                                         onchange: move |event| {
                                             if let Ok(val) = event.value().parse::<f32>() {
-                                                let mut new_params = props.project_params.read().clone();
+                                                let mut new_params = ctx.project_params.read().clone();
                                                 let path = param_path.read().clone();
                                                 if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, &path) {
                                                     match param_value {
@@ -288,8 +269,8 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                                         _ => {}
                                                     }
                                                 }
-                                                props.project_params.set(new_params);
-                                                trigger_run(props.project_runner, props.running_state, props.console, props.release);
+                                                ctx.project_params.set(new_params);
+                                                ctx.trigger_run();
                                             }
                                         }
                                     }
@@ -307,7 +288,7 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                             let x = ((rect.x - MARGIN) / GRAPH_WIDTH).clamp(0.0, 1.0) as f32;
                             let y = ((GRAPH_BOTTOM - rect.y) / GRAPH_HEIGHT).clamp(0.0, 1.0) as f32;
 
-                            let mut new_params = props.project_params.read().clone();
+                            let mut new_params = ctx.project_params.read().clone();
                             let path = param_path.read().clone();
                             if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, &path) {
                                 match param_value {
@@ -331,9 +312,9 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                     _ => {}
                                 }
                             }
-                            props.project_params.set(new_params);
+                            ctx.project_params.set(new_params);
 
-                            trigger_run(props.project_runner, props.running_state, props.console, props.release);
+                            ctx.trigger_run();
                         },
                         onmousemove: move |event| {
                             let Some(state) = drag() else { return };
@@ -389,7 +370,7 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                         ondoubleclick: move |event| {
                                             event.stop_propagation();
                                             if i > 0 && i < graph_len - 1 {
-                                                let mut new_params = props.project_params.read().clone();
+                                                let mut new_params = ctx.project_params.read().clone();
                                                 let path = param_path.read().clone();
                                                 if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, &path) {
                                                     match param_value {
@@ -413,9 +394,9 @@ pub fn Curve2DField(mut props: Curve2DNormProps) -> Element {
                                                         _ => {}
                                                     }
                                                 }
-                                                props.project_params.set(new_params);
+                                                ctx.project_params.set(new_params);
 
-                                                trigger_run(props.project_runner, props.running_state, props.console, props.release);
+                                                ctx.trigger_run();
                                             }
                                         },
                                         onmousedown: move |event| {

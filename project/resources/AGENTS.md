@@ -29,7 +29,7 @@ See [Layers](#layers).
 ## Layout
 
 - `{{project-name}}/src/generate.rs`: `Params` and `generate`. Start here.
-- `{{project-name}}/Cargo.toml`: depends on `plottery_lib` (geometry) and `plottery_project` (params, runner).
+- `{{project-name}}/Cargo.toml`: depends on `plottery_lib` (geometry) and `plottery_runtime` (params, runner).
 - `{{project-name}}.plottery`: project config. The `plottery` CLI finds it from any folder inside the project.
 - `resources/images/`, `resources/svgs/`: files the user picked for `ImagePath` and `SvgPath` params,
   copied in by the editor. The params hold paths relative to the project root.
@@ -54,7 +54,7 @@ plottery animate /tmp/a.mp4 --every 5             # video of how the drawing com
 ```
 
 `plottery --help` lists all commands. If `plottery` is missing or lacks a command, install the version
-matching `plottery_project`: `cargo install plottery_cli`, or `cargo install --path <checkout>/cli`.
+matching `plottery_runtime`: `cargo install plottery_cli`, or `cargo install --path <checkout>/cli`.
 
 The CLI works like the editor. It builds in release mode into the target directory the editor shares,
 and runs with the user's param values, so a render shows what the user sees.
@@ -67,7 +67,7 @@ and runs with the user's param values, so a render shows what the user sees.
   user's saved values. Use `params --set ...` to check an override before rendering.
 - `plottery set NAME=VALUE...` changes the user's saved values and prints the changed lines. Use it only
   when the user asks for new values, not to try things out. An open editor with hot reload on picks
-  them up and reruns. `set --defaults` resets all params to the code's `#[value]`s.
+  them up and reruns. `set --reset` resets all params to the code's `#[value]`s.
 - `render` writes `.png` (white, `--size` px on the long side, default 1600) and `.svg` files and prints
   shape count, draw and travel length, and the bounds against the paper frame.
 - `plottery run` and `render --update-editor` write the result into `resources/` for the editor.
@@ -93,9 +93,9 @@ the stats are where you meant the drawing to be.
 
 Read the source instead of guessing APIs. `{{project-name}}/Cargo.toml` shows where it is:
 
-- `path = ".../lib"`: a local Plottery checkout with `lib/`, `project/` and `project/project_macros/`.
-- a version: `~/.cargo/registry/src/*/plottery_lib-<version>/`, same for `plottery_project` and `plottery_project_macros`.
-- online: https://docs.rs/plottery_lib, https://docs.rs/plottery_project, https://github.com/TobiasGrothmann/plottery
+- `path = ".../lib"`: a local Plottery checkout with `lib/`, `runtime/` and `runtime/runtime_macros/`.
+- a version: `~/.cargo/registry/src/*/plottery_lib-<version>/`, same for `plottery_runtime` and `plottery_runtime_macros`.
+- online: https://docs.rs/plottery_lib, https://docs.rs/plottery_runtime, https://github.com/TobiasGrothmann/plottery
 
 ## What Plottery already has
 
@@ -111,16 +111,16 @@ Check here before writing your own helper. Paths are in `plottery_lib/src/`; the
 | per shape: clip by a mask, resample, dash, distort, reduce points | `traits/plottable.rs`, implemented by every shape |
 | per layer: map, filter, distort, dash, combine shapes, reduce points, optimize, flatten, color, pen width | `composition/layer.rs` |
 | out-of-focus look: scatter strokes into fuzzy fragments and dots, `.blur(&Blur)` on shapes and layers | `effects/blur.rs` |
-| loading an svg as a `Layer` | `Layer::new_from_svg` in `composition/layer.rs` |
+| loading an svg as a `Layer` | `Layer::new_from_svg` in `composition/layer_svg.rs` |
 | translate, rotate, scale, mirror, fit into a rect, bounding box, closest point | `traits/` |
 | `V2`, `V2i`, `Line`, `TransformMatrix`; `.sum()` and `.average()` over points | `geometry/` |
-| fast neighbour queries over many points: all within a radius, nearest; instead of comparing all pairs | `SpatialGrid` in `geometry/spatial_grid.rs` |
+| fast neighbor queries over many points: all within a radius, nearest; instead of comparing all pairs | `SpatialGrid` in `geometry/spatial_grid.rs` |
 | `Paper` (DIN A/B, custom, landscape, margin), `Frame` | `composition/paper.rs`, `composition/frame.rs` |
 | grids, hex grids, colors and color names | `composition/` |
 | `Angle` with constants like `golden_angle`, `Range`, easing | `maths/` |
 | float helpers: `lerp`, `linlin`, `sin01`, `cos01`, `clamp01`; evenly spaced steps `fractions`, `linspace` | `maths/float.rs` |
 | perlin, simplex and worley noise, scaled per cm or per paper | `maths/noise.rs` |
-| random helpers and seeding | `maths/random.rs`, `maths/thread_local.rs` |
+| random helpers and seeding | `maths/random.rs`, `maths/global_rng.rs` |
 | evenly spaced random points (blue noise), uniform or following a density function | `PoissonDisk` in `generate/poisson_disk.rs` |
 | Voronoi diagrams with relaxation | `generate/voronoi.rs` |
 | contour lines of a 2D function (marching squares) | `generate/func_2d/` |
@@ -131,15 +131,15 @@ Check here before writing your own helper. Paths are in `plottery_lib/src/`; the
 ## Parameters
 
 Expose what an artist wants to tweak while watching the result. Keep derived values and implementation
-constants in code. Where to find out what is possible, all in `plottery_project`:
+constants in code. Where to find out what is possible, all in `plottery_runtime`:
 
 - **Field types, attributes and the widget each gets:** the Parameters section of `README.md`.
 - **Field types:** `src/project_params/param_field.rs`. Every `impl ParamField for T` is a usable field
   type. Types with `impl RangedParamField` also accept `#[range(min, max)]`.
-- **Attributes:** the docs on `PlotteryParams` and `PlotteryEnum` in `plottery_project_macros/src/lib.rs`.
+- **Attributes:** the docs on `PlotteryParams` and `PlotteryEnum` in `plottery_runtime_macros/src/lib.rs`.
 - **Using a value:** each type's own docs and methods. Project-only types like `Seed`, the curves and
   the image and svg paths live in `src/project_params/`, the rest in `plottery_lib`.
-- **Example:** `cargo_project_template/src/generate.rs`, the code every new project starts from.
+- **Example:** `cargo_project_template/src/generate.rs` in `plottery_project`, the code every new project starts from.
 
 Choosing well:
 
@@ -161,9 +161,11 @@ Choosing well:
 - Name fields the way the label should read: `circle_size` shows as "circle size". Describe every
   param with `///` and give its unit; it shows as a tooltip.
 
-The user's values are kept across code changes while a field's name, type and `#[range]` stay the same.
+The user's values are kept across code changes while a field's name and type stay the same.
 Changing `#[value]` doesn't touch a kept value, so the user won't see a new default. Renaming a field or
-changing its type or range resets it to the default. Moving it to another section keeps it. Also:
+changing its type resets it to the default. Moving it to another section keeps it. Also:
+
+- Adding, changing or removing `#[range]` keeps the value and clamps it into the new range.
 
 - Wrapping a field in `Option` changes its type, so it resets.
 - Inside a nested struct the rules apply per field, and an `Option` around it keeps its on/off state.
@@ -179,7 +181,7 @@ pen. The layer tree you return is that panel, so build it for the user, not for 
 - Every part the user would look at, hide or plot on its own is a sublayer named with `with_name`,
   after what it shows: `hills`, `sky hatching`, `title`, `frame`. An unnamed layer shows as "layer 3".
 - With several pens, the pens are the top level: one sublayer per pen with `with_color` and
-  `with_pen_width_cm`, which its sublayers inherit, and the parts drawn with that pen below it.
+  `with_pen_width`, which its sublayers inherit, and the parts drawn with that pen below it.
 - A layer holds either shapes or sublayers. Shapes pushed next to sublayers, also in the root, end up
   in a nameless "shapes" row.
 - Names are unique among siblings and the same in every run. The editor finds hidden layers again by
@@ -192,7 +194,7 @@ pen. The layer tree you return is that panel, so build it for the user, not for 
 
 ## Conventions
 
-- Units are centimetres. The origin is bottom-left and y points up; the svg export flips it.
+- Units are centimeters. The origin is bottom-left and y points up; the svg export flips it.
 - `Paper` defaults to A4 portrait with a 10% margin. `params.paper.frame()` has two rects:
   `outer_rect()` is the paper edge, where an optional cut line goes (a `draw_frame: bool` param);
   `inner_rect()` is the drawing area, and the margin between them is the only gap. Lay the drawing

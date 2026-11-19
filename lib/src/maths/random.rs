@@ -1,24 +1,24 @@
 //! Contains functions for generating random numbers.
 //! see also [`crate::maths::seed`]
 
-use rand::seq::SliceRandom;
-use rand::Rng;
+use rand::seq::IndexedRandom;
+use rand::RngExt;
 use rand_distr::{Distribution, Normal, SkewNormal};
 
-use super::thread_local::RNG;
+use super::global_rng::RNG;
 
 /// uniform random float between `from` and `to`
 pub fn rand_range(from: f32, to: f32) -> f32 {
     RNG.lock()
         .expect("Failed to acquire RNG lock")
-        .gen_range(from..to)
+        .random_range(from..to)
 }
 
 /// uniform random integer between `from` and `to`
 pub fn rand_range_i(from: i32, to: i32) -> i32 {
     RNG.lock()
         .expect("Failed to acquire RNG lock")
-        .gen_range(from..to)
+        .random_range(from..to)
 }
 
 /// uniform random integer between `from` and `to`, both inclusive
@@ -27,7 +27,7 @@ pub fn rand_range_i(from: i32, to: i32) -> i32 {
 pub fn rand_range_i_inclusive(from: i32, to: i32) -> i32 {
     RNG.lock()
         .expect("Failed to acquire RNG lock")
-        .gen_range(from..=to)
+        .random_range(from..=to)
 }
 
 /// randomly `1.0` or `-1.0`
@@ -46,7 +46,7 @@ pub fn rand_index(len: usize) -> usize {
     assert!(len > 0, "rand_index called with len 0");
     RNG.lock()
         .expect("Failed to acquire RNG lock")
-        .gen_range(0..len)
+        .random_range(0..len)
 }
 
 /// uniform random element of `items`
@@ -61,12 +61,15 @@ pub fn rand_choice<T>(items: &[T]) -> &T {
 
 /// Seed for a generator of its own, drawn from the global RNG.
 pub(crate) fn rand_seed() -> u64 {
-    RNG.lock().expect("Failed to acquire RNG lock").gen()
+    RNG.lock().expect("Failed to acquire RNG lock").random()
 }
 
 /// random boolean with given `chance` of being true
 pub fn coin(chance: f32) -> bool {
-    RNG.lock().expect("Failed to acquire RNG lock").gen::<f32>() < chance
+    RNG.lock()
+        .expect("Failed to acquire RNG lock")
+        .random::<f32>()
+        < chance
 }
 
 /// see [`rand_distr::Normal`]

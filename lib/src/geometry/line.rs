@@ -7,7 +7,7 @@ use crate::{
     geometry::TransformMatrix,
     traits::{ClosestPoint, Transform},
     Angle, BoundingBox, Mirror, Rect, Rotate, Rotate90, SampleSettings, Scale, Translate,
-    LARGE_EPSILON, V2,
+    AREA_TOLERANCE, LENGTH_TOLERANCE, V2,
 };
 
 /// A line defined by two points. Can represent both finite line segments and infinite lines.
@@ -34,9 +34,7 @@ pub enum PointLineRelation {
 /// Represents the result of a line intersection check.
 #[derive(Debug, Clone, PartialEq)]
 pub enum LineIntersection {
-    /// The lines do not intersect.
     NoIntersection,
-    /// The lines intersect at the given point.
     Intersection(V2),
 }
 
@@ -50,12 +48,10 @@ impl Line {
         self.to - self.from
     }
 
-    /// Returns the midpoint of the line.
     pub fn mid(&self) -> V2 {
         (self.from + self.to) * 0.5
     }
 
-    /// Length of the segment.
     pub fn length(&self) -> f32 {
         self.vector().length()
     }
@@ -111,9 +107,9 @@ impl Line {
             [self.to.x as f64, self.to.y as f64],
             [point.x as f64, point.y as f64],
         );
-        if orientation >= LARGE_EPSILON as f64 {
+        if orientation >= AREA_TOLERANCE as f64 {
             return PointLineRelation::Left;
-        } else if orientation <= -LARGE_EPSILON as f64 {
+        } else if orientation <= -AREA_TOLERANCE as f64 {
             return PointLineRelation::Right;
         }
         PointLineRelation::OnLine
@@ -121,7 +117,7 @@ impl Line {
 
     /// Returns whether a point lies on this finite line segment (including endpoints).
     pub fn contains_point_on_segment(&self, point: V2) -> bool {
-        self.closest_point(point).dist_squared(point) <= LARGE_EPSILON
+        self.closest_point(point).dist_squared(point) <= AREA_TOLERANCE
     }
 
     /// Checks for an intersection between this line segment and another.
@@ -158,14 +154,14 @@ impl Line {
 
         // Check if the intersection point lies on both line segments
         // by verifying both x and y coordinates are within bounds
-        if x < f32::min(x1, x2) - LARGE_EPSILON
-            || x > f32::max(x1, x2) + LARGE_EPSILON
-            || x < f32::min(x3, x4) - LARGE_EPSILON
-            || x > f32::max(x3, x4) + LARGE_EPSILON
-            || y < f32::min(y1, y2) - LARGE_EPSILON
-            || y > f32::max(y1, y2) + LARGE_EPSILON
-            || y < f32::min(y3, y4) - LARGE_EPSILON
-            || y > f32::max(y3, y4) + LARGE_EPSILON
+        if x < f32::min(x1, x2) - LENGTH_TOLERANCE
+            || x > f32::max(x1, x2) + LENGTH_TOLERANCE
+            || x < f32::min(x3, x4) - LENGTH_TOLERANCE
+            || x > f32::max(x3, x4) + LENGTH_TOLERANCE
+            || y < f32::min(y1, y2) - LENGTH_TOLERANCE
+            || y > f32::max(y1, y2) + LENGTH_TOLERANCE
+            || y < f32::min(y3, y4) - LENGTH_TOLERANCE
+            || y > f32::max(y3, y4) + LENGTH_TOLERANCE
         {
             return LineIntersection::NoIntersection;
         }

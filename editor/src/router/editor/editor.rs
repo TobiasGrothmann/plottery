@@ -2,96 +2,40 @@ use crate::util::project_from_segments;
 use crate::{
     components::{
         icon::IconName,
-        image::*,
-        loading_spinner::Loading,
         modal::{Modal, ModalWidth},
-        remote::{poke_plotter, RemoteOpen},
         resizer::{Axis, Resizer},
-        ui::{Button, IconButton, PanelHeader, Size, StatusPill, Switch, Tone, Variant},
+        ui::{Button, IconButton, PanelHeader, Size, Variant},
     },
+    menu::{use_menu_action, MenuAction},
     model::{
-        app_state::{AppState, Panel},
-        layer_view::{
-            filter_visible, LayerKey, LayerRows, LayerSummary, LayerViewState, RowTarget,
-        },
+        app_state::{update_app_state, AppState, Panel},
+        layer_view::{LayerKey, RowTarget},
     },
     router::editor::{
         console::Console,
-        console_messages::ConsoleMessages,
-        external_editor_button::ExternalEditorButton,
-        layer_editor::layer_editor::LayerEditor,
-        params_editor::{
-            param_tree::{get_param_value_mut_by_path, leaf_value_mut},
-            params_editor::ParamsEditor,
+        editor_ctx::EditorCtx,
+        editor_data::{
+            use_autosave, use_console, use_layer_view, use_plot_settings, use_preview_svg,
+            use_project_params, use_saved_layer,
         },
+        editor_header::{PanelToggles, PlotActions, ProjectTitle, RunControls},
+        layer_editor::layer_editor::LayerEditor,
+        params_editor::params_editor::ParamsEditor,
         params_file::ParamsFile,
         pick_target::PickTarget,
         plot_settings_editor::plot_settings_editor::PlotSettingsEditor,
-        project_hot_reload::start_hot_reload,
-        project_runner::{trigger_run, ProjectRunner},
+        preview_stage::PreviewStage,
+        project_hot_reload::use_hot_reload,
+        project_runner::ProjectRunner,
         running_state::RunningState,
     },
     routes::Route,
-    util::{format_plot_duration, format_svg, preview_zoom::PreviewZoom},
+    util::preview_zoom::PreviewZoom,
 };
-use bincode::{deserialize, serialize};
 use dioxus::prelude::*;
 use dioxus_logger::tracing;
 use dioxus_router::hooks::use_navigator;
-use notify::FsEventWatcher;
-use plottery_lib::{BoundingBox, Layer, SampleSettings, V2};
-use plottery_project::{
-    project_param_value::ProjectParamValue, project_params_list_wrapper::ProjectParamsListWrapper,
-    Project,
-};
-use plottery_server_lib::{
-    estimation::estimate_plot_layer_duration, plot_setting::PlotSettings, task::send_task,
-};
-use std::{
-    path::{Path, PathBuf},
-    time::Duration,
-};
-use tokio::task::JoinHandle;
-
-fn is_gitkraken_installed() -> bool {
-    which::which("GitKraken").is_ok()
-}
-
-fn is_vscode_installed() -> bool {
-    which::which("code").is_ok()
-}
-
-fn is_zed_installed() -> bool {
-    which::which("zed").is_ok()
-}
-
-fn is_cursor_installed() -> bool {
-    which::which("cursor").is_ok()
-}
-
-fn is_sublime_installed() -> bool {
-    which::which("subl").is_ok()
-}
-
-/// Header pill for the run state; nothing while idle.
-fn run_status(state: &RunningState) -> Option<(Tone, &'static str)> {
-    let status = match state {
-        RunningState::Idle => return None,
-        RunningState::Preparing { .. }
-        | RunningState::StartingBuild { .. }
-        | RunningState::Building { .. } => (Tone::Busy, "Compiling…"),
-        RunningState::StartingGetParams { .. }
-        | RunningState::GetParams { .. }
-        | RunningState::StartingRun { .. }
-        | RunningState::Running { .. }
-        | RunningState::Updating { .. } => (Tone::Busy, "Running…"),
-        RunningState::BuildFailed { .. } => (Tone::Err, "Build failed"),
-        RunningState::GetParamsFailed { .. } | RunningState::RunFailed { .. } => {
-            (Tone::Err, "Run failed")
-        }
-    };
-    Some(status)
-}
+use plottery_server_lib::plot_settings::PlotSettings;
 
 /// Eval script: true while a text field has focus, so single-key shortcuts stay out of the way.
 const FOCUS_IS_TEXT_FIELD: &str = r#"
@@ -99,45 +43,11 @@ const el = document.activeElement;
 return !!el && (["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName) || el.isContentEditable);
 "#;
 
-/// The last two parent folders of `dir`, outermost first, with their paths.
-fn parent_crumbs(dir: &Path) -> Vec<(String, PathBuf)> {
-    let mut crumbs: Vec<(String, PathBuf)> = dir
-        .ancestors()
-        .skip(1)
-        .filter_map(|path| {
-            Some((
-                path.file_name()?.to_string_lossy().to_string(),
-                path.to_path_buf(),
-            ))
-        })
-        .take(2)
-        .collect();
-    crumbs.reverse();
-    crumbs
-}
-
-fn save_preview(project: &Project, svg: &str) {
-    if let Err(e) = project.save_editor_preview(svg) {
-        tracing::error!("Failed to write editor preview: {:?}", e);
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct LayerChangeWrapper {
-    pub layer: Option<Layer>,
-    pub change_counter: u32,
-}
-impl PartialEq for LayerChangeWrapper {
-    fn eq(&self, other: &Self) -> bool {
-        self.change_counter == other.change_counter
-    }
-}
-
 /// Keyed by project, so switching projects remounts instead of keeping the old one loaded.
 #[component]
 pub fn Editor(project_path: Vec<String>) -> Element {
     let key = project_path.join("/");
-    // dioxus only honours keys in lists, so a one-item list remounts on a new project.
+    // dioxus only honors keys in lists, so a one-item list remounts on a new project.
     rsx! {
         for key in std::iter::once(key) {
             ProjectEditor { key: "{key}", project_path: project_path.clone() }
@@ -147,225 +57,31 @@ pub fn Editor(project_path: Vec<String>) -> Element {
 
 #[component]
 fn ProjectEditor(project_path: Vec<String>) -> Element {
-    let loaded = use_hook(|| project_from_segments(&project_path).map_err(|e| e.to_string()));
+    let loaded = use_hook(|| {
+        project_from_segments(&project_path)
+            .and_then(|project| Ok((project.get_cargo_path()?, project)))
+            .map_err(|e| e.to_string())
+    });
     let nav = use_navigator();
-    let RemoteOpen(mut remote_open) = use_context::<RemoteOpen>();
-    let Ok(loaded) = loaded else {
-        tracing::error!(
-            "Cannot open project, returning home: {}",
-            loaded.unwrap_err()
-        );
-        nav.replace(Route::Browser {});
-        return rsx! {};
+    let (cargo_path, loaded) = match loaded {
+        Ok(loaded) => loaded,
+        Err(err) => {
+            tracing::error!("Cannot open project, returning home: {err}");
+            nav.replace(Route::Browser {});
+            return rsx! {};
+        }
     };
     let project = use_signal(move || loaded);
-
     let release = true;
 
-    let gitkraken_installed = use_signal(is_gitkraken_installed);
-    let vscode_installed = use_signal(is_vscode_installed);
-    let zed_installed = use_signal(is_zed_installed);
-    let cursor_installed = use_signal(is_cursor_installed);
-    let sublime_installed = use_signal(is_sublime_installed);
-
-    // console
-    let console_change_counter = use_signal_sync(|| 0);
-    let console: Signal<ConsoleMessages, SyncStorage> =
-        use_signal_sync(|| ConsoleMessages::new(console_change_counter));
-
-    // ui state
-    let project_params = use_signal_sync(|| {
-        project().load_editor_params().unwrap_or_else(|err| {
-            console().error(format!("failed to load project params: {:?}", err).as_str());
-            ProjectParamsListWrapper::empty()
-        })
-    });
-    let plot_settings = use_signal_sync(|| {
-        let plot_settings_file_path = project().get_editor_plot_settings_path();
-        match std::fs::read(plot_settings_file_path) {
-            Ok(plot_settings_binary) => match deserialize(&plot_settings_binary) {
-                Ok(plot_settings) => plot_settings,
-                Err(err) => {
-                    console().error(
-                        format!("failed to deserialize plot settings from binary: {:?}", err)
-                            .as_str(),
-                    );
-                    PlotSettings::default()
-                }
-            },
-            Err(_) => PlotSettings::default(),
-        }
-    });
-    let layer = use_signal_sync(|| LayerChangeWrapper {
-        layer: None,
-        change_counter: 0,
-    });
-    // True until the stored layer is read, or turns out to be missing or unreadable.
-    let layer_loading = use_signal_sync(|| project.peek().get_editor_layer_path().exists());
-    {
-        let mut layer = layer;
-        let mut layer_loading = layer_loading;
-        use_effect(move || {
-            let layer_path = project().get_editor_layer_path();
-            tokio::spawn(async move {
-                let read_result =
-                    tokio::task::spawn_blocking(move || -> Result<Option<Layer>, String> {
-                        match std::fs::read(layer_path) {
-                            Ok(layer_binary) => Layer::new_from_binary(&layer_binary)
-                                .map(Some)
-                                .map_err(|err| {
-                                    format!("failed to deserialize layer from binary: {:?}", err)
-                                }),
-                            Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(None),
-                            Err(err) => Err(format!("failed to read layer from file: {:?}", err)),
-                        }
-                    })
-                    .await;
-
-                match read_result {
-                    Ok(Ok(layer_from_file)) => {
-                        let change_counter = match layer.try_read() {
-                            Ok(layer_read) => layer_read.change_counter,
-                            Err(err) => {
-                                tracing::debug!("skipping layer update after drop: {:?}", err);
-                                return;
-                            }
-                        };
-
-                        if let Ok(mut layer_write) = layer.try_write() {
-                            *layer_write = LayerChangeWrapper {
-                                layer: layer_from_file,
-                                change_counter: change_counter + 1,
-                            };
-                        }
-                    }
-                    Ok(Err(err_msg)) => {
-                        if let Ok(console_read) = console.try_read() {
-                            console_read.error(err_msg.as_str());
-                        }
-                    }
-                    Err(err) => {
-                        if let Ok(console_read) = console.try_read() {
-                            console_read.error(
-                                format!("failed to load layer in background: {:?}", err).as_str(),
-                            );
-                        }
-                    }
-                }
-                if let Ok(mut layer_loading_write) = layer_loading.try_write() {
-                    *layer_loading_write = false;
-                }
-            });
-        });
-    }
-
-    // layers panel
-    // Hidden and collapsed layers are kept by layer name, so they outlive runs and restarts.
-    let saved_layer_view = use_hook(|| {
-        AppState::load_or_default()
-            .layer_views
-            .remove(&project.peek().dir)
-            .unwrap_or_default()
-    });
-    let mut layer_visibility = use_signal({
-        let visibility = saved_layer_view.visibility.clone();
-        move || visibility
-    });
-    let mut layer_expansion = use_signal(move || saved_layer_view.expansion);
-    let save_layer_view = move || {
-        let mut state = AppState::load_or_default();
-        state.set_layer_view(
-            &project.peek().dir,
-            LayerViewState {
-                visibility: layer_visibility.peek().clone(),
-                expansion: layer_expansion.peek().clone(),
-            },
-        );
-        state.save();
-    };
-    let layer_summary = use_memo(move || layer.read().layer.as_ref().map(LayerSummary::new));
-    let layer_rows = use_memo(move || {
-        layer_summary.read().as_ref().map(|summary| {
-            LayerRows::new(summary, &layer_visibility.read(), &layer_expansion.read())
-        })
-    });
-
-    let mut layer_only_visible_change_counter = use_signal(|| 0);
-    let layer_only_visible = use_memo(move || {
-        let mut cc = layer_only_visible_change_counter.write();
-        let new_count = *cc + 1;
-        *cc = new_count;
-
-        LayerChangeWrapper {
-            layer: layer
-                .read()
-                .layer
-                .as_ref()
-                .map(|layer| filter_visible(layer, &layer_visibility.read())),
-            change_counter: new_count,
-        }
-    });
-    // Extent of the whole drawing, so the preview stays in place while layers are hidden.
-    let layer_bbox = use_memo(move || {
-        layer
-            .read()
-            .layer
-            .as_ref()
-            .and_then(|layer| layer.bounding_box())
-    });
-
-    let mut estimated_plot_duration = use_signal_sync(|| None as Option<Duration>);
-    use_effect(move || {
-        let layer = layer_only_visible().layer;
-        let plot_settings = plot_settings();
-        estimated_plot_duration.set(None);
-
-        if let Some(layer) = layer {
-            let mut estimated_plot_duration = estimated_plot_duration;
-            tokio::spawn(async move {
-                match tokio::task::spawn_blocking(move || {
-                    estimate_plot_layer_duration(&layer, SampleSettings::low_res(), &plot_settings)
-                })
-                .await
-                {
-                    Ok(duration) => {
-                        if let Ok(mut estimated_plot_duration_write) =
-                            estimated_plot_duration.try_write()
-                        {
-                            *estimated_plot_duration_write = Some(duration);
-                        }
-                    }
-                    Err(err) => {
-                        tracing::error!("failed to estimate plot duration: {:?}", err);
-                    }
-                }
-            });
-        }
-    });
-
-    let plot_estimate_text =
-        use_memo(move || estimated_plot_duration().map(|duration| format!("~{}", format_plot_duration(duration))));
-
-    // hooks for changes in project
-    // params
-    let params_file = use_hook(|| ParamsFile::new(project()));
-    {
-        let params_file = params_file.clone();
-        use_effect(move || {
-            if let Err(e) = params_file.save(&project_params()) {
-                tracing::error!("Failed to write project params to file: {:?}", e);
-            }
-        });
-    }
-    // plot settings
-    use_effect(move || {
-        let plot_settings_binary =
-            serialize(&(plot_settings())).expect("Failed to serialize plot settings");
-        let plot_settings_file_path = project().get_editor_plot_settings_path();
-        std::fs::write(plot_settings_file_path, plot_settings_binary)
-            .expect("Failed to write plot settings to file");
-    });
-    // layer
+    // data
+    let (console, console_change_counter) = use_console();
+    let project_params = use_project_params(project, console);
+    let plot_settings = use_plot_settings(project, console);
+    let (layer, layer_loading) = use_saved_layer(project, console);
+    let layer_view = use_layer_view(project, layer);
+    let svg = use_preview_svg(layer_view);
+    let params_file = use_hook(|| ParamsFile::new(project.peek().clone()));
     // The cached preview is shown until the layer is loaded and rendered. Checked once: loading
     // the layer saves it again, which makes the cache look outdated until the new preview is saved.
     let cached_preview = use_hook(|| {
@@ -374,153 +90,46 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
             .fresh_editor_preview()
             .map(|path| path.to_string_lossy().to_string())
     });
-    let svg = use_signal_sync(|| None as Option<String>);
-    use_effect(move || {
-        let layer = layer_only_visible().layer;
-        let view = layer_bbox();
-
-        if let Some(layer) = layer {
-            let mut svg = svg;
-            tokio::spawn(async move {
-                let render = move || match view {
-                    Some(view) => layer.to_svg_in(view).to_string(),
-                    None => layer.to_svg().to_string(),
-                };
-                match tokio::task::spawn_blocking(render).await {
-                    Ok(svg_str) => {
-                        if let Ok(mut svg_write) = svg.try_write() {
-                            *svg_write = Some(svg_str);
-                        }
-                    }
-                    Err(err) => tracing::error!("failed to generate preview svg: {:?}", err),
-                }
-            });
-        }
-    });
-    use_effect(move || {
-        if let Some(layer) = layer.read().layer.as_ref() {
-            if let Err(e) = project().save_editor_layer(layer) {
-                tracing::error!("Failed to write layer to file: {:?}", e);
-            }
-        }
-    });
-    // The cached preview and the thumbnail show the whole drawing: the svg on screen while
-    // nothing is hidden, otherwise one more render of each new layer.
-    use_effect(move || {
-        if let Some(svg) = svg().filter(|_| !layer_visibility.peek().hides_anything()) {
-            let project = project();
-            tokio::task::spawn_blocking(move || save_preview(&project, &svg));
-        }
-    });
-    use_effect(move || {
-        let whole_layer = layer.read().layer.clone();
-        if let Some(layer) = whole_layer.filter(|_| layer_visibility.peek().hides_anything()) {
-            let project = project();
-            tokio::task::spawn_blocking(move || {
-                save_preview(&project, &layer.to_svg().to_string())
-            });
-        }
-    });
 
     // running project
     let running_state = use_signal_sync(|| RunningState::Idle);
     let project_runner =
-        use_signal_sync(|| ProjectRunner::new(project().clone(), layer, project_params));
-    let trigger_run = move || trigger_run(project_runner, running_state, console, release);
-
-    let mut preview_zoom = use_signal(PreviewZoom::default);
-    // The cached preview stays below the live svg until that is on screen, or the swap flickers.
-    let mut svg_on_screen = use_signal(|| false);
-    let mut fullscreen = use_signal(|| false);
-
-    // click-to-pick for V2 params
-    let mut pick_target = use_context_provider(|| PickTarget {
+        use_signal_sync(|| ProjectRunner::new(project.peek().clone(), layer, project_params));
+    let ctx = use_context_provider(|| EditorCtx {
+        project,
+        project_params,
+        project_runner,
+        running_state,
+        console,
+        release,
+    });
+    use_context_provider(|| PickTarget {
         path: Signal::new(None),
     });
-    let mut project_params_for_pick = project_params;
-    let onpick = move |point: V2| {
-        let Some(path) = pick_target.take() else {
-            return;
-        };
-        let mut new_params = project_params_for_pick.read().clone();
-        match get_param_value_mut_by_path(&mut new_params.list, &path) {
-            Some(value) => match leaf_value_mut(value) {
-                ProjectParamValue::V2(v) => *v = point,
-                _ => {
-                    tracing::error!("Pick target is not a V2 param: {:?}", path);
-                    return;
-                }
-            },
-            None => {
-                tracing::error!("Pick target not found: {:?}", path);
-                return;
-            }
-        }
-        project_params_for_pick.set(new_params);
-        trigger_run();
-    };
+    use_autosave(
+        ctx,
+        params_file.clone(),
+        plot_settings,
+        layer,
+        layer_view,
+        svg,
+    );
+    let (hot_reload, set_hot_reload) = use_hot_reload(ctx, cargo_path.clone(), params_file);
 
-    // hot reload
-    let mut hot_reload_watcher = use_signal_sync(|| None as Option<FsEventWatcher>);
-    let mut hot_reload_join_handle = use_signal_sync(|| None as Option<JoinHandle<()>>);
-    let hot_reload_path_to_watch = project().get_cargo_path().unwrap().join("src");
-    let hot_reload_is_enabled = move || hot_reload_watcher.read().is_some();
-
-    let hot_reload_enabled = hot_reload_is_enabled();
-    let set_hot_reload = move |enabled: bool| {
-        if enabled == hot_reload_is_enabled() {
-            return;
-        }
-        if enabled {
-            // pick up changes made while hot reload was off, the run below would overwrite them
-            match params_file.read_external() {
-                Ok(Some(params)) => {
-                    let mut project_params = project_params;
-                    project_params.set(params);
-                }
-                Ok(None) => {}
-                Err(e) => tracing::error!("Failed to read params from file: {:?}", e),
-            }
-            let (handle, watcher) = start_hot_reload(
-                hot_reload_path_to_watch.clone(),
-                release,
-                project_runner(),
-                running_state,
-                console,
-                params_file.clone(),
-                project_params,
-            );
-            hot_reload_join_handle.set(Some(handle));
-            hot_reload_watcher.set(Some(watcher));
-            trigger_run();
-        } else {
-            hot_reload_watcher.set(None);
-            hot_reload_join_handle.set(None);
-        }
-    };
-
-    let state_now = running_state();
-    let status = run_status(&state_now);
-    let status_title = Some(state_now.get_msg()).filter(|msg| !msg.is_empty());
-    let busy = state_now.is_busy();
-    let has_drawing = layer_loading() || layer.read().layer.is_some();
-    // Crumbs inside a watched folder get a path so they can open the browser there.
-    let crumbs = use_memo(move || {
-        let state = AppState::load_or_default();
-        parent_crumbs(&project().dir)
-            .into_iter()
-            .map(|(name, path)| (name, state.covers(&path).then_some(path)))
-            .collect::<Vec<_>>()
-    });
-
+    let mut preview_zoom = use_signal(PreviewZoom::default);
+    let mut fullscreen = use_signal(|| false);
     let mut show_plot_settings = use_signal(|| false);
     let mut plot_settings_for_reset = plot_settings;
+    let mut layer_visibility = layer_view.visibility;
+    let mut layer_expansion = layer_view.expansion;
 
-    let mut layout = use_signal(|| AppState::load_or_default().panel_layout.clamped());
+    // panels
+    let app_state = use_context::<Signal<AppState>>();
+    let mut layout = use_signal(|| app_state.peek().panel_layout.clone().clamped());
     let save_layout = move || {
-        let mut state = AppState::load_or_default();
-        state.panel_layout = layout.peek().clone();
-        state.save();
+        update_app_state(app_state, |state| {
+            state.panel_layout = layout.peek().clone()
+        });
     };
     let mut toggle_panel = move |panel: Panel| {
         layout.write().toggle(panel);
@@ -548,25 +157,29 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
             save_layout();
         })
     };
-    let current_layout = layout();
-    let shortcut = |key: &str| {
-        if cfg!(target_os = "macos") {
-            format!("⌘{key}")
-        } else {
-            format!("Ctrl+{key}")
+    use_menu_action(move |action| match action {
+        MenuAction::Run => ctx.trigger_run(),
+        MenuAction::PlotSettings => show_plot_settings.set(true),
+        MenuAction::BackToProjects => {
+            nav.push(Route::Browser {});
         }
-    };
+        MenuAction::ToggleParams => toggle_panel(Panel::Params),
+        MenuAction::ToggleLayers => toggle_panel(Panel::Layers),
+        MenuAction::ToggleConsole => toggle_panel(Panel::Console),
+        MenuAction::ToggleFullscreenPreview => {
+            fullscreen.toggle();
+            preview_zoom.set(PreviewZoom::default());
+        }
+        MenuAction::ResetZoom => preview_zoom.set(PreviewZoom::default()),
+        MenuAction::PlotterRemote => {}
+    });
+    let current_layout = layout();
     let (params_min, params_max, params_default) = Panel::Params.size_limits();
     let (layers_min, layers_max, layers_default) = Panel::Layers.size_limits();
     let (console_min, console_max, console_default) = Panel::Console.size_limits();
 
-    let icon_folder = if cfg!(target_os = "windows") {
-        format_svg(include_bytes!("../../../public/icons/explorer.svg"))
-    } else if cfg!(target_os = "macos") {
-        format_svg(include_bytes!("../../../public/icons/finder.svg"))
-    } else {
-        format_svg(include_bytes!("../../../public/icons/linux_folder.svg"))
-    };
+    let busy = running_state().is_busy();
+    let has_drawing = layer_loading() || layer.read().layer.is_some();
 
     rsx! {
         style { { include_str!("./editor.css") } }
@@ -579,7 +192,6 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
             onkeydown: move |event| {
                 let modifiers = event.modifiers();
                 let command = modifiers.meta() || modifiers.ctrl();
-                let zero = matches!(event.key(), Key::Character(ref key) if key == "0");
                 let f = matches!(event.key(), Key::Character(ref key) if key.eq_ignore_ascii_case("f"));
                 if f && !command && !modifiers.alt() {
                     spawn(async move {
@@ -597,219 +209,31 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                     preview_zoom.set(PreviewZoom::default());
                     return;
                 }
-                if event.key() == Key::Escape || (command && zero) {
-                    if !preview_zoom.peek().is_fit() {
-                        event.prevent_default();
-                        preview_zoom.set(PreviewZoom::default());
-                    }
-                    return;
+                if event.key() == Key::Escape && !preview_zoom.peek().is_fit() {
+                    event.prevent_default();
+                    preview_zoom.set(PreviewZoom::default());
                 }
-                if !command {
-                    return;
-                }
-                let Key::Character(key) = event.key() else { return };
-                let panel = match key.to_lowercase().as_str() {
-                    "1" => Panel::Params,
-                    "j" => Panel::Console,
-                    "2" => Panel::Layers,
-                    _ => return,
-                };
-                event.prevent_default();
-                toggle_panel(panel);
             },
             header { class: "app-header",
                 div { class: "hgroup",
-                    IconButton {
-                        icon: IconName::ChevronLeft,
-                        label: "Back to projects",
-                        onclick: move |_| {
-                            nav.push(Route::Browser {});
-                        },
-                    }
-                    div { class: "title-block", title: "{project().dir.to_string_lossy()}",
-                        for (name, path) in crumbs() {
-                            if let Some(path) = path {
-                                button {
-                                    r#type: "button",
-                                    class: "crumb crumb-link",
-                                    title: "Show {path.to_string_lossy()} in projects",
-                                    onclick: move |_| {
-                                        let mut state = AppState::load_or_default();
-                                        state.reveal_folder(&path);
-                                        state.save();
-                                        nav.push(Route::Browser {});
-                                    },
-                                    "{name}"
-                                }
-                            } else {
-                                span { class: "crumb", "{name}" }
-                            }
-                            span { class: "crumb", "/" }
-                        }
-                        h1 { "{project().config.name}" }
-                    }
-                    div { class: "vsep" }
-                    div { class: "hgroup tight",
-                        {
-                            let cargo_dir = use_memo(move || project().get_cargo_path().unwrap());
-                            let project_dir = use_memo(move || project().get_dir());
-                            rsx! {
-                                if vscode_installed() {
-                                    ExternalEditorButton {
-                                        editor_name: "VS Code".to_string(),
-                                        editor_command: "code".to_string(),
-                                        icon_svg: include_bytes!("../../../public/icons/vscode.svg"),
-                                        project_dir: cargo_dir,
-                                    }
-                                }
-                                if zed_installed() {
-                                    ExternalEditorButton {
-                                        editor_name: "Zed".to_string(),
-                                        editor_command: "zed".to_string(),
-                                        icon_svg: include_bytes!("../../../public/icons/zed.svg"),
-                                        project_dir: cargo_dir,
-                                    }
-                                }
-                                if cursor_installed() {
-                                    ExternalEditorButton {
-                                        editor_name: "Cursor".to_string(),
-                                        editor_command: "cursor".to_string(),
-                                        icon_svg: include_bytes!("../../../public/icons/cursor.svg"),
-                                        project_dir: cargo_dir,
-                                    }
-                                }
-                                if sublime_installed() {
-                                    ExternalEditorButton {
-                                        editor_name: "Sublime Text".to_string(),
-                                        editor_command: "subl".to_string(),
-                                        icon_svg: include_bytes!("../../../public/icons/sublime-text.svg"),
-                                        project_dir: cargo_dir,
-                                    }
-                                }
-                                button {
-                                    r#type: "button",
-                                    class: "btn btn-ghost icon-btn app-btn",
-                                    title: "Open project folder",
-                                    "aria-label": "Open project folder",
-                                    onclick: move |event| {
-                                        open::that_in_background(project().dir).join().unwrap().unwrap();
-                                        event.stop_propagation();
-                                    },
-                                    img { src: "{icon_folder}", alt: "" }
-                                }
-                                if gitkraken_installed() {
-                                    ExternalEditorButton {
-                                        editor_name: "GitKraken".to_string(),
-                                        editor_command: "GitKraken".to_string(),
-                                        icon_svg: include_bytes!("../../../public/icons/gitkraken.svg"),
-                                        project_dir: project_dir,
-                                        extra_args: vec!["-p".to_string()],
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    ProjectTitle { cargo_path }
                 }
                 div { class: "hgroup center-group",
-                    Button {
-                        variant: Variant::Primary,
-                        icon: IconName::Play,
-                        onclick: move |_| trigger_run(),
-                        "Run"
-                    }
-                    Switch {
-                        class: "toggle-box",
-                        label: "Hot reload".to_string(),
-                        checked: hot_reload_enabled,
-                        onchange: set_hot_reload,
-                    }
-                    if let Some((tone, text)) = status {
-                        StatusPill { tone, text, title: status_title }
-                    }
+                    RunControls { hot_reload, on_hot_reload: set_hot_reload }
                 }
                 div { class: "hgroup end",
                     div { class: "hgroup tight",
-                        IconButton {
-                            icon: IconName::PanelLeft,
-                            label: "Toggle parameters",
-                            title: "Toggle parameters ({shortcut(\"1\")})",
-                            active: current_layout.params_open,
-                            onclick: move |_| toggle_panel(Panel::Params),
-                        }
-                        IconButton {
-                            icon: IconName::PanelBottom,
-                            label: "Toggle console",
-                            title: "Toggle console ({shortcut(\"J\")})",
-                            active: current_layout.console_open,
-                            onclick: move |_| toggle_panel(Panel::Console),
-                        }
-                        IconButton {
-                            icon: IconName::PanelRight,
-                            label: "Toggle layers",
-                            title: "Toggle layers ({shortcut(\"2\")})",
-                            active: current_layout.layers_open,
-                            onclick: move |_| toggle_panel(Panel::Layers),
+                        PanelToggles {
+                            layout: current_layout.clone(),
+                            on_toggle: toggle_panel,
                         }
                     }
                     div { class: "vsep" }
-                    IconButton {
-                        icon: IconName::Plotter,
-                        label: "Plotter remote",
-                        title: "Plotter remote (R)",
-                        onclick: move |_| remote_open.set(true),
-                    }
-                    Button {
-                        variant: Variant::Ghost,
-                        icon: IconName::Sliders,
-                        onclick: move |_| show_plot_settings.set(true),
-                        "Plot settings"
-                    }
-                    Button {
-                        icon: IconName::External,
-                        onclick: move |_| {
-                            if let Some(svg) = svg() {
-                                let path = std::env::temp_dir().join("temp_editor.svg");
-                                std::fs::write(&path, svg).unwrap();
-                                if let Err(err) = open::that_in_background(path).join() {
-                                    tracing::error!("Failed to open svg: {:?}", err);
-                                }
-                            }
-                        },
-                        "Open SVG"
-                    }
-                    Button {
-                        variant: Variant::Primary,
-                        onclick: move |_| {
-                            match layer_only_visible().layer {
-                                Some(layer) => {
-                                    let current_plot_settings = plot_settings();
-                                    tokio::spawn(async move {
-                                        if let Ok(console_read) = console.try_read() {
-                                            console_read.info("...sending plot");
-                                        }
-
-                                        let plot_result = send_task(plottery_server_lib::task::Task::Plot {
-                                            layer: layer.clone(),
-                                            sample_settings: SampleSettings::default(),
-                                            plot_settings: current_plot_settings
-                                        }).await;
-                                        poke_plotter();
-                                        if let Err(err) = plot_result {
-                                            if let Ok(console_read) = console.try_read() {
-                                                console_read.error(format!("failed to send plot: {:?}", err).as_str());
-                                            }
-                                        }
-                                    });
-                                },
-                                None => {
-                                    console().error("cannot send plot: no layer available");
-                                }
-                            }
-                        },
-                        "Send to plotter"
-                        if let Some(estimate) = plot_estimate_text() {
-                            span { class: "mono estimate", "{estimate}" }
-                        }
+                    PlotActions {
+                        svg,
+                        only_visible: layer_view.only_visible,
+                        plot_settings,
+                        on_plot_settings: move |_| show_plot_settings.set(true),
                     }
                 }
             }
@@ -822,14 +246,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                             on_collapse: move |_| toggle_panel(Panel::Params),
                         }
                         div { class: "panel-body scroll",
-                            ParamsEditor {
-                                project_dir: project().get_dir(),
-                                project_params,
-                                project_runner,
-                                running_state,
-                                console,
-                                release,
-                            }
+                            ParamsEditor {}
                         }
                     }
                     Resizer {
@@ -854,67 +271,15 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                     }
                 }
                 main { class: "center",
-                    section {
-                        class: match (busy, fullscreen()) {
-                            (false, false) => "preview",
-                            (true, false) => "preview busy",
-                            (false, true) => "preview fullscreen",
-                            (true, true) => "preview busy fullscreen",
-                        },
-                        if fullscreen() {
-                            div { class: "fullscreen-close",
-                                IconButton {
-                                    icon: IconName::X,
-                                    label: "Close fullscreen",
-                                    title: "Close fullscreen (Esc)",
-                                    onclick: move |_| {
-                                        fullscreen.set(false);
-                                        preview_zoom.set(PreviewZoom::default());
-                                    },
-                                }
-                            }
-                        }
-                        if let Some(img_path) = cached_preview.clone().filter(|_| !svg_on_screen()) {
-                            div { class: "preview-stage",
-                                Image {
-                                    class: "paper paper-file",
-                                    img_path,
-                                    redraw_counter: layer().change_counter,
-                                }
-                            }
-                        }
-                        if let Some(svg) = svg() {
-                            SVGImage {
-                                svg,
-                                layer_bbox: layer_bbox(),
-                                pick_active: pick_target.is_active(),
-                                onpick,
-                                zoom: preview_zoom,
-                                onready: move |_| svg_on_screen.set(true),
-                            }
-                            if busy {
-                                Loading {}
-                            }
-                        } else if cached_preview.is_some() {
-                            if busy {
-                                Loading {}
-                            }
-                        } else if has_drawing {
-                            Loading {}
-                        } else {
-                            div { class: "preview-empty",
-                                p { "No preview yet" }
-                                Button {
-                                    variant: Variant::Primary,
-                                    icon: IconName::Play,
-                                    onclick: move |_| trigger_run(),
-                                    "Run"
-                                }
-                            }
-                            if busy {
-                                Loading {}
-                            }
-                        }
+                    PreviewStage {
+                        svg,
+                        cached_preview: cached_preview.clone(),
+                        layer_bbox: (layer_view.bbox)(),
+                        redraw_counter: layer().change_counter,
+                        busy,
+                        has_drawing,
+                        fullscreen,
+                        zoom: preview_zoom,
                     }
                     if current_layout.console_open {
                         Resizer {
@@ -956,21 +321,21 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                         }
                         div { class: "panel-body scroll",
                             LayerEditor {
-                                rows: layer_rows,
+                                rows: layer_view.rows,
                                 on_toggle_visible: move |target: RowTarget| {
                                     layer_visibility.write().toggle(&target);
-                                    save_layer_view();
+                                    layer_view.save();
                                 },
                                 on_solo: move |target: RowTarget| {
                                     layer_visibility.write().toggle_solo(target)
                                 },
                                 on_set_expanded: move |(key, expanded): (LayerKey, bool)| {
                                     layer_expansion.write().set(key, expanded);
-                                    save_layer_view();
+                                    layer_view.save();
                                 },
                                 on_show_all: move |_| {
                                     layer_visibility.write().show_all();
-                                    save_layer_view();
+                                    layer_view.save();
                                 },
                             }
                         }

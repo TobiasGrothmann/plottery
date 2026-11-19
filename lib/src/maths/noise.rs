@@ -1,42 +1,12 @@
 use std::fmt;
 
 use fastnoise_lite::{FastNoiseLite, FractalType};
-use rand::Rng;
+use rand::RngExt;
 use serde::{Deserialize, Serialize};
 
 use crate::V2;
 
-use super::thread_local::{PERLIN, RNG, SIMPLEX, WORLEY};
-
-pub fn perlin_2d(location: V2) -> f32 {
-    let val = PERLIN.with_borrow(|noise| noise.get_noise_2d(location.x, location.y));
-    (val + 1.0) / 2.0
-}
-
-pub fn perlin_3d(x: f32, y: f32, z: f32) -> f32 {
-    let val = PERLIN.with_borrow(|noise| noise.get_noise_3d(x, y, z));
-    (val + 1.0) / 2.0
-}
-
-pub fn simplex_2d(location: V2) -> f32 {
-    let val = SIMPLEX.with_borrow(|noise| noise.get_noise_2d(location.x, location.y));
-    (val + 1.0) / 2.0
-}
-
-pub fn simplex_3d(x: f32, y: f32, z: f32) -> f32 {
-    let val = SIMPLEX.with_borrow(|noise| noise.get_noise_3d(x, y, z));
-    (val + 1.0) / 2.0
-}
-
-pub fn worley_2d(location: V2) -> f32 {
-    let val = WORLEY.with_borrow(|noise| noise.get_noise_2d(location.x, location.y));
-    (val + 1.0) / 2.0
-}
-
-pub fn worley_3d(x: f32, y: f32, z: f32) -> f32 {
-    let val = WORLEY.with_borrow(|noise| noise.get_noise_3d(x, y, z));
-    (val + 1.0) / 2.0
-}
+use super::global_rng::RNG;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum NoiseType {
@@ -117,8 +87,8 @@ impl NoiseSettings {
     /// Noise with the frequency taken as features per cm, seeded from the global RNG.
     pub fn noise(&self) -> Noise {
         Noise::new(self.noise_type)
-            .frequency(self.frequency)
-            .octaves(self.octaves.max(1))
+            .with_frequency(self.frequency)
+            .with_octaves(self.octaves.max(1))
     }
 
     /// Noise for a paper of `size`: with [`NoiseScale::PerPaper`] the frequency is divided by the
@@ -129,8 +99,8 @@ impl NoiseSettings {
             NoiseScale::PerPaper => self.frequency / size.min_axis().max(f32::EPSILON),
         };
         Noise::new(self.noise_type)
-            .frequency(frequency)
-            .octaves(self.octaves.max(1))
+            .with_frequency(frequency)
+            .with_octaves(self.octaves.max(1))
     }
 }
 
@@ -146,7 +116,7 @@ pub struct Noise {
 impl Noise {
     /// Seeded from the global random number generator, see [`seed`](crate::seed).
     pub fn new(noise_type: NoiseType) -> Self {
-        let seed = RNG.lock().expect("Failed to acquire RNG lock").gen();
+        let seed = RNG.lock().expect("Failed to acquire RNG lock").random();
         Self::build(noise_type, seed, 1.0, 1)
     }
     pub fn perlin() -> Self {
@@ -160,16 +130,16 @@ impl Noise {
     }
 
     #[must_use]
-    pub fn seed(self, seed: i32) -> Self {
+    pub fn with_seed(self, seed: i32) -> Self {
         Self::build(self.noise_type, seed, self.frequency, self.octaves)
     }
     #[must_use]
-    pub fn frequency(self, frequency: f32) -> Self {
+    pub fn with_frequency(self, frequency: f32) -> Self {
         Self::build(self.noise_type, self.seed, frequency, self.octaves)
     }
     /// Number of fractal (FBm) octaves, 1 disables the fractal.
     #[must_use]
-    pub fn octaves(self, octaves: u32) -> Self {
+    pub fn with_octaves(self, octaves: u32) -> Self {
         Self::build(self.noise_type, self.seed, self.frequency, octaves)
     }
 

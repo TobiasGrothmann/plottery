@@ -28,8 +28,8 @@ mod test_blur {
         let [Shape::Path(path)] = blurred.shapes.as_slice() else {
             panic!("expected one path, got {:?}", blurred.shapes);
         };
-        assert_eq!(path.get_start(), Some(&V2::zero()));
-        assert!(path.get_end().unwrap().dist(V2::new(10.0, 0.0)) < 1e-4);
+        assert_eq!(path.start(), Some(&V2::zero()));
+        assert!(path.end().unwrap().dist(V2::new(10.0, 0.0)) < 1e-4);
         assert!(path.iter().all(|point| point.y == 0.0));
         assert!(path
             .segments()
@@ -70,7 +70,7 @@ mod test_blur {
             layer
                 .shapes
                 .iter()
-                .filter(|shape| shape.get_points(1.0.into())[0].x > 50.0)
+                .filter(|shape| shape.points(1.0.into())[0].x > 50.0)
                 .cloned()
                 .collect()
         };
@@ -204,7 +204,7 @@ mod test_blur {
     fn layer_blur_keeps_sublayers_and_props() {
         let inner = Layer::new_from([Circle::new_shape(V2::zero(), 1.0)])
             .with_name("inner")
-            .with_pen_width_cm(0.1);
+            .with_pen_width(0.1);
         let layer = Layer::new_from_shapes_and_layers(
             vec![Path::new_shape_from([V2::zero(), V2::new(2.0, 0.0)])],
             vec![inner, Layer::new()],

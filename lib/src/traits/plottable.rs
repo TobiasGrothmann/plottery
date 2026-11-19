@@ -1,12 +1,10 @@
 use crate::{
-    traits::bounds_may_touch, Angle, Blur, BoundingBox, Hatch, Layer, Line, LineIntersection, Path, Rect,
-    Shape, LARGE_EPSILON, V2,
+    traits::bounds_may_touch, Blur, BoundingBox, Hatch, Layer, Line, Path, Shape, LENGTH_TOLERANCE, V2,
 };
 
 use geo::BooleanOps;
 use geo_types::{LineString, MultiLineString, Polygon};
 
-use geometry_predicates::orient2d;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
@@ -19,7 +17,7 @@ impl SampleSettings {
     pub fn new(points_per_unit: f32) -> Self {
         Self { points_per_unit }
     }
-    pub fn get_num_points_for_length(&self, length: f32) -> i32 {
+    pub fn num_points_for_length(&self, length: f32) -> i32 {
         (length.abs() * self.points_per_unit).ceil() as i32
     }
     pub fn low_res() -> Self {
@@ -50,8 +48,8 @@ pub struct Masked {
 }
 
 pub trait Plottable: Clone + Into<Shape> + BoundingBox {
-    fn get_points(&self, _: SampleSettings) -> Vec<V2>;
-    fn get_points_from(
+    fn points(&self, _: SampleSettings) -> Vec<V2>;
+    fn points_from(
         &self,
         current_drawing_head_pos: V2,
         sample_settings: SampleSettings,
@@ -60,11 +58,11 @@ pub trait Plottable: Clone + Into<Shape> + BoundingBox {
     /// The shape sampled into a single [`Path`].
     #[must_use]
     fn to_path(&self, sample_settings: SampleSettings) -> Path {
-        Path::new_from(self.get_points(sample_settings))
+        Path::new_from(self.points(sample_settings))
     }
 
-    fn get_line_segments(&self, sample_settings: SampleSettings) -> Vec<Line> {
-        self.get_points(sample_settings)
+    fn line_segments(&self, sample_settings: SampleSettings) -> Vec<Line> {
+        self.points(sample_settings)
             .iter()
             .tuple_windows()
             .map(|(from, to)| Line::new(*from, *to))
@@ -80,14 +78,14 @@ pub trait Plottable: Clone + Into<Shape> + BoundingBox {
     fn reduce_points(&self, aggression_factor: f32) -> Self;
 
     /// Points of the shape with extra points inserted along segments longer than `1 / points_per_unit`.
-    fn get_points_oversampled(&self, sample_settings: SampleSettings) -> Vec<V2> {
-        let points = self.get_points(sample_settings);
+    fn points_oversampled(&self, sample_settings: SampleSettings) -> Vec<V2> {
+        let points = self.points(sample_settings);
         if points.is_empty() {
             return points;
         }
         let mut points_oversampled = vec![points[0]];
         for (from, to) in points.iter().tuple_windows() {
-            let num_steps = sample_settings.get_num_points_for_length(from.dist(*to));
+            let num_steps = sample_settings.num_points_for_length(from.dist(*to));
             if num_steps <= 1 {
                 points_oversampled.push(*to);
             } else {
@@ -103,7 +101,7 @@ pub trait Plottable: Clone + Into<Shape> + BoundingBox {
     /// Oversamples the shape and maps every point through `f`.
     /// Consider [`reduce_points`](Plottable::reduce_points) on the result.
     fn distort<F: Fn(V2) -> V2>(&self, sample_settings: SampleSettings, f: F) -> Path {
-        self.get_points_oversampled(sample_settings)
+        self.points_oversampled(sample_settings)
             .into_iter()
             .map(f)
             .collect()
@@ -127,7 +125,7 @@ pub trait Plottable: Clone + Into<Shape> + BoundingBox {
         sample_settings: SampleSettings,
         f: F,
     ) -> Layer {
-        let segments = self.get_line_segments(sample_settings);
+        let segments = self.line_segments(sample_settings);
         let total_length: f32 = segments.iter().map(|line| line.from.dist(line.to)).sum();
         let mut layer = Layer::new();
         if total_length <= 0.0 {
@@ -136,7 +134,7 @@ pub trait Plottable: Clone + Into<Shape> + BoundingBox {
 
         let mut dist_along = 0.0;
         let mut is_gap = false;
-        let mut remaining = f(segments[0].from, false, 0.0, 0.0).max(LARGE_EPSILON);
+        let mut remaining = f(segments[0].from, false, 0.0, 0.0).max(LENGTH_TOLERANCE);
         let mut current = Path::new();
 
         for line in segments {
@@ -158,17 +156,17 @@ pub trait Plottable: Clone + Into<Shape> + BoundingBox {
                 dist_along += step;
                 remaining -= step;
 
-                if remaining <= LARGE_EPSILON {
+                if remaining <= LENGTH_TOLERANCE {
                     if !is_gap {
                         layer.push(std::mem::take(&mut current));
                     }
                     is_gap = !is_gap;
                     remaining =
-                        f(end, is_gap, dist_along, dist_along / total_length).max(LARGE_EPSILON);
+                        f(end, is_gap, dist_along, dist_along / total_length).max(LENGTH_TOLERANCE);
                 }
             }
         }
-        if current.get_points_ref().len() > 1 {
+        if current.as_slice().len() > 1 {
             layer.push(current);
         }
         layer
@@ -186,16 +184,16 @@ pub trait Plottable: Clone + Into<Shape> + BoundingBox {
         hatch.hatch_shape(self)
     }
 
-    /// Like [`get_points_oversampled`](Plottable::get_points_oversampled), paired with the distance along the shape.
-    fn get_points_and_dist_oversampled(&self, sample_settings: SampleSettings) -> Vec<(V2, f32)> {
-        let points = self.get_points(sample_settings);
+    /// Like [`points_oversampled`](Plottable::points_oversampled), paired with the distance along the shape.
+    fn points_and_dist_oversampled(&self, sample_settings: SampleSettings) -> Vec<(V2, f32)> {
+        let points = self.points(sample_settings);
         let mut dist_along_path = 0.0;
         if points.is_empty() {
             return vec![];
         }
         let mut points_oversampled = vec![(points[0], 0.0)];
         for (from, to) in points.iter().tuple_windows() {
-            let num_steps = sample_settings.get_num_points_for_length(from.dist(*to));
+            let num_steps = sample_settings.num_points_for_length(from.dist(*to));
             let segment_length = from.dist(*to);
 
             if num_steps <= 1 {
@@ -224,7 +222,7 @@ pub trait Plottable: Clone + Into<Shape> + BoundingBox {
 
     fn as_geo_line_string(&self, sample_settings: SampleSettings) -> LineString<f32> {
         let coords = self
-            .get_points(sample_settings)
+            .points(sample_settings)
             .iter()
             .map(V2::as_geo_coord)
             .collect_vec();
@@ -304,7 +302,7 @@ pub trait Plottable: Clone + Into<Shape> + BoundingBox {
                 outside: self.to_layer(),
             };
         }
-        let points_shape = self.get_points_oversampled(sample_settings);
+        let points_shape = self.points_oversampled(sample_settings);
 
         let mut inside = Layer::new();
         let mut outside = Layer::new();
@@ -352,73 +350,6 @@ pub trait Plottable: Clone + Into<Shape> + BoundingBox {
         Masked { inside, outside }
     }
 
-    fn mask_by_intersections<M: Into<Shape>>(
-        &self,
-        mask: M,
-        sample_settings: SampleSettings,
-    ) -> Masked {
-        let mask: Shape = mask.into();
-        if misses_mask(self, &mask) {
-            return Masked {
-                inside: Layer::new(),
-                outside: Layer::new_from([self.to_path(sample_settings)]),
-            };
-        }
-        let Some(mask_bounds) = mask.bounding_box() else {
-            return Masked::default();
-        };
-        let segments_mask = mask.get_line_segments(sample_settings);
-
-        // perturb the path to avoid points on the mask lines
-        let perturbed_path: Path = self
-            .get_points(sample_settings)
-            .into_iter()
-            .map(|point| {
-                if bounds_may_touch(&Rect::new(point, point), &mask_bounds) {
-                    perturb_off_mask_lines(point, &segments_mask)
-                } else {
-                    point
-                }
-            })
-            .collect();
-
-        let segments_shape: Vec<_> = perturbed_path.get_line_segments(sample_settings);
-        let mut inside = Layer::new();
-        let mut outside = Layer::new();
-        let Some(first_segment) = segments_shape.first() else {
-            return Masked::default();
-        };
-        let mut current_part = Path::new_from([first_segment.from]);
-        let mut currently_inside = mask.contains_point(*current_part.get_start().unwrap());
-
-        // switch inside to outside on each intersection
-        for segment in segments_shape {
-            let intersections_sorted =
-                get_intersections_sorted(&segment, &segments_mask, &mask_bounds);
-
-            for intersection in intersections_sorted {
-                current_part.push(intersection);
-                if currently_inside {
-                    inside.push(current_part);
-                } else {
-                    outside.push(current_part);
-                }
-                current_part = Path::new_from(vec![intersection]);
-                currently_inside = !currently_inside;
-            }
-
-            current_part.push(segment.to);
-        }
-
-        if currently_inside {
-            inside.push(current_part);
-        } else {
-            outside.push(current_part);
-        }
-
-        Masked { inside, outside }
-    }
-
     #[must_use]
     fn to_layer(&self) -> Layer {
         Layer::new_from(vec![self.clone().into()])
@@ -430,43 +361,4 @@ fn misses_mask(shape: &impl BoundingBox, mask: &Shape) -> bool {
     shape
         .bounding_box()
         .is_some_and(|bounds| !bounds_may_touch(&bounds, mask))
-}
-
-fn get_intersections_sorted(segment: &Line, segments_mask: &[Line], mask_bounds: &Rect) -> Vec<V2> {
-    if !bounds_may_touch(segment, mask_bounds) {
-        return Vec::new();
-    }
-    segments_mask
-        .iter()
-        .map(|segment_mask| segment.intersection(*segment_mask))
-        .filter_map(|intersection| match intersection {
-            LineIntersection::Intersection(point) => Some(point),
-            _ => None,
-        })
-        .sorted_by_cached_key(|point| point.dist_squared(segment.from).to_bits())
-        .collect()
-}
-
-fn perturb_off_mask_lines(mut point: V2, segments_mask: &[Line]) -> V2 {
-    loop {
-        let (is_on_mask_line, line_angle) = is_point_on_mask_line(point, segments_mask, 0.1);
-        if !is_on_mask_line {
-            return point;
-        }
-        point += V2::polar(line_angle + Angle::quarter_rotation(), 0.05);
-    }
-}
-
-fn is_point_on_mask_line(point: V2, segments_mask: &[Line], epsilon: f64) -> (bool, Angle) {
-    for segment_mask in segments_mask {
-        let orientation = orient2d(
-            [segment_mask.from.x as f64, segment_mask.from.y as f64],
-            [segment_mask.to.x as f64, segment_mask.to.y as f64],
-            [point.x as f64, point.y as f64],
-        );
-        if orientation < epsilon && orientation > -epsilon {
-            return (true, segment_mask.angle());
-        }
-    }
-    (false, Angle::zero())
 }

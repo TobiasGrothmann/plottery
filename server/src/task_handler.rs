@@ -1,7 +1,7 @@
 use plottery_lib::{Layer, SampleSettings, V2};
 use plottery_server_lib::{
-    accelleration::speed_delay_handler::SpeedDelayHandler, hardware::Hardware, midi::midi_to_freq,
-    pins::HARDWARE_CONSTS, plot_execution, plot_setting::PlotSettings, task::Task, PlotTimeline,
+    acceleration::speed_delay_handler::SpeedDelayHandler, hardware::Hardware, midi::midi_to_freq,
+    pins::HARDWARE_CONSTS, plot_execution, plot_settings::PlotSettings, task::Task, PlotTimeline,
     Telemetry,
 };
 use std::sync::{atomic::AtomicBool, Arc, Mutex, MutexGuard};
@@ -68,9 +68,9 @@ pub fn start_server(
                     set_head(&mut hardware, head_down);
                     hardware.set_enabled(false);
                 }
-                Task::MoveTo(pos, plot_setting) => {
+                Task::MoveTo(pos, plot_settings) => {
                     hardware.set_enabled(true);
-                    plot_execution::travel_to(&mut hardware, pos, &plot_setting);
+                    plot_execution::travel_to(&mut hardware, pos, &plot_settings);
                     hardware.set_enabled(false);
                 }
                 Task::Move(delta, plot_settings) => {
@@ -179,7 +179,7 @@ fn set_head(hardware: &mut Hardware<GpioExecutor>, head_down: bool) {
     hardware.set_head(
         head_down,
         settings.head_travel_beyond_paper_cm,
-        speed_range.accelleration_distance,
+        speed_range.acceleration_distance,
         SpeedDelayHandler::new_from_speed_range(
             &speed_range,
             HARDWARE_CONSTS.hardware_profile.dist_per_step_head_cm,

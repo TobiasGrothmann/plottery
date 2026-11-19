@@ -11,16 +11,16 @@ pub enum Segment {
 }
 
 impl Segment {
-    pub fn from(&self) -> V2 {
+    pub fn start(&self) -> V2 {
         match self {
             Segment::Line(line) => line.from,
-            Segment::Bezier(bezier) => bezier.from(),
+            Segment::Bezier(bezier) => bezier.start(),
         }
     }
-    pub fn to(&self) -> V2 {
+    pub fn end(&self) -> V2 {
         match self {
             Segment::Line(line) => line.to,
-            Segment::Bezier(bezier) => bezier.to(),
+            Segment::Bezier(bezier) => bezier.end(),
         }
     }
     pub fn tangent_at_start(&self) -> V2 {
@@ -61,10 +61,10 @@ impl Segment {
             Segment::Bezier(bezier) => Either::Right(bezier.controls().iter().copied()),
         }
     }
-    pub fn reversed(&self) -> Segment {
+    pub fn reverse(&self) -> Segment {
         match self {
             Segment::Line(line) => Segment::Line(Line::new(line.to, line.from)),
-            Segment::Bezier(bezier) => Segment::Bezier(bezier.reversed()),
+            Segment::Bezier(bezier) => Segment::Bezier(bezier.reverse()),
         }
     }
     pub(crate) fn map_points(&self, f: impl Fn(V2) -> V2) -> Segment {
@@ -93,7 +93,7 @@ pub(crate) fn resample_even(
     length: f32,
     sample_settings: SampleSettings,
 ) -> Vec<V2> {
-    let n = sample_settings.get_num_points_for_length(length).max(1) as usize;
+    let n = sample_settings.num_points_for_length(length).max(1) as usize;
     let table_size = (4 * n).max(16);
 
     let table: Vec<V2> = (0..=table_size)

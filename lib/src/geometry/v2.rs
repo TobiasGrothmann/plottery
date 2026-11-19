@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     rand_range, Angle, Mirror, Rect, Rotate, Rotate90, SampleSettings, Scale, Transform, Translate,
-    V2i, LARGE_EPSILON,
+    V2i, LENGTH_TOLERANCE,
 };
 
 /// A 2D vector with floating-point coordinates.
@@ -32,7 +32,6 @@ impl V2 {
     pub fn new(x: f32, y: f32) -> Self {
         Self { x, y }
     }
-    /// Creates a new V2 with the same value for both x and y.
     pub fn xy(x_and_y: f32) -> Self {
         Self {
             x: x_and_y,
@@ -40,7 +39,6 @@ impl V2 {
         }
     }
 
-    /// Creates a new V2 from a geo coordinate.
     pub fn new_from_geo(geo_coord: &Coord<f32>) -> Self {
         Self {
             x: geo_coord.x,
@@ -48,7 +46,6 @@ impl V2 {
         }
     }
 
-    /// Creates a new V2 from polar coordinates (angle and distance).
     pub fn polar(angle: Angle, distance: f32) -> Self {
         Self {
             x: angle.to_rad().cos() * distance,
@@ -56,7 +53,6 @@ impl V2 {
         }
     }
 
-    /// Returns the zero vector (0, 0).
     pub fn zero() -> Self {
         Self { x: 0.0, y: 0.0 }
     }
@@ -87,7 +83,6 @@ impl V2 {
         let radius = rand_range(0.0, 1.0);
         Self::polar(angle, radius)
     }
-    /// Returns a random vector inside or on the given rectangle.
     pub fn random_in_rect(rect: Rect) -> Self {
         Self::new(
             rand_range(rect.bl().x, rect.tr().x),
@@ -223,7 +218,6 @@ impl V2 {
         Self { x: 3.1, y: 4.4 }
     }
 
-    /// Returns a new V2 with x and y values swapped.
     #[must_use]
     pub fn swap_axes(&self) -> Self {
         Self {
@@ -258,7 +252,6 @@ impl V2 {
         Self { x: 0.0, y: self.y }
     }
 
-    /// Converts to a geo coordinate.
     pub fn as_geo_coord(&self) -> Coord<f32> {
         Coord {
             x: self.x,
@@ -266,20 +259,16 @@ impl V2 {
         }
     }
 
-    /// Returns a tuple of (x, y).
     pub fn as_tuple(&self) -> (f32, f32) {
         (self.x, self.y)
     }
-    /// Returns an array [x, y].
     pub fn as_array(&self) -> [f32; 2] {
         [self.x, self.y]
     }
-    /// Returns a vector [x, y].
     pub fn as_vec(&self) -> Vec<f32> {
         vec![self.x, self.y]
     }
 
-    /// Returns a new V2 with rounded x and y values.
     #[must_use]
     pub fn round(&self) -> Self {
         Self {
@@ -287,12 +276,10 @@ impl V2 {
             y: self.y.round(),
         }
     }
-    /// Returns a new V2i with x and y values rounded to integers.
     pub fn round_to_int(&self) -> V2i {
         V2i::new(self.x.round() as i32, self.y.round() as i32)
     }
 
-    /// Returns a new V2 with ceiling of x and y values.
     #[must_use]
     pub fn ceil(&self) -> Self {
         Self {
@@ -300,12 +287,10 @@ impl V2 {
             y: self.y.ceil(),
         }
     }
-    /// Returns a new V2i with ceiling of x and y values converted to integers.
     pub fn ceil_to_int(&self) -> V2i {
         V2i::new(self.x.ceil() as i32, self.y.ceil() as i32)
     }
 
-    /// Returns a new V2 with floor of x and y values.
     #[must_use]
     pub fn floor(&self) -> Self {
         Self {
@@ -313,7 +298,6 @@ impl V2 {
             y: self.y.floor(),
         }
     }
-    /// Returns a new V2i with floor of x and y values converted to integers.
     pub fn floor_to_int(&self) -> V2i {
         V2i::new(self.x.floor() as i32, self.y.floor() as i32)
     }
@@ -396,16 +380,13 @@ impl V2 {
         (self.x - other.x).abs() + (self.y - other.y).abs()
     }
 
-    /// Returns the length (magnitude) of this vector.
     pub fn length(&self) -> f32 {
         self.length_squared().sqrt()
     }
-    /// Returns the squared length of this vector.
     pub fn length_squared(&self) -> f32 {
         self.x * self.x + self.y * self.y
     }
 
-    /// Returns the angle of this vector.
     pub fn angle(&self) -> Angle {
         let mut rad = self.y.atan2(self.x);
         if rad < 0.0 {
@@ -413,12 +394,10 @@ impl V2 {
         }
         Angle::from_rad(rad)
     }
-    /// Returns the angle from this vector to another vector.
     pub fn angle_to(&self, other: Self) -> Angle {
         (other - self).angle()
     }
 
-    /// Returns this vector normalized to a length of 1.0.
     #[must_use]
     pub fn normalize(&self) -> Self {
         let len = self.length();
@@ -428,13 +407,11 @@ impl V2 {
             *self / len
         }
     }
-    /// Returns this vector with the same direction but a specified length.
     #[must_use]
     pub fn normalize_to(&self, len: f32) -> Self {
         *self * len / self.length()
     }
 
-    /// Projects this vector onto another vector.
     #[must_use]
     pub fn project_onto(&self, other: Self) -> Self {
         let length_squared = other.length_squared();
@@ -445,7 +422,6 @@ impl V2 {
         )
     }
 
-    /// Returns a vector with the same direction but length clamped between min_len and max_len.
     #[must_use]
     pub fn clamp_len(&self, min_len: f32, max_len: f32) -> Self {
         let len = self.length();
@@ -465,12 +441,10 @@ impl V2 {
         V2::new(self.x.clamp(min.x, max.x), self.y.clamp(min.y, max.y))
     }
 
-    /// Returns a new V2 with a function applied to both x and y components.
     pub fn map<F: Fn(f32) -> f32>(&self, f: F) -> Self {
         V2::new(f(self.x), f(self.y))
     }
 
-    /// Returns a new V2 with square root applied to both components.
     #[must_use]
     pub fn sqrt(&self) -> Self {
         V2::new(self.x.sqrt(), self.y.sqrt())
@@ -532,7 +506,7 @@ impl V2 {
         V2Interpolator::new(
             *self,
             end,
-            sample_settings.get_num_points_for_length(distance) as usize,
+            sample_settings.num_points_for_length(distance) as usize,
         )
     }
 
@@ -570,7 +544,7 @@ impl V2 {
     #[must_use]
     pub fn towards(&self, other: Self, distance: f32) -> Self {
         let point_dist = self.dist(other);
-        let t = if point_dist <= LARGE_EPSILON {
+        let t = if point_dist <= LENGTH_TOLERANCE {
             0.0
         } else {
             distance / point_dist

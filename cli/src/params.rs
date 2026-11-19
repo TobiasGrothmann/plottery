@@ -1,4 +1,4 @@
-use plottery_project::{ProjectParam, ProjectParamValue as Value};
+use plottery_runtime::{ProjectParam, ProjectParamValue as Value};
 use std::collections::HashSet;
 
 /// One printed line: a param or nested field addressed by its dotted path.

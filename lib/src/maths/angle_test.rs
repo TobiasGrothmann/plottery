@@ -2,7 +2,7 @@
 mod test_angle {
     use std::f32::consts::PI;
 
-    use crate::{Angle, LARGE_EPSILON};
+    use crate::{Angle, ANGLE_TOLERANCE};
 
     #[test]
     fn angle_creation() {
@@ -31,9 +31,9 @@ mod test_angle {
         assert_eq!(a.to_rad(), b.to_rad());
         assert_eq!(a.to_rad(), c.to_rad());
 
-        assert_eq!(a.to_degree(), -90.0);
-        assert_eq!(a.to_degree(), b.to_degree());
-        assert_eq!(a.to_degree(), c.to_degree());
+        assert_eq!(a.to_degrees(), -90.0);
+        assert_eq!(a.to_degrees(), b.to_degrees());
+        assert_eq!(a.to_degrees(), c.to_degrees());
 
         assert_eq!(a.to_rotations(), -0.25);
         assert_eq!(a.to_rotations(), b.to_rotations());
@@ -51,7 +51,7 @@ mod test_angle {
 
         assert!(
             (a.mod_one_rotation().to_rad() - Angle::from_degrees(90.0).to_rad()).abs()
-                < LARGE_EPSILON
+                < ANGLE_TOLERANCE
         );
     }
 
@@ -62,22 +62,22 @@ mod test_angle {
         assert_eq!(angles.into_iter().sum::<Angle>(), Angle::from_degrees(30.0));
         assert_eq!(Angle::default(), Angle::zero());
         assert_eq!(2.0 * Angle::from_degrees(45.0), Angle::from_degrees(90.0));
-        assert!((Angle::golden_angle().to_degree() - 137.5).abs() < 0.01);
+        assert!((Angle::golden_angle().to_degrees() - 137.5).abs() < 0.01);
     }
 
     #[test]
     fn operators() {
         let a = Angle::from_degrees(180.0) + Angle::from_degrees(180.0);
-        assert_eq!(a.to_degree(), 360.0);
+        assert_eq!(a.to_degrees(), 360.0);
 
         let a = Angle::from_degrees(180.0) - Angle::from_degrees(180.0);
-        assert_eq!(a.to_degree(), 0.0);
+        assert_eq!(a.to_degrees(), 0.0);
 
         let a = Angle::from_degrees(180.0) * 2.0;
-        assert_eq!(a.to_degree(), 360.0);
+        assert_eq!(a.to_degrees(), 360.0);
 
         let a = Angle::from_degrees(360.0) / 2.0;
-        assert_eq!(a.to_degree(), 180.0);
+        assert_eq!(a.to_degrees(), 180.0);
     }
 
     #[test]
@@ -183,7 +183,7 @@ mod test_angle {
                     "from {} to {} -> distance: {}",
                     deg_a,
                     deg_b,
-                    a.dist_mod_one_rotation(b).to_degree()
+                    a.dist_mod_one_rotation(b).to_degrees()
                 );
                 assert!(a.dist_mod_one_rotation(b) >= Angle::zero());
                 assert!(a.dist_mod_one_rotation(b) <= Angle::half_rotation());

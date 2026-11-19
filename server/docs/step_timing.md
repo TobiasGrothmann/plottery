@@ -248,7 +248,7 @@ from the "actual today" column, which is what the machine was doing,
 then find the real limits:
 
 - Set the defaults to the measured actual speeds from 0.1 so the first run
-  matches today's physical behaviour (about draw 3.4, travel 4.7, head
+  matches today's physical behavior (about draw 3.4, travel 4.7, head
   down 2.7, head up 3.8 cm/s if the overhead is 60 µs; use the measured
   value).
 - Per axis, pen up: repeat 20 cm back-and-forth moves twenty times at a
@@ -295,7 +295,7 @@ the Pi, Abort included, do not wait for the radio to wake up.
 
 - `plottery.service`: `ExecStopPost=` running `pinctrl set <pin> op dh` for
   the four enable pins (14, 2, 8, 21). It runs even when the process was
-  killed, so a crash no longer leaves motors energised. `raspi-gpio` if
+  killed, so a crash no longer leaves motors energized. `raspi-gpio` if
   `pinctrl` is missing.
 - Root stays. rppal itself only needs the `gpio` group, but `SCHED_FIFO`
   without root needs an rlimit in the unit and the governor write needs
@@ -317,7 +317,7 @@ Cheap additions on the existing architecture, each independent:
   at the abort check, every 50 steps, and `GET /state` reads them off the
   plot thread. No lock in the step loop.
 - **Pause / continue.** `Task::Pause` sets a flag checked between shapes.
-  On pause: serialise the remaining shapes plus sample and plot settings
+  On pause: serialize the remaining shapes plus sample and plot settings
   to a fixed path, lift the head, travel to the origin, disable motors,
   report paused. `Task::Continue` loads the file, deletes it, enables
   motors and plots it; the travel to the first remaining shape is the
@@ -349,14 +349,14 @@ Any hardware-timed backend consumes an explicit schedule. That means:
 
 - A `StepEvent { t_ns, axis, forward }` stream produced lazily by the
   planner, sorted by time, never collected whole.
-- A closed-form time parameterisation per segment. With speed linear in
-  distance from `v0` to `v1` over length `L` (what `AccellerationPath`
+- A closed-form time parameterization per segment. With speed linear in
+  distance from `v0` to `v1` over length `L` (what `AccelerationPath`
   assumes today, `v_min > 0`): `t(s) = s / v0` if `v1 == v0`, else
   `L / (v1 - v0) × ln(v(s) / v0)`. X step `k` fires at
   `s = L × (k - ½) / |dx|`, Y likewise, merged by time; step sums are exact.
 - A pull-model `Stepper::run(events, progress)` trait with `SpinStepper`,
   `PigpioStepper` or `McuStepper` behind it. Heavy planning (sampling,
-  `AccellerationPath`) must happen where the machine is at `v_min`, which
+  `AccelerationPath`) must happen where the machine is at `v_min`, which
   today is every shape boundary.
 - Estimation becomes the sum of closed-form segment durations.
 - Abort becomes a generation counter set by the HTTP handler; the planner
@@ -366,7 +366,7 @@ Any hardware-timed backend consumes an explicit schedule. That means:
 Constant acceleration (`v² = v0² + 2as`, `t = (v - v0) / a`) would be a
 better profile: today's linear-in-distance ramp peaks at about twice the
 acceleration of a trapezoid with the same ramp distance, right where
-torque is lowest. It needs `AccellerationPath` to plan in `v²` space and
+torque is lowest. It needs `AccelerationPath` to plan in `v²` space and
 is its own change.
 
 ### pigpio DMA waves (works on the Pi 3, no hardware change)

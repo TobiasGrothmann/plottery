@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use plottery_project::project_param_value::ProjectParamValue;
+use plottery_runtime::project_param_value::ProjectParamValue;
 
 use crate::components::{
     icon::IconName,

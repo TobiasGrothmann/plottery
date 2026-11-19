@@ -20,15 +20,12 @@ pub struct Angle {
 }
 
 impl Angle {
-    /// Creates a zero angle.
     pub fn zero() -> Self {
         Self { rad: 0.0 }
     }
-    /// Creates a new angle from radians.
     pub fn from_rad(rad: f32) -> Self {
         Self { rad }
     }
-    /// Creates a new angle from degrees.
     pub fn from_degrees(degree: f32) -> Self {
         Self {
             rad: (degree / 360.0) * 2.0 * PI,
@@ -38,7 +35,7 @@ impl Angle {
     /// ```
     /// # use plottery_lib::*;
     /// let angle = Angle::from_rotations(0.25);
-    /// assert_eq!(angle.to_degree(), 90.0);
+    /// assert_eq!(angle.to_degrees(), 90.0);
     /// ```
     pub fn from_rotations(rotations: f32) -> Self {
         Self {
@@ -53,15 +50,12 @@ impl Angle {
         }
     }
 
-    /// Returns an angle representing a quarter rotation (90°).
     pub fn quarter_rotation() -> Self {
         Self::from_rotations(0.25)
     }
-    /// Returns an angle representing a half rotation (180°).
     pub fn half_rotation() -> Self {
         Self::from_rotations(0.5)
     }
-    /// Returns an angle representing a full rotation (360°).
     pub fn full_rotation() -> Self {
         Self::from_rotations(1.0)
     }
@@ -102,10 +96,6 @@ impl Angle {
         Self::from_degrees(-90.0)
     }
 
-    /// Creates an angle with the golden ratio number of rotations. See [`GOLDEN_RATIO`].
-    pub fn golden_ratio() -> Self {
-        Self::from_rotations(GOLDEN_RATIO)
-    }
     /// Creates an angle with 1.0 / golden ratio number of rotations. See [`GOLDEN_RATIO`].
     pub fn golden_ratio_inverse() -> Self {
         Self::from_rotations(1.0 / GOLDEN_RATIO)
@@ -114,24 +104,13 @@ impl Angle {
     pub fn golden_angle() -> Self {
         Self::from_rotations(1.0 - 1.0 / GOLDEN_RATIO)
     }
-    /// Creates an angle with √2 number of rotations.
-    pub fn root_two() -> Self {
-        Self::from_rotations(2.0_f32.sqrt())
-    }
-    /// Creates an angle with 1.0 / √2 number of rotations.
-    pub fn root_two_inverse() -> Self {
-        Self::from_rotations(1.0 / 2.0_f32.sqrt())
-    }
 
-    /// Gets the angle in radians.
     pub fn to_rad(&self) -> f32 {
         self.rad
     }
-    /// Gets the angle in degrees.
-    pub fn to_degree(&self) -> f32 {
+    pub fn to_degrees(&self) -> f32 {
         360.0 * (self.rad / (2.0 * PI))
     }
-    /// Gets the angle as a number of rotations.
     pub fn to_rotations(&self) -> f32 {
         self.rad / (2.0 * PI)
     }
@@ -156,7 +135,7 @@ impl Angle {
     /// ```
     /// # use plottery_lib::*;
     /// let angle = Angle::from_degrees(-90.0);
-    /// assert_eq!(angle.positive().to_degree(), 270.0);
+    /// assert_eq!(angle.positive().to_degrees(), 270.0);
     /// ```
     #[must_use]
     pub fn positive(&self) -> Self {
@@ -168,7 +147,6 @@ impl Angle {
         }
     }
 
-    /// Returns the absolute value of the angle.
     #[must_use]
     pub fn abs(&self) -> Self {
         Angle::from_rad(self.rad.abs())
@@ -243,7 +221,7 @@ impl Angle {
         AngleInterpolator::new(
             *self,
             end,
-            sample_settings.get_num_points_for_length(distance) as usize,
+            sample_settings.num_points_for_length(distance) as usize,
         )
     }
 
@@ -266,7 +244,6 @@ impl Angle {
         angle_diff_abs.min(Angle::full_rotation() - angle_diff_abs)
     }
 
-    /// Returns the smaller of `self` and `other`.
     pub fn min(&self, other: Angle) -> Angle {
         if self.rad < other.rad {
             *self
@@ -274,7 +251,6 @@ impl Angle {
             other
         }
     }
-    /// Returns the larger of `self` and `other`.
     pub fn max(&self, other: Angle) -> Angle {
         if self.rad > other.rad {
             *self
@@ -324,48 +300,5 @@ impl From<Angle> for f32 {
 impl From<f32> for Angle {
     fn from(rad: f32) -> Self {
         Self { rad }
-    }
-}
-
-pub trait ToAngle {
-    /// convert to [`Angle`] from degrees
-    fn degrees(self) -> Angle;
-    /// convert to [`Angle`] from number of rotations
-    fn rotations(self) -> Angle;
-    /// convert to [`Angle`] from radians
-    fn rad(self) -> Angle;
-}
-
-impl ToAngle for f32 {
-    /// new [`Angle`] from f32 as degrees
-    fn degrees(self) -> Angle {
-        Angle::from_degrees(self)
-    }
-
-    /// new [`Angle`] from f32 as number of rotations
-    fn rotations(self) -> Angle {
-        Angle::from_rotations(self)
-    }
-
-    /// new [`Angle`] from f32 as radians
-    fn rad(self) -> Angle {
-        Angle::from_rad(self)
-    }
-}
-
-impl ToAngle for i32 {
-    /// new [`Angle`] from i32 as degrees
-    fn degrees(self) -> Angle {
-        Angle::from_degrees(self as f32)
-    }
-
-    /// new [`Angle`] from i32 as number of rotations
-    fn rotations(self) -> Angle {
-        Angle::from_rotations(self as f32)
-    }
-
-    /// new [`Angle`] from i32 as radians
-    fn rad(self) -> Angle {
-        Angle::from_rad(self as f32)
     }
 }

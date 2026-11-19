@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test_matrix {
-    use crate::{geometry::TransformMatrix, Angle, V2};
+    use crate::{geometry::TransformMatrix, Angle, LENGTH_TOLERANCE, V2};
 
     #[test]
     fn multiply_matrix_0() {
@@ -92,7 +92,7 @@ mod test_matrix {
     }
 
     #[test]
-    fn mirror_x() {
+    fn mirror_y() {
         let t = TransformMatrix::mirror_y();
         let v = V2 { x: 1.0, y: 1.0 };
         let r = t.mul_vector(v);
@@ -101,7 +101,7 @@ mod test_matrix {
     }
 
     #[test]
-    fn mirror_y() {
+    fn mirror_x() {
         let t = TransformMatrix::mirror_x();
         let v = V2 { x: 1.0, y: 1.0 };
         let r = t.mul_vector(v);
@@ -162,6 +162,23 @@ mod test_matrix {
 
         println!("{:?}", r);
         assert_eq!(r, V2::new(1.0, 1.0));
+    }
+
+    #[test]
+    fn mul_operator_applies_right_hand_side_first() {
+        let rotate = TransformMatrix::rotate(Angle::quarter_rotation());
+        let translate = TransformMatrix::translate(V2::new(5.0, 0.0));
+        let v = V2::new(1.0, 0.0);
+
+        let translate_then_rotate = (rotate * translate).mul_vector(v);
+        let rotate_then_translate = (translate * rotate).mul_vector(v);
+
+        assert!(translate_then_rotate.dist(V2::new(0.0, 6.0)) < LENGTH_TOLERANCE);
+        assert!(rotate_then_translate.dist(V2::new(5.0, 1.0)) < LENGTH_TOLERANCE);
+        assert_eq!(
+            TransformMatrix::combine_transforms(&[translate, rotate]),
+            rotate * translate
+        );
     }
 
     #[test]

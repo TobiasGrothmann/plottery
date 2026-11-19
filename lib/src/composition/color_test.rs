@@ -24,7 +24,7 @@ mod test_color {
                 g: 0.4,
                 b: 0.8
             }
-            .get_name()
+            .name()
             .name,
             "Amethyst"
         );
@@ -34,7 +34,7 @@ mod test_color {
                 g: 0.405,
                 b: 0.79
             }
-            .get_name()
+            .name()
             .name,
             "Amethyst"
         );
@@ -44,13 +44,13 @@ mod test_color {
                 g: 0.1,
                 b: 0.8
             }
-            .get_name(),
+            .name(),
             ColorRgb {
                 r: 0.32,
                 g: 0.09,
                 b: 0.81
             }
-            .get_name()
+            .name()
         );
     }
 

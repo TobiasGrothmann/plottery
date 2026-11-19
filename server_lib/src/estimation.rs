@@ -6,7 +6,7 @@ use crate::{
     hardware::{Hardware, HardwareExecutor},
     pins::HARDWARE_CONSTS,
     plot_execution::{plot_layer, travel_to},
-    plot_setting::PlotSettings,
+    plot_settings::PlotSettings,
     Axis,
 };
 
@@ -116,14 +116,14 @@ impl PlotTimeline {
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct TimeEstimatorExecutor {
-    last_steps_timestamp_nanos: [u128; 3],
+    last_steps_timestamp_nanos: [u128; Axis::COUNT],
     now_nanos: u128,
 }
 
 impl TimeEstimatorExecutor {
     pub(crate) fn new() -> Self {
         Self {
-            last_steps_timestamp_nanos: [0, 0, 0],
+            last_steps_timestamp_nanos: [0; Axis::COUNT],
             now_nanos: 0,
         }
     }
@@ -142,28 +142,21 @@ impl HardwareExecutor for TimeEstimatorExecutor {
     fn set_dir(&mut self, _axis: Axis, _forward: bool) {}
 
     fn step(&mut self, axis: Axis) {
-        self.last_steps_timestamp_nanos[axis_to_index(axis)] = self.now_nanos;
+        self.last_steps_timestamp_nanos[axis.index()] = self.now_nanos;
     }
 
     fn wait_axis(&mut self, axis: Axis, delay_nanos: u32) {
-        let axis_i = axis_to_index(axis);
+        let axis_i = axis.index();
         let delay_nanos = delay_nanos as u128;
         let delay_until = self.last_steps_timestamp_nanos[axis_i] + delay_nanos;
         self.now_nanos = self.now_nanos.max(delay_until);
     }
 
     fn wait_xy(&mut self, delay_nanos: u32) {
-        let last_xy = self.last_steps_timestamp_nanos[0].max(self.last_steps_timestamp_nanos[1]);
+        let last_xy = self.last_steps_timestamp_nanos[Axis::X.index()]
+            .max(self.last_steps_timestamp_nanos[Axis::Y.index()]);
         self.now_nanos = self.now_nanos.max(last_xy + delay_nanos as u128);
     }
 
     fn set_enabled(&mut self, _enabled: bool) {}
-}
-
-fn axis_to_index(axis: Axis) -> usize {
-    match axis {
-        Axis::X => 0,
-        Axis::Y => 1,
-        Axis::Head => 2,
-    }
 }

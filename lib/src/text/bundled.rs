@@ -8,7 +8,7 @@ use plottery_fonts::{BundledFont, FontKind};
 use super::Font;
 
 impl Font {
-    /// A font shipped with Plottery, parsed once per process; see `plottery_fonts` for licences.
+    /// A font shipped with Plottery, parsed once per process; see `plottery_fonts` for licenses.
     ///
     /// ```
     /// # use plottery_lib::*;

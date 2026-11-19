@@ -14,7 +14,7 @@ mod test_poisson_disk {
         let points = PoissonDisk::new(bounds(), 0.1).points();
         assert!(points.len() > 400, "only {} points", points.len());
         assert!(points.iter().all(|p| bounds().contains_point(*p)));
-        for (a, b) in points.iter().tuple_combinations() {
+        for [a, b] in points.iter().array_combinations() {
             assert!(a.dist(*b) >= 0.1 - 1e-5, "{a:?} and {b:?} too close");
         }
     }
@@ -41,7 +41,7 @@ mod test_poisson_disk {
             .with_dist_fn(0.25, dist)
             .points();
         assert!(points.len() > 100, "only {} points", points.len());
-        for (a, b) in points.iter().tuple_combinations() {
+        for [a, b] in points.iter().array_combinations() {
             let needed = (dist(*a) + dist(*b)) * 0.5;
             assert!(a.dist(*b) >= needed - 1e-5, "{a:?} and {b:?} too close");
         }

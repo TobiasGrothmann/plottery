@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::{Angle, Layer, Path, Plottable, Rect, V2i, LARGE_EPSILON, V2};
+use crate::{Angle, Layer, Path, Plottable, Rect, V2i, LENGTH_TOLERANCE, V2};
 
 const SQRT_3: f32 = 1.732_050_8;
 
@@ -27,13 +27,13 @@ impl HexCell {
     /// Closed hexagon outline.
     #[must_use]
     pub fn outline(&self) -> Path {
-        Path::new_from(self.corners().to_vec()).closed()
+        Path::new_from(self.corners().to_vec()).close()
     }
 
     /// Six closed triangles between the center and adjacent corners.
     pub fn triangles(&self) -> [Path; 6] {
         std::array::from_fn(|i| {
-            Path::new_from(vec![self.center, self.corner(i), self.corner((i + 1) % 6)]).closed()
+            Path::new_from(vec![self.center, self.corner(i), self.corner((i + 1) % 6)]).close()
         })
     }
 }
@@ -113,8 +113,8 @@ impl HexGrid {
     /// `bounds` grown by an epsilon, so that points on the boundary count as inside.
     fn bounds_inclusive(&self) -> Rect {
         Rect::new(
-            self.bounds.bl() - V2::xy(LARGE_EPSILON),
-            self.bounds.tr() + V2::xy(LARGE_EPSILON),
+            self.bounds.bl() - V2::xy(LENGTH_TOLERANCE),
+            self.bounds.tr() + V2::xy(LENGTH_TOLERANCE),
         )
     }
 

@@ -31,16 +31,16 @@ impl Spline {
         self.segments.len()
     }
     pub fn start_point(&self) -> Option<V2> {
-        self.segments.first().map(Segment::from)
+        self.segments.first().map(Segment::start)
     }
     pub fn end_point(&self) -> Option<V2> {
-        self.segments.last().map(Segment::to)
+        self.segments.last().map(Segment::end)
     }
 
     /// The on-curve vertices: every segment start, plus the end if open.
     pub fn knots(&self) -> impl Iterator<Item = V2> + '_ {
         let end = if self.closed { None } else { self.end_point() };
-        self.segments.iter().map(Segment::from).chain(end)
+        self.segments.iter().map(Segment::start).chain(end)
     }
 
     /// All control points, knots included (for drawing handles).
@@ -67,8 +67,8 @@ impl Spline {
             Segment::Bezier(bezier) if bezier.degree() >= 2 => {
                 let controls = bezier.controls();
                 vec![
-                    Line::new(bezier.from(), controls[1]),
-                    Line::new(bezier.to(), controls[controls.len() - 2]),
+                    Line::new(bezier.start(), controls[1]),
+                    Line::new(bezier.end(), controls[controls.len() - 2]),
                 ]
             }
             _ => vec![],
@@ -115,9 +115,9 @@ impl Spline {
         Path::new_from(self.points(sample_settings))
     }
 
-    pub fn reversed(&self) -> Spline {
+    pub fn reverse(&self) -> Spline {
         Spline {
-            segments: self.segments.iter().rev().map(Segment::reversed).collect(),
+            segments: self.segments.iter().rev().map(Segment::reverse).collect(),
             closed: self.closed,
         }
     }
@@ -125,7 +125,7 @@ impl Spline {
     /// Appends a segment, which must start where the spline ends.
     pub fn push(&mut self, segment: Segment) {
         debug_assert!(
-            self.end_point().is_none_or(|end| end == segment.from()),
+            self.end_point().is_none_or(|end| end == segment.start()),
             "segment does not continue the spline"
         );
         self.segments.push(segment);

@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use plottery_server_lib::{plot_setting::SpeedRange, PlotSettings};
+use plottery_server_lib::{plot_settings::SpeedRange, PlotSettings};
 
 #[derive(PartialEq, Props, Clone)]
 pub struct PlotSettingsEditorProps {
@@ -47,7 +47,7 @@ fn speed_row(
             span { "cm/s" }
         }
         span { class: "affix affix-end",
-            {number_input(plot_settings, speed.accelleration_distance, format!("{label} acceleration distance in cm"), set_accel)}
+            {number_input(plot_settings, speed.acceleration_distance, format!("{label} acceleration distance in cm"), set_accel)}
             span { "cm" }
         }
     }
@@ -70,12 +70,12 @@ pub fn PlotSettingsEditor(props: PlotSettingsEditorProps) -> Element {
                 {speed_row(plot_settings, "Draw", &settings.speed_draw, [
                     |s, v| s.speed_draw.min = v,
                     |s, v| s.speed_draw.max = v,
-                    |s, v| s.speed_draw.accelleration_distance = v,
+                    |s, v| s.speed_draw.acceleration_distance = v,
                 ])}
                 {speed_row(plot_settings, "Travel", &settings.speed_travel, [
                     |s, v| s.speed_travel.min = v,
                     |s, v| s.speed_travel.max = v,
-                    |s, v| s.speed_travel.accelleration_distance = v,
+                    |s, v| s.speed_travel.acceleration_distance = v,
                 ])}
             }
             div { class: "fgrid",
@@ -96,12 +96,12 @@ pub fn PlotSettingsEditor(props: PlotSettingsEditorProps) -> Element {
                 {speed_row(plot_settings, "Down", &settings.speed_head_down, [
                     |s, v| s.speed_head_down.min = v,
                     |s, v| s.speed_head_down.max = v,
-                    |s, v| s.speed_head_down.accelleration_distance = v,
+                    |s, v| s.speed_head_down.acceleration_distance = v,
                 ])}
                 {speed_row(plot_settings, "Up", &settings.speed_head_up, [
                     |s, v| s.speed_head_up.min = v,
                     |s, v| s.speed_head_up.max = v,
-                    |s, v| s.speed_head_up.accelleration_distance = v,
+                    |s, v| s.speed_head_up.acceleration_distance = v,
                 ])}
             }
             div { class: "fgrid",

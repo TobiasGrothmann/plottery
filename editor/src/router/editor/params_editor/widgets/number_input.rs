@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
-use dioxus_logger::tracing;
 
 use super::format_number;
+use crate::router::editor::console_messages::ActiveConsole;
 
 #[derive(PartialEq, Props, Clone)]
 pub struct NumberInputProps {
@@ -37,7 +37,8 @@ pub fn NumberInput(props: NumberInputProps) -> Element {
             value: "{shown}",
             onchange: move |event| match event.value().trim().parse::<f32>() {
                 Ok(value) => props.oncommit.call(if integer { value.round() } else { value }),
-                Err(e) => tracing::error!("Error parsing number: {:?}", e),
+                Err(_) => consume_context::<ActiveConsole>()
+                    .error(&format!("'{}' is not a number", event.value())),
             },
         }
     };

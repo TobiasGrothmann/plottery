@@ -12,7 +12,7 @@ mod test_svg_path_data {
         assert!(matches!(spline.segments()[0], Segment::Line(_)));
         assert!(matches!(spline.segments()[1], Segment::Bezier(_)));
         assert!(matches!(spline.segments()[2], Segment::Line(_)));
-        assert_eq!(spline.segments()[2].to(), V2::new(0.0, 0.0));
+        assert_eq!(spline.segments()[2].end(), V2::new(0.0, 0.0));
     }
 
     #[test]
@@ -32,7 +32,7 @@ mod test_svg_path_data {
             panic!("expected a bezier");
         };
         assert_eq!(second.controls()[1], V2::new(4.0, -1.0));
-        assert_eq!(second.to(), V2::new(6.0, 0.0));
+        assert_eq!(second.end(), V2::new(6.0, 0.0));
     }
 
     #[test]

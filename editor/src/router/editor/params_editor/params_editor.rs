@@ -1,20 +1,18 @@
-use std::path::PathBuf;
-
 use dioxus::prelude::*;
 use dioxus_logger::tracing;
-use plottery_project::{
+use plottery_runtime::{
     project_param::ProjectParam, project_param_optional::ProjectParamOptional,
     project_param_struct::ProjectParamStruct, project_param_value::ProjectParamValue,
-    project_param_vec::ProjectParamVec, project_params_list_wrapper::ProjectParamsListWrapper,
+    project_param_vec::ProjectParamVec,
 };
 
 use crate::components::{
     icon::{Icon, IconName},
     ui::{Button, IconButton, Size, Switch, Variant},
 };
-use crate::model::app_state::AppState;
+use crate::model::app_state::{update_app_state, AppState};
 use crate::router::editor::{
-    console_messages::ConsoleMessages,
+    editor_ctx::EditorCtx,
     params_editor::{
         angle_field::AngleField,
         bool_field::BoolField,
@@ -37,19 +35,7 @@ use crate::router::editor::{
         string_field::StringField,
         v2_field::V2Field,
     },
-    project_runner::{trigger_run, ProjectRunner},
-    running_state::RunningState,
 };
-
-#[derive(PartialEq, Props, Clone)]
-pub struct ParamsEditorProps {
-    project_dir: PathBuf,
-    project_params: SyncSignal<ProjectParamsListWrapper>,
-    project_runner: SyncSignal<ProjectRunner>,
-    running_state: SyncSignal<RunningState>,
-    console: SyncSignal<ConsoleMessages>,
-    release: bool,
-}
 
 /// Props shared by all leaf widgets. `param` already has `Optional` unwrapped, `path` has not.
 #[derive(Props, Clone)]
@@ -58,12 +44,6 @@ pub struct LeafProps {
     pub path: Vec<String>,
     /// The project's default for `param`, `None` until the first run got the params.
     pub default: Option<ProjectParamValue>,
-    pub project_dir: PathBuf,
-    pub project_params: SyncSignal<ProjectParamsListWrapper>,
-    pub project_runner: SyncSignal<ProjectRunner>,
-    pub running_state: SyncSignal<RunningState>,
-    pub console: SyncSignal<ConsoleMessages>,
-    pub release: bool,
 }
 
 /// `ProjectParam` only compares its schema, so compare the value too or Dioxus will not re-render.
@@ -73,35 +53,23 @@ impl PartialEq for LeafProps {
             && self.param.value == other.param.value
             && self.path == other.path
             && self.default == other.default
-            && self.project_dir == other.project_dir
-            && self.project_params == other.project_params
-            && self.project_runner == other.project_runner
-            && self.running_state == other.running_state
-            && self.console == other.console
-            && self.release == other.release
     }
 }
 
 impl LeafProps {
-    fn new(param: ProjectParam, path: Vec<String>, props: &ParamsEditorProps) -> Self {
-        let default = get_default_leaf_value(&props.project_params.read().defaults, &path);
+    fn new(param: ProjectParam, path: Vec<String>, ctx: EditorCtx) -> Self {
+        let default = get_default_leaf_value(&ctx.project_params.read().defaults, &path);
         Self {
             param,
             path,
             default,
-            project_dir: props.project_dir.clone(),
-            project_params: props.project_params,
-            project_runner: props.project_runner,
-            running_state: props.running_state,
-            console: props.console,
-            release: props.release,
         }
     }
 
-    /// Applies `edit` to the leaf value at `path` and reruns the project.
+    /// Applies `edit` to the leaf value at `path` and reruns the project. For the widget's handlers.
     pub fn edit(&self, edit: impl FnOnce(&mut ProjectParamValue)) {
-        let mut project_params = self.project_params;
-        let mut new_params = project_params.read().clone();
+        let mut ctx = consume_context::<EditorCtx>();
+        let mut new_params = ctx.project_params.read().clone();
         match get_param_value_mut_by_path(&mut new_params.list, &self.path) {
             Some(value) => edit(leaf_value_mut(value)),
             None => {
@@ -109,26 +77,13 @@ impl LeafProps {
                 return;
             }
         }
-        project_params.set(new_params);
-        trigger_run(
-            self.project_runner,
-            self.running_state,
-            self.console,
-            self.release,
-        );
+        ctx.project_params.set(new_params);
+        ctx.trigger_run();
     }
 }
 
-fn set_optional_enabled(
-    path: &[String],
-    enabled: bool,
-    mut project_params: SyncSignal<ProjectParamsListWrapper>,
-    project_runner: SyncSignal<ProjectRunner>,
-    running_state: SyncSignal<RunningState>,
-    console: SyncSignal<ConsoleMessages>,
-    release: bool,
-) {
-    let mut new_params = project_params.read().clone();
+fn set_optional_enabled(path: &[String], enabled: bool, mut ctx: EditorCtx) {
+    let mut new_params = ctx.project_params.read().clone();
     if let Some(param_field) = get_param_mut_by_path(&mut new_params.list, path) {
         if let ProjectParamValue::Optional(optional) = &mut param_field.value {
             optional.enabled = enabled;
@@ -141,19 +96,12 @@ fn set_optional_enabled(
         return;
     }
 
-    project_params.set(new_params);
-    trigger_run(project_runner, running_state, console, release);
+    ctx.project_params.set(new_params);
+    ctx.trigger_run();
 }
 
-fn add_vec_item(
-    path: &[String],
-    mut project_params: SyncSignal<ProjectParamsListWrapper>,
-    project_runner: SyncSignal<ProjectRunner>,
-    running_state: SyncSignal<RunningState>,
-    console: SyncSignal<ConsoleMessages>,
-    release: bool,
-) {
-    let mut new_params = project_params.read().clone();
+fn add_vec_item(path: &[String], mut ctx: EditorCtx) {
+    let mut new_params = ctx.project_params.read().clone();
     if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, path) {
         match param_value {
             ProjectParamValue::Vec(vec_value) => {
@@ -180,20 +128,12 @@ fn add_vec_item(
         return;
     }
 
-    project_params.set(new_params);
-    trigger_run(project_runner, running_state, console, release);
+    ctx.project_params.set(new_params);
+    ctx.trigger_run();
 }
 
-fn remove_vec_item(
-    path: &[String],
-    index: usize,
-    mut project_params: SyncSignal<ProjectParamsListWrapper>,
-    project_runner: SyncSignal<ProjectRunner>,
-    running_state: SyncSignal<RunningState>,
-    console: SyncSignal<ConsoleMessages>,
-    release: bool,
-) {
-    let mut new_params = project_params.read().clone();
+fn remove_vec_item(path: &[String], index: usize, mut ctx: EditorCtx) {
+    let mut new_params = ctx.project_params.read().clone();
     if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, path) {
         match param_value {
             ProjectParamValue::Vec(vec_value) => {
@@ -230,11 +170,11 @@ fn remove_vec_item(
         return;
     }
 
-    project_params.set(new_params);
-    trigger_run(project_runner, running_state, console, release);
+    ctx.project_params.set(new_params);
+    ctx.trigger_run();
 }
 
-fn render_leaf_param(param: ProjectParam, path: Vec<String>, props: &ParamsEditorProps) -> Element {
+fn render_leaf_param(param: ProjectParam, path: Vec<String>, ctx: EditorCtx) -> Element {
     let key = path.join(".");
     match &param.value {
         ProjectParamValue::Float(_) | ProjectParamValue::Int(_) => {
@@ -243,17 +183,12 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, props: &ParamsEdito
                     key: "{key}",
                     param,
                     path,
-                    project_params: props.project_params,
-                    project_runner: props.project_runner,
-                    running_state: props.running_state,
-                    console: props.console,
-                    release: props.release,
                 }
             }
         }
         ProjectParamValue::FloatRanged { .. } | ProjectParamValue::IntRanged { .. } => {
             rsx! {
-                Slider { key: "{key}", ..LeafProps::new(param, path, props) }
+                Slider { key: "{key}", ..LeafProps::new(param, path, ctx) }
             }
         }
         ProjectParamValue::Bool(_) => {
@@ -262,11 +197,6 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, props: &ParamsEdito
                     key: "{key}",
                     param,
                     path,
-                    project_params: props.project_params,
-                    project_runner: props.project_runner,
-                    running_state: props.running_state,
-                    console: props.console,
-                    release: props.release,
                 }
             }
         }
@@ -276,72 +206,67 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, props: &ParamsEdito
                     key: "{key}",
                     param,
                     path,
-                    project_params: props.project_params,
-                    project_runner: props.project_runner,
-                    running_state: props.running_state,
-                    console: props.console,
-                    release: props.release,
                 }
             }
         }
         ProjectParamValue::Enum(_) => {
             rsx! {
-                EnumField { key: "{key}", ..LeafProps::new(param, path, props) }
+                EnumField { key: "{key}", ..LeafProps::new(param, path, ctx) }
             }
         }
         ProjectParamValue::String(_) => {
             rsx! {
-                StringField { key: "{key}", ..LeafProps::new(param, path, props) }
+                StringField { key: "{key}", ..LeafProps::new(param, path, ctx) }
             }
         }
         ProjectParamValue::Paper(_) => {
             rsx! {
-                PaperField { key: "{key}", ..LeafProps::new(param, path, props) }
+                PaperField { key: "{key}", ..LeafProps::new(param, path, ctx) }
             }
         }
         ProjectParamValue::RangeF32 { .. } | ProjectParamValue::RangeI32 { .. } => {
             rsx! {
-                RangeField { key: "{key}", ..LeafProps::new(param, path, props) }
+                RangeField { key: "{key}", ..LeafProps::new(param, path, ctx) }
             }
         }
         ProjectParamValue::Angle { .. } => {
             rsx! {
-                AngleField { key: "{key}", ..LeafProps::new(param, path, props) }
+                AngleField { key: "{key}", ..LeafProps::new(param, path, ctx) }
             }
         }
         ProjectParamValue::V2(_) | ProjectParamValue::V2i(_) => {
             rsx! {
-                V2Field { key: "{key}", ..LeafProps::new(param, path, props) }
+                V2Field { key: "{key}", ..LeafProps::new(param, path, ctx) }
             }
         }
         ProjectParamValue::Seed(_) => {
             rsx! {
-                SeedField { key: "{key}", ..LeafProps::new(param, path, props) }
+                SeedField { key: "{key}", ..LeafProps::new(param, path, ctx) }
             }
         }
         ProjectParamValue::Image(_) | ProjectParamValue::Svg(_) => {
             rsx! {
-                FileField { key: "{key}", ..LeafProps::new(param, path, props) }
+                FileField { key: "{key}", ..LeafProps::new(param, path, ctx) }
             }
         }
         ProjectParamValue::Noise(_) => {
             rsx! {
-                NoiseField { key: "{key}", ..LeafProps::new(param, path, props) }
+                NoiseField { key: "{key}", ..LeafProps::new(param, path, ctx) }
             }
         }
         ProjectParamValue::Easing(_) => {
             rsx! {
-                EasingField { key: "{key}", ..LeafProps::new(param, path, props) }
+                EasingField { key: "{key}", ..LeafProps::new(param, path, ctx) }
             }
         }
         ProjectParamValue::Color(_) => {
             rsx! {
-                ColorField { key: "{key}", ..LeafProps::new(param, path, props) }
+                ColorField { key: "{key}", ..LeafProps::new(param, path, ctx) }
             }
         }
         ProjectParamValue::Font(_) => {
             rsx! {
-                FontField { key: "{key}", ..LeafProps::new(param, path, props) }
+                FontField { key: "{key}", ..LeafProps::new(param, path, ctx) }
             }
         }
         ProjectParamValue::Struct(_)
@@ -357,14 +282,14 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, props: &ParamsEdito
 fn render_struct_value(
     param_struct: ProjectParamStruct,
     path: Vec<String>,
-    props: &ParamsEditorProps,
+    ctx: EditorCtx,
 ) -> Element {
     rsx! {
         for child in param_struct.fields.into_iter() {
             {
                 let mut child_path = path.clone();
                 child_path.push(child.name.clone());
-                render_named_param(child, child_path, props, true)
+                render_named_param(child, child_path, ctx, true)
             }
         }
     }
@@ -374,36 +299,21 @@ fn render_optional_value(
     param_name: &str,
     optional: ProjectParamOptional,
     path: Vec<String>,
-    props: &ParamsEditorProps,
+    ctx: EditorCtx,
 ) -> Element {
     let enabled = optional.enabled;
     let path_for_switch = path.clone();
-    let project_params = props.project_params;
-    let project_runner = props.project_runner;
-    let running_state = props.running_state;
-    let console = props.console;
-    let release = props.release;
 
     rsx! {
         div { class: "hrow opt-row",
             Switch {
                 checked: enabled,
                 aria_label: "Set {param_name}",
-                onchange: move |enabled: bool| {
-                    set_optional_enabled(
-                        &path_for_switch,
-                        enabled,
-                        project_params,
-                        project_runner,
-                        running_state,
-                        console,
-                        release,
-                    );
-                },
+                onchange: move |enabled: bool| set_optional_enabled(&path_for_switch, enabled, ctx),
             }
             if enabled {
                 div { class: "grow pctl",
-                    {render_value_without_label(param_name.to_string(), *optional.value, path, props)}
+                    {render_value_without_label(param_name.to_string(), *optional.value, path, ctx)}
                 }
             }
         }
@@ -414,17 +324,17 @@ fn render_value_without_label(
     param_name: String,
     value: ProjectParamValue,
     path: Vec<String>,
-    props: &ParamsEditorProps,
+    ctx: EditorCtx,
 ) -> Element {
     match value {
-        ProjectParamValue::Struct(param_struct) => render_struct_value(param_struct, path, props),
+        ProjectParamValue::Struct(param_struct) => render_struct_value(param_struct, path, ctx),
         ProjectParamValue::Optional(optional) => {
-            render_optional_value(param_name.as_str(), optional, path, props)
+            render_optional_value(param_name.as_str(), optional, path, ctx)
         }
-        ProjectParamValue::Vec(vec_value) => render_vec_value(param_name, vec_value, path, props),
+        ProjectParamValue::Vec(vec_value) => render_vec_value(param_name, vec_value, path, ctx),
         value => {
             let param = ProjectParam::new(param_name.as_str(), value);
-            render_leaf_param(param, path, props)
+            render_leaf_param(param, path, ctx)
         }
     }
 }
@@ -433,14 +343,9 @@ fn render_vec_value(
     param_name: String,
     vec_value: ProjectParamVec,
     path: Vec<String>,
-    props: &ParamsEditorProps,
+    ctx: EditorCtx,
 ) -> Element {
     let vec_path_for_add = path.clone();
-    let project_params_for_add = props.project_params;
-    let project_runner_for_add = props.project_runner;
-    let running_state_for_add = props.running_state;
-    let console_for_add = props.console;
-    let release_for_add = props.release;
 
     rsx! {
         div { class: "pvec",
@@ -450,34 +355,19 @@ fn render_vec_value(
                     item_path.push(format!("[{index}]"));
 
                     let vec_path_for_remove = path.clone();
-                    let project_params_for_remove = props.project_params;
-                    let project_runner_for_remove = props.project_runner;
-                    let running_state_for_remove = props.running_state;
-                    let console_for_remove = props.console;
-                    let release_for_remove = props.release;
                     let item_key = item_path.join("_");
 
                     rsx! {
                         div { class: "vec-item", key: "{item_key}",
                             span { class: "mono vec-index", "#{index}" }
                             div { class: "grow pctl",
-                                {render_value_without_label(param_name.clone(), item, item_path, props)}
+                                {render_value_without_label(param_name.clone(), item, item_path, ctx)}
                             }
                             IconButton {
                                 icon: IconName::X,
                                 label: "Remove item",
                                 size: Size::Sm,
-                                onclick: move |_| {
-                                    remove_vec_item(
-                                        &vec_path_for_remove,
-                                        index,
-                                        project_params_for_remove,
-                                        project_runner_for_remove,
-                                        running_state_for_remove,
-                                        console_for_remove,
-                                        release_for_remove,
-                                    );
-                                },
+                                onclick: move |_| remove_vec_item(&vec_path_for_remove, index, ctx),
                             }
                         }
                     }
@@ -488,16 +378,7 @@ fn render_vec_value(
                     variant: Variant::Dashed,
                     size: Size::Sm,
                     icon: IconName::Plus,
-                    onclick: move |_| {
-                        add_vec_item(
-                            &vec_path_for_add,
-                            project_params_for_add,
-                            project_runner_for_add,
-                            running_state_for_add,
-                            console_for_add,
-                            release_for_add,
-                        );
-                    },
+                    onclick: move |_| add_vec_item(&vec_path_for_add, ctx),
                     "Add item"
                 }
             }
@@ -525,29 +406,29 @@ fn child_path(parent: &[String], name: &str) -> Vec<String> {
     parent.iter().cloned().chain([name.to_string()]).collect()
 }
 
-fn section_state_key(props: &ParamsEditorProps, section_path: &str) -> String {
-    format!("{}#{}", props.project_dir.to_string_lossy(), section_path)
+fn section_state_key(ctx: EditorCtx, section_path: &str) -> String {
+    format!(
+        "{}#{}",
+        ctx.project.read().dir.to_string_lossy(),
+        section_path
+    )
 }
 
 /// Renders full-width rows, wrapping runs of params that share a `#[section]` in a `ParamSection`.
-fn render_param_list(
-    params: &[ProjectParam],
-    parent: &[String],
-    props: &ParamsEditorProps,
-) -> Element {
+fn render_param_list(params: &[ProjectParam], parent: &[String], ctx: EditorCtx) -> Element {
     // Flat list so every sibling is keyed; Dioxus panics on mixed keyed/unkeyed siblings.
     let groups = params
         .chunk_by(|a, b| a.section == b.section)
         .flat_map(|group| {
             let rows = group
                 .iter()
-                .map(|param| render_named_param(param.clone(), child_path(parent, &param.name), props, false))
+                .map(|param| render_named_param(param.clone(), child_path(parent, &param.name), ctx, false))
                 .collect::<Vec<_>>();
             match &group[0].section {
                 None => rows,
                 Some(title) => {
                     let section_path = child_path(parent, &format!("§{title}")).join(".");
-                    let state_key = section_state_key(props, &section_path);
+                    let state_key = section_state_key(ctx, &section_path);
                     vec![rsx! {
                         ParamSection { key: "{state_key}", state_key: state_key.clone(), title: title.clone(),
                             {rows.into_iter()}
@@ -561,11 +442,7 @@ fn render_param_list(
 }
 
 /// A `Struct` or `Option<Struct>` param as a collapsible section; `None` for any other value.
-fn render_struct_section(
-    param: &ProjectParam,
-    path: &[String],
-    props: &ParamsEditorProps,
-) -> Option<Element> {
+fn render_struct_section(param: &ProjectParam, path: &[String], ctx: EditorCtx) -> Option<Element> {
     let (fields, enabled) = match &param.value {
         ProjectParamValue::Struct(param_struct) => (&param_struct.fields, None),
         ProjectParamValue::Optional(optional) => match optional.value.as_ref() {
@@ -576,27 +453,10 @@ fn render_struct_section(
         },
         _ => return None,
     };
-    let state_key = section_state_key(props, &path.join("."));
+    let state_key = section_state_key(ctx, &path.join("."));
     let path_for_switch = path.to_vec();
-    let (project_params, project_runner, running_state, console, release) = (
-        props.project_params,
-        props.project_runner,
-        props.running_state,
-        props.console,
-        props.release,
-    );
     let on_enabled = enabled.map(|_| {
-        EventHandler::new(move |enabled: bool| {
-            set_optional_enabled(
-                &path_for_switch,
-                enabled,
-                project_params,
-                project_runner,
-                running_state,
-                console,
-                release,
-            )
-        })
+        EventHandler::new(move |enabled: bool| set_optional_enabled(&path_for_switch, enabled, ctx))
     });
     Some(rsx! {
         ParamSection {
@@ -606,7 +466,7 @@ fn render_struct_section(
             description: param.description.clone(),
             enabled,
             on_enabled,
-            {render_param_list(fields, path, props)}
+            {render_param_list(fields, path, ctx)}
         }
     })
 }
@@ -621,8 +481,10 @@ fn ParamSection(
     on_enabled: Option<EventHandler<bool>>,
     children: Element,
 ) -> Element {
+    let app_state = use_context::<Signal<AppState>>();
     let mut collapsed = use_signal(|| {
-        AppState::load_or_default()
+        app_state
+            .peek()
             .collapsed_param_sections
             .contains(&state_key)
     });
@@ -641,9 +503,7 @@ fn ParamSection(
                     "aria-expanded": if open { "true" } else { "false" },
                     onclick: move |_| {
                         collapsed.set(!collapsed());
-                        let mut state = AppState::load_or_default();
-                        state.toggle_param_section(toggle_key.clone());
-                        state.save();
+                        update_app_state(app_state, |state| state.toggle_param_section(toggle_key.clone()));
                     },
                     Icon {
                         name: IconName::ChevronDown,
@@ -670,11 +530,11 @@ fn ParamSection(
 fn render_named_param(
     param: ProjectParam,
     path: Vec<String>,
-    props: &ParamsEditorProps,
+    ctx: EditorCtx,
     compact: bool,
 ) -> Element {
     if !compact {
-        if let Some(section) = render_struct_section(&param, &path, props) {
+        if let Some(section) = render_struct_section(&param, &path, ctx) {
             return section;
         }
     }
@@ -695,7 +555,7 @@ fn render_named_param(
     } else {
         "sub"
     };
-    let control = render_value_without_label(param.name, param.value, path, props);
+    let control = render_value_without_label(param.name, param.value, path, ctx);
 
     if compact {
         rsx! {
@@ -725,10 +585,11 @@ fn render_named_param(
 }
 
 #[component]
-pub fn ParamsEditor(props: ParamsEditorProps) -> Element {
-    let params = props.project_params.read().list.clone();
+pub fn ParamsEditor() -> Element {
+    let ctx = use_context::<EditorCtx>();
+    let params = ctx.project_params.read().list.clone();
     rsx! {
         style { {include_str!("params_editor.css")} }
-        div { class: "ParamsEditor", {render_param_list(&params, &[], &props)} }
+        div { class: "ParamsEditor", {render_param_list(&params, &[], ctx)} }
     }
 }

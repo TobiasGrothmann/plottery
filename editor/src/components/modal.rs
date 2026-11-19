@@ -11,7 +11,6 @@ const field = modal && modal.querySelector('.modal-body input:not([type=checkbox
 (field || document.querySelector('.scrim')).focus();
 "#;
 
-#[allow(dead_code)]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum ModalWidth {
     #[default]

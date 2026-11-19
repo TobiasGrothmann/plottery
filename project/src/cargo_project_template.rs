@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use path_absolutize::Absolutize;
 use rust_embed::RustEmbed;
 use std::path::{Path, PathBuf};
@@ -24,6 +24,50 @@ pub enum LibSource {
     CratesIO,
 }
 
+const RUST_KEYWORDS: &[&str] = &[
+    "Self", "abstract", "as", "async", "await", "become", "box", "break", "const", "continue",
+    "crate", "do", "dyn", "else", "enum", "extern", "false", "final", "fn", "for", "gen", "if",
+    "impl", "in", "let", "loop", "macro", "match", "mod", "move", "mut", "override", "priv", "pub",
+    "ref", "return", "self", "static", "struct", "super", "trait", "true", "try", "type", "typeof",
+    "unsafe", "unsized", "use", "virtual", "where", "while", "yield",
+];
+
+/// Names Cargo refuses or that clash with the template's dependencies.
+const RESERVED_NAMES: &[&str] = &[
+    "test",
+    "core",
+    "std",
+    "alloc",
+    "proc_macro",
+    "plottery_lib",
+    "plottery_runtime",
+];
+
+/// A project name is also its folder and Cargo package name, so it has to be a valid one.
+pub fn validate_project_name(name: &str) -> Result<()> {
+    let Some(first) = name.chars().next() else {
+        bail!("The project name is empty");
+    };
+    if let Some(invalid) = name
+        .chars()
+        .find(|c| !(c.is_ascii_alphanumeric() || matches!(c, '_' | '-')))
+    {
+        bail!(
+            "Invalid project name '{name}': '{invalid}' is not allowed, use letters, digits, '_' and '-'"
+        );
+    }
+    if !(first.is_ascii_alphabetic() || first == '_') {
+        bail!("Invalid project name '{name}': it has to start with a letter or '_'");
+    }
+    if RUST_KEYWORDS.contains(&name) {
+        bail!("Invalid project name '{name}': it is a Rust keyword");
+    }
+    if RESERVED_NAMES.contains(&name) {
+        bail!("Invalid project name '{name}': the name is reserved");
+    }
+    Ok(())
+}
+
 struct Replacement {
     from: String,
     to: String,
@@ -36,14 +80,9 @@ fn get_plottery_subcrate(
 ) -> Result<String> {
     let lib_source_for_toml = match lib_source {
         LibSource::PlotteryHome => {
-            let plottery_home = match std::env::var("PLOTTERY_HOME") {
-                Ok(home) => Path::new(&home).to_path_buf(),
-                Err(_) => {
-                    return Err(anyhow::anyhow!(
-                        "Environment variable PLOTTERY_HOME is not set"
-                    ));
-                }
-            };
+            let plottery_home = crate::plottery_home()?.ok_or_else(|| {
+                anyhow::anyhow!("Plottery home is not set, run `plottery set-home <path>`")
+            })?;
             let plottery_home_lib = plottery_home
                 .join(plottery_home_subdir)
                 .absolutize()
@@ -51,7 +90,7 @@ fn get_plottery_subcrate(
                 .to_path_buf();
             if !plottery_home_lib.exists() {
                 return Err(anyhow::anyhow!(
-                    "PLOTTERY_HOME/lib does not exist at: {}",
+                    "Plottery home has no '{plottery_home_subdir}' folder at: {}",
                     plottery_home_lib.to_string_lossy()
                 ));
             }
@@ -85,8 +124,8 @@ pub fn generate_cargo_project_to_disk(
     std::fs::create_dir_all(&out_dir)?;
 
     let plottery_lib_include = get_plottery_subcrate("lib", &lib_source, "plottery_lib")?;
-    let plottery_project_include =
-        get_plottery_subcrate("project", &lib_source, "plottery_project")?;
+    let plottery_runtime_include =
+        get_plottery_subcrate("runtime", &lib_source, "plottery_runtime")?;
 
     let string_replacements = vec![
         Replacement {
@@ -94,8 +133,8 @@ pub fn generate_cargo_project_to_disk(
             to: plottery_lib_include,
         },
         Replacement {
-            from: "{{plottery-project-include}}".to_string(),
-            to: plottery_project_include,
+            from: "{{plottery-runtime-include}}".to_string(),
+            to: plottery_runtime_include,
         },
         Replacement {
             from: "{{project-name}}".to_string(),

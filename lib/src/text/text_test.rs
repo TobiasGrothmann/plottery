@@ -22,8 +22,8 @@ mod test_text {
     #[test]
     fn centered_two_lines() {
         let layout = Text::new("AV\nA", &font())
-            .size(1.0)
-            .align(TextAlign::Center)
+            .with_size(1.0)
+            .with_align(TextAlign::Center)
             .layout()
             .unwrap();
         assert_eq!(layout.glyphs.len(), 3);
@@ -41,7 +41,7 @@ mod test_text {
     #[test]
     fn wraps_at_max_width() {
         let layout = Text::new("AA AA AA", &font())
-            .max_width(2.8)
+            .with_max_width(2.8)
             .layout()
             .unwrap();
         assert_eq!(layout.lines.len(), 2);
@@ -53,7 +53,7 @@ mod test_text {
     #[test]
     fn hyphen_break_keeps_the_hyphen_on_the_line() {
         let layout = Text::new("AA-AA AA", &font())
-            .max_width(2.0)
+            .with_max_width(2.0)
             .layout()
             .unwrap();
         assert_eq!(layout.lines.len(), 3);
@@ -65,8 +65,8 @@ mod test_text {
     #[test]
     fn anywhere_breaks_mid_word_and_drops_leading_spaces() {
         let layout = Text::new("AA AA", &font())
-            .max_width(1.3)
-            .wrap(Wrap::Anywhere)
+            .with_max_width(1.3)
+            .with_wrap(Wrap::Anywhere)
             .layout()
             .unwrap();
         assert_eq!(layout.lines.len(), 2);
@@ -81,8 +81,8 @@ mod test_text {
     #[test]
     fn justify_stretches_all_but_the_last_line() {
         let layout = Text::new("AA AA AA", &font())
-            .max_width(2.8)
-            .align(TextAlign::Justify)
+            .with_max_width(2.8)
+            .with_align(TextAlign::Justify)
             .layout()
             .unwrap();
         assert!((layout.lines[0].width - 2.8).abs() < 1e-6);
@@ -94,9 +94,9 @@ mod test_text {
     #[test]
     fn letter_spacing_and_anchor() {
         let layout = Text::new("AA", &font())
-            .letter_spacing(0.1)
+            .with_letter_spacing(0.1)
             .at(V2::new(2.0, 3.0))
-            .vertical_align(VerticalAlign::Top)
+            .with_vertical_align(VerticalAlign::Top)
             .layout()
             .unwrap();
         assert!((layout.lines[0].width - 1.3).abs() < 1e-6);
@@ -111,7 +111,7 @@ mod test_text {
     #[test]
     fn fit_width_includes_letter_spacing() {
         let layout = Text::new("AA\nAAA AA", &font())
-            .letter_spacing(0.1)
+            .with_letter_spacing(0.1)
             .fit_width(5.0)
             .layout()
             .unwrap();
@@ -126,7 +126,7 @@ mod test_text {
         let rect = Rect::new(V2::zero(), V2::new(3.0, 2.0));
         let layout = Text::new("AA AA AA", &font())
             .fit_inside(rect)
-            .vertical_align(VerticalAlign::Top)
+            .with_vertical_align(VerticalAlign::Top)
             .layout()
             .unwrap();
         // two lines: height (1.0 + 1.25) * size == 2.0 limits before the width does
@@ -138,9 +138,9 @@ mod test_text {
         assert!((layout.lines[1].origin.y - 0.2 * size).abs() < 1e-4);
 
         let bigger = Text::new("AA AA AA", &font())
-            .size(size * 1.05)
+            .with_size(size * 1.05)
             .in_rect(rect)
-            .vertical_align(VerticalAlign::Top)
+            .with_vertical_align(VerticalAlign::Top)
             .layout()
             .unwrap();
         assert_eq!(bigger.lines.len(), 2);
@@ -152,8 +152,8 @@ mod test_text {
         let rect = Rect::new(V2::new(1.0, 1.0), V2::new(5.0, 4.0));
         let layout = Text::new("AA", &font())
             .in_rect(rect)
-            .align(TextAlign::Right)
-            .vertical_align(VerticalAlign::Top)
+            .with_align(TextAlign::Right)
+            .with_vertical_align(VerticalAlign::Top)
             .layout()
             .unwrap();
         assert!(close(layout.lines[0].origin, V2::new(5.0 - 1.2, 4.0 - 0.8)));
@@ -168,7 +168,7 @@ mod test_text {
     fn rotation_turns_the_block_around_the_anchor() {
         let layout = Text::new("AA", &font())
             .at(V2::new(2.0, 3.0))
-            .rotation(Angle::quarter_rotation())
+            .with_rotation(Angle::quarter_rotation())
             .layout()
             .unwrap();
         assert!(close(layout.lines[0].origin, V2::new(2.0, 3.0)));
@@ -183,7 +183,7 @@ mod test_text {
             .unwrap();
         assert_eq!(layer.shapes.len(), 5);
         assert!(layer.shapes.iter().all(|shape| {
-            matches!(shape, crate::Shape::Path(path) if path.get_points_ref().len() >= 2)
+            matches!(shape, crate::Shape::Path(path) if path.as_slice().len() >= 2)
         }));
         let by_line = Text::new("AV\nA", &font())
             .layout()
@@ -195,7 +195,7 @@ mod test_text {
 
     #[test]
     fn cap_height_sets_the_size() {
-        let text = Text::new("A", &font()).cap_height(1.4);
+        let text = Text::new("A", &font()).with_cap_height(1.4);
         let bounds = text.bounding_box().unwrap().unwrap();
         assert!((bounds.height() - 1.4).abs() < 1e-6);
     }

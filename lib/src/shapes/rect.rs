@@ -1,7 +1,9 @@
+use super::containment::contains_shape_by_variant;
+use super::path::segments_intersect_or_touch;
 use crate::{
     traits::{bounds_may_touch, ClosestPoint, Fit, Scale, Scale2D, Translate},
-    Angle, BoundingBox, Circle, Containment, Line, LineIntersection, Mirror, Path, Plottable,
-    PointLineRelation, Rotate, Rotate90, SampleSettings, Shape, LARGE_EPSILON, V2,
+    Angle, BoundingBox, Circle, Containment, Line, Mirror, Path, Plottable, Rotate, Rotate90,
+    SampleSettings, Shape, LENGTH_TOLERANCE, V2,
 };
 use serde::{Deserialize, Serialize};
 
@@ -98,12 +100,12 @@ impl Rect {
 
     /// The outline rotated around the rect's center; a rotated rect is a [`Path`].
     #[must_use]
-    pub fn rotated(&self, angle: Angle) -> Path {
-        self.rotated_around(self.center(), angle)
+    pub fn rotate(&self, angle: Angle) -> Path {
+        self.rotate_around(self.center(), angle)
     }
     /// The outline rotated around `pivot`; a rotated rect is a [`Path`].
     #[must_use]
-    pub fn rotated_around(&self, pivot: V2, angle: Angle) -> Path {
+    pub fn rotate_around(&self, pivot: V2, angle: Angle) -> Path {
         self.to_path(SampleSettings::default())
             .rotate_around(pivot, angle)
     }
@@ -153,7 +155,7 @@ impl Rect {
         self.width() / self.height()
     }
     pub fn is_square(&self) -> bool {
-        (self.width() - self.height()).abs() < LARGE_EPSILON
+        (self.width() - self.height()).abs() < LENGTH_TOLERANCE
     }
 
     pub fn area(&self) -> f32 {
@@ -161,22 +163,22 @@ impl Rect {
     }
 
     /// Path to draw a rect with a given thickness.
-    /// It creates a spiralling path from the rectangle border towards the center with `thickness`.
+    /// It creates a spiraling path from the rectangle border towards the center with `thickness`.
     pub fn filled_partially_towards_center(
         &self,
         mut thickness: f32,
         pen_width: f32,
     ) -> super::Path {
-        if pen_width <= LARGE_EPSILON {
-            return Path::new_from(self.get_points(SampleSettings::default()));
+        if pen_width <= LENGTH_TOLERANCE {
+            return Path::new_from(self.points(SampleSettings::default()));
         }
 
         let max_thickness_x = (self.width() * 0.5 - pen_width * 0.5).max(0.0);
         let max_thickness_y = (self.height() * 0.5 - pen_width * 0.5).max(0.0);
         thickness = thickness.min(max_thickness_x.min(max_thickness_y));
 
-        if thickness <= LARGE_EPSILON {
-            return Path::new_from(self.get_points(SampleSettings::default()));
+        if thickness <= LENGTH_TOLERANCE {
+            return Path::new_from(self.points(SampleSettings::default()));
         }
 
         let thickness_x = thickness.min(max_thickness_x);
@@ -198,9 +200,9 @@ impl Rect {
     }
 
     fn spiral_fill_with_steps(&self, max_steps: usize, step_x: f32, step_y: f32) -> super::Path {
-        let border = self.get_points(SampleSettings::default());
+        let border = self.points(SampleSettings::default());
 
-        if max_steps == 0 || step_x <= LARGE_EPSILON || step_y <= LARGE_EPSILON {
+        if max_steps == 0 || step_x <= LENGTH_TOLERANCE || step_y <= LENGTH_TOLERANCE {
             return Path::new_from(border);
         }
 
@@ -222,25 +224,25 @@ impl Rect {
         for _ in 0..max_steps {
             points.push(V2::new(left, top));
             left += step_x;
-            if left > right + LARGE_EPSILON {
+            if left > right + LENGTH_TOLERANCE {
                 break;
             }
 
             points.push(V2::new(right, top));
             top -= step_y;
-            if bottom > top + LARGE_EPSILON {
+            if bottom > top + LENGTH_TOLERANCE {
                 break;
             }
 
             points.push(V2::new(right, bottom));
             right -= step_x;
-            if left > right + LARGE_EPSILON {
+            if left > right + LENGTH_TOLERANCE {
                 break;
             }
 
             points.push(V2::new(left, bottom));
             bottom += step_y;
-            if bottom > top + LARGE_EPSILON {
+            if bottom > top + LENGTH_TOLERANCE {
                 break;
             }
         }
@@ -250,7 +252,7 @@ impl Rect {
 
     /// Path to draw a rect's outer border and criss cross filling
     pub fn filled_criss_cross(&self, pen_width: f32) -> super::Path {
-        let outer_border = self.get_points(SampleSettings::default());
+        let outer_border = self.points(SampleSettings::default());
 
         if self.height() <= pen_width * 0.5 || self.width() <= pen_width * 0.5 {
             return Path::new_from(outer_border);
@@ -277,7 +279,7 @@ impl Rect {
             return Vec::new();
         }
         if self.height() <= pen_width * 0.5 {
-            return self.get_points(SampleSettings::default());
+            return self.points(SampleSettings::default());
         }
 
         let num_lines = (self.height() / pen_width).ceil() as usize;
@@ -438,13 +440,7 @@ impl Rect {
             && self.top_right.y > other.bot_left.y
     }
 
-    pub fn contains_shape(&self, other: &Shape) -> Containment {
-        match other {
-            Shape::Circle(c) => self.contains_circle(c),
-            Shape::Rect(r) => self.contains_rect(r),
-            Shape::Path(p) => self.contains_path(p),
-        }
-    }
+    contains_shape_by_variant!();
 
     pub fn rounded_corners(
         &self,
@@ -495,43 +491,16 @@ impl Rect {
     }
 }
 
-fn segments_intersect_or_touch(a: Line, b: Line) -> bool {
-    if matches!(a.intersection(b), LineIntersection::Intersection(_)) {
-        return true;
-    }
-
-    if a.point_relation(b.from) == PointLineRelation::OnLine
-        && a.point_relation(b.to) == PointLineRelation::OnLine
-    {
-        let a_min_x = a.from.x.min(a.to.x);
-        let a_max_x = a.from.x.max(a.to.x);
-        let a_min_y = a.from.y.min(a.to.y);
-        let a_max_y = a.from.y.max(a.to.y);
-
-        let b_min_x = b.from.x.min(b.to.x);
-        let b_max_x = b.from.x.max(b.to.x);
-        let b_min_y = b.from.y.min(b.to.y);
-        let b_max_y = b.from.y.max(b.to.y);
-
-        let overlaps_x = a_min_x <= b_max_x && a_max_x >= b_min_x;
-        let overlaps_y = a_min_y <= b_max_y && a_max_y >= b_min_y;
-
-        return overlaps_x && overlaps_y;
-    }
-
-    false
-}
-
 impl Plottable for Rect {
-    fn get_points(&self, _: SampleSettings) -> Vec<V2> {
+    fn points(&self, _: SampleSettings) -> Vec<V2> {
         vec![self.bl(), self.tl(), self.tr(), self.br(), self.bl()]
     }
-    fn get_points_from(
+    fn points_from(
         &self,
         _current_drawing_head_pos: V2,
         sample_settings: SampleSettings,
     ) -> Vec<V2> {
-        self.get_points(sample_settings)
+        self.points(sample_settings)
     }
 
     fn length(&self) -> f32 {

@@ -7,7 +7,7 @@ use std::{
 
 use dioxus::prelude::*;
 use plottery_server_lib::{
-    server_state::{request_server_state, ServerState, StateRequestError},
+    request_server_state, server_state::ServerState, StateRequestError,
     Activity,
 };
 use tokio::sync::Notify;

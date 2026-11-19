@@ -1,6 +1,6 @@
 //! Plotter fonts bundled with Plottery; data only, `plottery_lib` loads them with `Font::bundled`.
 //!
-//! Licences are in `LICENSES/`, credits per font via [`BundledFont::credit`].
+//! Licenses are in `LICENSES/`, credits per font via [`BundledFont::credit`].
 
 /// How the font data has to be loaded.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -14,24 +14,24 @@ pub enum FontKind {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum Licence {
+pub enum License {
     /// SIL Open Font License 1.1.
     Ofl,
     /// Hershey fonts: the acknowledgement must ship with the data.
     Hershey,
 }
 
-impl Licence {
+impl License {
     pub fn name(self) -> &'static str {
         match self {
-            Licence::Ofl => "SIL Open Font License 1.1",
-            Licence::Hershey => "Hershey font licence",
+            License::Ofl => "SIL Open Font License 1.1",
+            License::Hershey => "Hershey font license",
         }
     }
     pub fn text(self) -> &'static str {
         match self {
-            Licence::Ofl => include_str!("../LICENSES/OFL.txt"),
-            Licence::Hershey => include_str!("../LICENSES/HERSHEY.txt"),
+            License::Ofl => include_str!("../LICENSES/OFL.txt"),
+            License::Hershey => include_str!("../LICENSES/HERSHEY.txt"),
         }
     }
 }
@@ -40,7 +40,7 @@ impl Licence {
 pub struct Credit {
     pub author: &'static str,
     pub source: &'static str,
-    pub licence: Licence,
+    pub license: License,
 }
 
 const A_OSKAY_HERSHEY: &str =
@@ -55,7 +55,7 @@ const A_MISTRAL: &str = "The Mistral SingleLine Project Authors";
 const A_GLUK: &str = "gluk";
 
 macro_rules! bundled_fonts {
-    ($($variant:ident: $file:literal, $kind:ident, $family:literal, $author:expr, $source:literal, $licence:ident;)*) => {
+    ($($variant:ident: $file:literal, $kind:ident, $family:literal, $author:expr, $source:literal, $license:ident;)*) => {
         /// Every bundled font; see `LICENSES/CREDITS.md`.
         #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
         pub enum BundledFont {
@@ -88,7 +88,7 @@ macro_rules! bundled_fonts {
             }
             pub fn credit(self) -> Credit {
                 match self {
-                    $(Self::$variant => Credit { author: $author, source: $source, licence: Licence::$licence },)*
+                    $(Self::$variant => Credit { author: $author, source: $source, license: License::$license },)*
                 }
             }
         }

@@ -8,7 +8,7 @@ mod tests {
     use plottery_lib::V2;
 
     use crate::{
-        accelleration::{accelleration_path::V2Speed, speed_delay_handler::SpeedDelayHandler},
+        acceleration::{acceleration_path::V2Speed, speed_delay_handler::SpeedDelayHandler},
         estimation::TimeEstimatorExecutor,
         hardware::{Hardware, HardwareExecutor},
         pins::HARDWARE_CONSTS,

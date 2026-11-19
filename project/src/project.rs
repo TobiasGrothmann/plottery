@@ -1,21 +1,21 @@
 use crate::{
     generate_cargo_project_to_disk, init_git_repo,
-    project_params_list_wrapper::ProjectParamsListWrapper,
     project_util::{build_cargo_project_async, path_hash, run_project_executable_async},
+    protocol::check_binary_protocol,
     read_object_from_stdout,
     run_stream::RunSocket,
-    write_agents_md, LibSource, ProjectConfig,
+    validate_project_name, write_agents_md, LibSource, ProjectConfig,
 };
 
 use plottery_lib::*;
+use plottery_runtime::ProjectParamsListWrapper;
 
-use anyhow::{Error, Ok, Result};
+use anyhow::{Context, Error, Ok, Result};
 use async_process::Child;
 use path_absolutize::Absolutize;
 use resvg::{tiny_skia, usvg};
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
-use usvg::{fontdb, TreeParsing, TreeTextToPath};
 
 /// Longest side of the browser thumbnail in pixels.
 pub const EDITOR_THUMBNAIL_SIZE: u32 = 1024;
@@ -26,19 +26,14 @@ fn render_svg(
     max_size: Option<u32>,
     background: Option<tiny_skia::Color>,
 ) -> Result<tiny_skia::Pixmap> {
-    let rtree = {
-        let opt = usvg::Options::default();
-        let mut fontdb = fontdb::Database::new();
-        // Scanning the system fonts is slow and only text needs them, which layers never contain.
-        if svg_data.windows(5).any(|bytes| bytes == b"<text") {
-            fontdb.load_system_fonts();
-        }
-        let mut tree = usvg::Tree::from_data(svg_data, &opt)?;
-        tree.convert_text(&fontdb);
-        resvg::Tree::from_usvg(&tree)
-    };
+    let mut opt = usvg::Options::default();
+    // Scanning the system fonts is slow and only text needs them, which layers never contain.
+    if svg_data.windows(5).any(|bytes| bytes == b"<text") {
+        opt.fontdb_mut().load_system_fonts();
+    }
+    let tree = usvg::Tree::from_data(svg_data, &opt)?;
 
-    let size = rtree.size;
+    let size = tree.size();
     let scale = match max_size {
         Some(max) => max as f32 / size.width().max(size.height()),
         None => 1.0,
@@ -50,7 +45,8 @@ fn render_svg(
     if let Some(background) = background {
         pixmap.fill(background);
     }
-    rtree.render(
+    resvg::render(
+        &tree,
         tiny_skia::Transform::from_scale(scale, scale),
         &mut pixmap.as_mut(),
     );
@@ -110,9 +106,9 @@ fn png_longest_side(path: &std::path::Path) -> Option<u32> {
 
 /// Plottery's folder in the user's cache directory, for builds and previews.
 fn plottery_cache_dir() -> Result<PathBuf> {
-    let project_dirs = directories::ProjectDirs::from("de", "tobiasgrothmann", "plottery")
-        .ok_or_else(|| Error::msg("Could not determine the user's cache directory"))?;
-    Ok(project_dirs.cache_dir().to_path_buf())
+    Ok(crate::plottery_config::plottery_dirs()?
+        .cache_dir()
+        .to_path_buf())
 }
 
 fn modified(path: &Path) -> Option<SystemTime> {
@@ -173,7 +169,7 @@ impl Project {
     }
 
     pub fn exists(&self) -> bool {
-        let dir_exsists = self.dir.exists();
+        let dir_exists = self.dir.exists();
 
         let mut project_config_path = self.dir.clone();
         project_config_path.push(format!("{}.plottery", self.config.name));
@@ -181,7 +177,7 @@ impl Project {
 
         let cargo_project_exists = self.get_cargo_path().is_ok();
 
-        dir_exsists && project_config_file_exists && cargo_project_exists
+        dir_exists && project_config_file_exists && cargo_project_exists
     }
 
     pub fn load_from_file(project_config_path: PathBuf) -> Result<Self> {
@@ -199,12 +195,6 @@ impl Project {
             )));
         }
         Ok(loaded_project)
-    }
-
-    pub fn normalize_paths_mut(&mut self) {
-        if let core::result::Result::Ok(path) = self.dir.absolutize() {
-            self.dir = path.to_path_buf();
-        }
     }
 
     pub fn get_dir(&self) -> PathBuf {
@@ -286,6 +276,7 @@ impl Project {
     }
 
     pub fn generate_to_disk(&self, lib_source: LibSource, init_git: bool) -> Result<()> {
+        validate_project_name(&self.config.name)?;
         std::fs::create_dir_all(&self.dir)?;
         self.save_config()?;
 
@@ -331,7 +322,7 @@ impl Project {
         } else {
             bin_path.push("debug");
         }
-        bin_path.push(cargo_name); // TODO: get name from cargo.toml if it has been set?
+        bin_path.push(cargo_name);
         Ok(bin_path)
     }
 
@@ -389,6 +380,7 @@ impl Project {
                 bin_path.to_string_lossy()
             )));
         }
+        check_binary_protocol(&bin_path).await?;
 
         let socket = RunSocket::bind()?;
         let mut arguments = vec![
@@ -424,6 +416,7 @@ impl Project {
                 bin_path.to_string_lossy()
             )));
         }
+        check_binary_protocol(&bin_path).await?;
         let arguments = vec!["params"];
         Ok(run_project_executable_async(&bin_path, &arguments, None, &self.dir).await?)
     }
@@ -443,22 +436,28 @@ impl Project {
         )
     }
 
-    /// Params last used by the editor, empty when none were saved.
-    pub fn load_editor_params(&self) -> Result<ProjectParamsListWrapper> {
-        match std::fs::read(self.get_editor_params_path()) {
-            core::result::Result::Ok(binary) => Ok(bincode::deserialize(&binary)?),
+    /// Params last used by the editor, empty when none were saved, and the names of saved params
+    /// that could not be decoded and are left out.
+    pub fn load_editor_params(&self) -> Result<(ProjectParamsListWrapper, Vec<String>)> {
+        let path = self.get_editor_params_path();
+        match std::fs::read(&path) {
+            core::result::Result::Ok(binary) => ProjectParamsListWrapper::from_file_bytes(&binary)
+                .with_context(|| format!("Failed to read saved params '{}'", path.display())),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                Ok(ProjectParamsListWrapper::empty())
+                Ok((ProjectParamsListWrapper::empty(), Vec::new()))
             }
             Err(e) => Err(e.into()),
         }
     }
 
     /// Writes a temp file and renames it, so a watching editor never reads half a file.
+    /// Fails instead of replacing a file that can't be read.
     pub fn save_editor_params(&self, params: &ProjectParamsListWrapper) -> Result<()> {
+        self.load_editor_params()
+            .context("Params not saved, fix or delete the file")?;
         let path = self.get_editor_params_path();
         let temp_path = path.with_extension("plotp.tmp");
-        std::fs::write(&temp_path, bincode::serialize(params)?)?;
+        std::fs::write(&temp_path, params.to_file_bytes()?)?;
         std::fs::rename(temp_path, path)?;
         Ok(())
     }
@@ -506,6 +505,21 @@ impl Project {
     pub fn editor_thumbnail_is_stale(&self) -> bool {
         self.get_editor_thumbnail_path()
             .is_ok_and(|thumbnail| thumbnail_is_stale(&self.get_editor_layer_path(), &thumbnail))
+    }
+
+    /// The thumbnail of the last run, rendered again when stale. An error if the project never ran.
+    pub fn fresh_editor_thumbnail(&self) -> Result<PathBuf> {
+        if !self.get_editor_layer_path().exists() {
+            return Err(Error::msg(format!(
+                "Project '{}' has no drawing yet, run it first: plottery run {}",
+                self.config.name,
+                self.dir.display()
+            )));
+        }
+        if self.editor_thumbnail_is_stale() {
+            self.update_editor_thumbnail()?;
+        }
+        self.get_editor_thumbnail_path()
     }
 
     /// Renders the preview and the thumbnail again from the layer on disk.

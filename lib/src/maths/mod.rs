@@ -1,18 +1,18 @@
-pub mod angle;
-pub mod angle_operators;
+pub(crate) mod angle;
+pub(crate) mod angle_operators;
 mod angle_test;
-pub mod consts;
-pub mod easing;
+pub(crate) mod consts;
+pub(crate) mod easing;
 mod easing_test;
-pub mod float;
+pub(crate) mod float;
 mod float_test;
-pub mod noise;
+pub(crate) mod noise;
 mod noise_test;
-pub mod random;
+pub(crate) mod random;
 mod random_test;
-pub mod range;
+pub(crate) mod range;
 mod range_test;
-mod thread_local;
+mod global_rng;
 
 pub use angle::*;
 pub use consts::*;
@@ -22,6 +22,6 @@ pub use noise::*;
 pub use random::*;
 pub use range::*;
 #[cfg(test)]
-pub(crate) use thread_local::seed_for_test;
-pub(crate) use thread_local::RNG;
-pub use thread_local::{seed, seed_random};
+pub(crate) use global_rng::seed_for_test;
+pub(crate) use global_rng::RNG;
+pub use global_rng::{seed, seed_random};

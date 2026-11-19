@@ -1,6 +1,6 @@
 # plottery_fonts
 
-65 single-line fonts for pen plotters, laser cutters, CNC engravers and anything else that draws strokes instead of filling shapes. All of them are free to redistribute, the licences and credits ship with the crate.
+65 single-line fonts for pen plotters, laser cutters, CNC engravers and anything else that draws strokes instead of filling shapes. All of them are free to redistribute, the licenses and credits ship with the crate.
 
 The crate is pure data with no dependencies: every font is embedded with `include_bytes!` and exposed through the `BundledFont` enum. It is made for [Plottery](https://github.com/TobiasGrothmann/plottery), but nothing in it depends on Plottery.
 
@@ -13,7 +13,7 @@ use plottery_lib::*;
 
 let font = Font::bundled(BundledFont::HersheySans);
 let layer = Text::new("Hello plotter", &font)
-    .size(2.0) // em height in cm
+    .with_size(2.0) // em height in cm
     .to_layer(SampleSettings::default())?;
 layer.write_svg("hello.svg".into())?;
 ```
@@ -36,15 +36,17 @@ match font.kind() {
 
 for font in BundledFont::ALL {
     let credit = font.credit();
-    println!("{} by {} ({})", font.family(), credit.author, credit.licence.name());
+    println!("{} by {} ({})", font.family(), credit.author, credit.license.name());
 }
 ```
 
-`file_name()` gives the original file name, `credit()` the author, source URL and licence, and `Licence::text()` the full licence text for your "about" screen.
+`file_name()` gives the original file name, `credit()` the author, source URL and license, and `License::text()` the full license text for your "about" screen.
 
-## Licences
+## Licenses
 
-Everything is under the [SIL Open Font License 1.1](https://github.com/TobiasGrothmann/plottery/blob/main/fonts/LICENSES/OFL.txt) or the [Hershey font licence](https://github.com/TobiasGrothmann/plottery/blob/main/fonts/LICENSES/HERSHEY.txt). Both allow commercial use and bundling. The Hershey licence asks that its acknowledgement travels with the data, so keep `LICENSES/` (or `Licence::Hershey.text()`) in anything you ship. Per-font credits are in [LICENSES/CREDITS.md](https://github.com/TobiasGrothmann/plottery/blob/main/fonts/LICENSES/CREDITS.md).
+The fonts are under the [SIL Open Font License 1.1](https://github.com/TobiasGrothmann/plottery/blob/main/fonts/LICENSES/OFL.txt) or the [Hershey font license](https://github.com/TobiasGrothmann/plottery/blob/main/fonts/LICENSES/HERSHEY.txt). Both allow commercial use and bundling. The Hershey license asks that its acknowledgement travels with the data, so keep `LICENSES/` (or `License::Hershey.text()`) in anything you ship. Per-font credits are in [LICENSES/CREDITS.md](https://github.com/TobiasGrothmann/plottery/blob/main/fonts/LICENSES/CREDITS.md).
+
+The crate's own code is under the [MIT license](https://github.com/TobiasGrothmann/plottery/blob/main/fonts/LICENSES/MIT.txt).
 
 ## Fonts
 

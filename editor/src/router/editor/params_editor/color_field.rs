@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use plottery_lib::ColorRgb;
-use plottery_project::project_param_value::ProjectParamValue;
+use plottery_runtime::project_param_value::ProjectParamValue;
 
 use crate::router::editor::params_editor::params_editor::LeafProps;
 
@@ -23,7 +23,7 @@ pub fn ColorField(props: LeafProps) -> Element {
         };
     };
     let hex = color.hex();
-    let name = color.get_name().name.to_lowercase();
+    let name = color.name().name.to_lowercase();
     let picker_props = props.clone();
     let text_props = props.clone();
 

@@ -2,11 +2,9 @@ use itertools::Itertools;
 use plottery_lib::*;
 
 use crate::{
-    accelleration::{
-        accelleration_path::AccellerationPath, speed_delay_handler::SpeedDelayHandler,
-    },
+    acceleration::{acceleration_path::AccelerationPath, speed_delay_handler::SpeedDelayHandler},
     hardware::{Hardware, HardwareExecutor},
-    plot_setting::PlotSettings,
+    plot_settings::PlotSettings,
 };
 
 /// Plots every shape of `layer`; `on_shape` is called with the shape's index right before it.
@@ -33,9 +31,9 @@ pub fn travel_to<E: HardwareExecutor>(
 ) {
     let hardware_profile = *hardware.get_hardware_profile();
 
-    let acc_path = AccellerationPath::new(
+    let acc_path = AccelerationPath::new(
         &[hardware.get_pos(), target_pos],
-        plot_settings.speed_travel.accelleration_distance,
+        plot_settings.speed_travel.acceleration_distance,
         plot_settings.corner_slowdown_power,
     );
 
@@ -51,7 +49,7 @@ pub fn travel_to<E: HardwareExecutor>(
     hardware.set_head(
         false,
         plot_settings.head_travel_beyond_paper_cm,
-        plot_settings.speed_head_up.accelleration_distance,
+        plot_settings.speed_head_up.acceleration_distance,
         speed_head_up,
     );
 
@@ -69,16 +67,16 @@ pub fn plot_shape<E: HardwareExecutor>(
     sample_settings: SampleSettings,
     plot_settings: &PlotSettings,
 ) {
-    let points = shape.get_points_from(hardware.get_pos(), sample_settings);
+    let points = shape.points_from(hardware.get_pos(), sample_settings);
     if points.len() < 2 {
         return;
     }
 
     let hardware_profile = *hardware.get_hardware_profile();
 
-    let accelleration_path = AccellerationPath::new(
+    let acceleration_path = AccelerationPath::new(
         &points,
-        plot_settings.speed_draw.accelleration_distance,
+        plot_settings.speed_draw.acceleration_distance,
         plot_settings.corner_slowdown_power,
     );
 
@@ -91,12 +89,12 @@ pub fn plot_shape<E: HardwareExecutor>(
         hardware_profile.dist_per_step_head_cm,
     );
 
-    if accelleration_path.points.len() < 2 {
+    if acceleration_path.points.len() < 2 {
         return;
     }
 
     // travel to start
-    travel_to(hardware, accelleration_path.points[0].point, plot_settings);
+    travel_to(hardware, acceleration_path.points[0].point, plot_settings);
     if hardware.aborted() {
         return;
     }
@@ -105,11 +103,11 @@ pub fn plot_shape<E: HardwareExecutor>(
     hardware.set_head(
         true,
         plot_settings.head_travel_beyond_paper_cm,
-        plot_settings.speed_head_down.accelleration_distance,
+        plot_settings.speed_head_down.acceleration_distance,
         speed_head_down,
     );
 
-    for (from, to) in accelleration_path.points.iter().tuple_windows() {
+    for (from, to) in acceleration_path.points.iter().tuple_windows() {
         if hardware.aborted() {
             return;
         }

@@ -1,21 +1,53 @@
-// pins order is [Y1, Y2, X, HEAD]
+use crate::Axis;
+
+/// A stepper driver. The variant order is the order of every per-motor pin array.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Motor {
+    Y1,
+    Y2,
+    X,
+    Head,
+}
+
+impl Motor {
+    pub const COUNT: usize = 4;
+
+    pub fn index(self) -> usize {
+        match self {
+            Motor::Y1 => 0,
+            Motor::Y2 => 1,
+            Motor::X => 2,
+            Motor::Head => 3,
+        }
+    }
+
+    /// The motors that drive `axis`.
+    pub fn of_axis(axis: Axis) -> &'static [Motor] {
+        match axis {
+            Axis::X => &[Motor::X],
+            Axis::Y => &[Motor::Y1, Motor::Y2],
+            Axis::Head => &[Motor::Head],
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct HardwareConsts {
     pub pin_settings: PinSettings,
     pub hardware_profile: HardwareProfile,
 }
 
-// pins order is [Y1, Y2, X, HEAD]
+/// Pin numbers per motor, indexed by [`Motor::index`].
 #[derive(Debug, Clone, Copy)]
 pub struct PinSettings {
     // pins
-    pub dir_pins: [u8; 4],
-    pub step_pins: [u8; 4],
-    pub enable_pins: [u8; 4],
-    pub micstep_pins: [[u8; 4]; 3],
+    pub dir_pins: [u8; Motor::COUNT],
+    pub step_pins: [u8; Motor::COUNT],
+    pub enable_pins: [u8; Motor::COUNT],
+    pub micstep_pins: [[u8; Motor::COUNT]; 3],
 
     // micro stepping
-    pub micstep_vals: [[bool; 3]; 4],
+    pub micstep_vals: [[bool; 3]; Motor::COUNT],
 }
 
 #[derive(Debug, Clone, Copy)]

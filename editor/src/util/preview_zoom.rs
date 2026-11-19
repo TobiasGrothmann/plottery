@@ -4,7 +4,7 @@ pub const MAX_ZOOM: f32 = 16.0;
 /// Zoom level a click on the fitted preview jumps to.
 pub const CLICK_ZOOM: f32 = 2.0;
 
-/// Zoom of the editor preview. `pan` is the paper centre's offset from the stage centre in px.
+/// Zoom of the editor preview. `pan` is the paper center's offset from the stage center in px.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PreviewZoom {
     pub scale: f32,
@@ -32,7 +32,7 @@ impl PreviewZoom {
         self.scale <= 1.0
     }
 
-    /// Scales by `factor` while keeping the point `at` (relative to the stage centre) in place.
+    /// Scales by `factor` while keeping the point `at` (relative to the stage center) in place.
     pub fn zoom_at(self, factor: f32, at: V2, view: ZoomViewport) -> Self {
         let scale = (self.scale * factor).clamp(1.0, MAX_ZOOM);
         let pan = at - (at - self.pan) * (scale / self.scale);
@@ -47,7 +47,7 @@ impl PreviewZoom {
         .clamped(view)
     }
 
-    /// Maps a point relative to the stage centre to px on the unscaled paper.
+    /// Maps a point relative to the stage center to px on the unscaled paper.
     pub fn stage_to_paper(&self, at: V2, paper: V2) -> V2 {
         (at - self.pan) / self.scale + paper / 2.0
     }

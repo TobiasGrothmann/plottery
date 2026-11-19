@@ -23,4 +23,4 @@ cd editor
 dx serve            # run a dev build
 ```
 
-`./scripts/release_editor.sh <version> false` builds the release DMG without uploading it. See [DEVELOPMENT.md](../DEVELOPMENT.md).
+`../scripts/release_editor.sh <version> false` builds the release DMG without uploading it. See [DEVELOPMENT.md](../DEVELOPMENT.md).

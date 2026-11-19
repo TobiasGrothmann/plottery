@@ -10,8 +10,9 @@
 * [**plottery_lib**](./lib) ([crates.io](https://crates.io/crates/plottery_lib), [docs.rs](https://docs.rs/plottery_lib)): Core library with shapes, geometry helpers, composition and other tools to generate art.
 * [**plottery_editor**](./editor) ([crates.io](https://crates.io/crates/plottery_editor), [releases](https://github.com/TobiasGrothmann/plottery/releases)): The macOS app to create, manage and run projects, preview artworks and control the plotter.
 * [**plottery_cli**](./cli) ([crates.io](https://crates.io/crates/plottery_cli)): Command line interface to create, run and render projects.
-* [**plottery_project**](./project) ([crates.io](https://crates.io/crates/plottery_project), [docs.rs](https://docs.rs/plottery_project)): Project handling and the `Params` derive macros.
-* [**plottery_fonts**](./fonts) ([crates.io](https://crates.io/crates/plottery_fonts), [docs.rs](https://docs.rs/plottery_fonts)): 65 bundled single-line fonts for plotters (Hershey, EMS, Cutlings, Relief, ...) with their licences. Data only, usable without **Plottery**.
+* [**plottery_runtime**](./runtime) ([crates.io](https://crates.io/crates/plottery_runtime), [docs.rs](https://docs.rs/plottery_runtime)): What a project depends on besides the lib: param types, the `Params` derive macros and the project's entry point.
+* [**plottery_project**](./project) ([crates.io](https://crates.io/crates/plottery_project), [docs.rs](https://docs.rs/plottery_project)): Creates, builds and runs projects for the editor and the CLI.
+* [**plottery_fonts**](./fonts) ([crates.io](https://crates.io/crates/plottery_fonts), [docs.rs](https://docs.rs/plottery_fonts)): 65 bundled single-line fonts for plotters (Hershey, EMS, Cutlings, Relief, ...) with their licenses. Data only, usable without **Plottery**.
 * [**plottery_server**](./server): The controller of my DIY pen-plotter. It serves an HTTP interface for plot tasks and drives the motors.
 
 <br/>
@@ -23,7 +24,7 @@
 <img alt="Pen plotter drawings of nested rounded line patterns in blue and pink" src="https://github.com/user-attachments/assets/9eef5667-a12d-4828-9d7a-542f53a05553" width="32%" />
 <img alt="Pen plotter drawing of a grid of hatched squares in pink, orange and blue" src="https://github.com/user-attachments/assets/53f7fe21-4cd4-425b-8ca7-b8774c218d3d" width="32%" />
 <img alt="Close-up of a pen plotter drawing of overlapping looped lines in black, pink and cyan" src="https://github.com/user-attachments/assets/7a70875e-5313-44c5-974e-9132feb5af13" width="32%" />
-<img alt="Four pen plotter cards with black looping ring patterns around different centre shapes" src="https://github.com/user-attachments/assets/1fb9d9f2-1a31-43c6-90ea-fab8513b320d" width="24%" />
+<img alt="Four pen plotter cards with black looping ring patterns around different center shapes" src="https://github.com/user-attachments/assets/1fb9d9f2-1a31-43c6-90ea-fab8513b320d" width="24%" />
 <img alt="Stippled white concentric rings plotted on black paper" src="https://github.com/user-attachments/assets/c6d8ca23-a703-401a-9c68-6b9d021d3309" width="24%" />
 <img alt="Pen plotter drawing of a grid of square tiles with different line and curve patterns" src="https://github.com/user-attachments/assets/6a951a31-559c-42c3-b04e-73137538b988" width="24%" />
 <img alt="Framed black pen plotter drawing of a swirling form made of many fine lines" src="https://github.com/user-attachments/assets/ee24c85c-e22a-4ca7-8d91-6314b1ffe7de" width="24%" />
@@ -39,6 +40,10 @@ curl -fsSL https://raw.githubusercontent.com/TobiasGrothmann/plottery/main/scrip
 ```
 
 CLI only: `cargo install plottery_cli`.
+
+## Platforms
+
+The editor runs on macOS only. The library, runtime, project crate and CLI support macOS and Linux; `plottery open` needs the editor. The plotter server runs on a Raspberry Pi. Windows is not supported.
 
 # Editor
 
@@ -60,7 +65,7 @@ Its `src/generate.rs` turns a `Params` struct into a `Layer`:
 
 ```rust
 use plottery_lib::*;
-use plottery_project::*;
+use plottery_runtime::*;
 
 #[derive(PlotteryParams)]
 pub struct Params {
@@ -100,7 +105,7 @@ Every example is a complete project that builds against this repository: in a cl
 
 ### Parameters
 
-Every field of `Params` shows up in the editor. `#[value(..)]` sets the default, `#[range(min, max)]` shows a slider, `#[section("..")]` groups fields and `///` comments become tooltips. All attributes and supported types are listed in the [project README](./project/README.md#parameters), and the [examples](#examples) use many of them.
+Every field of `Params` shows up in the editor. `#[value(..)]` sets the default, `#[range(min, max)]` shows a slider, `#[section("..")]` groups fields and `///` comments become tooltips. All attributes and supported types are listed in the [runtime README](./runtime/README.md#parameters), and the [examples](#examples) use many of them.
 
 # Text & Fonts
 
@@ -109,10 +114,10 @@ Text is drawn with single-line fonts, so every glyph is a set of pen strokes. Th
 ```rust
 let font = Font::bundled(BundledFont::HersheyScript);
 let text = Text::new("Hello plotter", &font)
-    .size(1.5) // em height in cm
+    .with_size(1.5) // em height in cm
     .in_rect(frame.inner_rect()) // wraps words at the rect's width
-    .align(TextAlign::Center)
-    .vertical_align(VerticalAlign::Center)
+    .with_align(TextAlign::Center)
+    .with_vertical_align(VerticalAlign::Center)
     .to_layer(SampleSettings::default())
     .expect("text");
 l.push_layer(text);
@@ -129,4 +134,4 @@ Building from source, tests and releasing are described in [DEVELOPMENT.md](./DE
 
 # License
 
-[GPL-3.0](./LICENSE). The bundled fonts have their own licences, see [plottery_fonts](./fonts/README.md#licences).
+[GPL-3.0](./LICENSE). The bundled fonts have their own licenses, see [plottery_fonts](./fonts/README.md#licenses).

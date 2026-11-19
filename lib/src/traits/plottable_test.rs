@@ -2,7 +2,7 @@
 mod test_shape {
     use itertools::Itertools;
 
-    use rand::{rngs::StdRng, Rng, SeedableRng};
+    use rand::{rngs::StdRng, RngExt, SeedableRng};
 
     use crate::{Circle, Path, Plottable, Rect, SampleSettings, V2};
 
@@ -12,7 +12,7 @@ mod test_shape {
         let sample_settings = SampleSettings {
             points_per_unit: 4.0,
         };
-        let points = r.get_points_oversampled(sample_settings);
+        let points = r.points_oversampled(sample_settings);
         assert!(points.len() > 5);
         let distances = points
             .iter()
@@ -38,7 +38,7 @@ mod test_shape {
         let sample_settings = SampleSettings {
             points_per_unit: 1.0,
         };
-        let points = r.get_points_oversampled(sample_settings);
+        let points = r.points_oversampled(sample_settings);
         assert_eq!(points.len(), 5);
         let max_distance = points
             .iter()
@@ -55,7 +55,7 @@ mod test_shape {
         let sample_settings = SampleSettings {
             points_per_unit: 50.0,
         };
-        let points = r.get_points_and_dist_oversampled(sample_settings);
+        let points = r.points_and_dist_oversampled(sample_settings);
 
         assert!(points.len() > 45);
         assert_eq!(points.last().unwrap().1, 4.0);
@@ -72,12 +72,12 @@ mod test_shape {
         let sample_settings = SampleSettings {
             points_per_unit: 2.0,
         };
-        assert_eq!(sample_settings.get_num_points_for_length(2.0), 4);
-        assert_eq!(sample_settings.get_num_points_for_length(2.01), 5);
-        assert_eq!(sample_settings.get_num_points_for_length(1.0), 2);
-        assert_eq!(sample_settings.get_num_points_for_length(0.9), 2);
-        assert_eq!(sample_settings.get_num_points_for_length(0.6), 2);
-        assert_eq!(sample_settings.get_num_points_for_length(0.3), 1);
+        assert_eq!(sample_settings.num_points_for_length(2.0), 4);
+        assert_eq!(sample_settings.num_points_for_length(2.01), 5);
+        assert_eq!(sample_settings.num_points_for_length(1.0), 2);
+        assert_eq!(sample_settings.num_points_for_length(0.9), 2);
+        assert_eq!(sample_settings.num_points_for_length(0.6), 2);
+        assert_eq!(sample_settings.num_points_for_length(0.3), 1);
     }
 
     #[test]
@@ -129,7 +129,7 @@ mod test_shape {
         assert_eq!(masked.inside.len(), 1);
         assert_eq!(
             masked.inside.shapes[0]
-                .get_points(SampleSettings::default())
+                .points(SampleSettings::default())
                 .len(),
             2
         );
@@ -146,8 +146,8 @@ mod test_shape {
             .map(|_| {
                 center - V2::xy(radius * 2.0)
                     + V2::new(
-                        radius * rng.gen::<f32>() * 4.0,
-                        radius * rng.gen::<f32>() * 4.0,
+                        radius * rng.random::<f32>() * 4.0,
+                        radius * rng.random::<f32>() * 4.0,
                     )
             })
             .collect();
@@ -155,34 +155,14 @@ mod test_shape {
         let masked = p.mask_geo(&mask, SampleSettings::default());
 
         for shape_inside in masked.inside.shapes {
-            for point in shape_inside.get_points(SampleSettings::default()) {
+            for point in shape_inside.points(SampleSettings::default()) {
                 assert!(center.dist(point) - 0.001 <= radius);
             }
         }
         for shape_outside in masked.outside.shapes {
-            for point in shape_outside.get_points(SampleSettings::default()) {
+            for point in shape_outside.points(SampleSettings::default()) {
                 assert!(center.dist(point) + 0.001 >= radius);
             }
         }
-    }
-
-    #[test]
-    fn mask_by_intersections_splits_where_segments_cross_the_mask() {
-        let mask = Rect::new(V2::new(0.0, 0.0), V2::new(1.0, 1.0));
-        // long segments far from the mask on both ends, one crossing it
-        let path = Path::new_from(vec![
-            V2::new(-20.0, 30.0),
-            V2::new(-10.0, 0.5),
-            V2::new(10.0, 0.5),
-            V2::new(20.0, -30.0),
-        ]);
-
-        let masked = path.mask_by_intersections(mask, SampleSettings::default());
-        assert_eq!(masked.inside.len(), 1);
-        assert_eq!(masked.outside.len(), 2);
-
-        let inside = masked.inside.shapes[0].get_points(SampleSettings::default());
-        assert!(inside.first().unwrap().dist(V2::new(0.0, 0.5)) < 0.001);
-        assert!(inside.last().unwrap().dist(V2::new(1.0, 0.5)) < 0.001);
     }
 }

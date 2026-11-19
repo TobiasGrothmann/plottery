@@ -1,13 +1,11 @@
 use dioxus::prelude::*;
 
-#[allow(dead_code)]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum IconName {
     ChevronLeft,
     ChevronRight,
     ChevronDown,
     Play,
-    Send,
     Sliders,
     External,
     PanelLeft,
@@ -18,7 +16,6 @@ pub enum IconName {
     Dice,
     X,
     Plus,
-    Minus,
     Eye,
     EyeOff,
     Trash,
@@ -28,8 +25,6 @@ pub enum IconName {
     Plotter,
     Fit,
     Alert,
-    Code,
-    GitBranch,
 }
 
 fn frame() -> Element {
@@ -49,7 +44,6 @@ fn children(name: IconName) -> Element {
         IconName::ChevronRight => rsx! { path { d: "M9 18l6-6-6-6" } },
         IconName::ChevronDown => rsx! { path { d: "M6 9l6 6 6-6" } },
         IconName::Play => rsx! { path { d: "M7 4.5v15l12-7.5z", fill: "currentColor" } },
-        IconName::Send => rsx! { path { d: "M22 2L11 13M22 2l-7 20-4-9-9-4z" } },
         IconName::Sliders => rsx! {
             path { d: "M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12" }
             circle { cx: "16", cy: "6", r: "2" }
@@ -89,7 +83,6 @@ fn children(name: IconName) -> Element {
         },
         IconName::X => rsx! { path { d: "M6 6l12 12M18 6L6 18" } },
         IconName::Plus => rsx! { path { d: "M12 5v14M5 12h14" } },
-        IconName::Minus => rsx! { path { d: "M5 12h14" } },
         IconName::Eye => eye(),
         IconName::EyeOff => rsx! { {eye()} path { d: "M3 3l18 18" } },
         IconName::Trash => {
@@ -111,13 +104,6 @@ fn children(name: IconName) -> Element {
         IconName::Alert => rsx! {
             circle { cx: "12", cy: "12", r: "9" }
             path { d: "M12 8v5M12 16v.5" }
-        },
-        IconName::Code => rsx! { path { d: "M8 6l-6 6 6 6M16 6l6 6-6 6" } },
-        IconName::GitBranch => rsx! {
-            circle { cx: "6", cy: "6", r: "2" }
-            circle { cx: "6", cy: "18", r: "2" }
-            circle { cx: "18", cy: "7", r: "2" }
-            path { d: "M6 8v8M18 9c0 5-7 3-11 7" }
         },
     }
 }

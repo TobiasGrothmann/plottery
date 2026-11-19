@@ -1,11 +1,31 @@
 use std::sync::{Arc, Mutex};
 
-use dioxus::signals::{ReadableExt, SyncSignal};
+use dioxus::signals::{ReadableExt, Signal, SyncSignal};
+use dioxus_logger::tracing;
 use plottery_lib::rand_range_i;
+
+/// The console of the open project, for errors from outside its editor; provided at the app root.
+#[derive(Clone, Copy)]
+pub struct ActiveConsole(pub Signal<Option<SyncSignal<ConsoleMessages>>>);
+
+impl ActiveConsole {
+    /// Logs `msg` and shows it in the console panel while a project is open.
+    pub fn error(&self, msg: &str) {
+        tracing::error!("{msg}");
+        let Some(console) = *self.0.peek() else {
+            return;
+        };
+        let Ok(messages) = console.try_read() else {
+            return;
+        };
+        messages.error(msg);
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum ConsoleMessageType {
     Info,
+    Success,
     Warning,
     Error,
     ProjectLog,
@@ -90,6 +110,13 @@ impl ConsoleMessages {
             .lock()
             .expect("Failed to lock console entries")
             .push(ConsoleMessage::new(msg, ConsoleMessageType::Info));
+        self.trigger_change();
+    }
+    pub fn success(&self, msg: &str) {
+        self.entries
+            .lock()
+            .expect("Failed to lock console entries")
+            .push(ConsoleMessage::new(msg, ConsoleMessageType::Success));
         self.trigger_change();
     }
     pub fn warn(&self, msg: &str) {

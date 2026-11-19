@@ -5,9 +5,10 @@ Copyright notices are also embedded in each font file (SVG `<metadata>`, TTF/OTF
 The same information is available at runtime through `BundledFont::credit`.
 
 - `OFL.txt`: SIL Open Font License 1.1. The gluk fonts carry Reserved Font Names: rename them if you convert or modify them.
-- `HERSHEY.txt`: Hershey font licence, the acknowledgement must ship with the data.
+- `MIT.txt`: MIT license, for the crate's own code.
+- `HERSHEY.txt`: Hershey font license, the acknowledgement must ship with the data.
 
-| File | Family | Author / conversion | Source | Licence |
+| File | Family | Author / conversion | Source | License |
 |---|---|---|---|---|
 | `HersheyGothEnglish.svg` | Hershey Gothic English | Dr. A. V. Hershey (U.S. National Bureau of Standards), SVG conversion by Windell H. Oskay | https://gitlab.com/oskay/svg-fonts | Hershey |
 | `HersheyGothGerman.svg` | Hershey Gothic German | Dr. A. V. Hershey (U.S. National Bureau of Standards), SVG conversion by Windell H. Oskay | https://gitlab.com/oskay/svg-fonts | Hershey |

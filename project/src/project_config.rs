@@ -49,8 +49,4 @@ impl ProjectConfig {
 
         Ok(())
     }
-
-    pub fn update_last_modified_date(&mut self) {
-        self.last_modified_date = Utc::now();
-    }
 }

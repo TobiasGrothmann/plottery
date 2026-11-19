@@ -4,7 +4,7 @@ use crate::{Line, Path, Shape, V2};
 
 type Cell = (i64, i64);
 
-/// Items bucketed by position. Anything within one cell size of a point is in its 3×3 neighbourhood.
+/// Items bucketed by position. Anything within one cell size of a point is in its 3×3 neighborhood.
 struct Grid<T> {
     cell_size: f32,
     cells: HashMap<Cell, Vec<T>>,

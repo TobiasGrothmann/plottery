@@ -12,10 +12,11 @@ mod tests {
     use crate::{
         cargo_project_template::generate_cargo_project_to_disk,
         project::{is_up_to_date, thumbnail_is_stale},
-        LibSource, Project, ProjectConfig, EDITOR_THUMBNAIL_SIZE,
+        validate_project_name, LibSource, Project, ProjectConfig, EDITOR_THUMBNAIL_SIZE,
     };
+    use plottery_runtime::{ProjectParam, ProjectParamValue, ProjectParamsListWrapper};
 
-    fn genrate_temp_project(temp_dir: PathBuf, project_name: &str) -> Result<Project> {
+    fn generate_temp_project(temp_dir: PathBuf, project_name: &str) -> Result<Project> {
         // project dir should not exist
         let project_dir = temp_dir.join(project_name);
         assert!(!project_dir.exists());
@@ -47,6 +48,26 @@ mod tests {
     }
 
     #[test]
+    fn project_names_are_cargo_package_names() {
+        for valid in ["spiral", "my_sketch", "_x", "ka-poster", "Lines2"] {
+            assert!(validate_project_name(valid).is_ok(), "{valid}");
+        }
+        for invalid in [
+            "",
+            "2lines",
+            "-lines",
+            "my sketch",
+            "a/b",
+            "linien_ä",
+            "loop",
+            "test",
+            "plottery_lib",
+        ] {
+            assert!(validate_project_name(invalid).is_err(), "{invalid}");
+        }
+    }
+
+    #[test]
     fn save_project_config() -> Result<()> {
         let project_file = ProjectConfig::new("project_name");
         let project_file_path = Path::new("test_project.plottery");
@@ -68,7 +89,7 @@ mod tests {
     fn generate_project() -> Result<()> {
         let project_name: &str = "test_proj";
         let temp_dir = tempfile::tempdir()?;
-        let project = genrate_temp_project(temp_dir.path().to_path_buf(), project_name)?;
+        let project = generate_temp_project(temp_dir.path().to_path_buf(), project_name)?;
 
         // check if dir test_project/resources exists
         let resource_dir = project.dir.join("resources");
@@ -90,7 +111,7 @@ mod tests {
     fn build_and_run() -> Result<()> {
         let project_name: &str = "test_proj";
         let temp_dir = tempfile::tempdir()?;
-        let project = genrate_temp_project(temp_dir.path().to_path_buf(), project_name)?;
+        let project = generate_temp_project(temp_dir.path().to_path_buf(), project_name)?;
         assert!(project.exists());
 
         let release = true;
@@ -107,7 +128,7 @@ mod tests {
         let generated_layer = project.run(release, &params)?;
         assert!(!generated_layer.is_empty());
 
-        // build debug
+        // build again
         project.build(release)?;
 
         // test saving svg
@@ -130,8 +151,8 @@ mod tests {
         let project_name: &str = "test_proj_same_name";
         let temp_dir_a = tempfile::tempdir()?;
         let temp_dir_b = tempfile::tempdir()?;
-        let project_a = genrate_temp_project(temp_dir_a.path().to_path_buf(), project_name)?;
-        let project_b = genrate_temp_project(temp_dir_b.path().to_path_buf(), project_name)?;
+        let project_a = generate_temp_project(temp_dir_a.path().to_path_buf(), project_name)?;
+        let project_b = generate_temp_project(temp_dir_b.path().to_path_buf(), project_name)?;
         assert_eq!(
             project_a.get_cargo_toml_name()?,
             project_b.get_cargo_toml_name()?
@@ -230,6 +251,28 @@ mod tests {
 
         assert!(temp_dir.path().join("Cargo.toml").exists());
         assert!(temp_dir.path().join("src").exists());
+        Ok(())
+    }
+
+    #[test]
+    fn saving_params_keeps_a_file_it_cannot_read() -> Result<()> {
+        let temp_dir = tempfile::tempdir()?;
+        let project = Project::new(temp_dir.path().to_path_buf(), "test");
+        std::fs::create_dir_all(project.get_resource_dir())?;
+        let params = ProjectParamsListWrapper::new(vec![ProjectParam::new(
+            "size",
+            ProjectParamValue::Float(1.0),
+        )]);
+
+        // no file: nothing saved yet, and saving creates it
+        assert!(project.load_editor_params()?.0.list.is_empty());
+        project.save_editor_params(&params)?;
+        assert_eq!(project.load_editor_params()?.0.list.len(), 1);
+
+        std::fs::write(project.get_editor_params_path(), [1, 2, 3])?;
+        assert!(project.load_editor_params().is_err());
+        assert!(project.save_editor_params(&params).is_err());
+        assert_eq!(std::fs::read(project.get_editor_params_path())?, [1, 2, 3]);
         Ok(())
     }
 }

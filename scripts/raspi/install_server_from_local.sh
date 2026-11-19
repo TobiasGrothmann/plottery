@@ -54,7 +54,7 @@ if ! systemctl is-enabled "$SERVICE_NAME" >/dev/null 2>&1; then
   exit 1
 fi
 
-"$CARGO_BIN" install --path "$REPO_ROOT/server" --features raspi --force
+"$CARGO_BIN" install --locked --path "$REPO_ROOT/server" --features raspi --force
 
 sudo systemctl daemon-reload
 sudo systemctl restart "$SERVICE_NAME"

@@ -9,9 +9,10 @@ use anyhow::{bail, Context, Result};
 use clap::{Args, Parser, Subcommand};
 use futures_lite::future::block_on;
 use plottery_project::{
-    export_plottery_home, project_params_list_wrapper::ProjectParamsListWrapper, LibSource,
-    Project, RunEvent,
+    editor_roots, scan_roots, set_plottery_home, validate_project_name, LibSource, Project,
+    RunEvent, ScanOptions, PLOTTERY_HOME_ENV,
 };
+use plottery_runtime::project_params_list_wrapper::ProjectParamsListWrapper;
 use std::{
     cell::RefCell,
     future::{pending, poll_fn},
@@ -95,9 +96,14 @@ enum Command {
             short = 'l',
             long = "lib",
             help = "Plottery library source [default: cratesio]",
-            long_help = "Plottery library source\n    cratesio [default]    Use the published crate from crates.io\n    home                  Use local source from PLOTTERY_HOME env var\n    PATH                  Use local source from a custom path"
+            long_help = "Plottery library source\n    cratesio [default]    Use the published crate from crates.io\n    home                  Use the local checkout set with `plottery set-home`\n    PATH                  Use local source from a custom path"
         )]
         lib: Option<String>,
+        #[arg(
+            long,
+            help = "Don't create a git repository and .gitignore in the project"
+        )]
+        no_git: bool,
     },
     #[command(about = "Build the project and show cargo output")]
     Build {
@@ -111,6 +117,25 @@ enum Command {
     },
     #[command(about = "Open the project in the Plottery Editor")]
     Open {
+        #[command(flatten)]
+        project: ProjectArg,
+    },
+    #[command(
+        about = "Print the folders of the projects the editor shows, one per line",
+        long_about = "Print the folders of the projects the editor shows, one per line.\n\nThese are the projects in the folders added to the editor's browser. --roots prints those folders instead."
+    )]
+    List {
+        #[arg(
+            long,
+            help = "Print the folders the editor scans instead of the projects"
+        )]
+        roots: bool,
+    },
+    #[command(
+        about = "Print the path of a png of the project's last run, the editor's thumbnail",
+        long_about = "Print the path of a png of the project's last run, the editor's thumbnail.\n\nNothing is built or run: it shows what `plottery run` or the editor drew last."
+    )]
+    Preview {
         #[command(flatten)]
         project: ProjectArg,
     },
@@ -129,7 +154,7 @@ enum Command {
     )]
     Set {
         #[arg(
-            required_unless_present = "defaults",
+            required_unless_present = "reset",
             value_name = "NAME=VALUE",
             help = "Syntax as printed by `plottery params`, e.g. size=12.5 glow.radius=2 points.0=1,2"
         )]
@@ -137,7 +162,7 @@ enum Command {
         #[command(flatten)]
         project: ProjectFlag,
         #[arg(long, help = "Reset all params to the code's defaults first")]
-        defaults: bool,
+        reset: bool,
     },
     #[command(
         about = "Render to png and/or svg files and print drawing stats",
@@ -198,7 +223,10 @@ enum Command {
         )]
         hold: f32,
     },
-    #[command(about = "Set PLOTTERY_HOME, the local plottery checkout used by `new --lib home`")]
+    #[command(
+        about = "Set the local plottery checkout used by `new --lib home`",
+        long_about = "Set the local plottery checkout used by `new --lib home`.\n\nIt is saved in Plottery's config file, which the editor reads too. The PLOTTERY_HOME environment variable overrides it when set."
+    )]
     SetHome {
         #[arg(help = "Path to the plottery workspace directory")]
         path: String,
@@ -286,13 +314,13 @@ fn print_event(event: RunEvent) {
     }
 }
 
+/// The saved params. Names those whose saved value could not be read, they get their default.
 fn load_editor_params(project: &Project) -> Result<ProjectParamsListWrapper> {
-    project.load_editor_params().with_context(|| {
-        format!(
-            "Failed to read saved params '{}'",
-            project.get_editor_params_path().display()
-        )
-    })
+    let (params, skipped) = project.load_editor_params()?;
+    for name in skipped {
+        eprintln!("The saved value of '{name}' could not be read, using its default");
+    }
+    Ok(params)
 }
 
 fn parse_assignments(assignments: &[String]) -> Result<Vec<(&str, &str)>> {
@@ -328,14 +356,20 @@ fn build_and_resolve_params(
 pub fn main() -> Result<()> {
     let args = Cli::parse();
     match args.command {
-        Command::New { name, path, lib } => {
+        Command::New {
+            name,
+            path,
+            lib,
+            no_git,
+        } => {
+            validate_project_name(&name)?;
             let lib_source = lib.as_deref().map_or(LibSource::CratesIO, parse_lib_source);
             let project = Project::new(PathBuf::from(path), &name);
             if project.exists() {
                 bail!("Project already exists at '{}'", project.dir.display());
             }
             project
-                .generate_to_disk(lib_source, true)
+                .generate_to_disk(lib_source, !no_git)
                 .with_context(|| format!("Failed to create project '{}'", project.dir.display()))?;
             println!("Created project at '{}'", project.dir.display());
         }
@@ -368,6 +402,9 @@ pub fn main() -> Result<()> {
             println!("{}", stats::format_stats(&layer, &params.list));
         }
         Command::Open { project } => {
+            if !cfg!(target_os = "macos") {
+                bail!("`plottery open` needs the Plottery Editor, which runs on macOS only");
+            }
             let project = project.find()?;
             let Some(app) = editor_app::find_editor_app() else {
                 bail!("Plottery Editor not found in /Applications or ~/Applications. Install it with: curl -fsSL https://raw.githubusercontent.com/TobiasGrothmann/plottery/main/scripts/install_macos.sh | bash");
@@ -384,6 +421,31 @@ pub fn main() -> Result<()> {
             }
             println!("Opened '{}' in the editor", project.config.name);
         }
+        Command::List { roots: only_roots } => {
+            let roots = editor_roots()?;
+            if roots.is_empty() {
+                bail!("The editor has no project folders yet. Add one in the editor's browser.");
+            }
+            if only_roots {
+                for root in roots {
+                    println!("{}", root.display());
+                }
+            } else {
+                let scan = scan_roots(&roots, &ScanOptions::default());
+                for (path, error) in scan.errors {
+                    eprintln!("Skipped '{}': {error}", path.display());
+                }
+                let mut dirs: Vec<PathBuf> = scan.projects.into_iter().map(|p| p.dir).collect();
+                dirs.sort();
+                for dir in dirs {
+                    println!("{}", dir.display());
+                }
+            }
+        }
+        Command::Preview { project } => {
+            let thumbnail = project.find()?.fresh_editor_thumbnail()?;
+            println!("{}", thumbnail.display());
+        }
         Command::Params { project, params } => {
             let project = project.find()?;
             let (params, defaults) = build_and_resolve_params(&project, &params)?;
@@ -392,7 +454,7 @@ pub fn main() -> Result<()> {
         Command::Set {
             assignments,
             project,
-            defaults: reset,
+            reset,
         } => {
             let assignments = parse_assignments(&assignments)?;
             let project = find_project(project.project)?;
@@ -529,12 +591,21 @@ pub fn main() -> Result<()> {
                 bail!("Path is not a directory: {}", path);
             }
 
-            let absolute_path = path_buf.canonicalize().unwrap_or(path_buf);
-            let absolute_path_str = absolute_path.to_string_lossy();
-
-            export_plottery_home(&absolute_path_str).context("Failed to set PLOTTERY_HOME")?;
-            println!("PLOTTERY_HOME has been set to: {}", absolute_path_str);
-            println!("This setting will persist across terminal sessions.");
+            let home = path_buf.canonicalize().unwrap_or(path_buf);
+            let config_path = set_plottery_home(&home).context("Failed to save plottery home")?;
+            println!(
+                "Plottery home set to '{}' in '{}'",
+                home.display(),
+                config_path.display()
+            );
+            if let Some(env_home) = std::env::var_os(PLOTTERY_HOME_ENV).filter(|v| !v.is_empty()) {
+                if Path::new(&env_home) != home {
+                    eprintln!(
+                        "{PLOTTERY_HOME_ENV} is set to '{}' and overrides it. Remove it from your shell profile.",
+                        env_home.to_string_lossy()
+                    );
+                }
+            }
         }
         Command::Version => println!("plottery {}", env!("CARGO_PKG_VERSION")),
     }

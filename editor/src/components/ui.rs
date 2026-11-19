@@ -2,7 +2,6 @@ use dioxus::prelude::*;
 
 use crate::components::icon::{Icon, IconName};
 
-#[allow(dead_code)]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum Variant {
     Primary,
@@ -19,7 +18,6 @@ pub enum Size {
     Sm,
 }
 
-#[allow(dead_code)]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Tone {
     Ok,

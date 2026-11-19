@@ -273,7 +273,7 @@ impl LayerSummary {
             name: layer.props.name.clone(),
             pen: Pen {
                 color: props.color.unwrap(),
-                width_cm: props.pen_width_cm.unwrap(),
+                width_cm: props.pen_width.unwrap(),
             },
             own_shapes: layer.shapes.len(),
             own_draw_length: layer.shapes.iter().map(Shape::length).sum(),

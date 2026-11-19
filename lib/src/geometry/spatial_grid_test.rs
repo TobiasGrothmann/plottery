@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod test_spatial_grid {
     use itertools::Itertools;
-    use rand::{rngs::StdRng, Rng, SeedableRng};
+    use rand::{rngs::StdRng, RngExt, SeedableRng};
 
     use crate::{SpatialGrid, V2};
 
@@ -11,8 +11,8 @@ mod test_spatial_grid {
         rng: &mut StdRng,
     ) {
         for _ in 0..200 {
-            let query = V2::new(rng.gen_range(-30.0..40.0), rng.gen_range(-30.0..40.0));
-            let radius = rng.gen_range(0.0..4.0);
+            let query = V2::new(rng.random_range(-30.0..40.0), rng.random_range(-30.0..40.0));
+            let radius = rng.random_range(0.0..4.0);
             let alive = || {
                 points
                     .iter()
@@ -42,7 +42,7 @@ mod test_spatial_grid {
     fn matches_brute_force() {
         let mut rng = StdRng::seed_from_u64(3);
         let random = (0..400)
-            .map(|_| V2::new(rng.gen_range(-5.0..15.0), rng.gen_range(-5.0..15.0)))
+            .map(|_| V2::new(rng.random_range(-5.0..15.0), rng.random_range(-5.0..15.0)))
             .collect_vec();
         let on_a_line = (0..50).map(|i| V2::new(i as f32 * 0.3, 2.0)).collect_vec();
         let all_equal = vec![V2::new(1.0, 1.0); 20];

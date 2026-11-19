@@ -1,10 +1,11 @@
 use serde::{Deserialize, Serialize};
 use std::f32::consts::PI;
 
+use super::containment::contains_shape_by_variant;
 use crate::{
     traits::{bounds_may_touch, ClosestPoint, Fit, Mirror, Scale, Translate},
     Angle, BoundingBox, Containment, Path, Plottable, Rect, Rotate, Rotate90, SampleSettings,
-    Shape, LARGE_EPSILON, V2,
+    Shape, AREA_TOLERANCE, LENGTH_TOLERANCE, V2,
 };
 
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq)]
@@ -28,7 +29,7 @@ impl Circle {
         self.radius * 2.0 * PI
     }
 
-    pub fn get_intersections(&self, other: &Circle) -> Vec<V2> {
+    pub fn intersections(&self, other: &Circle) -> Vec<V2> {
         let delta = other.center - self.center;
         let dist = delta.length();
         let radius_sum = self.radius + other.radius;
@@ -43,15 +44,15 @@ impl Circle {
             return vec![];
         }
         // circles are the same
-        if dist <= LARGE_EPSILON && radius_difference <= LARGE_EPSILON {
+        if dist <= LENGTH_TOLERANCE && radius_difference <= LENGTH_TOLERANCE {
             return vec![];
         }
         // circles are tangent
-        if (dist - radius_sum).abs() <= LARGE_EPSILON {
+        if (dist - radius_sum).abs() <= LENGTH_TOLERANCE {
             return vec![self.center + V2::polar(delta.angle(), self.radius)];
         }
         // circles are tangent (one inside the other)
-        if (dist - radius_difference).abs() <= LARGE_EPSILON {
+        if (dist - radius_difference).abs() <= LENGTH_TOLERANCE {
             if self.radius > other.radius {
                 return vec![self.center + V2::polar(delta.angle(), self.radius)];
             } else {
@@ -92,9 +93,9 @@ impl Circle {
             .collect()
     }
 
-    fn get_points(&self, start_angle: Angle, sample_settings: SampleSettings) -> Vec<V2> {
+    fn points_from_angle(&self, start_angle: Angle, sample_settings: SampleSettings) -> Vec<V2> {
         let num_samples = sample_settings
-            .get_num_points_for_length(self.circumference())
+            .num_points_for_length(self.circumference())
             .max(8);
         let angle_per_step = 2.0 * PI / num_samples as f32;
         (0..num_samples + 1)
@@ -103,7 +104,7 @@ impl Circle {
     }
 
     /// Path to draw a circle with a given thickness
-    /// It creates a spiralling path from the circle's radius towards the center with a given `thickness`
+    /// It creates a spiraling path from the circle's radius towards the center with a given `thickness`
     pub fn filled_partially_towards_center(
         &self,
         mut thickness: f32,
@@ -113,7 +114,7 @@ impl Circle {
         thickness = thickness.min(self.radius - pen_width * 0.5);
         let num_rotations = thickness / pen_width;
         let circumference = 2.0 * PI * self.radius;
-        let resolution = sample_settings.get_num_points_for_length(circumference);
+        let resolution = sample_settings.num_points_for_length(circumference);
 
         let outside = (0..resolution + 1).map(|i| {
             let rot = i as f32 / resolution as f32;
@@ -144,16 +145,16 @@ impl Circle {
     }
 
     /// Path to draw a circle filled similar to `with_thickness_towards_center`
-    /// It creates a spiralling path from the circle's radius towards the center with a given `thickness`
+    /// It creates a spiraling path from the circle's radius towards the center with a given `thickness`
     pub fn filled_spiral(&self, pen_width: f32, sample_settings: SampleSettings) -> super::Path {
         if self.radius <= pen_width * 0.5 {
-            return Path::new_from(self.get_points(Angle::zero(), sample_settings));
+            return Path::new_from(self.points_from_angle(Angle::zero(), sample_settings));
         }
 
         let thickness = self.radius - 0.005;
         let num_rotations = thickness / pen_width;
         let circumference = 2.0 * PI * self.radius;
-        let resolution = sample_settings.get_num_points_for_length(circumference);
+        let resolution = sample_settings.num_points_for_length(circumference);
 
         let outside = (0..resolution + 1).map(|i| {
             let rot = i as f32 / resolution as f32;
@@ -180,14 +181,14 @@ impl Circle {
         sample_settings: SampleSettings,
     ) -> super::Path {
         if self.radius <= pen_width * 0.5 {
-            return Path::new_from(self.get_points(Angle::down_cw(), sample_settings));
+            return Path::new_from(self.points_from_angle(Angle::down_cw(), sample_settings));
         }
 
         let smaller_inner = Circle::new(self.center, self.radius - pen_width);
         let filling = smaller_inner.criss_cross_filling(pen_width);
 
         Path::new_from(
-            self.get_points(Angle::down_cw(), sample_settings)
+            self.points_from_angle(Angle::down_cw(), sample_settings)
                 .into_iter()
                 .chain(filling),
         )
@@ -224,7 +225,7 @@ impl Circle {
         let dy = y - self.center.y;
         let dx_squared = self.radius.powi(2) - dy.powi(2);
 
-        if dx_squared < -LARGE_EPSILON {
+        if dx_squared < -AREA_TOLERANCE {
             return None;
         }
 
@@ -322,30 +323,24 @@ impl Circle {
         Containment::None
     }
 
-    pub fn contains_shape(&self, other: &Shape) -> Containment {
-        match other {
-            Shape::Circle(c) => self.contains_circle(c),
-            Shape::Rect(r) => self.contains_rect(r),
-            Shape::Path(p) => self.contains_path(p),
-        }
-    }
+    contains_shape_by_variant!();
 }
 
 impl Plottable for Circle {
-    fn get_points(&self, sample_settings: SampleSettings) -> Vec<V2> {
-        self.get_points(Angle::zero(), sample_settings)
+    fn points(&self, sample_settings: SampleSettings) -> Vec<V2> {
+        self.points_from_angle(Angle::zero(), sample_settings)
     }
 
-    fn get_points_from(
+    fn points_from(
         &self,
         current_drawing_head_pos: V2,
         sample_settings: SampleSettings,
     ) -> Vec<V2> {
         if self.center == current_drawing_head_pos {
-            return self.get_points(Angle::zero(), sample_settings);
+            return self.points_from_angle(Angle::zero(), sample_settings);
         }
         let start_angle = (current_drawing_head_pos - self.center).angle();
-        self.get_points(start_angle, sample_settings)
+        self.points_from_angle(start_angle, sample_settings)
     }
 
     fn length(&self) -> f32 {

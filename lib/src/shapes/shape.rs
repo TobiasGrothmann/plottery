@@ -2,11 +2,12 @@ pub use crate::shapes::circle::Circle;
 pub use crate::shapes::path::Path;
 pub use crate::shapes::rect::Rect;
 
+use super::containment::contains_shape_by_variant;
 use crate::{
     geometry::TransformMatrix,
     traits::{ClosestPoint, Fit, Scale, Scale2D, Transform, Translate},
     Angle, BoundingBox, Containment, Line, Mirror, Plottable, Rotate, Rotate90, SampleSettings,
-    LARGE_EPSILON, V2,
+    LENGTH_TOLERANCE, V2,
 };
 use serde::{Deserialize, Serialize};
 
@@ -21,8 +22,8 @@ impl Shape {
     /// True if the shape draws nothing, e.g. a [`Path`] with fewer than two distinct points.
     pub fn is_degenerate(&self) -> bool {
         match self {
-            Shape::Circle(c) => c.radius <= LARGE_EPSILON,
-            Shape::Rect(r) => r.width() <= LARGE_EPSILON && r.height() <= LARGE_EPSILON,
+            Shape::Circle(c) => c.radius <= LENGTH_TOLERANCE,
+            Shape::Rect(r) => r.width() <= LENGTH_TOLERANCE && r.height() <= LENGTH_TOLERANCE,
             Shape::Path(p) => p.is_degenerate(),
         }
     }
@@ -83,32 +84,26 @@ impl Shape {
         }
     }
 
-    pub fn contains(&self, other: &Shape) -> Containment {
-        match other {
-            Shape::Circle(c) => self.contains_circle(c),
-            Shape::Rect(r) => self.contains_rect(r),
-            Shape::Path(p) => self.contains_path(p),
-        }
-    }
+    contains_shape_by_variant!();
 }
 
 impl Plottable for Shape {
-    fn get_points(&self, sample_settings: SampleSettings) -> Vec<V2> {
+    fn points(&self, sample_settings: SampleSettings) -> Vec<V2> {
         match self {
-            Shape::Circle(c) => c.get_points(sample_settings),
-            Shape::Rect(r) => r.get_points(sample_settings),
-            Shape::Path(p) => p.get_points(sample_settings),
+            Shape::Circle(c) => c.points(sample_settings),
+            Shape::Rect(r) => r.points(sample_settings),
+            Shape::Path(p) => p.points(sample_settings),
         }
     }
-    fn get_points_from(
+    fn points_from(
         &self,
         current_drawing_head_pos: V2,
         sample_settings: SampleSettings,
     ) -> Vec<V2> {
         match self {
-            Shape::Circle(c) => c.get_points_from(current_drawing_head_pos, sample_settings),
-            Shape::Rect(r) => r.get_points_from(current_drawing_head_pos, sample_settings),
-            Shape::Path(p) => p.get_points_from(current_drawing_head_pos, sample_settings),
+            Shape::Circle(c) => c.points_from(current_drawing_head_pos, sample_settings),
+            Shape::Rect(r) => r.points_from(current_drawing_head_pos, sample_settings),
+            Shape::Path(p) => p.points_from(current_drawing_head_pos, sample_settings),
         }
     }
 
@@ -145,6 +140,7 @@ impl Plottable for Shape {
     }
 }
 
+/// A [`Rect`] is always upright, so rotating one turns it into a [`Path`].
 impl Rotate for Shape {
     fn rotate(&self, angle: Angle) -> Self {
         match self {
@@ -316,11 +312,12 @@ impl Scale for Shape {
     }
 }
 
+/// A [`Circle`] has one radius, so scaling one unevenly turns it into a sampled [`Path`].
 impl Scale2D for Shape {
     fn scale_2d(&self, factor: V2) -> Self {
         match self {
             Shape::Circle(c) => {
-                let mut points = c.get_points(SampleSettings::default());
+                let mut points = c.points(SampleSettings::default());
                 for p in &mut points {
                     *p *= factor;
                 }
@@ -334,7 +331,7 @@ impl Scale2D for Shape {
     fn scale_2d_mut(&mut self, factor: V2) {
         match self {
             Shape::Circle(c) => {
-                let mut points = c.get_points(SampleSettings::default());
+                let mut points = c.points(SampleSettings::default());
                 for p in &mut points {
                     *p *= factor;
                 }
@@ -392,11 +389,12 @@ impl BoundingBox for Shape {
     }
 }
 
+/// A matrix can rotate and shear, so [`Circle`] and [`Rect`] turn into [`Path`]s.
 impl Transform for Shape {
     fn transform(&self, matrix: &TransformMatrix) -> Self {
         match self {
             Shape::Circle(c) => Shape::Path(
-                c.get_points(SampleSettings::default())
+                c.points(SampleSettings::default())
                     .iter()
                     .map(|p| matrix.mul_vector(*p))
                     .collect::<Path>(),
@@ -419,7 +417,7 @@ impl Transform for Shape {
         match self {
             Shape::Circle(c) => {
                 let points = c
-                    .get_points(SampleSettings::default())
+                    .points(SampleSettings::default())
                     .iter()
                     .map(|p| matrix.mul_vector(*p))
                     .collect::<Path>();
