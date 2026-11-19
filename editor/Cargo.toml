@@ -27,7 +27,7 @@ path-absolutize.workspace = true
 chrono.workspace = true
 dioxus-router = "0.7"
 tokio.workspace = true
-notify = "6.1.1"
+notify = "8"
 rfd = { version = "0.17", default-features = false }
 regex = "1.10.3"
 base64 = "0.22.0"
