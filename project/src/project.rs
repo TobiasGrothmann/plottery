@@ -16,7 +16,6 @@ use path_absolutize::Absolutize;
 use resvg::{tiny_skia, usvg};
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
-use usvg::{fontdb, TreeParsing, TreeTextToPath};
 
 /// Longest side of the browser thumbnail in pixels.
 pub const EDITOR_THUMBNAIL_SIZE: u32 = 1024;
@@ -27,19 +26,14 @@ fn render_svg(
     max_size: Option<u32>,
     background: Option<tiny_skia::Color>,
 ) -> Result<tiny_skia::Pixmap> {
-    let rtree = {
-        let opt = usvg::Options::default();
-        let mut fontdb = fontdb::Database::new();
-        // Scanning the system fonts is slow and only text needs them, which layers never contain.
-        if svg_data.windows(5).any(|bytes| bytes == b"<text") {
-            fontdb.load_system_fonts();
-        }
-        let mut tree = usvg::Tree::from_data(svg_data, &opt)?;
-        tree.convert_text(&fontdb);
-        resvg::Tree::from_usvg(&tree)
-    };
+    let mut opt = usvg::Options::default();
+    // Scanning the system fonts is slow and only text needs them, which layers never contain.
+    if svg_data.windows(5).any(|bytes| bytes == b"<text") {
+        opt.fontdb_mut().load_system_fonts();
+    }
+    let tree = usvg::Tree::from_data(svg_data, &opt)?;
 
-    let size = rtree.size;
+    let size = tree.size();
     let scale = match max_size {
         Some(max) => max as f32 / size.width().max(size.height()),
         None => 1.0,
@@ -51,7 +45,8 @@ fn render_svg(
     if let Some(background) = background {
         pixmap.fill(background);
     }
-    rtree.render(
+    resvg::render(
+        &tree,
         tiny_skia::Transform::from_scale(scale, scale),
         &mut pixmap.as_mut(),
     );
