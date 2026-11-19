@@ -16,7 +16,11 @@ use std::{
 };
 
 use job::JobState;
-use plottery_server_lib::{task::Task, Telemetry, HOST_PORT};
+use plottery_server_lib::{
+    discovery::{self, Advertisement},
+    task::Task,
+    Telemetry,
+};
 use rocket::{
     data::{Limits, ToByteUnit},
     http::Status,
@@ -101,7 +105,16 @@ async fn async_main() {
     let config = Config::figment()
         .merge(("limits", Limits::default().limit("bytes", 1.gigabytes())))
         .merge(("address", "0.0.0.0"))
-        .merge(("port", HOST_PORT));
+        .merge(("port", discovery::PORT));
+
+    // Dropped after launch returns, e.g. on SIGTERM, which tells browsers the server is gone.
+    let _advertisement = match Advertisement::start() {
+        Ok(advertisement) => advertisement,
+        Err(e) => {
+            eprintln!("Failed to advertise the server with mDNS {:?}", e);
+            return;
+        }
+    };
 
     rocket::custom(config)
         .mount("/", routes![set_task, get_state])

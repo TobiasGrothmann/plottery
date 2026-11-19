@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- Merged into the bundled Info.plist by scripts/release_editor.sh: Finder opens .plottery files in the editor -->
+<!-- Merged into the bundled Info.plist by scripts/release_editor.sh: Finder opens .plottery files in the editor,
+     and macOS lets it browse the local network for the plotter (_plottery._tcp, see server_lib/src/discovery.rs) -->
 <plist version="1.0">
 <dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Plottery Editor looks for your pen plotter on the local network.</string>
+	<key>NSBonjourServices</key>
+	<array><string>_plottery._tcp</string></array>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>

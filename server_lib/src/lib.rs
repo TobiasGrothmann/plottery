@@ -6,6 +6,7 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 pub mod acceleration;
+pub mod discovery;
 pub mod estimation;
 pub mod hardware;
 mod hardware_test;
@@ -46,19 +47,15 @@ impl Axis {
     }
 }
 
-// TODO: config
-pub static HOST_PORT: u16 = 29797;
-pub static HOST_NAME: &str = "otter.local";
-
 /// The HTTP client shared by all requests, so connections to the server are kept alive.
 pub(crate) fn http_client() -> &'static reqwest::Client {
     static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
     CLIENT.get_or_init(reqwest::Client::new)
 }
 
-const LOOKUP_TIMEOUT: Duration = Duration::from_secs(2);
-/// After a failed lookup, requests fail right away for this long instead of looking up again.
-const LOOKUP_RETRY_AFTER: Duration = Duration::from_secs(5);
+const DISCOVERY_TIMEOUT: Duration = Duration::from_secs(2);
+/// After a failed discovery, requests fail right away for this long instead of browsing again.
+const DISCOVERY_RETRY_AFTER: Duration = Duration::from_secs(5);
 
 enum Lookup {
     Found(String),
@@ -67,39 +64,22 @@ enum Lookup {
 
 static LOOKUP: Mutex<Option<Lookup>> = Mutex::new(None);
 
-/// Base URL of the server. `PLOTTERY_HOST` overrides the host (e.g. an IP).
-/// Otherwise the name is resolved to an IPv4 address. The server listens
-/// on 0.0.0.0 only, and `otter.local` may resolve to an IPv6 address first,
-/// which fails with "no route to host" before IPv4 is ever tried.
-/// The address is cached until a request to the server fails.
+/// Base URL of the server, found with mDNS. Cached until a request to the server fails.
 pub async fn server_url() -> anyhow::Result<String> {
-    if let Ok(host) = std::env::var("PLOTTERY_HOST") {
-        return Ok(format!("http://{}:{}", host, HOST_PORT));
-    }
+    let not_found = || anyhow::anyhow!("no plotter found on the local network, is plottery_server running?");
     match &*LOOKUP.lock().unwrap() {
         Some(Lookup::Found(url)) => return Ok(url.clone()),
-        Some(Lookup::Failed(at)) if at.elapsed() < LOOKUP_RETRY_AFTER => {
-            anyhow::bail!("{HOST_NAME} was not found")
-        }
+        Some(Lookup::Failed(at)) if at.elapsed() < DISCOVERY_RETRY_AFTER => return Err(not_found()),
         _ => {}
     }
-
-    let lookup = tokio::net::lookup_host((HOST_NAME, HOST_PORT));
-    let found = match tokio::time::timeout(LOOKUP_TIMEOUT, lookup).await {
-        Ok(Ok(mut addrs)) => Some(
-            addrs
-                .find(|addr| addr.is_ipv4())
-                .map(|addr| addr.ip().to_string())
-                .unwrap_or_else(|| HOST_NAME.to_string()),
-        ),
-        _ => None,
-    };
-    let url = found.map(|host| format!("http://{}:{}", host, HOST_PORT));
+    let url = discovery::discover_plotter(DISCOVERY_TIMEOUT)
+        .await?
+        .map(|addr| format!("http://{addr}"));
     *LOOKUP.lock().unwrap() = Some(match &url {
         Some(url) => Lookup::Found(url.clone()),
         None => Lookup::Failed(Instant::now()),
     });
-    url.ok_or_else(|| anyhow::anyhow!("{HOST_NAME} was not found"))
+    url.ok_or_else(not_found)
 }
 
 /// Drops the cached address, e.g. after a failed request: the server may have a new one.
