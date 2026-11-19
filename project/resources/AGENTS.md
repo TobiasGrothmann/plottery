@@ -200,6 +200,9 @@ pen. The layer tree you return is that panel, so build it for the user, not for 
   `inner_rect()` is the drawing area, and the margin between them is the only gap. Lay the drawing
   out for the inner rect, then `fit_inside_mut(frame.inner_rect(), Alignment::Center)` the finished
   layer to catch overhangs. Don't add padding or extra border params.
+- The cut line, a paper-size border as a cut guide, generally goes first in the plot: push it as the
+  first sublayer, named `frame`. Sublayers plot in the order they were pushed, and
+  `optimize_recursive` only reorders the shapes inside each layer.
 - Pen plotters only draw lines. Fills are hatching, and overlapping strokes are drawn twice.
 - Plot time matters. Every pen lift costs time, many tiny segments are slow, and the pen slows at
   corners. Join paths with `combine_shapes_recursive`, thin them with `reduce_points_recursive`, and
