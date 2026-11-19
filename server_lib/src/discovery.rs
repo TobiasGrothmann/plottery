@@ -1,17 +1,14 @@
 //! The server advertises itself with mDNS/DNS-SD, the editor finds it by browsing for [`SERVICE_TYPE`].
 
-use std::{
-    net::{IpAddr, SocketAddr},
-    time::Duration,
-};
+use std::time::Duration;
 
-use mdns_sd::{IfKind, ServiceDaemon, ServiceEvent, ServiceInfo};
+use mdns_sd::{IfKind, ServiceDaemon, ServiceInfo};
 
 pub const SERVICE_TYPE: &str = "_plottery._tcp.local.";
 pub const PORT: u16 = 29797;
 
 /// IPv4 without loopback: the server listens on IPv4 only.
-fn daemon() -> anyhow::Result<ServiceDaemon> {
+pub(crate) fn daemon() -> anyhow::Result<ServiceDaemon> {
     let daemon = ServiceDaemon::new()?;
     daemon.disable_interface(IfKind::IPv6)?;
     daemon.disable_interface(IfKind::LoopbackV4)?;
@@ -51,26 +48,4 @@ impl Drop for Advertisement {
         }
         self.daemon.shutdown().ok();
     }
-}
-
-/// Address of the first plotter that answers within `timeout`.
-pub async fn discover_plotter(timeout: Duration) -> anyhow::Result<Option<SocketAddr>> {
-    let daemon = daemon()?;
-    let events = daemon.browse(SERVICE_TYPE)?;
-    let found = tokio::time::timeout(timeout, async {
-        while let Ok(event) = events.recv_async().await {
-            if let ServiceEvent::ServiceResolved(service) = event {
-                if let Some(ip) = service.get_addresses_v4().into_iter().min() {
-                    return Some(SocketAddr::new(IpAddr::V4(ip), service.get_port()));
-                }
-            }
-        }
-        None
-    })
-    .await
-    .ok()
-    .flatten();
-    daemon.stop_browse(SERVICE_TYPE).ok();
-    daemon.shutdown().ok();
-    Ok(found)
 }

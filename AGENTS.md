@@ -98,5 +98,5 @@ Building, local checkouts in projects, examples, tests, pre-release checks and r
 - **API changes:** Update `examples/` in the same change; `scripts/check_examples.sh` must pass. When it fails, follow DEVELOPMENT.md "Examples".
 - **Crate READMEs:** `lib/README.md`, `runtime/README.md` and `project/README.md` are docs.rs pages with doctests, see DEVELOPMENT.md "Tests".
 - **Editor formatting:** `dx fmt` moves comments and splits `.await` chains. Format rsx by hand, or run it on one file and diff the result. `cargo fmt` is safe but skips rsx.
-- **Server crate:** Hardware-specific code; `raspi` feature flag required for GPIO. The Pi compiles it, so `server` and `server_lib` use `plottery_lib` without its default features (`text`, `image`, `voronoi`, see `lib/Cargo.toml`).
+- **Server crate:** Hardware-specific code; `raspi` feature flag required for GPIO. The Pi compiles it, so `server` and `server_lib` use `plottery_lib` without its default features (`text`, `image`, `voronoi`, see `lib/Cargo.toml`). The HTTP client in `server_lib` is behind its `client` feature, which only the editor turns on.
 - **Platforms:** Supported systems per crate are in the README's "Platforms" section; don't add code for others.

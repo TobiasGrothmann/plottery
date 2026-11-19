@@ -64,25 +64,3 @@ impl Task {
         ))
     }
 }
-
-/// Sends `task` to the server. An answer other than success is an error with the server's message.
-pub async fn send_task(task: Task) -> anyhow::Result<()> {
-    let body = task.to_binary()?;
-    let url = format!("{}/task", crate::server_url().await?);
-    let response = match crate::http_client().post(url).body(body).send().await {
-        Ok(response) => response,
-        Err(err) => {
-            crate::forget_server_url();
-            return Err(err.into());
-        }
-    };
-    let status = response.status();
-    if !status.is_success() {
-        let message = response.text().await.unwrap_or_default();
-        bail!(
-            "The plotter server refused the task ({status}): {}",
-            message.trim()
-        );
-    }
-    Ok(())
-}

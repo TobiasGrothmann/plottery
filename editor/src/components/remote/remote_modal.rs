@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use plottery_lib::V2;
 use plottery_server_lib::{
-    server_state::ServerState, task::send_task, Activity, PlotOutcome, PlotSettings, Task,
+    server_state::ServerState, send_task, Activity, PlotOutcome, PlotSettings, Task,
 };
 
 use crate::{

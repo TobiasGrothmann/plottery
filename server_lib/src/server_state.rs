@@ -1,4 +1,4 @@
-use std::{fmt, time::Duration};
+use std::time::Duration;
 
 use plottery_lib::V2;
 use serde::{Deserialize, Serialize};
@@ -73,41 +73,4 @@ impl ServerState {
     pub fn to_binary(&self) -> anyhow::Result<Vec<u8>> {
         Ok(postcard::to_stdvec(self)?)
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum StateRequestError {
-    Unreachable(String),
-    /// The server answered with a state this version cannot decode.
-    DifferentVersion,
-}
-
-impl fmt::Display for StateRequestError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Unreachable(reason) => write!(f, "plotter server is unreachable: {reason}"),
-            Self::DifferentVersion => write!(f, "plotter server is a different version"),
-        }
-    }
-}
-
-impl std::error::Error for StateRequestError {}
-
-pub async fn request_server_state(
-    timeout: Option<Duration>,
-) -> Result<ServerState, StateRequestError> {
-    let unreachable = |err: &dyn fmt::Display| StateRequestError::Unreachable(err.to_string());
-
-    let url = crate::server_url().await.map_err(|err| unreachable(&err))?;
-    let mut request = crate::http_client().get(format!("{url}/state"));
-    if let Some(timeout_duration) = timeout {
-        request = request.timeout(timeout_duration)
-    }
-
-    let response = async { request.send().await?.error_for_status()?.bytes().await };
-    let bytes = response.await.map_err(|err| {
-        crate::forget_server_url();
-        unreachable(&err)
-    })?;
-    ServerState::from_binary(&bytes).map_err(|_| StateRequestError::DifferentVersion)
 }
