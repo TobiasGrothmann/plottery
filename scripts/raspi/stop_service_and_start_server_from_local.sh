@@ -42,6 +42,6 @@ fi
 
 sudo systemctl stop "$SERVICE_NAME"
 
-"$CARGO_BIN" build --manifest-path "$REPO_ROOT/Cargo.toml" -p plottery_server --features raspi --release
+"$CARGO_BIN" build --manifest-path "$REPO_ROOT/Cargo.toml" -p plottery_server --features raspi --release --locked
 
 sudo "$REPO_ROOT/target/release/plottery_server"
