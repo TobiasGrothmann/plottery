@@ -165,7 +165,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
         Ok((params, skipped)) => {
             if !skipped.is_empty() {
                 console().warn(&format!(
-                    "saved params that could not be read and get their default: {}",
+                    "Saved params that could not be read get their default: {}",
                     skipped.join(", ")
                 ));
             }
@@ -203,9 +203,9 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                         match std::fs::read(layer_path) {
                             Ok(layer_binary) => Layer::new_from_binary(&layer_binary)
                                 .map(Some)
-                                .map_err(|err| format!("failed to load the last layer: {err}")),
+                                .map_err(|err| format!("Failed to load the last layer: {err}")),
                             Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(None),
-                            Err(err) => Err(format!("failed to read layer from file: {:?}", err)),
+                            Err(err) => Err(format!("Failed to read the last layer: {err}")),
                         }
                     })
                     .await;
@@ -234,9 +234,8 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                     }
                     Err(err) => {
                         if let Ok(console_read) = console.try_read() {
-                            console_read.error(
-                                format!("failed to load layer in background: {:?}", err).as_str(),
-                            );
+                            console_read
+                                .error(format!("Failed to load the last layer: {err}").as_str());
                         }
                     }
                 }
@@ -334,8 +333,9 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
         }
     });
 
-    let plot_estimate_text =
-        use_memo(move || estimated_plot_duration().map(|duration| format!("~{}", format_plot_duration(duration))));
+    let plot_estimate_text = use_memo(move || {
+        estimated_plot_duration().map(|duration| format!("~{}", format_plot_duration(duration)))
+    });
 
     // hooks for changes in project
     // params
@@ -346,7 +346,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
             if let Err(e) = params_file.save(&project_params()) {
                 console
                     .peek()
-                    .error(&format!("failed to save params: {e:#}"));
+                    .error(&format!("Failed to save params: {e:#}"));
             }
         });
     }
@@ -356,7 +356,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
         if let Err(e) = plot_settings().save_file(&path) {
             console
                 .peek()
-                .error(&format!("failed to save plot settings: {e:#}"));
+                .error(&format!("Failed to save plot settings: {e:#}"));
         }
     });
     // layer
@@ -396,7 +396,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
             if let Err(e) = project().save_editor_layer(layer) {
                 console
                     .peek()
-                    .error(&format!("failed to save layer: {e:#}"));
+                    .error(&format!("Failed to save the layer: {e:#}"));
             }
         }
     });
@@ -485,7 +485,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                 Ok(None) => {}
                 Err(e) => console
                     .peek()
-                    .error(&format!("failed to read params: {e:#}")),
+                    .error(&format!("Failed to read params: {e:#}")),
             }
             match start_hot_reload(
                 hot_reload_path_to_watch.clone(),
@@ -503,7 +503,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                 }
                 Err(e) => console
                     .peek()
-                    .error(&format!("failed to start hot reload: {e}")),
+                    .error(&format!("Failed to start hot reload: {e}")),
             }
         } else {
             hot_reload_watcher.set(None);
@@ -662,7 +662,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                                     "aria-label": "Open project folder",
                                     onclick: move |event| {
                                         if let Err(err) = open::that(project().dir) {
-                                            console.peek().error(&format!("failed to open the project folder: {err}"));
+                                            console.peek().error(&format!("Failed to open the project folder: {err}"));
                                         }
                                         event.stop_propagation();
                                     },
@@ -736,7 +736,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                                 let path = std::env::temp_dir().join("temp_editor.svg");
                                 let opened = std::fs::write(&path, svg).and_then(|_| open::that(&path));
                                 if let Err(err) = opened {
-                                    console.peek().error(&format!("failed to open the SVG: {err}"));
+                                    console.peek().error(&format!("Failed to open the SVG: {err}"));
                                 }
                             }
                         },
@@ -750,7 +750,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                                     let current_plot_settings = plot_settings();
                                     tokio::spawn(async move {
                                         if let Ok(console_read) = console.try_read() {
-                                            console_read.info("...sending plot");
+                                            console_read.info("Sending plot…");
                                         }
 
                                         let plot_result = send_task(plottery_server_lib::task::Task::Plot {
@@ -759,15 +759,16 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                                             plot_settings: current_plot_settings
                                         }).await;
                                         poke_plotter();
-                                        if let Err(err) = plot_result {
-                                            if let Ok(console_read) = console.try_read() {
-                                                console_read.error(format!("failed to send plot: {:?}", err).as_str());
+                                        if let Ok(console_read) = console.try_read() {
+                                            match plot_result {
+                                                Ok(()) => console_read.success("Plot sent to the plotter"),
+                                                Err(err) => console_read.error(format!("Failed to send the plot: {err:#}").as_str()),
                                             }
                                         }
                                     });
                                 },
                                 None => {
-                                    console().error("cannot send plot: no layer available");
+                                    console().error("Cannot send the plot: no layer yet");
                                 }
                             }
                         },

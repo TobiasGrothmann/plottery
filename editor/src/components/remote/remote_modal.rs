@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use plottery_lib::V2;
 use plottery_server_lib::{
-    server_state::ServerState, send_task, Activity, PlotOutcome, PlotSettings, Task,
+    send_task, server_state::ServerState, Activity, PlotOutcome, PlotSettings, Task,
 };
 
 use crate::{
@@ -18,7 +18,7 @@ use crate::{
 async fn send(task: Task) {
     let console = consume_context::<ActiveConsole>();
     if let Err(err) = send_task(task).await {
-        console.error(&format!("failed to send task to the plotter: {err:#}"));
+        console.error(&format!("Failed to send the task to the plotter: {err:#}"));
     }
     poke_plotter();
 }

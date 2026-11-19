@@ -52,7 +52,7 @@ fn open_project_path(path: PathBuf, app_state: Signal<AppState>, console: Active
     let project = match Project::load_from_file(path.clone()) {
         Ok(project) => project,
         Err(err) => {
-            console.error(&format!("cannot open project '{}': {err}", path.display()));
+            console.error(&format!("Cannot open project '{}': {err}", path.display()));
             return;
         }
     };

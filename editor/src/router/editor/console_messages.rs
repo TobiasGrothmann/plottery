@@ -25,6 +25,7 @@ impl ActiveConsole {
 #[derive(Debug, Clone)]
 pub enum ConsoleMessageType {
     Info,
+    Success,
     Warning,
     Error,
     ProjectLog,
@@ -109,6 +110,13 @@ impl ConsoleMessages {
             .lock()
             .expect("Failed to lock console entries")
             .push(ConsoleMessage::new(msg, ConsoleMessageType::Info));
+        self.trigger_change();
+    }
+    pub fn success(&self, msg: &str) {
+        self.entries
+            .lock()
+            .expect("Failed to lock console entries")
+            .push(ConsoleMessage::new(msg, ConsoleMessageType::Success));
         self.trigger_change();
     }
     pub fn warn(&self, msg: &str) {

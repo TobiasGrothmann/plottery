@@ -43,7 +43,7 @@ pub fn start_hot_reload(
     {
         console
             .peek()
-            .error(&format!("failed to watch {}: {e}", resource_dir.display()));
+            .error(&format!("Failed to watch {}: {e}", resource_dir.display()));
     }
     // events carry resolved paths, e.g. /private/var for /var
     let resource_dirs = [resource_dir.canonicalize().ok(), Some(resource_dir)];
@@ -69,13 +69,15 @@ pub fn start_hot_reload(
                                 tracing::info!("Params changed on disk");
                                 project_runner.trigger_run_project(release, running_state, console);
                                 if let Ok(console) = console.try_read() {
-                                    console.info("params changed on disk");
+                                    console.info("Params changed on disk, rerunning…");
                                 }
                             }
                             Ok(None) => {}
                             Err(e) => {
                                 if let Ok(console) = console.try_read() {
-                                    console.error(&format!("failed to read changed params: {e:#}"));
+                                    console.error(&format!(
+                                        "Failed to read the changed params: {e:#}"
+                                    ));
                                 }
                             }
                         }
@@ -117,7 +119,7 @@ pub fn start_hot_reload(
                 }
                 Err(e) => {
                     if let Ok(console) = console.try_read() {
-                        console.error(&format!("hot reload error: {e}"));
+                        console.error(&format!("Hot reload error: {e}"));
                     }
                 }
             }

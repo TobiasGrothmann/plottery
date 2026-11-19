@@ -88,7 +88,7 @@ pub fn ExternalEditorButton(props: ExternalEditorButtonProps) -> Element {
                     .spawn()
                     .and_then(|mut child| child.wait());
                 if let Err(err) = launched {
-                    console.peek().error(&format!("failed to open {}: {err}", editor.name));
+                    console.peek().error(&format!("Failed to open {}: {err}", editor.name));
                 }
                 event.stop_propagation();
             },

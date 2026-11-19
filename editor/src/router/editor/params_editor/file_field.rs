@@ -173,10 +173,10 @@ pub fn FileField(props: LeafProps) -> Element {
                         match result {
                             Ok(Ok(stored)) => edit_file(&props, kind, |file| file.set(Some(stored))),
                             Ok(Err(e)) => {
-                                ctx.console.peek().error(&format!("failed to import {noun}: {e:#}"));
+                                ctx.console.peek().error(&format!("Failed to import {noun}: {e:#}"));
                                 import_error.set(Some(format!("{e:#}")));
                             }
-                            Err(e) => ctx.console.peek().error(&format!("{noun} import task failed: {e}")),
+                            Err(e) => ctx.console.peek().error(&format!("Import of the {noun} failed: {e}")),
                         }
                     }
                 },
