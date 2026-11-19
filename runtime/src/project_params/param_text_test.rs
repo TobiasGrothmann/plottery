@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use plottery_lib::{ColorRgb, Margin, Paper, PaperSize, V2i, V2};
+    use plottery_lib::{ColorRgb, Margin, Paper, PaperSize, SystemFont, V2i, V2};
 
     use crate::{
         AngleUnit, ProjectParam, ProjectParamEnum, ProjectParamFile, ProjectParamOptional,
@@ -133,6 +133,25 @@ mod tests {
                 "off",
                 Value::Optional(ProjectParamOptional::new(false, Value::Float(1.0))),
             ),
+            (
+                Value::SystemFont(SystemFont::new("Futura").with_italic(true)),
+                "Helvetica Neue",
+                Value::SystemFont(SystemFont::new("Helvetica Neue")),
+            ),
+            (
+                Value::SystemFont(SystemFont::default()),
+                "Helvetica Neue:700",
+                Value::SystemFont(SystemFont::new("Helvetica Neue").with_weight(700.0)),
+            ),
+            (
+                Value::SystemFont(SystemFont::default()),
+                "Helvetica Neue:300:italic",
+                Value::SystemFont(
+                    SystemFont::new("Helvetica Neue")
+                        .with_weight(300.0)
+                        .with_italic(true),
+                ),
+            ),
         ];
         for (start, text, expected) in cases {
             assert_round_trip(start, text, expected);
@@ -165,6 +184,12 @@ mod tests {
     fn invalid_values_are_errors() {
         let error =
             |mut value: Value, text: &str| value.set_from_text(text).unwrap_err().to_string();
+        for text in ["Futura:heavy", "Futura:0", ":700", ""] {
+            assert_eq!(
+                error(Value::SystemFont(SystemFont::default()), text),
+                format!("'{text}' is not a font, use family[:weight][:italic], e.g. Futura:700")
+            );
+        }
         assert_eq!(
             error(
                 Value::FloatRanged {

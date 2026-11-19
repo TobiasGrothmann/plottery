@@ -86,6 +86,7 @@ Field types and their widgets:
 | `ColorRgb` | color picker and hex code |
 | `NoiseSettings` | perlin/simplex/worley, frequency per cm or per paper, octaves |
 | `BundledFont` | font picker with previews |
+| `SystemFont` | picker for the fonts installed on this machine and their styles; `load()` gives the `Font` |
 | `ImagePath`, `SvgPath` | file picker; copies the file into `resources/` or links the original |
 | `Curve2DNorm` | curve editor on 0..1, double-click adds or removes points |
 | `Curve2D` | same curve plus the x and y range it maps to |

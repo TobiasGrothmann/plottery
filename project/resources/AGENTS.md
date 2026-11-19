@@ -145,6 +145,7 @@ Choosing well:
 
 - Use the most specific type: `Angle` instead of an `f32` in radians, `Range` for a random min/max,
   `V2` for a position, `Seed` for randomness, `BundledFont` for a font, a `PlotteryEnum` for modes.
+  `SystemFont` picks an installed outline font instead.
 - Give numbers a `#[range]` of values that give sensible results. Without one the user gets a bare
   number box instead of a slider.
 - A feature that can be switched off is an `Option`, not a `bool` next to the params it gates.
@@ -216,5 +217,6 @@ pen. The layer tree you return is that panel, so build it for the user, not for 
   `plottery animate`, which turns the snapshots into a video. The closure must not use the random
   helpers, or the drawing changes. Leave it out where nothing is built up in steps.
 - For text, prefer single-line fonts (`Font::is_single_line`, `is_stroke`). Outline fonts draw both
-  contours of every stroke.
+  contours of every stroke. A `SystemFont` is an outline font of this machine: `load()` fails where
+  it is not installed, so handle the error or fall back to a bundled font.
 - Use idiomatic Rust: iterator chains, builders. `shape.rotate(a)` returns a copy, `shape.rotate_mut(a)` edits in place.

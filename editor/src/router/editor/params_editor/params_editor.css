@@ -236,6 +236,28 @@
   stroke-width: 1.5;
 }
 
+.FontField {
+  flex: 1;
+  min-width: 0;
+}
+.SystemFontField .font-style {
+  flex: none;
+  width: 104px;
+}
+/* Text in an installed font; the inline style names the family. */
+.font-sample {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 15px;
+  line-height: 22px;
+  font-synthesis: none;
+}
+.font-trigger .font-sample {
+  font-size: 13px;
+  line-height: 26px;
+}
 .FontField .font-trigger {
   display: flex;
   align-items: center;
@@ -298,6 +320,11 @@
   color: var(--fg-1);
   cursor: pointer;
   text-align: left;
+}
+/* A few hundred rows, each in its own font: lay out and load only those in view. */
+.SystemFontField .font-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 52px;
 }
 .font-row .font-preview {
   max-width: 100%;

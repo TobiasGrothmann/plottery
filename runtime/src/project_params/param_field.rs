@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 pub use anyhow::Error as ParamFieldError;
-use plottery_lib::{Angle, BundledFont, ColorRgb, Easing, NoiseSettings, Paper, Range, V2i, V2};
+use plottery_lib::{
+    Angle, BundledFont, ColorRgb, Easing, NoiseSettings, Paper, Range, SystemFont, V2i, V2,
+};
 
 use super::angle_unit::AngleUnit;
 
@@ -364,6 +366,22 @@ impl ParamField for BundledFont {
             ProjectParamValue::Font(name) => BundledFont::from_name(name)
                 .ok_or_else(|| anyhow::anyhow!("unknown bundled font '{}'", name)),
             other => Err(param_type_mismatch("font", other)),
+        }
+    }
+}
+
+impl ParamField for SystemFont {
+    fn default_param_value() -> ProjectParamValue {
+        ProjectParamValue::SystemFont(Self::default())
+    }
+    fn to_param_value(&self) -> ProjectParamValue {
+        ProjectParamValue::SystemFont(self.clone())
+    }
+    // Not checked against the installed fonts: params have to load on a machine without the font.
+    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
+        match value {
+            ProjectParamValue::SystemFont(font) => Ok(font.clone()),
+            other => Err(param_type_mismatch("system_font", other)),
         }
     }
 }

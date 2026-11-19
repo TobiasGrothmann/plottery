@@ -3,7 +3,7 @@ mod tests {
     use crate::*;
     use plottery_lib::{
         Angle, BundledFont, ColorRgb, Easing, Margin, NoiseScale, NoiseSettings, NoiseType, Paper,
-        Range, V2i, V2,
+        Range, SystemFont, V2i, V2,
     };
 
     #[derive(PlotteryEnum, Debug, Clone, Copy, PartialEq)]
@@ -65,6 +65,9 @@ mod tests {
         #[value(BundledFont::HersheyScript)]
         font: BundledFont,
         default_font: BundledFont,
+        #[value(SystemFont::new("Futura").with_weight(700.0))]
+        system_font: SystemFont,
+        default_system_font: SystemFont,
     }
 
     #[test]
@@ -172,6 +175,8 @@ mod tests {
             cells: V2i::new(-1, 9),
             font: BundledFont::Zniko,
             default_font: BundledFont::EmsBird,
+            system_font: SystemFont::new("Not Installed Here").with_italic(true),
+            default_system_font: SystemFont::new("Menlo").with_weight(300.0),
         };
 
         let round_tripped = Params::new_from_list(params.to_params_list());
@@ -202,6 +207,11 @@ mod tests {
         assert_eq!(params.cells, V2i::new(4, 6));
         assert_eq!(params.font, BundledFont::HersheyScript);
         assert_eq!(params.default_font, BundledFont::EmsReadability);
+        assert_eq!(
+            params.system_font,
+            SystemFont::new("Futura").with_weight(700.0)
+        );
+        assert_eq!(params.default_system_font, SystemFont::default());
     }
 
     #[test]

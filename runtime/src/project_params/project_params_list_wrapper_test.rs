@@ -6,6 +6,7 @@ mod tests {
         project_param_value::ProjectParamValue, project_param_vec::ProjectParamVec,
         project_params_list_wrapper::ProjectParamsListWrapper,
     };
+    use plottery_lib::SystemFont;
 
     #[test]
     fn test_combine_params() {
@@ -269,6 +270,16 @@ mod tests {
         let combined = ProjectParamsListWrapper::new_combined(&old, &new);
         let values: Vec<_> = combined.list.into_iter().map(|p| p.value).collect();
         assert_eq!(values, vec![font("EmsBird"), font("EmsReadability")]);
+    }
+
+    #[test]
+    fn test_combine_system_font_keeps_a_family_that_is_not_installed() {
+        let font = |family: &str| ProjectParamValue::SystemFont(SystemFont::new(family));
+        let old = vec![ProjectParam::new("font", font("Not Installed Here"))];
+        let new = vec![ProjectParam::new("font", font("Helvetica"))];
+
+        let combined = ProjectParamsListWrapper::new_combined(&old, &new);
+        assert_eq!(combined.list[0].value, font("Not Installed Here"));
     }
 
     fn float_ranged(val: f32, min: f32, max: f32) -> ProjectParamValue {

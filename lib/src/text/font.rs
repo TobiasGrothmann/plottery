@@ -1,6 +1,7 @@
 use std::{fmt, path::Path, sync::Arc};
 
 use anyhow::{bail, Context, Result};
+use serde::{Deserialize, Serialize};
 
 use super::{
     outline_font::OutlineFont, stroke_font::StrokeFont, system::find_system_font, FontMetrics,
@@ -19,7 +20,7 @@ enum FontData {
 }
 
 /// Requested style for system font lookup; `weight` is CSS-like, 400 regular, 700 bold.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct FontStyle {
     pub weight: f32,
     pub italic: bool,

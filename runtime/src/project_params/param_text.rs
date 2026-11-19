@@ -3,7 +3,7 @@
 use std::str::FromStr;
 
 use anyhow::{anyhow, bail, Result};
-use plottery_lib::{BundledFont, ColorRgb, Margin, Paper, PaperSize, V2i, V2};
+use plottery_lib::{BundledFont, ColorRgb, Margin, Paper, PaperSize, SystemFont, V2i, V2};
 
 use super::angle_unit::AngleUnit;
 use super::project_param::ProjectParam;
@@ -20,6 +20,7 @@ impl ProjectParamValue {
             Self::Bool(val) => val.to_string(),
             Self::Enum(param_enum) => param_enum.selected.clone(),
             Self::String(val) | Self::Font(val) => val.clone(),
+            Self::SystemFont(_) => self.value_as_string(),
             Self::Angle { rad, unit } => format!(
                 "{}{}",
                 short_float(unit.from_angle(plottery_lib::Angle::from_rad(*rad))),
@@ -74,6 +75,7 @@ impl ProjectParamValue {
                 })?;
                 *name = font.name().to_string();
             }
+            Self::SystemFont(font) => *font = parse_system_font(text)?,
             Self::Angle { rad, unit } => *rad = parse_angle(text, *unit)?,
             Self::V2(v) => {
                 let (x, y) = parse_pair(text, ",")?;
@@ -245,6 +247,23 @@ fn parse_angle(text: &str, unit: AngleUnit) -> Result<f32> {
     let value: f32 = parse(number)
         .map_err(|_| anyhow!("'{text}' is not an angle, use e.g. 45deg, 0.25rot or 1.2rad"))?;
     Ok(unit.to_angle(value).to_rad())
+}
+
+/// `Helvetica Neue`, `Helvetica Neue:700`, `Helvetica Neue:italic` or `Helvetica Neue:700:italic`.
+fn parse_system_font(text: &str) -> Result<SystemFont> {
+    let usage = || anyhow!("'{text}' is not a font, use family[:weight][:italic], e.g. Futura:700");
+    let mut parts = text.split(':').map(str::trim);
+    let family = parts.next().filter(|family| !family.is_empty());
+    parts.try_fold(SystemFont::new(family.ok_or_else(usage)?), |font, part| {
+        if part == "italic" {
+            return Ok(font.with_italic(true));
+        }
+        part.parse::<f32>()
+            .ok()
+            .filter(|weight| (1.0..=1000.0).contains(weight))
+            .map(|weight| font.with_weight(weight))
+            .ok_or_else(usage)
+    })
 }
 
 fn paper_to_text(paper: &Paper) -> String {

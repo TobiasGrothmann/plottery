@@ -155,7 +155,7 @@ fn type_label(value: &Value) -> String {
     }
 }
 
-/// Allowed values: enum variants or a range.
+/// Allowed values: enum variants, a range or the text form.
 fn constraint(value: &Value) -> Option<String> {
     match value {
         Value::Enum(param_enum) => Some(param_enum.variants.join(" | ")),
@@ -170,6 +170,7 @@ fn constraint(value: &Value) -> Option<String> {
             ..
         } => Some(format!("within {low}..{high}")),
         Value::Optional(optional) => constraint(&optional.value),
+        Value::SystemFont(_) => Some("family[:weight][:italic]".to_string()),
         _ => None,
     }
 }

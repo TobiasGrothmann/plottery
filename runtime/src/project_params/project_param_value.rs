@@ -1,5 +1,5 @@
 use anyhow::Result;
-use plottery_lib::{ColorRgb, Easing, NoiseSettings, Paper, V2i, V2};
+use plottery_lib::{ColorRgb, Easing, FontStyle, NoiseSettings, Paper, SystemFont, V2i, V2};
 
 use super::angle_unit::AngleUnit;
 use super::project_param_file::ProjectParamFile;
@@ -60,6 +60,7 @@ pub enum ProjectParamValue {
     Svg(ProjectParamFile),
     /// `BundledFont` variant name.
     Font(String),
+    SystemFont(SystemFont),
 }
 
 impl ProjectParamValue {
@@ -154,6 +155,7 @@ impl ProjectParamValue {
             ProjectParamValue::V2i(_) => "v2i".to_string(),
             ProjectParamValue::Svg(_) => "svg".to_string(),
             ProjectParamValue::Font(_) => "font".to_string(),
+            ProjectParamValue::SystemFont(_) => "system_font".to_string(),
         }
     }
 
@@ -204,6 +206,15 @@ impl ProjectParamValue {
             ProjectParamValue::Color(color) => color.hex(),
             ProjectParamValue::V2i(v) => format!("({}, {})", v.x, v.y),
             ProjectParamValue::Font(name) => name.clone(),
+            ProjectParamValue::SystemFont(font) => {
+                let weight = (font.style.weight != FontStyle::default().weight)
+                    .then(|| format!(":{}", font.style.weight));
+                let italic = font.style.italic.then(|| ":italic".to_string());
+                [Some(font.family.clone()), weight, italic]
+                    .into_iter()
+                    .flatten()
+                    .collect()
+            }
         }
     }
 }

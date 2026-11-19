@@ -123,7 +123,7 @@ let text = Text::new("Hello plotter", &font)
 l.push_layer(text);
 ```
 
-Anchoring to a rect, wrapping, justify, fitting and rotation are shown in the [text layout samples](./lib/samples/text/README.md). `Font::load` reads SVG, TTF and OTF files, `Font::load_single_line` keeps the strokes of single-line TrueType fonts open, and `Font::system("Helvetica")` finds an installed font. The [poster](./examples/poster/poster/src/generate.rs) example picks its fonts and text in the editor. All 65 bundled fonts are shown in the [fonts README](./fonts/README.md).
+Anchoring to a rect, wrapping, justify, fitting and rotation are shown in the [text layout samples](./lib/samples/text/README.md). `Font::load` reads SVG, TTF and OTF files, `Font::load_single_line` keeps the strokes of single-line TrueType fonts open, and `Font::system("Helvetica")` finds an installed font, which a `SystemFont` param picks in the editor. The [poster](./examples/poster/poster/src/generate.rs) example picks its fonts and text in the editor. All 65 bundled fonts are shown in the [fonts README](./fonts/README.md).
 
 <img alt="Hershey Script single-line font sample" src="./fonts/samples/HersheyScript.svg" width="49%" /> <img alt="EMS Readability single-line font sample" src="./fonts/samples/EmsReadability.svg" width="49%" />
 <img alt="Relief Single Line font sample" src="./fonts/samples/ReliefSingleLine.svg" width="49%" /> <img alt="Hershey Gothic English single-line font sample" src="./fonts/samples/HersheyGothicEnglish.svg" width="49%" />

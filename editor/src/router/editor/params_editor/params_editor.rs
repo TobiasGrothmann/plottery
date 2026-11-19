@@ -33,6 +33,7 @@ use crate::router::editor::{
         seed_field::SeedField,
         slider::Slider,
         string_field::StringField,
+        system_font_field::SystemFontField,
         v2_field::V2Field,
     },
 };
@@ -267,6 +268,11 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, ctx: EditorCtx) -> 
         ProjectParamValue::Font(_) => {
             rsx! {
                 FontField { key: "{key}", ..LeafProps::new(param, path, ctx) }
+            }
+        }
+        ProjectParamValue::SystemFont(_) => {
+            rsx! {
+                SystemFontField { key: "{key}", ..LeafProps::new(param, path, ctx) }
             }
         }
         ProjectParamValue::Struct(_)

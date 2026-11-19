@@ -13,7 +13,8 @@ mod stroke_font;
 mod stroke_font_test;
 mod svg_glyph;
 mod svg_glyph_test;
-mod system;
+pub(crate) mod system;
+mod system_test;
 #[allow(clippy::module_inception)]
 pub(crate) mod text;
 mod text_test;
@@ -23,4 +24,5 @@ pub use glyph::*;
 pub use layout::*;
 pub use metrics::*;
 pub use plottery_fonts::{BundledFont, Credit, FontKind, License};
+pub use system::*;
 pub use text::*;

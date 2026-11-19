@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test_outline_font {
-    use crate::Font;
+    use crate::{system_font_families, Font, FontStyle, SystemFont};
 
     // Not hermetic: uses macOS' Helvetica and passes trivially elsewhere. It is the only way to
     // exercise skrifa and harfrust without vendoring a binary font.
@@ -34,5 +34,33 @@ mod test_outline_font {
 
         assert!(Font::system("Helvetica").is_ok());
         assert!(Font::system("No Such Family 123").is_err());
+    }
+
+    // Not hermetic either: lists whatever is installed.
+    #[test]
+    fn installed_families_include_helvetica_with_its_styles() {
+        if !std::path::Path::new("/System/Library/Fonts/Helvetica.ttc").exists() {
+            eprintln!("skipping: Helvetica not found");
+            return;
+        }
+        let start = std::time::Instant::now();
+        let families = system_font_families();
+        eprintln!("{} families in {:.2?}", families.len(), start.elapsed());
+
+        let helvetica = families
+            .iter()
+            .find(|family| family.name == "Helvetica")
+            .unwrap();
+        let regular = helvetica.closest_face(FontStyle::default()).unwrap();
+        assert_eq!(regular.style, FontStyle::default());
+        let bold = FontStyle {
+            weight: 700.0,
+            italic: false,
+        };
+        assert_eq!(helvetica.closest_face(bold).unwrap().style, bold);
+        assert!(families.iter().all(|family| !family.name.starts_with('.')));
+
+        let picked = SystemFont::new("Helvetica").with_weight(700.0);
+        assert_eq!(picked.load().unwrap().family_name(), Some("Helvetica"));
     }
 }
