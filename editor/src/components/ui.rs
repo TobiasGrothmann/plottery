@@ -120,6 +120,7 @@ fn toggle_input(
     label: Option<String>,
     aria_label: Option<String>,
     label_class: String,
+    disabled: bool,
     onchange: EventHandler<bool>,
 ) -> Element {
     let input = rsx! {
@@ -127,6 +128,7 @@ fn toggle_input(
             r#type: "checkbox",
             class,
             checked,
+            disabled,
             "aria-label": aria_label.or(label.clone()),
             onchange: move |event| onchange.call(event.value().parse().unwrap_or(false)),
         }
@@ -149,8 +151,11 @@ pub fn Switch(
     label: Option<String>,
     aria_label: Option<String>,
     #[props(default)] class: String,
+    #[props(default)] disabled: bool,
 ) -> Element {
-    toggle_input("switch", checked, label, aria_label, class, onchange)
+    toggle_input(
+        "switch", checked, label, aria_label, class, disabled, onchange,
+    )
 }
 
 #[component]
@@ -161,7 +166,7 @@ pub fn Checkbox(
     aria_label: Option<String>,
     #[props(default)] class: String,
 ) -> Element {
-    toggle_input("check", checked, label, aria_label, class, onchange)
+    toggle_input("check", checked, label, aria_label, class, false, onchange)
 }
 
 #[component]

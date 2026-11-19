@@ -235,6 +235,7 @@ pub fn PlotActions(
             onclick: move |_| {
                 match only_visible().layer {
                     Some(layer) => {
+                        remote_open.set(true);
                         let current_plot_settings = plot_settings();
                         tokio::spawn(async move {
                             if let Ok(console_read) = console.try_read() {

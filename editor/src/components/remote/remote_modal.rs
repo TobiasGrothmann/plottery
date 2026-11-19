@@ -128,6 +128,7 @@ struct RemoteInternalProps {
 
 fn RemoteInternal(props: RemoteInternalProps) -> Element {
     let state = props.state;
+    let idle = state.activity == Activity::Idle;
     let mut target = use_signal(|| state.location);
     let target_now = *target.read();
 
@@ -149,47 +150,51 @@ fn RemoteInternal(props: RemoteInternalProps) -> Element {
                 div { class: "remote_grid",
                     {readout("x", state.location.x)}
                     {readout("y", state.location.y)}
-                    Button {
-                        onclick: move |event: MouseEvent| async move {
-                            send(Task::SetOrigin()).await;
-                            *target.write() = V2::zero();
-                            event.stop_propagation();
-                        },
-                        "Set origin"
+                    if idle {
+                        Button {
+                            onclick: move |event: MouseEvent| async move {
+                                send(Task::SetOrigin()).await;
+                                *target.write() = V2::zero();
+                                event.stop_propagation();
+                            },
+                            "Set origin"
+                        }
                     }
                 }
             }
-            section { class: "remote_section",
-                span { class: "caps", "Move to" }
-                div { class: "remote_grid",
-                    label { class: "affix remote_field",
-                        span { "x" }
-                        input {
-                            class: "input",
-                            "aria-label": "Target x in cm",
-                            value: format!("{:.2}", target_now.x),
-                            onchange: move |event| set_target(event, |t, x| t.x = x),
+            if idle {
+                section { class: "remote_section",
+                    span { class: "caps", "Move to" }
+                    div { class: "remote_grid",
+                        label { class: "affix remote_field",
+                            span { "x" }
+                            input {
+                                class: "input",
+                                "aria-label": "Target x in cm",
+                                value: format!("{:.2}", target_now.x),
+                                onchange: move |event| set_target(event, |t, x| t.x = x),
+                            }
+                            span { class: "remote_unit", "cm" }
                         }
-                        span { class: "remote_unit", "cm" }
-                    }
-                    label { class: "affix remote_field",
-                        span { "y" }
-                        input {
-                            class: "input",
-                            "aria-label": "Target y in cm",
-                            value: format!("{:.2}", target_now.y),
-                            onchange: move |event| set_target(event, |t, y| t.y = y),
+                        label { class: "affix remote_field",
+                            span { "y" }
+                            input {
+                                class: "input",
+                                "aria-label": "Target y in cm",
+                                value: format!("{:.2}", target_now.y),
+                                onchange: move |event| set_target(event, |t, y| t.y = y),
+                            }
+                            span { class: "remote_unit", "cm" }
                         }
-                        span { class: "remote_unit", "cm" }
-                    }
-                    Button {
-                        variant: Variant::Primary,
-                        onclick: move |event: MouseEvent| async move {
-                            let target = *target.read();
-                            send(Task::MoveTo(target, PlotSettings::default())).await;
-                            event.stop_propagation();
-                        },
-                        "Move"
+                        Button {
+                            variant: Variant::Primary,
+                            onclick: move |event: MouseEvent| async move {
+                                let target = *target.read();
+                                send(Task::MoveTo(target, PlotSettings::default())).await;
+                                event.stop_propagation();
+                            },
+                            "Move"
+                        }
                     }
                 }
             }
@@ -199,6 +204,7 @@ fn RemoteInternal(props: RemoteInternalProps) -> Element {
                     Switch {
                         checked: state.motors_enabled,
                         label: "Motors enabled",
+                        disabled: !idle,
                         onchange: move |enabled| async move {
                             send(Task::SetEnabled(enabled)).await;
                         },
@@ -206,6 +212,7 @@ fn RemoteInternal(props: RemoteInternalProps) -> Element {
                     Switch {
                         checked: state.head_down,
                         label: "Head down",
+                        disabled: !idle,
                         onchange: move |down| async move {
                             send(Task::SetHead(down)).await;
                         },
