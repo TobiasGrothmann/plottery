@@ -2,7 +2,7 @@
 mod test_shape {
     use itertools::Itertools;
 
-    use rand::{rngs::StdRng, Rng, SeedableRng};
+    use rand::{rngs::StdRng, RngExt, SeedableRng};
 
     use crate::{Circle, Path, Plottable, Rect, SampleSettings, V2};
 
@@ -146,8 +146,8 @@ mod test_shape {
             .map(|_| {
                 center - V2::xy(radius * 2.0)
                     + V2::new(
-                        radius * rng.gen::<f32>() * 4.0,
-                        radius * rng.gen::<f32>() * 4.0,
+                        radius * rng.random::<f32>() * 4.0,
+                        radius * rng.random::<f32>() * 4.0,
                     )
             })
             .collect();

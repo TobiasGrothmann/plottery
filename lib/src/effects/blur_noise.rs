@@ -1,6 +1,6 @@
 use std::f64::consts::SQRT_2;
 
-use rand::{rngs::StdRng, Rng};
+use rand::{rngs::StdRng, RngExt};
 use rand_distr::StandardNormal;
 
 use crate::V2;

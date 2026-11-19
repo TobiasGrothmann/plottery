@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test_noise {
-    use rand::{rngs::StdRng, Rng, SeedableRng};
+    use rand::{rngs::StdRng, RngExt, SeedableRng};
 
     use crate::{
         maths::global_rng::{seed, seed_for_test},
@@ -14,7 +14,10 @@ mod test_noise {
         for noise_type in [NoiseType::Perlin, NoiseType::Simplex, NoiseType::Worley] {
             let noise = Noise::new(noise_type).with_frequency(0.01);
             for _ in 0..10000 {
-                let location = V2::new(rng.gen_range(-500.0..500.0), rng.gen_range(-500.0..500.0));
+                let location = V2::new(
+                    rng.random_range(-500.0..500.0),
+                    rng.random_range(-500.0..500.0),
+                );
                 assert!((0.0..=1.0).contains(&noise.get(location)));
             }
         }

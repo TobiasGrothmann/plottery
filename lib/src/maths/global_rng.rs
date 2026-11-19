@@ -1,8 +1,8 @@
 use std::sync::{LazyLock, Mutex};
 
-use rand::{rngs::StdRng, Rng, SeedableRng};
+use rand::{rngs::StdRng, RngExt, SeedableRng};
 
-pub static RNG: LazyLock<Mutex<StdRng>> = LazyLock::new(|| Mutex::new(StdRng::from_entropy()));
+pub static RNG: LazyLock<Mutex<StdRng>> = LazyLock::new(|| Mutex::new(rand::make_rng::<StdRng>()));
 
 /// Seeds the global random number generator behind the `rand_*` functions and new [`crate::Noise`]s.
 pub fn seed(seed: i32) {
@@ -12,7 +12,7 @@ pub fn seed(seed: i32) {
 }
 
 pub fn seed_random() {
-    seed(rand::thread_rng().gen::<i32>());
+    seed(rand::rng().random::<i32>());
 }
 
 /// Seeds the generator for a test that uses it; the guard keeps parallel tests out until dropped.

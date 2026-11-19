@@ -1,6 +1,6 @@
 use std::f32::consts::TAU;
 
-use rand::{rngs::StdRng, Rng, SeedableRng};
+use rand::{rngs::StdRng, RngExt, SeedableRng};
 
 use crate::{maths::RNG, Angle, Plottable, Rect, SpatialGrid, V2};
 
@@ -53,8 +53,9 @@ impl<'a> PoissonDisk<'a> {
     /// The points in insertion order, all inside the bounds.
     pub fn points(&self) -> Vec<V2> {
         // one draw from the global RNG keeps it reproducible, a local RNG keeps the loop lock-free
-        let mut rng = StdRng::seed_from_u64(RNG.lock().expect("Failed to acquire RNG lock").gen());
-        let first = self.bounds.bl() + self.bounds.size() * V2::new(rng.gen(), rng.gen());
+        let mut rng =
+            StdRng::seed_from_u64(RNG.lock().expect("Failed to acquire RNG lock").random());
+        let first = self.bounds.bl() + self.bounds.size() * V2::new(rng.random(), rng.random());
         let mut points = vec![first];
         let mut radii = vec![self.dist_at(first)];
         let mut grid = SpatialGrid::new(self.min_dist);
@@ -62,12 +63,12 @@ impl<'a> PoissonDisk<'a> {
         let mut active = vec![0];
 
         while !active.is_empty() {
-            let slot = rng.gen_range(0..active.len());
+            let slot = rng.random_range(0..active.len());
             let (center, radius) = (points[active[slot]], radii[active[slot]]);
             let accepted = (0..self.tries)
                 .map(|_| {
-                    let angle = Angle::from_rad(rng.gen_range(0.0..TAU));
-                    center + V2::polar(angle, rng.gen_range(radius..2.0 * radius))
+                    let angle = Angle::from_rad(rng.random_range(0.0..TAU));
+                    center + V2::polar(angle, rng.random_range(radius..2.0 * radius))
                 })
                 .filter(|candidate| self.bounds.contains_point(*candidate))
                 .map(|candidate| (candidate, self.dist_at(candidate)))
