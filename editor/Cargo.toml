@@ -15,10 +15,10 @@ exclude = ["screenshots"]
 pre-release-hook = ["../scripts/release_editor.sh", "{{version}}", "false"]
 
 [dependencies]
-plottery_lib = { path = "../lib", version = "^0.20.0" }
-plottery_project = { path = "../project", version = "^0.20.0" }
-plottery_runtime = { path = "../runtime", version = "^0.20.0" }
-plottery_server_lib = { path = "../server_lib", version = "^0.20.0", features = ["client"] }
+plottery_lib = { path = "../lib", version = "^0.20.1" }
+plottery_project = { path = "../project", version = "^0.20.1" }
+plottery_runtime = { path = "../runtime", version = "^0.20.1" }
+plottery_server_lib = { path = "../server_lib", version = "^0.20.1", features = ["client"] }
 dioxus = { version = "0.7", features = ["desktop"] }
 serde.workspace = true
 serde_json.workspace = true
