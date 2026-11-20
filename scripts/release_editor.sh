@@ -75,6 +75,18 @@ echo -e "${YELLOW}Adding document types and local network access to Info.plist..
 echo -e "${GREEN}✓ Info.plist updated${NC}"
 echo ""
 
+# The linker's ad-hoc signature covers only the binary, under a random identifier per build, and
+# doesn't bind the Info.plist merged above. macOS ties the Local Network permission to the signed
+# app, so without this the released editor can't find the plotter over Bonjour.
+echo -e "${YELLOW}Signing the app bundle (ad hoc)...${NC}"
+codesign --force --deep --sign - "$APP"
+if ! codesign --verify --deep --strict "$APP"; then
+  echo -e "${RED}✗ Error: the signed app bundle doesn't verify${NC}"
+  exit 1
+fi
+echo -e "${GREEN}✓ App bundle signed as $(codesign -dv "$APP" 2>&1 | sed -n 's/^Identifier=//p')${NC}"
+echo ""
+
 RENAMED_DMG_NAME="PlotteryEditor_v$VERSION.dmg"
 RENAMED_DMG="$BUNDLE_DIR/$RENAMED_DMG_NAME"
 echo -e "${YELLOW}Creating $RENAMED_DMG_NAME...${NC}"
