@@ -21,24 +21,29 @@ pub fn variant_display_name(variant: &str) -> String {
     out.replace('_', " ")
 }
 
+/// The variant selector of an enum, with or without fields.
 #[component]
 pub fn EnumField(props: LeafProps) -> Element {
-    let ProjectParamValue::Enum(param_enum) = &props.param.value else {
-        return rsx! { p { "unexpected value type" } };
+    let (variants, selected) = match &props.param.value {
+        ProjectParamValue::Enum(param_enum) => {
+            (param_enum.variants.clone(), param_enum.selected_index())
+        }
+        ProjectParamValue::DataEnum(data_enum) => {
+            (data_enum.variant_names(), data_enum.selected_index())
+        }
+        _ => return rsx! { p { "unexpected value type" } },
     };
-    let variants = param_enum.variants.clone();
     let options: Vec<String> = variants.iter().map(|v| variant_display_name(v)).collect();
-    let selected = param_enum.selected_index();
 
     let edit_props = props.clone();
     let onselect = move |index: usize| {
         let Some(variant) = variants.get(index).cloned() else {
             return;
         };
-        edit_props.edit(|value| {
-            if let ProjectParamValue::Enum(param_enum) = value {
-                param_enum.selected = variant;
-            }
+        edit_props.edit(|value| match value {
+            ProjectParamValue::Enum(param_enum) => param_enum.selected = variant,
+            ProjectParamValue::DataEnum(data_enum) => data_enum.selected = variant,
+            _ => {}
         });
     };
 

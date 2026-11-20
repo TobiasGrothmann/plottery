@@ -3,9 +3,9 @@ mod tests {
     use plottery_lib::{ColorRgb, Margin, Paper, PaperSize, SystemFont, V2i, V2};
 
     use crate::{
-        AngleUnit, ProjectParam, ProjectParamEnum, ProjectParamFile, ProjectParamOptional,
-        ProjectParamSeed, ProjectParamStruct, ProjectParamValue as Value, ProjectParamVec,
-        ProjectParamsListWrapper,
+        AngleUnit, ProjectParam, ProjectParamDataEnum, ProjectParamEnum, ProjectParamFile,
+        ProjectParamOptional, ProjectParamSeed, ProjectParamStruct, ProjectParamValue as Value,
+        ProjectParamVariant, ProjectParamVec, ProjectParamsListWrapper,
     };
 
     /// Sets `text` on `start`, expects `expected`, and that `expected` prints as `text`.
@@ -317,5 +317,92 @@ mod tests {
             "'size' is a f32 without fields"
         );
         assert!(error(&mut params, "glow").starts_with("glow: use on or off"));
+    }
+
+    fn enum_params() -> ProjectParamsListWrapper {
+        let pattern = Value::DataEnum(ProjectParamDataEnum::new(
+            "Grid",
+            vec![
+                ProjectParamVariant::new("Grid", vec![ProjectParam::new("cols", Value::Int(4))]),
+                ProjectParamVariant::new(
+                    "Spiral",
+                    vec![ProjectParam::new("turns", Value::Float(3.0))],
+                ),
+                ProjectParamVariant::new("Random", vec![]),
+            ],
+        ));
+        ProjectParamsListWrapper::new(vec![
+            ProjectParam::new("pattern", pattern.clone()),
+            ProjectParam::new(
+                "overlay",
+                Value::Optional(ProjectParamOptional::new(false, pattern)),
+            ),
+        ])
+    }
+
+    /// `selected` and the value of `field` in `variant`, selected or not.
+    fn variant_field(value: &Value, variant: &str, field: &str) -> (String, Value) {
+        let data_enum = match value {
+            Value::DataEnum(data_enum) => data_enum,
+            Value::Optional(optional) => match optional.value.as_ref() {
+                Value::DataEnum(data_enum) => data_enum,
+                other => panic!("expected a data enum, found {}", other.type_name()),
+            },
+            other => panic!("expected a data enum, found {}", other.type_name()),
+        };
+        let fields = &data_enum.variant(variant).unwrap().fields;
+        let field = fields.iter().find(|f| f.name == field).unwrap();
+        (data_enum.selected.clone(), field.value.clone())
+    }
+
+    #[test]
+    fn set_data_enum_variant_and_its_fields() {
+        let mut params = enum_params();
+        params.set("pattern.cols", "2").unwrap();
+        params.set("pattern", "Spiral").unwrap();
+        params.set("pattern.turns", "4").unwrap();
+        params.set("overlay", "Spiral").unwrap();
+        params.set("overlay.turns", "5").unwrap();
+
+        let pattern = &params.list[0].value;
+        assert_eq!(pattern.to_text(), "Spiral");
+        assert_eq!(
+            variant_field(pattern, "Spiral", "turns"),
+            ("Spiral".to_string(), Value::Float(4.0))
+        );
+        // the variant that is no longer selected keeps its value
+        assert_eq!(variant_field(pattern, "Grid", "cols").1, Value::Int(2));
+
+        let overlay = &params.list[1].value;
+        assert_eq!(overlay.to_text(), "Spiral");
+        assert_eq!(
+            variant_field(overlay, "Spiral", "turns"),
+            ("Spiral".to_string(), Value::Float(5.0))
+        );
+    }
+
+    #[test]
+    fn data_enum_path_errors_name_the_variant() {
+        let mut params = enum_params();
+        let error = |params: &mut ProjectParamsListWrapper, path, text| {
+            params.set(path, text).unwrap_err().to_string()
+        };
+        assert_eq!(
+            error(&mut params, "pattern.turns", "1"),
+            "'turns' is a field of Spiral, but 'pattern' is Grid, set pattern=Spiral first"
+        );
+        assert_eq!(
+            error(&mut params, "pattern.nope", "1"),
+            "'pattern' has no field 'nope', fields are: cols"
+        );
+        assert_eq!(
+            error(&mut params, "pattern", "Dots"),
+            "pattern: 'Dots' is not a variant, use one of Grid | Spiral | Random"
+        );
+        params.set("pattern", "Random").unwrap();
+        assert_eq!(
+            error(&mut params, "pattern.nope", "1"),
+            "'pattern' is Random, which has no fields"
+        );
     }
 }

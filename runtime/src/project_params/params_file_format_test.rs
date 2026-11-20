@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+    use crate::project_param_data_enum::{ProjectParamDataEnum, ProjectParamVariant};
     use crate::{
         project_param::ProjectParam, project_param_struct::ProjectParamStruct,
         project_param_value::ProjectParamValue, project_param_vec::ProjectParamVec,
@@ -21,6 +22,19 @@ mod tests {
                 )])),
             )
             .with_description("nested"),
+            ProjectParam::new(
+                "d",
+                ProjectParamValue::DataEnum(ProjectParamDataEnum::new(
+                    "Spiral",
+                    vec![
+                        ProjectParamVariant::new("Blank", vec![]),
+                        ProjectParamVariant::new(
+                            "Spiral",
+                            vec![ProjectParam::new("turns", ProjectParamValue::Float(3.0))],
+                        ),
+                    ],
+                )),
+            ),
         ])
     }
 

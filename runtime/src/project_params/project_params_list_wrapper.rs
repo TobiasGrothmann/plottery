@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::project_param::ProjectParam;
+use super::project_param_data_enum::{ProjectParamDataEnum, ProjectParamVariant};
 use super::project_param_enum::ProjectParamEnum;
 use super::project_param_optional::ProjectParamOptional;
 use super::project_param_struct::ProjectParamStruct;
@@ -70,9 +71,13 @@ impl ProjectParamsListWrapper {
                     merged_inner,
                 )))
             }
-            (ProjectParamValue::Enum(old_enum), ProjectParamValue::Enum(new_enum)) => {
-                let selected = if new_enum.variants.contains(&old_enum.selected) {
-                    old_enum.selected.clone()
+            (
+                ProjectParamValue::Enum(ProjectParamEnum { selected, .. })
+                | ProjectParamValue::DataEnum(ProjectParamDataEnum { selected, .. }),
+                ProjectParamValue::Enum(new_enum),
+            ) => {
+                let selected = if new_enum.variants.contains(selected) {
+                    selected.clone()
                 } else {
                     new_enum.selected.clone()
                 };
@@ -80,6 +85,35 @@ impl ProjectParamsListWrapper {
                     selected,
                     variants: new_enum.variants.clone(),
                 }))
+            }
+            (ProjectParamValue::Enum(old_enum), ProjectParamValue::DataEnum(new_enum)) => {
+                let mut merged = new_enum.clone();
+                if merged.variant(&old_enum.selected).is_some() {
+                    merged.selected = old_enum.selected.clone();
+                }
+                Some(ProjectParamValue::DataEnum(merged))
+            }
+            (ProjectParamValue::DataEnum(old_enum), ProjectParamValue::DataEnum(new_enum)) => {
+                let variants = new_enum
+                    .variants
+                    .iter()
+                    .map(|new_variant| {
+                        let fields = match old_enum.variant(&new_variant.name) {
+                            Some(old_variant) => {
+                                Self::combine_lists(&old_variant.fields, &new_variant.fields)
+                            }
+                            None => new_variant.fields.clone(),
+                        };
+                        ProjectParamVariant::new(&new_variant.name, fields)
+                    })
+                    .collect();
+                let selected = match new_enum.variant(&old_enum.selected) {
+                    Some(_) => &old_enum.selected,
+                    None => &new_enum.selected,
+                };
+                Some(ProjectParamValue::DataEnum(ProjectParamDataEnum::new(
+                    selected, variants,
+                )))
             }
             (ProjectParamValue::Font(old_name), ProjectParamValue::Font(_)) => {
                 let known = plottery_lib::BundledFont::from_name(old_name).is_some();

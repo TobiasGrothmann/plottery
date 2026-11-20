@@ -245,4 +245,118 @@ mod tests {
             );
         }
     }
+
+    #[derive(PlotteryEnum, Debug, Clone, PartialEq)]
+    enum Pattern {
+        #[default]
+        Grid {
+            #[value(4)]
+            #[range(1, 20)]
+            cols: i32,
+            /// rows of the grid
+            #[value(3)]
+            rows: i32,
+        },
+        Spiral {
+            #[value(3.0)]
+            turns: f32,
+        },
+        Custom(Inner),
+        Random,
+    }
+
+    fn variant_field(value: &ProjectParamValue, variant: &str, field: &str) -> ProjectParam {
+        let ProjectParamValue::DataEnum(data_enum) = value else {
+            panic!("expected a data enum, found {}", value.type_name());
+        };
+        let fields = &data_enum.variant(variant).unwrap().fields;
+        fields.iter().find(|f| f.name == field).unwrap().clone()
+    }
+
+    #[test]
+    fn data_enum_defaults_cover_every_variant() {
+        let value = Pattern::default_param_value();
+        let ProjectParamValue::DataEnum(data_enum) = &value else {
+            panic!("expected a data enum, found {}", value.type_name());
+        };
+        assert_eq!(data_enum.selected, "Grid");
+        assert_eq!(
+            data_enum.variant_names(),
+            ["Grid", "Spiral", "Custom", "Random"]
+        );
+        assert!(data_enum.variant("Random").unwrap().fields.is_empty());
+
+        let cols = variant_field(&value, "Grid", "cols");
+        assert_eq!(
+            cols.value,
+            ProjectParamValue::IntRanged {
+                val: 4,
+                min: 1,
+                max: 20
+            }
+        );
+        let rows = variant_field(&value, "Grid", "rows");
+        assert_eq!(rows.value, ProjectParamValue::Int(3));
+        assert_eq!(rows.description.as_deref(), Some("rows of the grid"));
+        assert_eq!(
+            variant_field(&value, "Spiral", "turns").value,
+            ProjectParamValue::Float(3.0)
+        );
+        assert_eq!(
+            variant_field(&value, "Custom", "scale").value,
+            ProjectParamValue::Float(1.5)
+        );
+    }
+
+    #[test]
+    fn data_enum_round_trip() {
+        let inner = Inner {
+            scale: 0.5,
+            flag: true,
+        };
+        let patterns = vec![
+            Pattern::Grid { cols: 7, rows: 2 },
+            Pattern::Spiral { turns: 1.5 },
+            Pattern::Custom(inner),
+            Pattern::Random,
+        ];
+        for pattern in &patterns {
+            assert_eq!(
+                &Pattern::from_param_value(&pattern.to_param_value()).unwrap(),
+                pattern
+            );
+        }
+        assert_eq!(
+            Vec::<Pattern>::from_param_value(&patterns.to_param_value()).unwrap(),
+            patterns
+        );
+        let optional = Some(Pattern::Spiral { turns: 2.0 });
+        assert_eq!(
+            Option::<Pattern>::from_param_value(&optional.to_param_value()).unwrap(),
+            optional
+        );
+    }
+
+    #[test]
+    fn data_enum_value_clamps_and_keeps_other_variants_at_default() {
+        let grid = Pattern::Grid { cols: 50, rows: 2 }.to_param_value();
+        assert_eq!(
+            Pattern::from_param_value(&grid).unwrap(),
+            Pattern::Grid { cols: 20, rows: 2 }
+        );
+
+        let spiral = Pattern::Spiral { turns: 1.5 }.to_param_value();
+        let cols = variant_field(&spiral, "Grid", "cols").value;
+        assert_eq!(cols.get_i32().unwrap(), 4);
+    }
+
+    #[test]
+    fn unknown_data_enum_variant_is_an_error() {
+        let ProjectParamValue::DataEnum(mut data_enum) = Pattern::default_param_value() else {
+            panic!("expected a data enum");
+        };
+        data_enum.selected = "Squares".to_string();
+        let err = Pattern::from_param_value(&ProjectParamValue::DataEnum(data_enum)).unwrap_err();
+        assert!(format!("{err:#}").contains("Squares"), "{err:#}");
+    }
 }

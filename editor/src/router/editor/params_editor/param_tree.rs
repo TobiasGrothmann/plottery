@@ -108,6 +108,10 @@ fn get_param_value_ref_in_value<'a>(
             };
             get_param_value_ref_in_value(item, &path[1..], prototype_fallback)
         }
+        ProjectParamValue::DataEnum(data_enum) => {
+            let variant = data_enum.variant(&path[0])?;
+            get_param_value_ref_by_path(&variant.fields, &path[1..], prototype_fallback)
+        }
         _ => None,
     }
 }
@@ -132,6 +136,10 @@ fn get_param_value_mut_in_value<'a>(
             let item = vec_value.items.get_mut(index)?;
             get_param_value_mut_in_value(item, &path[1..])
         }
+        ProjectParamValue::DataEnum(data_enum) => {
+            let variant = data_enum.variant_mut(&path[0])?;
+            get_param_value_mut_by_path(&mut variant.fields, &path[1..])
+        }
         _ => None,
     }
 }
@@ -155,6 +163,10 @@ fn get_param_mut_in_value<'a>(
             let index = parse_index_segment(&path[0])?;
             let item = vec_value.items.get_mut(index)?;
             get_param_mut_in_value(item, &path[1..])
+        }
+        ProjectParamValue::DataEnum(data_enum) => {
+            let variant = data_enum.variant_mut(&path[0])?;
+            get_param_mut_by_path(&mut variant.fields, &path[1..])
         }
         _ => None,
     }

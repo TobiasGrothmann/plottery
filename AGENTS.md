@@ -93,6 +93,7 @@ Building, local checkouts in projects, examples, tests, pre-release checks and r
   - `runtime/README.md`: the widget table
   - `project/resources/AGENTS.md`: "Parameters"
   - tests: `param_field_test.rs`, `param_text_test.rs`, `project_params_list_wrapper_test.rs`
+- **Compound param kinds:** `Struct`, `Optional`, `Vec` and `DataEnum` (an enum whose variants have fields) hold other params. Paths walk into them in `value_at_path` (`runtime/src/project_params/param_text.rs`, CLI `--set`), `editor/src/router/editor/params_editor/param_tree.rs` (editor, a `DataEnum` takes the variant name as a segment) and `push_value` in `cli/src/params.rs` (listing); merging is `combine_values` in `project_params_list_wrapper.rs`. A new compound kind needs all four.
 - **Project files:** Everything in a project folder is committed. Derived files (builds, previews, thumbnails) go to the cache dir, see `plottery_cache_dir` in `project/src/project.rs`.
 - **Project template:** `project/resources/AGENTS.md` is copied into every new project and describes the project, not this workspace. Existing projects keep their old copy, so template changes have to be redistributed.
 - **API changes:** Update `examples/` in the same change; `scripts/check_examples.sh` must pass. When it fails, follow DEVELOPMENT.md "Examples".

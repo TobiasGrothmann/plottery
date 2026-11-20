@@ -91,8 +91,48 @@ Field types and their widgets:
 | `Curve2DNorm` | curve editor on 0..1, double-click adds or removes points |
 | `Curve2D` | same curve plus the x and y range it maps to |
 | enum deriving `PlotteryEnum` (`#[default]` on one variant) | buttons up to four variants, dropdown beyond |
+| the same enum with fields on its variants | the selector, below it the fields of the selected variant |
 | struct deriving `PlotteryParams` | its own collapsible section |
 | `Option<T>` | switch beside the widget, or in the section header for a struct; off hides it |
 | `Vec<T>` | list with add/remove; new items start at `T`'s default (a struct's `#[value]`s) |
 
 `Option<Option<T>>`, `Vec<Option<T>>` and `Vec<Vec<T>>` don't compile. `Option<Vec<T>>` works.
+
+### Enums with fields
+
+A mode that needs its own params carries them in its variant. The editor shows only the fields of the selected variant, and every variant remembers its values while another one is selected.
+
+```rust
+use plottery_runtime::*;
+
+#[derive(PlotteryParams)]
+pub struct ScatterParams {
+    #[value(100)]
+    count: i32,
+}
+
+#[derive(PlotteryEnum)]
+pub enum Pattern {
+    #[default]
+    Grid {
+        #[value(4)]
+        #[range(1, 20)]
+        cols: i32,
+        /// distance between the rows in cm
+        #[value(1.0)]
+        row_distance: f32,
+    },
+    Scatter(ScatterParams),
+    Blank,
+}
+
+fn describe(pattern: &Pattern) -> String {
+    match pattern {
+        Pattern::Grid { cols, row_distance } => format!("{cols} columns, {row_distance} cm apart"),
+        Pattern::Scatter(scatter) => format!("{} points", scatter.count),
+        Pattern::Blank => "nothing".to_string(),
+    }
+}
+```
+
+Named fields take the same attributes as the fields of a `PlotteryParams` struct. A tuple variant holds exactly one `PlotteryParams` struct. On the command line the variant is `--set pattern=Scatter` and a field of the selected variant `--set pattern.count=50`.

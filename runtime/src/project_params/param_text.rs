@@ -7,6 +7,7 @@ use plottery_lib::{BundledFont, ColorRgb, Margin, Paper, PaperSize, SystemFont, 
 
 use super::angle_unit::AngleUnit;
 use super::project_param::ProjectParam;
+use super::project_param_data_enum::ProjectParamDataEnum;
 use super::project_param_value::ProjectParamValue;
 use super::project_params_list_wrapper::ProjectParamsListWrapper;
 
@@ -19,6 +20,7 @@ impl ProjectParamValue {
             Self::Int(val) | Self::IntRanged { val, .. } => val.to_string(),
             Self::Bool(val) => val.to_string(),
             Self::Enum(param_enum) => param_enum.selected.clone(),
+            Self::DataEnum(data_enum) => data_enum.selected.clone(),
             Self::String(val) | Self::Font(val) => val.clone(),
             Self::SystemFont(_) => self.value_as_string(),
             Self::Angle { rad, unit } => format!(
@@ -59,13 +61,12 @@ impl ProjectParamValue {
             Self::IntRanged { val, min, max } => *val = parse_in(text, *min, *max)?,
             Self::Bool(val) => *val = parse(text)?,
             Self::Enum(param_enum) => {
-                if !param_enum.variants.iter().any(|v| v == text) {
-                    bail!(
-                        "'{text}' is not a variant, use one of {}",
-                        param_enum.variants.join(" | ")
-                    );
-                }
+                check_variant(text, &param_enum.variants)?;
                 param_enum.selected = text.to_string();
+            }
+            Self::DataEnum(data_enum) => {
+                check_variant(text, &data_enum.variant_names())?;
+                data_enum.selected = text.to_string();
             }
             Self::String(val) => *val = text.to_string(),
             Self::Font(name) => {
@@ -119,6 +120,7 @@ impl ProjectParamValue {
 
 impl ProjectParamsListWrapper {
     /// Sets the param at a dotted path like `size`, `glow.radius` or `points.0` from text.
+    /// Fields of an enum's selected variant are `<name>.<field>`.
     pub fn set(&mut self, path: &str, text: &str) -> Result<()> {
         let value = value_at_path(&mut self.list, path)?;
         value
@@ -144,11 +146,17 @@ fn value_at_path<'a>(
                 ProjectParamValue::Struct(param_struct) => {
                     field_mut(&mut param_struct.fields, segment, Some(&walked))?
                 }
+                ProjectParamValue::DataEnum(data_enum) => {
+                    variant_field_mut(data_enum, segment, &walked)?
+                }
                 inner => bail!(
                     "'{walked}' is an option<{}> without fields",
                     inner.type_name()
                 ),
             },
+            ProjectParamValue::DataEnum(data_enum) => {
+                variant_field_mut(data_enum, segment, &walked)?
+            }
             ProjectParamValue::Vec(param_vec) => {
                 let len = param_vec.items.len();
                 segment
@@ -188,6 +196,42 @@ fn field_mut<'a>(
             }
         }
     }
+}
+
+/// The field `name` of the selected variant, with a hint when it belongs to another one.
+fn variant_field_mut<'a>(
+    data_enum: &'a mut ProjectParamDataEnum,
+    name: &str,
+    parent: &str,
+) -> Result<&'a mut ProjectParamValue> {
+    let selected = data_enum.selected.clone();
+    if !data_enum.selected_fields().iter().any(|f| f.name == name) {
+        let owner = data_enum
+            .variants
+            .iter()
+            .find(|variant| variant.fields.iter().any(|f| f.name == name));
+        if let Some(owner) = owner {
+            bail!(
+                "'{name}' is a field of {}, but '{parent}' is {selected}, set {parent}={} first",
+                owner.name,
+                owner.name
+            );
+        }
+        if data_enum.selected_fields().is_empty() {
+            bail!("'{parent}' is {selected}, which has no fields");
+        }
+    }
+    field_mut(data_enum.selected_fields_mut(), name, Some(parent))
+}
+
+fn check_variant(text: &str, variants: &[String]) -> Result<()> {
+    if !variants.iter().any(|v| v == text) {
+        bail!(
+            "'{text}' is not a variant, use one of {}",
+            variants.join(" | ")
+        );
+    }
+    Ok(())
 }
 
 fn parse<T: FromStr>(text: &str) -> Result<T> {

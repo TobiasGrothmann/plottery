@@ -61,7 +61,7 @@ and runs with the user's param values, so a render shows what the user sees.
 
 - `plottery params` prints one line per param: `name: type = value   (range or variants, default)   doc`.
   Each name and value is valid for `--set NAME=VALUE`; nested fields are `glow.radius`, list items
-  `points.0`. Angles are `45deg`, vectors `1.5,2`, ranges `2..5`, colors `#rrggbb`, paper `A3 landscape`,
+  `points.0`, fields of an enum's selected variant `pattern.cols` (select it first: `pattern=Grid`). Angles are `45deg`, vectors `1.5,2`, ranges `2..5`, colors `#rrggbb`, paper `A3 landscape`,
   options `on`/`off`. File paths are relative to the project root.
 - `--set` and `--defaults` (the code's `#[value]`s) apply to that one command and never change the
   user's saved values. Use `params --set ...` to check an override before rendering.
@@ -157,6 +157,12 @@ Choosing well:
 - Params that belong together go into a nested `#[derive(PlotteryParams)]` struct: one section, one
   argument for a helper, reusable (one struct per pen). Group flat fields with `#[section("..")]`,
   not `// ---`.
+- Modes are a `PlotteryEnum`. When the modes share their params, use unit variants and keep the
+  params as fields beside it. When a mode needs params of its own, they go into its variant, not
+  beside the enum: `Grid { cols: i32 }` with the usual field attributes, or `Grid(GridParams)` for a
+  `PlotteryParams` struct. The editor shows only the selected variant's fields, and each variant
+  keeps its values while another is selected. In code: `match &params.pattern { Pattern::Grid { cols } => .. }`.
+  On/off is still an `Option`, not an enum with an `Off` variant.
 - A list the user grows (arms, pens, layers) is `Vec<ItemParams>`. `#[range]` doesn't reach into a
   `Vec`, so even a list of numbers gets an item struct with a ranged field.
 - Name fields the way the label should read: `circle_size` shows as "circle size". Describe every
@@ -170,7 +176,8 @@ changing its type resets it to the default. Moving it to another section keeps i
 
 - Wrapping a field in `Option` changes its type, so it resets.
 - Inside a nested struct the rules apply per field, and an `Option` around it keeps its on/off state.
-- An enum keeps its variant while that variant exists.
+- An enum keeps its variant while that variant exists. The fields of its variants follow the rules
+  per field, also in the variants that are not selected.
 - A `Vec` keeps its items only while the item type is unchanged. One field added to its item struct
   resets the whole list.
 

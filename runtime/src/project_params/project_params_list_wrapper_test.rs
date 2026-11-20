@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+    use crate::project_param_data_enum::{ProjectParamDataEnum, ProjectParamVariant};
     use crate::{
         angle_unit::AngleUnit, project_param::ProjectParam, project_param_enum::ProjectParamEnum,
         project_param_optional::ProjectParamOptional, project_param_struct::ProjectParamStruct,
@@ -466,6 +467,133 @@ mod tests {
         assert_eq!(
             points.items.iter().map(xs).collect::<Vec<_>>(),
             vec![float_ranged(3.0, 0.0, 5.0), float_ranged(5.0, 0.0, 5.0)]
+        );
+    }
+
+    fn pattern(selected: &str, variants: Vec<ProjectParamVariant>) -> Vec<ProjectParam> {
+        vec![ProjectParam::new(
+            "pattern",
+            ProjectParamValue::DataEnum(ProjectParamDataEnum::new(selected, variants)),
+        )]
+    }
+
+    fn variant_values(param: &ProjectParam, variant: &str) -> Vec<ProjectParamValue> {
+        let ProjectParamValue::DataEnum(data_enum) = &param.value else {
+            panic!("expected a data enum, found {}", param.value.type_name());
+        };
+        let fields = &data_enum.variant(variant).unwrap().fields;
+        fields.iter().map(|f| f.value.clone()).collect()
+    }
+
+    #[test]
+    fn test_combine_data_enum_keeps_selection_and_values_of_every_variant() {
+        let old = pattern(
+            "Spiral",
+            vec![
+                ProjectParamVariant::new(
+                    "Grid",
+                    vec![ProjectParam::new("cols", int_ranged(7, 1, 20))],
+                ),
+                ProjectParamVariant::new(
+                    "Spiral",
+                    vec![ProjectParam::new("turns", ProjectParamValue::Float(9.0))],
+                ),
+            ],
+        );
+        let new = pattern(
+            "Grid",
+            vec![
+                ProjectParamVariant::new(
+                    "Grid",
+                    vec![
+                        ProjectParam::new("cols", int_ranged(4, 1, 5)),
+                        ProjectParam::new("rows", ProjectParamValue::Int(3)),
+                    ],
+                ),
+                ProjectParamVariant::new(
+                    "Spiral",
+                    vec![ProjectParam::new("turns", ProjectParamValue::Float(3.0))],
+                ),
+                ProjectParamVariant::new("Random", vec![]),
+            ],
+        );
+
+        let combined = ProjectParamsListWrapper::new_combined(&old, &new);
+        let merged = &combined.list[0];
+        assert_eq!(merged.value.value_as_string(), "Spiral");
+        // the unselected variant keeps its value too, clamped, and gets the new field
+        assert_eq!(
+            variant_values(merged, "Grid"),
+            vec![int_ranged(5, 1, 5), ProjectParamValue::Int(3)]
+        );
+        assert_eq!(
+            variant_values(merged, "Spiral"),
+            vec![ProjectParamValue::Float(9.0)]
+        );
+        assert!(variant_values(merged, "Random").is_empty());
+    }
+
+    #[test]
+    fn test_combine_data_enum_resets_selection_if_variant_was_removed() {
+        let turns = |val| vec![ProjectParam::new("turns", ProjectParamValue::Float(val))];
+        let old = pattern(
+            "Dots",
+            vec![
+                ProjectParamVariant::new("Dots", vec![]),
+                ProjectParamVariant::new("Spiral", turns(9.0)),
+            ],
+        );
+        let new = pattern(
+            "Spiral",
+            vec![
+                ProjectParamVariant::new("Spiral", turns(3.0)),
+                ProjectParamVariant::new("Random", vec![]),
+            ],
+        );
+
+        let combined = ProjectParamsListWrapper::new_combined(&old, &new);
+        let merged = &combined.list[0];
+        assert_eq!(merged.value.value_as_string(), "Spiral");
+        assert_eq!(
+            variant_values(merged, "Spiral"),
+            vec![ProjectParamValue::Float(9.0)]
+        );
+    }
+
+    #[test]
+    fn test_combine_enum_keeps_selection_when_variants_gain_or_lose_fields() {
+        let unit = vec![ProjectParam::new(
+            "pattern",
+            ProjectParamValue::Enum(ProjectParamEnum::new("Spiral", &["Grid", "Spiral"])),
+        )];
+        let with_fields = |selected| {
+            pattern(
+                selected,
+                vec![
+                    ProjectParamVariant::new("Grid", vec![]),
+                    ProjectParamVariant::new(
+                        "Spiral",
+                        vec![ProjectParam::new("turns", ProjectParamValue::Float(3.0))],
+                    ),
+                ],
+            )
+        };
+
+        let gained = ProjectParamsListWrapper::new_combined(&unit, &with_fields("Grid"));
+        assert_eq!(gained.list[0].value.value_as_string(), "Spiral");
+        assert_eq!(
+            variant_values(&gained.list[0], "Spiral"),
+            vec![ProjectParamValue::Float(3.0)]
+        );
+
+        let unit_default = vec![ProjectParam::new(
+            "pattern",
+            ProjectParamValue::Enum(ProjectParamEnum::new("Grid", &["Grid", "Spiral"])),
+        )];
+        let lost = ProjectParamsListWrapper::new_combined(&with_fields("Spiral"), &unit_default);
+        assert_eq!(
+            lost.list[0].value,
+            ProjectParamValue::Enum(ProjectParamEnum::new("Spiral", &["Grid", "Spiral"]))
         );
     }
 }

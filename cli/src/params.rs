@@ -73,30 +73,46 @@ fn push_list<'a>(
     }
 }
 
+/// The fields listed below a value: those of a struct or of an enum's selected variant.
+/// With `variant_of`, an enum gives the fields of the variant that one has selected.
+fn fields_of<'a>(value: &'a Value, variant_of: Option<&Value>) -> Option<&'a [ProjectParam]> {
+    match value {
+        Value::Struct(param_struct) => Some(&param_struct.fields),
+        Value::DataEnum(data_enum) => match variant_of {
+            Some(Value::DataEnum(current)) => data_enum
+                .variant(&current.selected)
+                .map(|variant| variant.fields.as_slice()),
+            _ => Some(data_enum.selected_fields()),
+        },
+        _ => None,
+    }
+}
+
 /// Pushes `row` and the rows of its fields or items. Plain structs only show their fields.
 fn push_value<'a>(row: Row<'a>, rows: &mut Vec<Row<'a>>) {
     let prefix = format!("{}.", row.path);
     let section = row.section;
     match row.value {
-        Value::Struct(param_struct) => {
-            let defaults = match row.default {
-                Some(Value::Struct(d)) => Some(d.fields.as_slice()),
-                _ => None,
-            };
-            push_list(&param_struct.fields, defaults, &prefix, section, rows);
+        Value::Struct(_) => {
+            let fields = fields_of(row.value, None).unwrap_or_default();
+            let defaults = row.default.and_then(|d| fields_of(d, None));
+            push_list(fields, defaults, &prefix, section, rows);
+        }
+        Value::DataEnum(_) => {
+            let fields = fields_of(row.value, None).unwrap_or_default();
+            let defaults = row.default.and_then(|d| fields_of(d, Some(row.value)));
+            rows.push(row);
+            push_list(fields, defaults, &prefix, section, rows);
         }
         Value::Optional(optional) => {
-            let default = row.default;
+            let inner = optional.value.as_ref();
+            let defaults = match row.default {
+                Some(Value::Optional(d)) => fields_of(&d.value, Some(inner)),
+                _ => None,
+            };
             rows.push(row);
-            if let Value::Struct(param_struct) = optional.value.as_ref() {
-                let defaults = match default {
-                    Some(Value::Optional(d)) => match d.value.as_ref() {
-                        Value::Struct(d) => Some(d.fields.as_slice()),
-                        _ => None,
-                    },
-                    _ => None,
-                };
-                push_list(&param_struct.fields, defaults, &prefix, section, rows);
+            if let Some(fields) = fields_of(inner, None) {
+                push_list(fields, defaults, &prefix, section, rows);
             }
         }
         Value::Vec(param_vec) => {
@@ -159,6 +175,7 @@ fn type_label(value: &Value) -> String {
 fn constraint(value: &Value) -> Option<String> {
     match value {
         Value::Enum(param_enum) => Some(param_enum.variants.join(" | ")),
+        Value::DataEnum(data_enum) => Some(data_enum.variant_names().join(" | ")),
         Value::FloatRanged { min, max, .. } => Some(format!("{min}..{max}")),
         Value::IntRanged { min, max, .. } => Some(format!("{min}..{max}")),
         Value::RangeF32 {
@@ -187,6 +204,7 @@ fn same_value(a: &Value, b: &Value) -> bool {
                     || matches!(a.value.as_ref(), Value::Struct(_))
                     || same_value(&a.value, &b.value))
         }
+        (Value::DataEnum(a), Value::DataEnum(b)) => a.selected == b.selected,
         (Value::Vec(a), Value::Vec(b)) => a.items.len() == b.items.len(),
         _ => a == b,
     }

@@ -45,6 +45,24 @@
   border-left: 2px solid var(--line-2);
 }
 
+/* An enum with fields: the selected variant's fields hang on a rail below the selector. */
+.ParamsEditor .penum-body {
+  grid-column: 1 / -1;
+  margin: 0 0 0 3px;
+  padding: 0;
+}
+.ParamsEditor .penum-body > .prow {
+  padding-right: 0;
+}
+.ParamsEditor .penum-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-left: 3px;
+  padding-left: 8px;
+  border-left: 2px solid var(--line-2);
+}
+
 .opt-row {
   align-items: flex-start;
 }

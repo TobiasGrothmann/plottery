@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 pub use super::curve_2d::Curve2D;
 pub use super::curve_2d_norm::Curve2DNorm;
+use super::project_param_data_enum::ProjectParamDataEnum;
 use super::project_param_enum::ProjectParamEnum;
 use super::project_param_optional::ProjectParamOptional;
 use super::project_param_struct::ProjectParamStruct;
@@ -61,6 +62,8 @@ pub enum ProjectParamValue {
     /// `BundledFont` variant name.
     Font(String),
     SystemFont(SystemFont),
+    /// A `PlotteryEnum` whose variants have fields.
+    DataEnum(ProjectParamDataEnum),
 }
 
 impl ProjectParamValue {
@@ -156,6 +159,7 @@ impl ProjectParamValue {
             ProjectParamValue::Svg(_) => "svg".to_string(),
             ProjectParamValue::Font(_) => "font".to_string(),
             ProjectParamValue::SystemFont(_) => "system_font".to_string(),
+            ProjectParamValue::DataEnum(_) => "enum".to_string(),
         }
     }
 
@@ -215,6 +219,7 @@ impl ProjectParamValue {
                     .flatten()
                     .collect()
             }
+            ProjectParamValue::DataEnum(data_enum) => data_enum.selected.clone(),
         }
     }
 }

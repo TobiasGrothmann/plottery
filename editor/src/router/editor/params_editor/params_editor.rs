@@ -210,7 +210,7 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, ctx: EditorCtx) -> 
                 }
             }
         }
-        ProjectParamValue::Enum(_) => {
+        ProjectParamValue::Enum(_) | ProjectParamValue::DataEnum(_) => {
             rsx! {
                 EnumField { key: "{key}", ..LeafProps::new(param, path, ctx) }
             }
@@ -338,6 +338,25 @@ fn render_value_without_label(
             render_optional_value(param_name.as_str(), optional, path, ctx)
         }
         ProjectParamValue::Vec(vec_value) => render_vec_value(param_name, vec_value, path, ctx),
+        ProjectParamValue::DataEnum(data_enum) => {
+            let fields = data_enum.selected_fields().to_vec();
+            let variant_path = child_path(&path, &data_enum.selected);
+            let selector =
+                ProjectParam::new(param_name.as_str(), ProjectParamValue::DataEnum(data_enum));
+            rsx! {
+                {render_leaf_param(selector, path, ctx)}
+                if !fields.is_empty() {
+                    div { class: "penum-fields",
+                        for field in fields.into_iter() {
+                            {
+                                let field_path = child_path(&variant_path, &field.name);
+                                render_named_param(field, field_path, ctx, true)
+                            }
+                        }
+                    }
+                }
+            }
+        }
         value => {
             let param = ProjectParam::new(param_name.as_str(), value);
             render_leaf_param(param, path, ctx)
@@ -561,7 +580,24 @@ fn render_named_param(
     } else {
         "sub"
     };
-    let control = render_value_without_label(param.name, param.value, path, ctx);
+    // In a full-width row the selected variant's fields get full-width rows below the selector.
+    let variant_rows = match &param.value {
+        ProjectParamValue::DataEnum(data_enum)
+            if !compact && !data_enum.selected_fields().is_empty() =>
+        {
+            let variant_path = child_path(&path, &data_enum.selected);
+            Some(render_param_list(
+                data_enum.selected_fields(),
+                &variant_path,
+                ctx,
+            ))
+        }
+        _ => None,
+    };
+    let control = match variant_rows {
+        Some(_) => render_leaf_param(ProjectParam::new(&param.name, param.value), path, ctx),
+        None => render_value_without_label(param.name, param.value, path, ctx),
+    };
 
     if compact {
         rsx! {
@@ -585,6 +621,9 @@ fn render_named_param(
                     }
                 }
                 div { class: "pctl", {control} }
+                if let Some(variant_rows) = variant_rows {
+                    div { class: "psection-body penum-body", {variant_rows} }
+                }
             }
         }
     }

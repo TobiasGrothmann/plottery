@@ -21,7 +21,9 @@ impl PartialEq for ProjectParam {
 
 /// Same type, whatever the values and `#[range]`s.
 fn value_schema_equal(left: &ProjectParamValue, right: &ProjectParamValue) -> bool {
-    use ProjectParamValue::{Enum, Float, FloatRanged, Int, IntRanged, Optional, Struct, Vec};
+    use ProjectParamValue::{
+        DataEnum, Enum, Float, FloatRanged, Int, IntRanged, Optional, Struct, Vec,
+    };
     match (left, right) {
         (Float(_) | FloatRanged { .. }, Float(_) | FloatRanged { .. }) => true,
         (Int(_) | IntRanged { .. }, Int(_) | IntRanged { .. }) => true,
@@ -33,6 +35,7 @@ fn value_schema_equal(left: &ProjectParamValue, right: &ProjectParamValue) -> bo
             value_schema_equal(&left_vec.item_prototype, &right_vec.item_prototype)
         }
         (Enum(left_enum), Enum(right_enum)) => left_enum.variants == right_enum.variants,
+        (DataEnum(left_enum), DataEnum(right_enum)) => left_enum.variants == right_enum.variants,
         _ => std::mem::discriminant(left) == std::mem::discriminant(right),
     }
 }
