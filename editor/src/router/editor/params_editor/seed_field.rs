@@ -42,7 +42,7 @@ pub fn SeedField(props: LeafProps) -> Element {
                 icon: IconName::Dice,
                 label: "Random seed",
                 size: Size::Sm,
-                onclick: move |_| edit_seed(&random_props, |seed| seed.set(rand_range_i(0, 101))),
+                onclick: move |_| edit_seed(&random_props, |seed| seed.set(rand_range_i(100, 1000))),
             }
         }
         if !history.is_empty() {
