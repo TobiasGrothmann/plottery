@@ -2,6 +2,7 @@ pub mod angle_dial;
 mod angle_dial_test;
 pub mod dropdown;
 pub mod number_input;
+pub mod range_slider_input;
 pub mod search_picker;
 pub mod segmented;
 pub mod slider_input;

@@ -5,7 +5,7 @@ use dioxus::{html::input_data::MouseButton, prelude::*};
 use super::format_number;
 
 /// Must match `.slider_thumb` width in slider_input.css.
-const THUMB_WIDTH_PX: f64 = 12.0;
+pub const THUMB_WIDTH_PX: f64 = 12.0;
 pub const ALT_SPEED_FACTOR: f64 = 0.25;
 /// Presses farther than this from the thumb center jump the thumb to the mouse.
 pub const JUMP_DISTANCE_PX: f64 = 20.0;
