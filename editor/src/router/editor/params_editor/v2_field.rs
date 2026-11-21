@@ -55,7 +55,7 @@ pub fn V2Field(props: LeafProps) -> Element {
                         })
                 },
             }
-            if !integer {
+            if !integer && !props.no_pick {
                 IconButton {
                     icon: IconName::Crosshair,
                     label: "Pick on preview",

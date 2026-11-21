@@ -10,11 +10,80 @@ use super::project_param_value::ProjectParamValue;
 use super::project_param_vec::ProjectParamVec;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(from = "ParamsOnWire", into = "ParamsOnWire")]
 pub struct ProjectParamsListWrapper {
     pub list: Vec<ProjectParam>,
     /// The project's defaults for `list`. Not saved, empty until `new_combined` fills it.
-    #[serde(skip)]
     pub defaults: Vec<ProjectParam>,
+}
+
+/// The protocol's form of the list. `ProjectParam::no_pick` isn't serialized, so `.plotp` files
+/// keep their layout; here it travels as the positions of the flagged params instead.
+#[derive(Serialize, Deserialize)]
+struct ParamsOnWire {
+    list: Vec<ProjectParam>,
+    /// Positions in the order of [`for_each_param_mut`].
+    no_pick: Vec<u32>,
+}
+
+impl From<ProjectParamsListWrapper> for ParamsOnWire {
+    fn from(mut params: ProjectParamsListWrapper) -> Self {
+        let mut no_pick = Vec::new();
+        let mut position = 0;
+        for_each_param_mut(&mut params.list, &mut |param| {
+            if param.no_pick {
+                no_pick.push(position);
+            }
+            position += 1;
+        });
+        Self {
+            list: params.list,
+            no_pick,
+        }
+    }
+}
+
+impl From<ParamsOnWire> for ProjectParamsListWrapper {
+    fn from(mut wire: ParamsOnWire) -> Self {
+        let mut position = 0;
+        for_each_param_mut(&mut wire.list, &mut |param| {
+            param.no_pick = wire.no_pick.contains(&position);
+            position += 1;
+        });
+        Self::new(wire.list)
+    }
+}
+
+/// Every param in `list` and in the values nested in it, each before its own nested params.
+fn for_each_param_mut(list: &mut [ProjectParam], f: &mut impl FnMut(&mut ProjectParam)) {
+    for param in list {
+        f(param);
+        for_each_param_in_value_mut(&mut param.value, f);
+    }
+}
+
+fn for_each_param_in_value_mut(
+    value: &mut ProjectParamValue,
+    f: &mut impl FnMut(&mut ProjectParam),
+) {
+    match value {
+        ProjectParamValue::Struct(param_struct) => for_each_param_mut(&mut param_struct.fields, f),
+        ProjectParamValue::Optional(optional) => {
+            for_each_param_in_value_mut(&mut optional.value, f)
+        }
+        ProjectParamValue::Vec(param_vec) => {
+            for_each_param_in_value_mut(&mut param_vec.item_prototype, f);
+            for item in &mut param_vec.items {
+                for_each_param_in_value_mut(item, f);
+            }
+        }
+        ProjectParamValue::DataEnum(data_enum) => {
+            for variant in &mut data_enum.variants {
+                for_each_param_mut(&mut variant.fields, f);
+            }
+        }
+        _ => {}
+    }
 }
 
 impl ProjectParamsListWrapper {

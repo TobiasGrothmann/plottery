@@ -9,8 +9,9 @@ use syn::{
 /// Every field type must implement `ParamField`. `#[value(expr)]` sets the default,
 /// `#[range(min, max)]` restricts the value (needs `RangedParamField`),
 /// `#[section("Name")]` starts an editor section that runs until the next one,
+/// `#[no_pick]` hides the button that picks a `V2` or `Rect` on the preview,
 /// and `///` doc comments become the param's description.
-#[proc_macro_derive(PlotteryParams, attributes(value, range, section))]
+#[proc_macro_derive(PlotteryParams, attributes(value, range, section, no_pick))]
 pub fn plottery_params(input: TokenStream) -> TokenStream {
     let ast = syn::parse(input).expect("Failed to parse macro.");
     plottery_params_impl(&ast)
@@ -21,7 +22,7 @@ pub fn plottery_params(input: TokenStream) -> TokenStream {
 /// Variants can have fields, shown below the selector while their variant is selected: either
 /// named fields with the attributes of `PlotteryParams` fields, or one `PlotteryParams` struct
 /// as `Variant(Struct)`. The values of the other variants are kept.
-#[proc_macro_derive(PlotteryEnum, attributes(default, value, range, section))]
+#[proc_macro_derive(PlotteryEnum, attributes(default, value, range, section, no_pick))]
 pub fn plottery_enum(input: TokenStream) -> TokenStream {
     let ast = syn::parse(input).expect("Failed to parse macro.");
     plottery_enum_impl(&ast)
@@ -32,6 +33,7 @@ struct FieldAttributes {
     range: Option<(proc_macro2::TokenStream, proc_macro2::TokenStream)>,
     section: Option<String>,
     description: Option<String>,
+    no_pick: bool,
 }
 
 fn parse_attribute_args(list: &syn::MetaList, expected: usize) -> Vec<Expr> {
@@ -56,6 +58,7 @@ fn parse_field_attributes(field: &Field) -> FieldAttributes {
         range: None,
         section: None,
         description: None,
+        no_pick: false,
     };
     let mut doc_lines = Vec::new();
 
@@ -74,9 +77,15 @@ fn parse_field_attributes(field: &Field) -> FieldAttributes {
             }
             continue;
         }
+        if let Meta::Path(path) = &attr.meta {
+            if path.is_ident("no_pick") {
+                attributes.no_pick = true;
+                continue;
+            }
+        }
         let Meta::List(list) = &attr.meta else {
             panic!(
-                "Unknown attribute '{}'. Expected #[value(...)], #[range(...)] or #[section(...)].",
+                "Unknown attribute '{}'. Expected #[value(...)], #[range(...)], #[section(...)] or #[no_pick].",
                 attr.path().to_token_stream()
             );
         };
@@ -95,7 +104,7 @@ fn parse_field_attributes(field: &Field) -> FieldAttributes {
             attributes.section = Some(title.value());
         } else {
             panic!(
-                "Unknown attribute '{}'. Only #[value(...)], #[range(...)] and #[section(...)] are supported for fields.",
+                "Unknown attribute '{}'. Only #[value(...)], #[range(...)], #[section(...)] and #[no_pick] are supported for fields.",
                 list.path.to_token_stream()
             );
         }
@@ -213,7 +222,8 @@ fn named_field_tokens(
                 .description
                 .iter()
                 .map(|d| quote!(.with_description(#d)));
-            quote!(#(#section)* #(#description)*)
+            let no_pick = attributes.no_pick.then(|| quote!(.with_no_pick()));
+            quote!(#(#section)* #(#description)* #no_pick)
         };
 
         let default_value = attributes

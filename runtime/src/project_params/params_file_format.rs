@@ -87,6 +87,8 @@ impl ProjectParamsListWrapper {
                     value,
                     section: record.section,
                     description: record.description,
+                    // comes back from the project's params when they are merged in
+                    no_pick: false,
                 }),
                 Err(_) => {
                     skipped.push(record.name);

@@ -26,7 +26,7 @@ use crate::router::editor::{
         paper_field::PaperField,
         param_tree::{
             get_default_leaf_value, get_param_mut_by_path, get_param_value_mut_by_path,
-            leaf_value_mut,
+            leaf_value_mut, no_pick_at,
         },
         percent_field::PercentField,
         range_field::RangeField,
@@ -45,6 +45,8 @@ pub struct LeafProps {
     pub path: Vec<String>,
     /// The project's default for `param`, `None` until the first run got the params.
     pub default: Option<ProjectParamValue>,
+    /// From `#[no_pick]` in the project: no picking on the preview.
+    pub no_pick: bool,
 }
 
 /// `ProjectParam` only compares its schema, so compare the value too or Dioxus will not re-render.
@@ -54,16 +56,20 @@ impl PartialEq for LeafProps {
             && self.param.value == other.param.value
             && self.path == other.path
             && self.default == other.default
+            && self.no_pick == other.no_pick
     }
 }
 
 impl LeafProps {
     fn new(param: ProjectParam, path: Vec<String>, ctx: EditorCtx) -> Self {
-        let default = get_default_leaf_value(&ctx.project_params.read().defaults, &path);
+        let params = ctx.project_params.read();
+        let default = get_default_leaf_value(&params.defaults, &path);
+        let no_pick = no_pick_at(&params.defaults, &path);
         Self {
             param,
             path,
             default,
+            no_pick,
         }
     }
 

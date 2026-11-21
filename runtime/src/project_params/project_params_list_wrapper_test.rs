@@ -637,4 +637,70 @@ mod tests {
             ProjectParamValue::Enum(ProjectParamEnum::new("Spiral", &["Grid", "Spiral"]))
         );
     }
+
+    #[derive(crate::PlotteryParams)]
+    struct PickItem {
+        #[no_pick]
+        size: plottery_lib::V2,
+        at: plottery_lib::V2,
+    }
+
+    #[derive(crate::PlotteryEnum)]
+    enum PickMode {
+        #[default]
+        Off,
+        Spot {
+            #[no_pick]
+            scale: plottery_lib::V2,
+        },
+    }
+
+    #[derive(crate::PlotteryParams)]
+    struct PickParams {
+        center: plottery_lib::V2,
+        #[no_pick]
+        offset: plottery_lib::V2,
+        #[value(vec![PickItem { size: plottery_lib::V2::zero(), at: plottery_lib::V2::zero() }])]
+        items: Vec<PickItem>,
+        mode: PickMode,
+    }
+
+    /// `[center, offset, prototype size, prototype at, item size, item at, spot scale]`
+    fn no_pick_flags(list: &[ProjectParam]) -> Vec<bool> {
+        let struct_flags = |value: &ProjectParamValue| match value {
+            ProjectParamValue::Struct(s) => s.fields.iter().map(|f| f.no_pick).collect::<Vec<_>>(),
+            other => panic!("expected a struct, got {}", other.type_name()),
+        };
+        let ProjectParamValue::Vec(items) = &list[2].value else {
+            panic!("items is not a vec");
+        };
+        let ProjectParamValue::DataEnum(mode) = &list[3].value else {
+            panic!("mode is not an enum with fields");
+        };
+        [list[0].no_pick, list[1].no_pick]
+            .into_iter()
+            .chain(struct_flags(&items.item_prototype))
+            .chain(struct_flags(&items.items[0]))
+            .chain(
+                mode.variant("Spot")
+                    .unwrap()
+                    .fields
+                    .iter()
+                    .map(|f| f.no_pick),
+            )
+            .collect()
+    }
+
+    #[test]
+    fn no_pick_survives_the_protocol_at_every_depth() {
+        let params = ProjectParamsListWrapper::new(
+            <PickParams as crate::PlotteryParams>::param_defaults_list(),
+        );
+        let expected = vec![false, true, true, false, true, false, true];
+        assert_eq!(no_pick_flags(&params.list), expected);
+
+        let bytes = postcard::to_stdvec(&params).unwrap();
+        let received: ProjectParamsListWrapper = postcard::from_bytes(&bytes).unwrap();
+        assert_eq!(no_pick_flags(&received.list), expected);
+    }
 }

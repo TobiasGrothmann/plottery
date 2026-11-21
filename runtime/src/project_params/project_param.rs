@@ -10,6 +10,10 @@ pub struct ProjectParam {
     pub section: Option<String>,
     /// From the field's `///` doc comment.
     pub description: Option<String>,
+    /// From `#[no_pick]`: no picking on the preview. Not saved, it travels beside the list, see
+    /// `ProjectParamsListWrapper`.
+    #[serde(skip)]
+    pub no_pick: bool,
 }
 
 impl PartialEq for ProjectParam {
@@ -47,6 +51,14 @@ impl ProjectParam {
             value,
             section: None,
             description: None,
+            no_pick: false,
+        }
+    }
+
+    pub fn with_no_pick(self) -> Self {
+        Self {
+            no_pick: true,
+            ..self
         }
     }
 

@@ -172,6 +172,39 @@ fn get_param_mut_in_value<'a>(
     }
 }
 
+/// `#[no_pick]` of the innermost param on `path`; a Vec item has the flag of its Vec.
+pub fn no_pick_at(list: &[ProjectParam], path: &[String]) -> bool {
+    let Some((name, rest)) = path.split_first() else {
+        return false;
+    };
+    let Some(param) = list.iter().find(|param| param.name == *name) else {
+        return false;
+    };
+    no_pick_in_value(&param.value, rest).unwrap_or(param.no_pick)
+}
+
+/// `None` when `path` ends before reaching another param.
+fn no_pick_in_value(value: &ProjectParamValue, path: &[String]) -> Option<bool> {
+    let segment = path.first()?;
+    match value {
+        ProjectParamValue::Struct(param_struct) => Some(no_pick_at(&param_struct.fields, path)),
+        ProjectParamValue::Optional(optional) => no_pick_in_value(&optional.value, path),
+        ProjectParamValue::Vec(vec_value) => {
+            let index = parse_index_segment(segment)?;
+            let item = vec_value
+                .items
+                .get(index)
+                .unwrap_or(vec_value.item_prototype.as_ref());
+            no_pick_in_value(item, &path[1..])
+        }
+        ProjectParamValue::DataEnum(data_enum) => {
+            let variant = data_enum.variant(segment)?;
+            Some(no_pick_at(&variant.fields, &path[1..]))
+        }
+        _ => None,
+    }
+}
+
 fn parse_index_segment(segment: &str) -> Option<usize> {
     let index_text = segment.strip_prefix('[')?.strip_suffix(']')?;
     index_text.parse::<usize>().ok()
