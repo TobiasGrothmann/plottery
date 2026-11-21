@@ -225,6 +225,24 @@
   cursor: help;
 }
 
+/* The controls move below the dial when the panel is too narrow for both. */
+.AngleField {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.AngleField .angle-controls {
+  flex: 1 1 112px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.AngleField .seg button {
+  padding: 0 6px;
+}
+
 .EasingField {
   display: flex;
   align-items: center;

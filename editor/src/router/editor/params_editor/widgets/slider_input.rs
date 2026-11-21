@@ -8,7 +8,7 @@ use super::format_number;
 const THUMB_WIDTH_PX: f64 = 12.0;
 pub const ALT_SPEED_FACTOR: f64 = 0.25;
 /// Presses farther than this from the thumb center jump the thumb to the mouse.
-const JUMP_DISTANCE_PX: f64 = 20.0;
+pub const JUMP_DISTANCE_PX: f64 = 20.0;
 
 #[derive(PartialEq, Props, Clone)]
 pub struct SliderInputProps {

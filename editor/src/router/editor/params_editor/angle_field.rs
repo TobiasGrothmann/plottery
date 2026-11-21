@@ -4,7 +4,7 @@ use plottery_runtime::{angle_unit::AngleUnit, project_param_value::ProjectParamV
 
 use crate::router::editor::params_editor::{
     params_editor::LeafProps,
-    widgets::{number_input::NumberInput, segmented::Segmented},
+    widgets::{angle_dial::AngleDial, number_input::NumberInput, segmented::Segmented},
 };
 
 #[component]
@@ -12,30 +12,47 @@ pub fn AngleField(props: LeafProps) -> Element {
     let ProjectParamValue::Angle { rad, unit } = props.param.value else {
         return rsx! { p { "unexpected value type" } };
     };
-    let shown = unit.from_angle(Angle::from_rad(rad));
+    // angle while the dial is dragged, so the number follows before the commit
+    let mut live_rad = use_signal(|| None::<f32>);
+    let shown = unit.from_angle(Angle::from_rad(live_rad().unwrap_or(rad)));
     let unit_index = AngleUnit::ALL.iter().position(|u| *u == unit);
 
+    let dial_props = props.clone();
     let value_props = props.clone();
     let unit_props = props.clone();
 
     rsx! {
-        div { class: "hrow",
-            NumberInput {
-                value: shown,
-                oncommit: move |value: f32| value_props.edit(|param| {
-                    if let ProjectParamValue::Angle { rad, unit } = param {
-                        *rad = unit.to_angle(value).to_rad();
-                    }
-                }),
+        div { class: "AngleField",
+            AngleDial {
+                rad,
+                oninput: move |value: f32| live_rad.set(Some(value)),
+                oncommit: move |value: f32| {
+                    live_rad.set(None);
+                    dial_props.edit(|param| {
+                        if let ProjectParamValue::Angle { rad, .. } = param {
+                            *rad = value;
+                        }
+                    });
+                },
             }
-            Segmented {
-                options: AngleUnit::ALL.iter().map(|u| u.short_name().to_string()).collect(),
-                selected: unit_index,
-                onselect: move |index: usize| unit_props.edit(|param| {
-                    if let ProjectParamValue::Angle { unit, .. } = param {
-                        *unit = AngleUnit::ALL[index];
-                    }
-                }),
+            div { class: "angle-controls",
+                NumberInput {
+                    value: shown,
+                    oncommit: move |value: f32| value_props.edit(|param| {
+                        if let ProjectParamValue::Angle { rad, unit } = param {
+                            *rad = unit.to_angle(value).to_rad();
+                        }
+                    }),
+                }
+                Segmented {
+                    options: AngleUnit::ALL.iter().map(|u| u.short_name().to_string()).collect(),
+                    selected: unit_index,
+                    onselect: move |index: usize| unit_props.edit(|param| {
+                        if let ProjectParamValue::Angle { unit, .. } = param {
+                            *unit = AngleUnit::ALL[index];
+                        }
+                    }),
+                }
             }
         }
     }

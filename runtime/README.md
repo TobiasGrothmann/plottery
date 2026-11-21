@@ -79,7 +79,7 @@ Field types and their widgets:
 | `String` | multi-line text box |
 | `Paper` | DIN A/B or custom size, orientation, margin in cm or as a fraction |
 | `Range<f32>`, `Range<i32>` | min and max boxes, clamped to `#[range]` |
-| `Angle` | number with a deg/rot/rad unit switch |
+| `Angle` | dial to drag (shift snaps to 15°, alt slows it down) and a number with a deg/rot/rad unit switch |
 | `V2`, `V2i` | x and y boxes; a `V2` can also be picked by clicking the drawing |
 | `Seed` | number, dice button, recent seeds |
 | `Easing` | power, bias or s-curve, slider, curve preview |
