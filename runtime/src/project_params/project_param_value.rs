@@ -54,6 +54,7 @@ pub enum ProjectParamValue {
     V2(V2),
     Seed(ProjectParamSeed),
     Image(ProjectParamFile),
+    /// What a `NoiseSettings` param was before it became a `Struct`, only read from saved files.
     Noise(NoiseSettings),
     Easing(Easing),
     Color(ColorRgb),

@@ -22,7 +22,6 @@ use crate::router::editor::{
         enum_field::EnumField,
         file_field::FileField,
         font_field::FontField,
-        noise_field::NoiseField,
         number_field::NumberField,
         paper_field::PaperField,
         param_tree::{
@@ -250,11 +249,6 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, ctx: EditorCtx) -> 
                 FileField { key: "{key}", ..LeafProps::new(param, path, ctx) }
             }
         }
-        ProjectParamValue::Noise(_) => {
-            rsx! {
-                NoiseField { key: "{key}", ..LeafProps::new(param, path, ctx) }
-            }
-        }
         ProjectParamValue::Easing(_) => {
             rsx! {
                 EasingField { key: "{key}", ..LeafProps::new(param, path, ctx) }
@@ -280,6 +274,12 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, ctx: EditorCtx) -> 
         | ProjectParamValue::Vec(_) => {
             rsx! {
                 span { class: "hint", "Unsupported nested value" }
+            }
+        }
+        // Only in saved files, merging with the project's params turns it into a struct.
+        ProjectParamValue::Noise(_) => {
+            rsx! {
+                span { class: "hint", "Noise from an older Plottery, run the project to update it" }
             }
         }
     }

@@ -1,11 +1,14 @@
 #[cfg(test)]
 mod tests {
-    use plottery_lib::{ColorRgb, Margin, Paper, PaperSize, SystemFont, V2i, V2};
+    use plottery_lib::{
+        ColorRgb, Margin, NoiseScale, NoiseSettings, NoiseType, Paper, PaperSize, SystemFont, V2i,
+        V2,
+    };
 
     use crate::{
-        AngleUnit, ProjectParam, ProjectParamDataEnum, ProjectParamEnum, ProjectParamFile,
-        ProjectParamOptional, ProjectParamSeed, ProjectParamStruct, ProjectParamValue as Value,
-        ProjectParamVariant, ProjectParamVec, ProjectParamsListWrapper,
+        AngleUnit, ParamField, ProjectParam, ProjectParamDataEnum, ProjectParamEnum,
+        ProjectParamFile, ProjectParamOptional, ProjectParamSeed, ProjectParamStruct,
+        ProjectParamValue as Value, ProjectParamVariant, ProjectParamVec, ProjectParamsListWrapper,
     };
 
     /// Sets `text` on `start`, expects `expected`, and that `expected` prints as `text`.
@@ -292,6 +295,24 @@ mod tests {
             p.list.iter().map(|p| p.value.clone()).collect::<Vec<_>>()
         };
         assert_eq!(values(&params), values(&expected));
+    }
+
+    #[test]
+    fn set_noise_fields() {
+        let mut params = ProjectParamsListWrapper::new(vec![ProjectParam::new(
+            "noise",
+            NoiseSettings::default_param_value(),
+        )]);
+        params.set("noise.noise_type", "Simplex").unwrap();
+        params.set("noise.frequency", "2").unwrap();
+        params.set("noise.scale", "PerPaper").unwrap();
+        params.set("noise.octaves", "3").unwrap();
+
+        assert_eq!(
+            NoiseSettings::from_param_value(&params.list[0].value).unwrap(),
+            NoiseSettings::new(NoiseType::Simplex, 2.0, 3, NoiseScale::PerPaper)
+        );
+        assert!(params.set("noise.octaves", "0").is_err());
     }
 
     #[test]

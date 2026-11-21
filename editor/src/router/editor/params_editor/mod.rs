@@ -8,7 +8,6 @@ pub mod file_field;
 pub mod font_field;
 pub mod font_preview;
 mod font_preview_test;
-pub mod noise_field;
 pub mod number_field;
 pub mod paper_field;
 pub mod param_tree;

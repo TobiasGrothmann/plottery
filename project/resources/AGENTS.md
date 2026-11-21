@@ -150,7 +150,7 @@ Choosing well:
   number box instead of a slider.
 - A feature that can be switched off is an `Option`, not a `bool` next to the params it gates.
   `Option<GlowParams>` gets a switch in its section header and hides the fields while off.
-  `Option<NoiseSettings>` gets a switch beside its widget. In code: `if let Some(glow) = &params.glow`.
+  `Option<Easing>` gets a switch beside its widget. In code: `if let Some(glow) = &params.glow`.
 - When an `Option` that's off by default is switched on, it starts from the inner type's default. For
   a struct that's its `#[value]`s. For a bare number it's 0, clamped into its `#[range]`. Wrap the
   value in a struct, or give it `#[value(Some(..))]`.

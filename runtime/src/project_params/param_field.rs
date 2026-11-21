@@ -2,8 +2,10 @@ use std::collections::HashMap;
 
 pub use anyhow::Error as ParamFieldError;
 use plottery_lib::{
-    Angle, BundledFont, ColorRgb, Easing, NoiseSettings, Paper, Range, SystemFont, V2i, V2,
+    Angle, BundledFont, ColorRgb, Easing, NoiseScale, NoiseSettings, NoiseType, Paper, Range,
+    SystemFont, V2i, V2,
 };
+use plottery_runtime_macros::PlotteryParams;
 
 use super::angle_unit::AngleUnit;
 
@@ -11,6 +13,7 @@ use super::curve_2d::Curve2D;
 use super::curve_2d_norm::Curve2DNorm;
 use super::image_path::ImagePath;
 use super::project_param::ProjectParam;
+use super::project_param_enum::ProjectParamEnum;
 use super::project_param_file::ProjectParamFile;
 use super::project_param_optional::ProjectParamOptional;
 use super::project_param_value::ProjectParamValue;
@@ -294,18 +297,77 @@ impl ParamField for SvgPath {
     }
 }
 
+/// `ParamField` as an enum param for a lib enum, which can't derive `PlotteryEnum`.
+macro_rules! lib_enum_param_field {
+    ($ty:ident: $($variant:ident),+) => {
+        impl ParamField for $ty {
+            fn default_param_value() -> ProjectParamValue {
+                Self::default().to_param_value()
+            }
+            fn to_param_value(&self) -> ProjectParamValue {
+                let selected = match self {
+                    $(Self::$variant => stringify!($variant),)+
+                };
+                ProjectParamValue::Enum(ProjectParamEnum::new(
+                    selected,
+                    &[$(stringify!($variant)),+],
+                ))
+            }
+            fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
+                let expected = concat!("enum ", stringify!($ty));
+                match value {
+                    ProjectParamValue::Enum(param_enum) => match param_enum.selected.as_str() {
+                        $(stringify!($variant) => Ok(Self::$variant),)+
+                        other => Err(param_type_mismatch(expected, value)
+                            .context(format!("unknown variant '{}'", other))),
+                    },
+                    other => Err(param_type_mismatch(expected, other)),
+                }
+            }
+        }
+    };
+}
+
+lib_enum_param_field!(NoiseType: Perlin, Simplex, Worley);
+lib_enum_param_field!(NoiseScale: PerCm, PerPaper);
+
+/// The fields a [`NoiseSettings`] param has, as the lib type can't derive `PlotteryParams`.
+#[derive(PlotteryParams)]
+struct NoiseFields {
+    noise_type: NoiseType,
+    /// features per cm, or across the shorter side of the paper
+    frequency: f32,
+    scale: NoiseScale,
+    /// fractal layers, 1 is plain noise
+    #[range(1, 8)]
+    octaves: i32,
+}
+
 impl ParamField for NoiseSettings {
     fn default_param_value() -> ProjectParamValue {
-        ProjectParamValue::Noise(Self::default())
+        Self::default().to_param_value()
     }
     fn to_param_value(&self) -> ProjectParamValue {
-        ProjectParamValue::Noise(*self)
+        NoiseFields {
+            noise_type: self.noise_type,
+            frequency: self.frequency,
+            scale: self.scale,
+            octaves: i32::try_from(self.octaves).unwrap_or(i32::MAX),
+        }
+        .to_param_value()
     }
     fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
-        match value {
-            ProjectParamValue::Noise(noise) => Ok(*noise),
-            other => Err(param_type_mismatch("noise", other)),
+        // Saved files from before noise was a struct still hold a `Noise`.
+        if let ProjectParamValue::Noise(noise) = value {
+            return Ok(*noise);
         }
+        let fields = NoiseFields::from_param_value(value)?;
+        Ok(NoiseSettings::new(
+            fields.noise_type,
+            fields.frequency,
+            fields.octaves.max(1) as u32,
+            fields.scale,
+        ))
     }
 }
 

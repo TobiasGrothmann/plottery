@@ -84,7 +84,7 @@ Field types and their widgets:
 | `Seed` | number, dice button, recent seeds |
 | `Easing` | power, bias or s-curve, slider, curve preview |
 | `ColorRgb` | color picker and hex code |
-| `NoiseSettings` | perlin/simplex/worley, frequency per cm or per paper, octaves |
+| `NoiseSettings` | its own section: perlin/simplex/worley, frequency, per cm or per paper, octaves |
 | `BundledFont` | font picker with previews |
 | `SystemFont` | picker for the fonts installed on this machine and their styles; `load()` gives the `Font` |
 | `ImagePath`, `SvgPath` | file picker; copies the file into `resources/` or links the original |

@@ -2,12 +2,12 @@
 mod tests {
     use crate::project_param_data_enum::{ProjectParamDataEnum, ProjectParamVariant};
     use crate::{
-        angle_unit::AngleUnit, project_param::ProjectParam, project_param_enum::ProjectParamEnum,
-        project_param_optional::ProjectParamOptional, project_param_struct::ProjectParamStruct,
-        project_param_value::ProjectParamValue, project_param_vec::ProjectParamVec,
-        project_params_list_wrapper::ProjectParamsListWrapper,
+        angle_unit::AngleUnit, param_field::ParamField, project_param::ProjectParam,
+        project_param_enum::ProjectParamEnum, project_param_optional::ProjectParamOptional,
+        project_param_struct::ProjectParamStruct, project_param_value::ProjectParamValue,
+        project_param_vec::ProjectParamVec, project_params_list_wrapper::ProjectParamsListWrapper,
     };
-    use plottery_lib::SystemFont;
+    use plottery_lib::{NoiseScale, NoiseSettings, NoiseType, SystemFont};
 
     #[test]
     fn test_combine_params() {
@@ -281,6 +281,40 @@ mod tests {
 
         let combined = ProjectParamsListWrapper::new_combined(&old, &new);
         assert_eq!(combined.list[0].value, font("Not Installed Here"));
+    }
+
+    #[test]
+    fn test_combine_turns_a_saved_noise_value_into_the_noise_struct() {
+        let saved = NoiseSettings::new(NoiseType::Worley, 2.5, 3, NoiseScale::PerPaper);
+        let optional =
+            |enabled, value| ProjectParamValue::Optional(ProjectParamOptional::new(enabled, value));
+        let combined = combined_values(
+            vec![
+                ("noise", ProjectParamValue::Noise(saved)),
+                ("maybe", optional(true, ProjectParamValue::Noise(saved))),
+            ],
+            vec![
+                ("noise", NoiseSettings::default_param_value()),
+                (
+                    "maybe",
+                    optional(false, NoiseSettings::default_param_value()),
+                ),
+            ],
+        );
+
+        assert!(matches!(combined[0], ProjectParamValue::Struct(_)));
+        assert_eq!(
+            NoiseSettings::from_param_value(&combined[0]).unwrap(),
+            saved
+        );
+        let ProjectParamValue::Optional(maybe) = &combined[1] else {
+            panic!("expected an optional");
+        };
+        assert!(matches!(maybe.value.as_ref(), ProjectParamValue::Struct(_)));
+        assert_eq!(
+            Option::<NoiseSettings>::from_param_value(&combined[1]).unwrap(),
+            Some(saved)
+        );
     }
 
     fn float_ranged(val: f32, min: f32, max: f32) -> ProjectParamValue {

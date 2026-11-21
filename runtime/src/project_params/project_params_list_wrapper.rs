@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use super::param_field::ParamField;
 use super::project_param::ProjectParam;
 use super::project_param_data_enum::{ProjectParamDataEnum, ProjectParamVariant};
 use super::project_param_enum::ProjectParamEnum;
@@ -114,6 +115,10 @@ impl ProjectParamsListWrapper {
                 Some(ProjectParamValue::DataEnum(ProjectParamDataEnum::new(
                     selected, variants,
                 )))
+            }
+            // Noise was a value of its own before it became a struct.
+            (ProjectParamValue::Noise(old_noise), ProjectParamValue::Struct(_)) => {
+                Self::combine_values(&old_noise.to_param_value(), new)
             }
             (ProjectParamValue::Font(old_name), ProjectParamValue::Font(_)) => {
                 let known = plottery_lib::BundledFont::from_name(old_name).is_some();
