@@ -16,10 +16,10 @@ pub struct Params {
     #[range(0.4, 4.0)]
     pub cell_size: f32,
 
-    /// each square fills this fraction of its cell
-    #[value(0.6)]
-    #[range(0.1, 1.0)]
-    pub square_size: f32,
+    /// how much of its cell each square fills
+    #[value(Percent::new(60.0))]
+    #[range(10.0, 100.0)]
+    pub square_size: Percent,
 
     /// random turn of each square in rotations, fully applied at the bottom row
     #[value(Range::new(-0.15, 0.15))]
@@ -54,7 +54,7 @@ pub fn generate(params: Params) -> Layer {
         let depth = (inner.tl().y - cell.center().y) / inner.height();
         let t = params.falloff.apply(depth);
         let turn = Angle::from_rotations(params.turn.sample() * t);
-        Rect::new_from_center(cell.center(), cell.size() * params.square_size)
+        Rect::new_from_center(cell.center(), cell.size() * params.square_size.fraction())
             .rotate(turn)
             .distort(sample_settings, |point| {
                 let direction = Angle::from_rotations(noise.get(point) * 4.0);

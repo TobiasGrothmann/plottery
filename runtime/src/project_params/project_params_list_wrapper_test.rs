@@ -325,6 +325,10 @@ mod tests {
         ProjectParamValue::IntRanged { val, min, max }
     }
 
+    fn percent(val: f32, min: f32, max: f32) -> ProjectParamValue {
+        ProjectParamValue::Percent { val, min, max }
+    }
+
     fn combined_values(
         old: Vec<(&str, ProjectParamValue)>,
         new: Vec<(&str, ProjectParamValue)>,
@@ -403,6 +407,7 @@ mod tests {
                 ("int", int_ranged(-3, -10, 10)),
                 ("gains_range", ProjectParamValue::Int(40)),
                 ("optional", optional(int_ranged(9, 0, 10))),
+                ("percent", percent(90.0, 0.0, 100.0)),
                 (
                     "range",
                     ProjectParamValue::RangeF32 {
@@ -417,6 +422,7 @@ mod tests {
                 ("int", int_ranged(1, 0, 5)),
                 ("gains_range", int_ranged(1, 0, 5)),
                 ("optional", optional(int_ranged(1, 0, 5))),
+                ("percent", percent(10.0, 0.0, 50.0)),
                 (
                     "range",
                     ProjectParamValue::RangeF32 {
@@ -434,6 +440,7 @@ mod tests {
                 int_ranged(0, 0, 5),
                 int_ranged(5, 0, 5),
                 optional(int_ranged(5, 0, 5)),
+                percent(50.0, 0.0, 50.0),
                 ProjectParamValue::RangeF32 {
                     min: 1.0,
                     max: 5.0,

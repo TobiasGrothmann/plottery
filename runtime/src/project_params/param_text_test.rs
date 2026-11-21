@@ -38,6 +38,19 @@ mod tests {
                     max: 100.0,
                 },
             ),
+            (
+                Value::Percent {
+                    val: 1.0,
+                    min: 0.0,
+                    max: 100.0,
+                },
+                "12.5%",
+                Value::Percent {
+                    val: 12.5,
+                    min: 0.0,
+                    max: 100.0,
+                },
+            ),
             (Value::Int(1), "-3", Value::Int(-3)),
             (
                 Value::IntRanged {
@@ -174,6 +187,17 @@ mod tests {
     }
 
     #[test]
+    fn percent_sign_is_optional() {
+        let mut percent = Value::Percent {
+            val: 0.0,
+            min: 0.0,
+            max: 100.0,
+        };
+        percent.set_from_text("30").unwrap();
+        assert_eq!(percent.to_text(), "30%");
+    }
+
+    #[test]
     fn seed_keeps_history() {
         let mut seed = Value::Seed(ProjectParamSeed::new(1));
         seed.set_from_text("1234").unwrap();
@@ -214,6 +238,17 @@ mod tests {
                 "NaN"
             ),
             "NaN is outside 0..100"
+        );
+        assert_eq!(
+            error(
+                Value::Percent {
+                    val: 1.0,
+                    min: 0.0,
+                    max: 100.0
+                },
+                "120%"
+            ),
+            "120 is outside 0..100"
         );
         assert_eq!(
             error(

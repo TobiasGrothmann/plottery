@@ -28,6 +28,7 @@ use crate::router::editor::{
             get_default_leaf_value, get_param_mut_by_path, get_param_value_mut_by_path,
             leaf_value_mut,
         },
+        percent_field::PercentField,
         range_field::RangeField,
         seed_field::SeedField,
         slider::Slider,
@@ -232,6 +233,11 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, ctx: EditorCtx) -> 
         ProjectParamValue::Angle { .. } => {
             rsx! {
                 AngleField { key: "{key}", ..LeafProps::new(param, path, ctx) }
+            }
+        }
+        ProjectParamValue::Percent { .. } => {
+            rsx! {
+                PercentField { key: "{key}", ..LeafProps::new(param, path, ctx) }
             }
         }
         ProjectParamValue::V2(_) | ProjectParamValue::V2i(_) => {

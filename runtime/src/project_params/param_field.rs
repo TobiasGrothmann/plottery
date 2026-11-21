@@ -12,6 +12,7 @@ use super::angle_unit::AngleUnit;
 use super::curve_2d::Curve2D;
 use super::curve_2d_norm::Curve2DNorm;
 use super::image_path::ImagePath;
+use super::percent::Percent;
 use super::project_param::ProjectParam;
 use super::project_param_enum::ProjectParamEnum;
 use super::project_param_file::ProjectParamFile;
@@ -229,6 +230,35 @@ impl ParamField for Angle {
         match value {
             ProjectParamValue::Angle { rad, .. } => Ok(Angle::from_rad(*rad)),
             other => Err(param_type_mismatch("angle", other)),
+        }
+    }
+}
+
+impl ParamField for Percent {
+    fn default_param_value() -> ProjectParamValue {
+        Self::default().to_param_value()
+    }
+    fn to_param_value(&self) -> ProjectParamValue {
+        self.to_ranged_param_value(0.0, 100.0)
+    }
+    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
+        match value {
+            ProjectParamValue::Percent { val, .. } => Ok(Percent::new(*val)),
+            other => Err(param_type_mismatch("percent", other)),
+        }
+    }
+}
+
+impl RangedParamField for Percent {
+    type Bound = f32;
+    fn default_ranged_param_value(min: f32, max: f32) -> ProjectParamValue {
+        Self::default().to_ranged_param_value(min, max)
+    }
+    fn to_ranged_param_value(&self, min: f32, max: f32) -> ProjectParamValue {
+        ProjectParamValue::Percent {
+            val: self.percent().clamp(min, max),
+            min,
+            max,
         }
     }
 }

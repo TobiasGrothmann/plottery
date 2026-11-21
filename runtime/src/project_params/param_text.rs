@@ -28,6 +28,7 @@ impl ProjectParamValue {
                 short_float(unit.from_angle(plottery_lib::Angle::from_rad(*rad))),
                 unit.short_name()
             ),
+            Self::Percent { val, .. } => format!("{}%", short_float(*val)),
             Self::V2(v) => format!("{},{}", v.x, v.y),
             Self::V2i(v) => format!("{},{}", v.x, v.y),
             Self::RangeF32 { min, max, .. } => format!("{min}..{max}"),
@@ -78,6 +79,10 @@ impl ProjectParamValue {
             }
             Self::SystemFont(font) => *font = parse_system_font(text)?,
             Self::Angle { rad, unit } => *rad = parse_angle(text, *unit)?,
+            Self::Percent { val, min, max } => {
+                let text = text.trim();
+                *val = parse_in(text.strip_suffix('%').unwrap_or(text), *min, *max)?
+            }
             Self::V2(v) => {
                 let (x, y) = parse_pair(text, ",")?;
                 *v = V2::new(x, y);

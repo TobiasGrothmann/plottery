@@ -65,7 +65,7 @@ pub struct Params {
 ```
 
 - `#[value(..)]` sets the default.
-- `#[range(min, max)]` turns a number into a slider and bounds a `Range`, also inside an `Option`.
+- `#[range(min, max)]` turns a number into a slider and bounds a `Range` or a `Percent` (given in percent), also inside an `Option`.
 - `#[section("Name")]` starts a collapsible section. It holds this field and all following ones until the next `#[section]`. The struct stays flat.
 - `///` doc comments are shown as tooltips on the param labels.
 - Field names show lowercase with spaces (`circle_size` → "circle size"). Enum variants split CamelCase (`SomeVariant` → "some variant").
@@ -80,6 +80,7 @@ Field types and their widgets:
 | `Paper` | DIN A/B or custom size, orientation, margin in cm or as a fraction |
 | `Range<f32>`, `Range<i32>` | min and max boxes, clamped to `#[range]` |
 | `Angle` | dial to drag (shift snaps to 15°, alt slows it down) and a number with a deg/rot/rad unit switch |
+| `Percent` | slider from 0 % to 100 %, or over its `#[range]`; `fraction()` gives 0..1 |
 | `V2`, `V2i` | x and y boxes; a `V2` can also be picked by clicking the drawing |
 | `Seed` | number, dice button, recent seeds |
 | `Easing` | power, bias or s-curve, slider, curve preview |

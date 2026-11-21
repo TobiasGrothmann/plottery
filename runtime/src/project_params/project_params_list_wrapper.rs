@@ -147,6 +147,14 @@ impl ProjectParamsListWrapper {
                 Some(ProjectParamValue::Int(*val))
             }
             (
+                ProjectParamValue::Percent { val, .. },
+                ProjectParamValue::Percent { min, max, .. },
+            ) => Some(ProjectParamValue::Percent {
+                val: val.clamp(*min, *max),
+                min: *min,
+                max: *max,
+            }),
+            (
                 ProjectParamValue::RangeF32 { min, max, .. },
                 ProjectParamValue::RangeF32 { bounds, .. },
             ) => {

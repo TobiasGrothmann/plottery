@@ -137,15 +137,16 @@ constants in code. Where to find out what is possible, all in `plottery_runtime`
 - **Field types:** `src/project_params/param_field.rs`. Every `impl ParamField for T` is a usable field
   type. Types with `impl RangedParamField` also accept `#[range(min, max)]`.
 - **Attributes:** the docs on `PlotteryParams` and `PlotteryEnum` in `plottery_runtime_macros/src/lib.rs`.
-- **Using a value:** each type's own docs and methods. Project-only types like `Seed`, the curves and
-  the image and svg paths live in `src/project_params/`, the rest in `plottery_lib`.
+- **Using a value:** each type's own docs and methods. Project-only types like `Seed`, `Percent`, the
+  curves and the image and svg paths live in `src/project_params/`, the rest in `plottery_lib`.
 - **Example:** `cargo_project_template/src/generate.rs` in `plottery_project`, the code every new project starts from.
 
 Choosing well:
 
-- Use the most specific type: `Angle` instead of an `f32` in radians, `Range` for a random min/max,
-  `V2` for a position, `Seed` for randomness, `BundledFont` for a font, a `PlotteryEnum` for modes.
-  `SystemFont` picks an installed outline font instead.
+- Use the most specific type: `Angle` instead of an `f32` in radians, `Percent` instead of an `f32`
+  from 0 to 1 for a share or probability, `Range` for a random min/max, `V2` for a position, `Seed`
+  for randomness, `BundledFont` for a font, a `PlotteryEnum` for modes. `SystemFont` picks an
+  installed outline font instead.
 - Give numbers a `#[range]` of values that give sensible results. Without one the user gets a bare
   number box instead of a slider.
 - A feature that can be switched off is an `Option`, not a `bool` next to the params it gates.

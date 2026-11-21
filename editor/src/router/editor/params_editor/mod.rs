@@ -12,6 +12,7 @@ pub mod number_field;
 pub mod paper_field;
 pub mod param_tree;
 pub mod params_editor;
+pub mod percent_field;
 pub mod range_field;
 pub mod seed_field;
 pub mod slider;

@@ -178,6 +178,7 @@ fn constraint(value: &Value) -> Option<String> {
         Value::DataEnum(data_enum) => Some(data_enum.variant_names().join(" | ")),
         Value::FloatRanged { min, max, .. } => Some(format!("{min}..{max}")),
         Value::IntRanged { min, max, .. } => Some(format!("{min}..{max}")),
+        Value::Percent { min, max, .. } => Some(format!("{min}%..{max}%")),
         Value::RangeF32 {
             bounds: Some((low, high)),
             ..

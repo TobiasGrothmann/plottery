@@ -65,6 +65,12 @@ pub enum ProjectParamValue {
     SystemFont(SystemFont),
     /// A `PlotteryEnum` whose variants have fields.
     DataEnum(ProjectParamDataEnum),
+    /// `val` and its bounds in percent.
+    Percent {
+        val: f32,
+        min: f32,
+        max: f32,
+    },
 }
 
 impl ProjectParamValue {
@@ -161,6 +167,7 @@ impl ProjectParamValue {
             ProjectParamValue::Font(_) => "font".to_string(),
             ProjectParamValue::SystemFont(_) => "system_font".to_string(),
             ProjectParamValue::DataEnum(_) => "enum".to_string(),
+            ProjectParamValue::Percent { .. } => "percent".to_string(),
         }
     }
 
@@ -221,6 +228,7 @@ impl ProjectParamValue {
                     .collect()
             }
             ProjectParamValue::DataEnum(data_enum) => data_enum.selected.clone(),
+            ProjectParamValue::Percent { val, .. } => format!("{val}%"),
         }
     }
 }

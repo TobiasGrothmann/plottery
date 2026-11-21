@@ -68,6 +68,10 @@ mod tests {
         #[value(SystemFont::new("Futura").with_weight(700.0))]
         system_font: SystemFont,
         default_system_font: SystemFont,
+        #[value(Percent::new(150.0))]
+        #[range(10.0, 80.0)]
+        share: Percent,
+        default_share: Percent,
     }
 
     #[test]
@@ -145,6 +149,22 @@ mod tests {
             by_name("mode_with_default"),
             ProjectParamValue::Enum(ProjectParamEnum::new("Dots", &["Lines", "Circles", "Dots"]))
         );
+        assert_eq!(
+            by_name("share"),
+            ProjectParamValue::Percent {
+                val: 80.0,
+                min: 10.0,
+                max: 80.0
+            }
+        );
+        assert_eq!(
+            by_name("default_share"),
+            ProjectParamValue::Percent {
+                val: 0.0,
+                min: 0.0,
+                max: 100.0
+            }
+        );
     }
 
     #[test]
@@ -177,6 +197,8 @@ mod tests {
             default_font: BundledFont::EmsBird,
             system_font: SystemFont::new("Not Installed Here").with_italic(true),
             default_system_font: SystemFont::new("Menlo").with_weight(300.0),
+            share: Percent::new(42.5),
+            default_share: Percent::new(100.0),
         };
 
         let round_tripped = Params::new_from_list(params.to_params_list());
@@ -212,6 +234,7 @@ mod tests {
             SystemFont::new("Futura").with_weight(700.0)
         );
         assert_eq!(params.default_system_font, SystemFont::default());
+        assert_eq!(params.share, Percent::new(80.0));
     }
 
     #[test]
