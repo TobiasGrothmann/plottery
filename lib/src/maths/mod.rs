@@ -8,6 +8,8 @@ pub(crate) mod float;
 mod float_test;
 pub(crate) mod noise;
 mod noise_test;
+pub(crate) mod ramp;
+mod ramp_test;
 pub(crate) mod random;
 mod random_test;
 pub(crate) mod range;
@@ -19,6 +21,7 @@ pub use consts::*;
 pub use easing::*;
 pub use float::*;
 pub use noise::*;
+pub use ramp::*;
 pub use random::*;
 pub use range::*;
 #[cfg(test)]
