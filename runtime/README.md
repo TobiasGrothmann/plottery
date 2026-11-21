@@ -86,7 +86,7 @@ Field types and their widgets:
 | `Easing` | power, bias or s-curve, slider, curve preview |
 | `ColorRgb` | color picker and hex code |
 | `NoiseSettings` | its own section: perlin/simplex/worley, frequency, per cm or per paper, octaves |
-| `BundledFont` | font picker with previews |
+| `BundledFont` | picker for the bundled single-line fonts, with previews |
 | `SystemFont` | picker for the fonts installed on this machine and their styles; `load()` gives the `Font` |
 | `ImagePath`, `SvgPath` | file picker; copies the file into `resources/` or links the original |
 | `Curve2DNorm` | curve editor on 0..1, double-click adds or removes points |
