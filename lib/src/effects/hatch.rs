@@ -63,6 +63,26 @@ impl Hatch {
         self
     }
 
+    pub fn line_dist(&self) -> f32 {
+        self.line_dist
+    }
+
+    pub fn angle(&self) -> Angle {
+        self.angle
+    }
+
+    pub fn offset(&self) -> f32 {
+        self.offset
+    }
+
+    pub fn connected(&self) -> bool {
+        self.connected
+    }
+
+    pub fn sample_settings(&self) -> SampleSettings {
+        self.sample_settings
+    }
+
     /// Hatches rings as one even-odd region, pen-down paths in drawing order.
     pub fn hatch_rings(&self, rings: &[Vec<V2>]) -> Layer {
         let to_frame = Angle::from_rad(-self.angle.to_rad());
