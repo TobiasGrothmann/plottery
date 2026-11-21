@@ -144,9 +144,10 @@ constants in code. Where to find out what is possible, all in `plottery_runtime`
 Choosing well:
 
 - Use the most specific type: `Angle` instead of an `f32` in radians, `Percent` instead of an `f32`
-  from 0 to 1 for a share or probability, `Range` for a random min/max, `V2` for a position, `Seed`
-  for randomness, `BundledFont` for a font, a `PlotteryEnum` for modes. `SystemFont` picks an
-  installed outline font instead.
+  from 0 to 1 for a share or probability, `Range` for a random min/max, `V2` for a position, `Rect`
+  for a region (`Option<Rect>` when the default is the whole frame), `Seed` for randomness,
+  `BundledFont` for a font, a `PlotteryEnum` for modes. `SystemFont` picks an installed outline font
+  instead.
 - Give numbers a `#[range]` of values that give sensible results. Without one the user gets a bare
   number box instead of a slider.
 - A feature that can be switched off is an `Option`, not a `bool` next to the params it gates.

@@ -1,0 +1,93 @@
+use dioxus::prelude::*;
+use plottery_lib::{Rect, V2};
+use plottery_runtime::project_param_value::ProjectParamValue;
+
+use crate::components::{
+    icon::IconName,
+    ui::{IconButton, Size},
+};
+use crate::router::editor::{
+    params_editor::{params_editor::LeafProps, widgets::number_input::NumberInput},
+    pick_target::{PickPart, PickTarget},
+};
+
+/// Moves the corner `part` of `rect` to `point`; corners that cross are swapped by `Rect::new`.
+fn with_corner(rect: Rect, part: PickPart, point: V2) -> Rect {
+    match part {
+        PickPart::BottomLeft => Rect::new(point, rect.tr()),
+        _ => Rect::new(rect.bl(), point),
+    }
+}
+
+/// x and y of one corner, and the button that picks it on the preview.
+#[component]
+fn CornerRow(leaf: LeafProps, part: PickPart, label: String, rect: Rect) -> Element {
+    let corner = match part {
+        PickPart::BottomLeft => rect.bl(),
+        _ => rect.tr(),
+    };
+    let x_props = leaf.clone();
+    let y_props = leaf.clone();
+    let edit_corner = move |props: &LeafProps, point: V2| {
+        props.edit(|value| {
+            if let ProjectParamValue::Rect(rect) = value {
+                *rect = with_corner(*rect, part, point);
+            }
+        });
+    };
+    let mut pick_target = use_context::<PickTarget>();
+    let picking = pick_target.is_target(&leaf.path, part);
+    let pick_path = leaf.path.clone();
+
+    rsx! {
+        div { class: "sub",
+            span { class: "sublabel", "{label}" }
+            div { class: "hrow",
+                NumberInput {
+                    value: corner.x,
+                    affix: "x",
+                    oncommit: move |x: f32| edit_corner(&x_props, V2::new(x, corner.y)),
+                }
+                NumberInput {
+                    value: corner.y,
+                    affix: "y",
+                    oncommit: move |y: f32| edit_corner(&y_props, V2::new(corner.x, y)),
+                }
+                if !leaf.no_pick {
+                    IconButton {
+                        icon: IconName::Crosshair,
+                        label: "Pick {label} on preview",
+                        title: if picking { "Click the preview to set this corner" } else { "Pick on preview" },
+                        size: Size::Sm,
+                        active: picking,
+                        onclick: move |_| pick_target.toggle(&pick_path, part),
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Bottom left and top right corner, each settable by clicking the preview.
+#[component]
+pub fn RectField(props: LeafProps) -> Element {
+    let ProjectParamValue::Rect(rect) = props.param.value else {
+        return rsx! {
+            p { "unexpected value type" }
+        };
+    };
+    rsx! {
+        CornerRow {
+            leaf: props.clone(),
+            part: PickPart::BottomLeft,
+            label: "bottom left",
+            rect,
+        }
+        CornerRow {
+            leaf: props,
+            part: PickPart::TopRight,
+            label: "top right",
+            rect,
+        }
+    }
+}

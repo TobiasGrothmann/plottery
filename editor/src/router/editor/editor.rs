@@ -104,7 +104,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
         release,
     });
     use_context_provider(|| PickTarget {
-        path: Signal::new(None),
+        target: Signal::new(None),
     });
     use_autosave(
         ctx,

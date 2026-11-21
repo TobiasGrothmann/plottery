@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 pub use anyhow::Error as ParamFieldError;
 use plottery_lib::{
-    Angle, BundledFont, ColorRgb, Easing, NoiseScale, NoiseSettings, NoiseType, Paper, Range,
+    Angle, BundledFont, ColorRgb, Easing, NoiseScale, NoiseSettings, NoiseType, Paper, Range, Rect,
     SystemFont, V2i, V2,
 };
 use plottery_runtime_macros::PlotteryParams;
@@ -274,6 +274,22 @@ impl ParamField for V2 {
         match value {
             ProjectParamValue::V2(v) => Ok(*v),
             other => Err(param_type_mismatch("v2", other)),
+        }
+    }
+}
+
+impl ParamField for Rect {
+    /// A 10 cm square at the origin, as an empty rect would be invisible.
+    fn default_param_value() -> ProjectParamValue {
+        ProjectParamValue::Rect(Rect::new(V2::zero(), V2::xy(10.0)))
+    }
+    fn to_param_value(&self) -> ProjectParamValue {
+        ProjectParamValue::Rect(*self)
+    }
+    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
+        match value {
+            ProjectParamValue::Rect(rect) => Ok(*rect),
+            other => Err(param_type_mismatch("rect", other)),
         }
     }
 }

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use plottery_lib::{ColorRgb, Easing, FontStyle, NoiseSettings, Paper, SystemFont, V2i, V2};
+use plottery_lib::{ColorRgb, Easing, FontStyle, NoiseSettings, Paper, Rect, SystemFont, V2i, V2};
 
 use super::angle_unit::AngleUnit;
 use super::project_param_file::ProjectParamFile;
@@ -71,6 +71,7 @@ pub enum ProjectParamValue {
         min: f32,
         max: f32,
     },
+    Rect(Rect),
 }
 
 impl ProjectParamValue {
@@ -168,6 +169,7 @@ impl ProjectParamValue {
             ProjectParamValue::SystemFont(_) => "system_font".to_string(),
             ProjectParamValue::DataEnum(_) => "enum".to_string(),
             ProjectParamValue::Percent { .. } => "percent".to_string(),
+            ProjectParamValue::Rect(_) => "rect".to_string(),
         }
     }
 
@@ -229,6 +231,13 @@ impl ProjectParamValue {
             }
             ProjectParamValue::DataEnum(data_enum) => data_enum.selected.clone(),
             ProjectParamValue::Percent { val, .. } => format!("{val}%"),
+            ProjectParamValue::Rect(rect) => format!(
+                "({}, {}) – ({}, {})",
+                rect.bl().x,
+                rect.bl().y,
+                rect.tr().x,
+                rect.tr().y
+            ),
         }
     }
 }

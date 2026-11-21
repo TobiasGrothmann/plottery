@@ -67,7 +67,7 @@ pub struct Params {
 - `#[value(..)]` sets the default.
 - `#[range(min, max)]` turns a number into a slider and bounds a `Range` or a `Percent` (given in percent), also inside an `Option`.
 - `#[section("Name")]` starts a collapsible section. It holds this field and all following ones until the next `#[section]`. The struct stays flat.
-- `#[no_pick]` removes the button that picks a `V2` on the drawing, for a `V2` that isn't a position, like a size or a scale.
+- `#[no_pick]` removes the buttons that pick a `V2` or the corners of a `Rect` on the drawing, for a `V2` that isn't a position, like a size or a scale.
 - `///` doc comments are shown as tooltips on the param labels.
 - Field names show lowercase with spaces (`circle_size` → "circle size"). Enum variants split CamelCase (`SomeVariant` → "some variant").
 
@@ -83,6 +83,7 @@ Field types and their widgets:
 | `Angle` | dial to drag (shift snaps to 15°, alt slows it down) and a number with a deg/rot/rad unit switch |
 | `Percent` | slider from 0 % to 100 %, or over its `#[range]`; `fraction()` gives 0..1 |
 | `V2`, `V2i` | x and y boxes; a `V2` can also be picked by clicking the drawing, unless `#[no_pick]` |
+| `Rect` | x and y of the bottom left and top right corner, each also picked by clicking the drawing; defaults to a 10 cm square at the origin |
 | `Seed` | number, dice button, recent seeds |
 | `Easing` | power, bias or s-curve, slider, curve preview |
 | `ColorRgb` | color picker and hex code |

@@ -3,7 +3,7 @@
 use std::str::FromStr;
 
 use anyhow::{anyhow, bail, Result};
-use plottery_lib::{BundledFont, ColorRgb, Margin, Paper, PaperSize, SystemFont, V2i, V2};
+use plottery_lib::{BundledFont, ColorRgb, Margin, Paper, PaperSize, Rect, SystemFont, V2i, V2};
 
 use super::angle_unit::AngleUnit;
 use super::project_param::ProjectParam;
@@ -31,6 +31,10 @@ impl ProjectParamValue {
             Self::Percent { val, .. } => format!("{}%", short_float(*val)),
             Self::V2(v) => format!("{},{}", v.x, v.y),
             Self::V2i(v) => format!("{},{}", v.x, v.y),
+            Self::Rect(rect) => {
+                let (bl, tr) = (rect.bl(), rect.tr());
+                format!("{},{},{},{}", bl.x, bl.y, tr.x, tr.y)
+            }
             Self::RangeF32 { min, max, .. } => format!("{min}..{max}"),
             Self::RangeI32 { min, max, .. } => format!("{min}..{max}"),
             Self::Color(color) => color.hex(),
@@ -91,6 +95,7 @@ impl ProjectParamValue {
                 let (x, y) = parse_pair(text, ",")?;
                 *v = V2i::new(x, y);
             }
+            Self::Rect(rect) => *rect = parse_rect(text)?,
             Self::RangeF32 { min, max, bounds } => (*min, *max) = parse_range(text, *bounds)?,
             Self::RangeI32 { min, max, bounds } => (*min, *max) = parse_range(text, *bounds)?,
             Self::Color(color) => {
@@ -265,6 +270,17 @@ fn parse_pair<T: FromStr>(text: &str, separator: &str) -> Result<(T, T)> {
         .split_once(separator)
         .ok_or_else(|| anyhow!("'{text}' needs two values like 1{separator}2"))?;
     Ok((parse(a)?, parse(b)?))
+}
+
+/// `left,bottom,right,top` in cm; corners given the wrong way round are swapped.
+fn parse_rect(text: &str) -> Result<Rect> {
+    let numbers = text.split(',').map(parse).collect::<Result<Vec<f32>>>();
+    match numbers.as_deref() {
+        Ok(&[left, bottom, right, top]) => {
+            Ok(Rect::new(V2::new(left, bottom), V2::new(right, top)))
+        }
+        _ => bail!("'{text}' is not a rect, use left,bottom,right,top like 1,2,10,15"),
+    }
 }
 
 fn parse_range<T: FromStr + PartialOrd + Copy + std::fmt::Display>(

@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
     use plottery_lib::{
-        ColorRgb, Margin, NoiseScale, NoiseSettings, NoiseType, Paper, PaperSize, SystemFont, V2i,
-        V2,
+        ColorRgb, Margin, NoiseScale, NoiseSettings, NoiseType, Paper, PaperSize, Rect, SystemFont,
+        V2i, V2,
     };
 
     use crate::{
@@ -92,6 +92,11 @@ mod tests {
                 Value::V2i(V2i::new(0, 0)),
                 "3,4",
                 Value::V2i(V2i::new(3, 4)),
+            ),
+            (
+                Value::Rect(Rect::default()),
+                "1,2.5,10,15",
+                Value::Rect(Rect::new(V2::new(1.0, 2.5), V2::new(10.0, 15.0))),
             ),
             (
                 Value::RangeF32 {
@@ -195,6 +200,20 @@ mod tests {
         };
         percent.set_from_text("30").unwrap();
         assert_eq!(percent.to_text(), "30%");
+    }
+
+    #[test]
+    fn rect_swaps_crossed_corners_and_needs_four_numbers() {
+        let mut rect = Value::Rect(Rect::default());
+        rect.set_from_text("10,15,1,2").unwrap();
+        assert_eq!(rect.to_text(), "1,2,10,15");
+
+        for text in ["1,2,3", "1,2,3,4,5", "1,2,x,4", ""] {
+            assert_eq!(
+                rect.set_from_text(text).unwrap_err().to_string(),
+                format!("'{text}' is not a rect, use left,bottom,right,top like 1,2,10,15")
+            );
+        }
     }
 
     #[test]

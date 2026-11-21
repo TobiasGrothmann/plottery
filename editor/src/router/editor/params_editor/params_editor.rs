@@ -30,6 +30,7 @@ use crate::router::editor::{
         },
         percent_field::PercentField,
         range_field::RangeField,
+        rect_field::RectField,
         seed_field::SeedField,
         slider::Slider,
         string_field::StringField,
@@ -249,6 +250,11 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, ctx: EditorCtx) -> 
         ProjectParamValue::V2(_) | ProjectParamValue::V2i(_) => {
             rsx! {
                 V2Field { key: "{key}", ..LeafProps::new(param, path, ctx) }
+            }
+        }
+        ProjectParamValue::Rect(_) => {
+            rsx! {
+                RectField { key: "{key}", ..LeafProps::new(param, path, ctx) }
             }
         }
         ProjectParamValue::Seed(_) => {

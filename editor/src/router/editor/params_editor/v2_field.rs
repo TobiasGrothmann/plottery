@@ -7,7 +7,7 @@ use crate::components::{
 };
 use crate::router::editor::{
     params_editor::{params_editor::LeafProps, widgets::number_input::NumberInput},
-    pick_target::PickTarget,
+    pick_target::{PickPart, PickTarget},
 };
 
 #[component]
@@ -24,7 +24,7 @@ pub fn V2Field(props: LeafProps) -> Element {
     let x_props = props.clone();
     let y_props = props.clone();
     let mut pick_target = use_context::<PickTarget>();
-    let picking = pick_target.is_target(&props.path);
+    let picking = pick_target.is_target(&props.path, PickPart::Point);
     let pick_path = props.path.clone();
 
     rsx! {
@@ -62,7 +62,7 @@ pub fn V2Field(props: LeafProps) -> Element {
                     title: if picking { "Click the preview to set this point" } else { "Pick on preview" },
                     size: Size::Sm,
                     active: picking,
-                    onclick: move |_| pick_target.toggle(&pick_path),
+                    onclick: move |_| pick_target.toggle(&pick_path, PickPart::Point),
                 }
             }
         }

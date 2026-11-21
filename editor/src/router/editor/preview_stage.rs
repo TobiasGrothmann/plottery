@@ -13,7 +13,7 @@ use crate::{
     router::editor::{
         editor_ctx::EditorCtx,
         params_editor::param_tree::{get_param_value_mut_by_path, leaf_value_mut},
-        pick_target::PickTarget,
+        pick_target::{PickPart, PickTarget},
     },
     util::preview_zoom::PreviewZoom,
 };
@@ -33,7 +33,7 @@ pub struct PreviewStageProps {
     pub zoom: Signal<PreviewZoom>,
 }
 
-/// The drawing in the middle of the editor, with click-to-pick for V2 params.
+/// The drawing in the middle of the editor, with click-to-pick for V2 params and Rect corners.
 #[component]
 pub fn PreviewStage(props: PreviewStageProps) -> Element {
     let ctx = use_context::<EditorCtx>();
@@ -45,20 +45,30 @@ pub fn PreviewStage(props: PreviewStageProps) -> Element {
     let mut pick_target = use_context::<PickTarget>();
     let mut project_params = ctx.project_params;
     let onpick = move |point: V2| {
-        let Some(path) = pick_target.take() else {
+        let Some(pick) = pick_target.take() else {
             return;
         };
         let mut new_params = project_params.read().clone();
-        match get_param_value_mut_by_path(&mut new_params.list, &path) {
-            Some(value) => match leaf_value_mut(value) {
-                ProjectParamValue::V2(v) => *v = point,
-                _ => {
-                    tracing::error!("Pick target is not a V2 param: {:?}", path);
+        match get_param_value_mut_by_path(&mut new_params.list, &pick.path) {
+            Some(value) => match (leaf_value_mut(value), pick.part) {
+                (ProjectParamValue::V2(v), PickPart::Point) => *v = point,
+                (ProjectParamValue::Rect(rect), PickPart::BottomLeft) => {
+                    *rect = Rect::new(point, rect.tr())
+                }
+                (ProjectParamValue::Rect(rect), PickPart::TopRight) => {
+                    *rect = Rect::new(rect.bl(), point)
+                }
+                (value, part) => {
+                    tracing::error!(
+                        "Can't pick {part:?} of a {} param: {:?}",
+                        value.type_name(),
+                        pick.path
+                    );
                     return;
                 }
             },
             None => {
-                tracing::error!("Pick target not found: {:?}", path);
+                tracing::error!("Pick target not found: {:?}", pick.path);
                 return;
             }
         }

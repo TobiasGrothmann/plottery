@@ -189,6 +189,7 @@ fn constraint(value: &Value) -> Option<String> {
         } => Some(format!("within {low}..{high}")),
         Value::Optional(optional) => constraint(&optional.value),
         Value::SystemFont(_) => Some("family[:weight][:italic]".to_string()),
+        Value::Rect(_) => Some("left,bottom,right,top".to_string()),
         _ => None,
     }
 }
