@@ -1,12 +1,13 @@
 use dioxus::{html::input_data::MouseButton, prelude::*};
-use dioxus_logger::tracing;
 use plottery_lib::V2;
-use plottery_runtime::{project_param::ProjectParam, project_param_value::ProjectParamValue};
+use plottery_runtime::{project_param_value::ProjectParamValue, Curve2D};
 
 use crate::router::editor::{
     editor_ctx::EditorCtx,
-    params_editor::param_tree::{get_param_value_by_path, get_param_value_mut_by_path},
-    params_editor::widgets::slider_input::ALT_SPEED_FACTOR,
+    params_editor::{
+        params_editor::{edit_leaf_at, LeafProps},
+        widgets::{number_input::NumberInput, slider_input::ALT_SPEED_FACTOR},
+    },
 };
 
 // Margin is constant, dimensions are detected from CSS
@@ -15,6 +16,13 @@ const MARGIN: f64 = 8.0;
 const DRAG_THRESHOLD_PX: f64 = 2.0;
 /// Grid the handles snap to while shift is held.
 const SNAP_STEPS: f32 = 10.0;
+
+const CANVAS_WIDTH: f64 = 128.0;
+const CANVAS_HEIGHT: f64 = 128.0;
+const GRID_STEP: f64 = 32.0;
+const GRAPH_WIDTH: f64 = CANVAS_WIDTH - 2.0 * MARGIN;
+const GRAPH_HEIGHT: f64 = CANVAS_HEIGHT - 2.0 * MARGIN;
+const GRAPH_BOTTOM: f64 = CANVAS_HEIGHT - MARGIN;
 
 #[derive(Clone, Copy)]
 struct CurveDrag {
@@ -46,47 +54,93 @@ fn move_curve_point(value: &mut ProjectParamValue, index: usize, point: V2) {
                 let _ = c.update_point_norm(index - 1, point);
             }
         }
-        ProjectParamValue::Optional(optional) => {
-            move_curve_point(optional.value.as_mut(), index, point)
+        _ => {}
+    }
+}
+
+fn add_curve_point(value: &mut ProjectParamValue, point: V2) {
+    match value {
+        ProjectParamValue::Curve2DNorm(c) => {
+            let _ = c.add_point(point);
+        }
+        ProjectParamValue::Curve2D(c) => {
+            let _ = c.add_point_norm(point);
         }
         _ => {}
     }
 }
 
-#[derive(Props, Clone)]
-pub struct Curve2DNormProps {
-    param: ProjectParam,
-    path: Vec<String>,
+fn remove_curve_point(value: &mut ProjectParamValue, index: usize) {
+    match value {
+        ProjectParamValue::Curve2DNorm(c) => {
+            let _ = c.remove_point_at(index);
+        }
+        ProjectParamValue::Curve2D(c) => {
+            let _ = c.remove_point_at(index);
+        }
+        _ => {}
+    }
 }
 
-/// `ProjectParam` only compares its schema, so compare the value too or Dioxus will not re-render.
-impl PartialEq for Curve2DNormProps {
-    fn eq(&self, other: &Self) -> bool {
-        self.param.name == other.param.name
-            && self.param.value == other.param.value
-            && self.path == other.path
+/// One of the four numbers a `Curve2D` maps its 0..1 curve to.
+#[derive(Clone, Copy, PartialEq)]
+enum Domain {
+    XStart,
+    XEnd,
+    YStart,
+    YEnd,
+}
+
+impl Domain {
+    fn get(self, curve: &Curve2D) -> f32 {
+        let mapped = &curve.mapped_to;
+        match self {
+            Domain::XStart => mapped.x_start,
+            Domain::XEnd => mapped.x_end,
+            Domain::YStart => mapped.y_start,
+            Domain::YEnd => mapped.y_end,
+        }
+    }
+
+    fn set(self, value: &mut ProjectParamValue, new: f32) {
+        let ProjectParamValue::Curve2D(curve) = value else {
+            return;
+        };
+        let mapped = &mut curve.mapped_to;
+        match self {
+            Domain::XStart => mapped.x_start = new,
+            Domain::XEnd => mapped.x_end = new,
+            Domain::YStart => mapped.y_start = new,
+            Domain::YEnd => mapped.y_end = new,
+        }
     }
 }
 
 #[component]
-pub fn Curve2DField(props: Curve2DNormProps) -> Element {
-    let mut ctx = use_context::<EditorCtx>();
+fn DomainInput(leaf: LeafProps, value: f32, domain: Domain, label: String) -> Element {
+    rsx! {
+        NumberInput {
+            value,
+            aria_label: label,
+            oncommit: move |new: f32| leaf.edit(|value| domain.set(value, new)),
+        }
+    }
+}
+
+/// Curve editor for `Curve2DNorm`, plus the x and y range for `Curve2D`.
+#[component]
+pub fn Curve2DField(props: LeafProps) -> Element {
+    let ctx = use_context::<EditorCtx>();
     let mut drag = use_signal(|| None::<CurveDrag>);
-    let param_path = use_memo(move || props.path.clone());
+    // The field is keyed by its path, so the path never changes while it is mounted.
+    let param_path = use_hook(|| CopyValue::new(props.path.clone()));
 
-    const CANVAS_WIDTH: f64 = 128.0;
-    const CANVAS_HEIGHT: f64 = 128.0;
-    const GRID_STEP: f64 = 32.0;
-    const GRAPH_WIDTH: f64 = CANVAS_WIDTH - 2.0 * MARGIN;
-    const GRAPH_HEIGHT: f64 = CANVAS_HEIGHT - 2.0 * MARGIN;
-    const GRAPH_BOTTOM: f64 = CANVAS_HEIGHT - MARGIN;
-
-    // Generate strings from constants
     let svg_width = format!("{}", CANVAS_WIDTH as i32);
     let svg_height = format!("{}", CANVAS_HEIGHT as i32);
     let view_box = format!("0 0 {} {}", CANVAS_WIDTH as i32, CANVAS_HEIGHT as i32);
 
-    // Relative drag like the sliders: alt slows it down, shift snaps to the grid.
+    // Relative drag like the sliders: alt slows it down, shift snaps to the grid. The project
+    // reruns on release.
     let mut drag_to = move |state: CurveDrag, client: (f64, f64), slow: bool, snap: bool| {
         let speed = if slow { ALT_SPEED_FACTOR } else { 1.0 };
         let delta = V2::new(
@@ -102,11 +156,11 @@ pub fn Curve2DField(props: Curve2DNormProps) -> Element {
         } else {
             pos
         };
-        let mut new_params = ctx.project_params.read().clone();
-        if let Some(value) = get_param_value_mut_by_path(&mut new_params.list, &param_path.read()) {
-            move_curve_point(value, state.index, point);
-        }
-        ctx.project_params.set(new_params);
+        edit_leaf_at(
+            &param_path.read(),
+            |value| move_curve_point(value, state.index, point),
+            false,
+        );
         drag.set(Some(CurveDrag {
             last: client,
             pos,
@@ -122,296 +176,124 @@ pub fn Curve2DField(props: Curve2DNormProps) -> Element {
         }
     };
 
+    let (graph, curve) = match &props.param.value {
+        ProjectParamValue::Curve2DNorm(graph) => (graph.clone(), None),
+        ProjectParamValue::Curve2D(curve) => (curve.get_curve_norm().clone(), Some(curve.clone())),
+        _ => return rsx! { p { "unexpected value type" } },
+    };
+    let graph_len = graph.len();
+    let line_points = graph
+        .iter_points()
+        .map(|p| {
+            let x = p.x as f64 * GRAPH_WIDTH + MARGIN;
+            let y = GRAPH_BOTTOM - (p.y as f64 * GRAPH_HEIGHT);
+            format!("{x},{y}")
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
+
     rsx! {
-        style { { include_str!("curve_2d_field.css") } }
+        style { {include_str!("curve_2d_field.css")} }
         div { class: "Curve2D",
-            {
-                let path = param_path.read().clone();
-                let raw_param_value = get_param_value_by_path(&ctx.project_params.read().list, &path)
-                .unwrap_or_else(|| {
-                    tracing::warn!("Curve2D parameter path '{:?}' not found, using default", path);
-                    ProjectParamValue::Curve2DNorm(Default::default())
-                });
+            if let Some(curve) = curve {
+                div { class: "domain-fields",
+                    span { class: "hint", "x" }
+                    DomainInput {
+                        leaf: props.clone(),
+                        value: Domain::XStart.get(&curve),
+                        domain: Domain::XStart,
+                        label: "x from",
+                    }
+                    span { class: "hint", "–" }
+                    DomainInput {
+                        leaf: props.clone(),
+                        value: Domain::XEnd.get(&curve),
+                        domain: Domain::XEnd,
+                        label: "x to",
+                    }
+                    span { class: "hint", "y" }
+                    DomainInput {
+                        leaf: props.clone(),
+                        value: Domain::YStart.get(&curve),
+                        domain: Domain::YStart,
+                        label: "y from",
+                    }
+                    span { class: "hint", "–" }
+                    DomainInput {
+                        leaf: props.clone(),
+                        value: Domain::YEnd.get(&curve),
+                        domain: Domain::YEnd,
+                        label: "y to",
+                    }
+                }
+            }
+            svg {
+                width: "{svg_width}",
+                height: "{svg_height}",
+                view_box: "{view_box}",
+                preserve_aspect_ratio: "none",
+                ondoubleclick: move |event| {
+                    let rect = event.data.element_coordinates();
+                    let x = ((rect.x - MARGIN) / GRAPH_WIDTH).clamp(0.0, 1.0) as f32;
+                    let y = ((GRAPH_BOTTOM - rect.y) / GRAPH_HEIGHT).clamp(0.0, 1.0) as f32;
+                    edit_leaf_at(&param_path.read(), |value| add_curve_point(value, V2::new(x, y)), true);
+                },
+                onmousemove: move |event| {
+                    let Some(state) = drag() else { return };
+                    if state.active {
+                        return;
+                    }
+                    if !event.held_buttons().contains(MouseButton::Primary) {
+                        drag.set(None);
+                        return;
+                    }
+                    let client = event.client_coordinates();
+                    let moved = (client.x - state.last.0).hypot(client.y - state.last.1);
+                    if moved >= DRAG_THRESHOLD_PX {
+                        let modifiers = event.modifiers();
+                        drag_to(state, (client.x, client.y), modifiers.alt(), modifiers.shift());
+                    }
+                },
+                onmouseup: move |_| end_drag(),
 
-                let param_value = match raw_param_value {
-                    ProjectParamValue::Optional(optional) => {
-                        if optional.enabled {
-                            (*optional.value).clone()
-                        } else {
-                            ProjectParamValue::Curve2DNorm(Default::default())
+                for step in 1..(CANVAS_WIDTH / GRID_STEP) as i32 {
+                    {
+                        let at = step as f64 * GRID_STEP;
+                        rsx! {
+                            line { class: "curve-grid", x1: "{at}", y1: "0", x2: "{at}", y2: "{CANVAS_HEIGHT}" }
+                            line { class: "curve-grid", x1: "0", y1: "{at}", x2: "{CANVAS_WIDTH}", y2: "{at}" }
                         }
                     }
-                    value => value,
-                };
+                }
+                polyline { points: line_points, class: "curve-line" }
 
-                let is_curve2d = matches!(param_value, ProjectParamValue::Curve2D(_));
-
-                let graph = match &param_value {
-                    ProjectParamValue::Curve2DNorm(g) => g.clone(),
-                    ProjectParamValue::Curve2D(c) => c.get_curve_norm().clone(),
-                    _ => {
-                        tracing::warn!("Unexpected parameter type for path '{:?}', using default", path);
-                        Default::default()
-                    }
-                };
-
-                let graph_len = graph.len();
-
-                rsx! {
-                    // Domain input fields (only for Curve2D)
-                    if is_curve2d {
-                        if let ProjectParamValue::Curve2D(curve) = &param_value {
-                            div { class: "domain-fields",
-                                    span { class: "hint", "x" }
-                                    input {
-                                        class: "input",
-                                        r#type: "number",
-                                        step: "any",
-                                        placeholder: "x_start",
-                                        "aria-label": "x from",
-                                        value: "{curve.mapped_to.x_start}",
-                                        onchange: move |event| {
-                                            if let Ok(val) = event.value().parse::<f32>() {
-                                                let mut new_params = ctx.project_params.read().clone();
-                                                let path = param_path.read().clone();
-                                                if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, &path) {
-                                                    match param_value {
-                                                        ProjectParamValue::Curve2D(c) => c.mapped_to.x_start = val,
-                                                        ProjectParamValue::Optional(optional) => {
-                                                            if let ProjectParamValue::Curve2D(c) = optional.value.as_mut() {
-                                                                c.mapped_to.x_start = val;
-                                                            }
-                                                        }
-                                                        _ => {}
-                                                    }
-                                                }
-                                                ctx.project_params.set(new_params);
-                                                ctx.trigger_run();
-                                            }
-                                        }
+                for (i, point) in graph.iter_points().enumerate() {
+                    {
+                        let cx = point.x as f64 * GRAPH_WIDTH + MARGIN;
+                        let cy = GRAPH_BOTTOM - (point.y as f64 * GRAPH_HEIGHT);
+                        rsx! {
+                            circle {
+                                cx: "{cx}",
+                                cy: "{cy}",
+                                r: "4",
+                                class: "curve-handle",
+                                ondoubleclick: move |event| {
+                                    event.stop_propagation();
+                                    if i > 0 && i < graph_len - 1 {
+                                        edit_leaf_at(&param_path.read(), |value| remove_curve_point(value, i), true);
                                     }
-                                    span { class: "hint", "–" }
-                                    input {
-                                        class: "input",
-                                        r#type: "number",
-                                        step: "any",
-                                        placeholder: "x_end",
-                                        "aria-label": "x to",
-                                        value: "{curve.mapped_to.x_end}",
-                                        onchange: move |event| {
-                                            if let Ok(val) = event.value().parse::<f32>() {
-                                                let mut new_params = ctx.project_params.read().clone();
-                                                let path = param_path.read().clone();
-                                                if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, &path) {
-                                                    match param_value {
-                                                        ProjectParamValue::Curve2D(c) => c.mapped_to.x_end = val,
-                                                        ProjectParamValue::Optional(optional) => {
-                                                            if let ProjectParamValue::Curve2D(c) = optional.value.as_mut() {
-                                                                c.mapped_to.x_end = val;
-                                                            }
-                                                        }
-                                                        _ => {}
-                                                    }
-                                                }
-                                                ctx.project_params.set(new_params);
-                                                ctx.trigger_run();
-                                            }
-                                        }
-                                    }
-                                    span { class: "hint", "y" }
-                                    input {
-                                        class: "input",
-                                        r#type: "number",
-                                        step: "any",
-                                        placeholder: "y_start",
-                                        "aria-label": "y from",
-                                        value: "{curve.mapped_to.y_start}",
-                                        onchange: move |event| {
-                                            if let Ok(val) = event.value().parse::<f32>() {
-                                                let mut new_params = ctx.project_params.read().clone();
-                                                let path = param_path.read().clone();
-                                                if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, &path) {
-                                                    match param_value {
-                                                        ProjectParamValue::Curve2D(c) => c.mapped_to.y_start = val,
-                                                        ProjectParamValue::Optional(optional) => {
-                                                            if let ProjectParamValue::Curve2D(c) = optional.value.as_mut() {
-                                                                c.mapped_to.y_start = val;
-                                                            }
-                                                        }
-                                                        _ => {}
-                                                    }
-                                                }
-                                                ctx.project_params.set(new_params);
-                                                ctx.trigger_run();
-                                            }
-                                        }
-                                    }
-                                    span { class: "hint", "–" }
-                                    input {
-                                        class: "input",
-                                        r#type: "number",
-                                        step: "any",
-                                        placeholder: "y_end",
-                                        "aria-label": "y to",
-                                        value: "{curve.mapped_to.y_end}",
-                                        onchange: move |event| {
-                                            if let Ok(val) = event.value().parse::<f32>() {
-                                                let mut new_params = ctx.project_params.read().clone();
-                                                let path = param_path.read().clone();
-                                                if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, &path) {
-                                                    match param_value {
-                                                        ProjectParamValue::Curve2D(c) => c.mapped_to.y_end = val,
-                                                        ProjectParamValue::Optional(optional) => {
-                                                            if let ProjectParamValue::Curve2D(c) = optional.value.as_mut() {
-                                                                c.mapped_to.y_end = val;
-                                                            }
-                                                        }
-                                                        _ => {}
-                                                    }
-                                                }
-                                                ctx.project_params.set(new_params);
-                                                ctx.trigger_run();
-                                            }
-                                        }
-                                    }
-                            }
-                        }
-                    }
-
-                    svg {
-                        width: "{svg_width}",
-                        height: "{svg_height}",
-                        view_box: "{view_box}",
-                        preserve_aspect_ratio: "none",
-                        ondoubleclick: move |event| {
-                            let rect = event.data.element_coordinates();
-                            let x = ((rect.x - MARGIN) / GRAPH_WIDTH).clamp(0.0, 1.0) as f32;
-                            let y = ((GRAPH_BOTTOM - rect.y) / GRAPH_HEIGHT).clamp(0.0, 1.0) as f32;
-
-                            let mut new_params = ctx.project_params.read().clone();
-                            let path = param_path.read().clone();
-                            if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, &path) {
-                                match param_value {
-                                    ProjectParamValue::Curve2DNorm(g) => {
-                                        let _ = g.add_point(plottery_lib::V2::new(x, y));
-                                    }
-                                    ProjectParamValue::Curve2D(c) => {
-                                        let _ = c.add_point_norm(plottery_lib::V2::new(x, y));
-                                    }
-                                    ProjectParamValue::Optional(optional) => {
-                                        match optional.value.as_mut() {
-                                            ProjectParamValue::Curve2DNorm(g) => {
-                                                let _ = g.add_point(plottery_lib::V2::new(x, y));
-                                            }
-                                            ProjectParamValue::Curve2D(c) => {
-                                                let _ = c.add_point_norm(plottery_lib::V2::new(x, y));
-                                            }
-                                            _ => {}
-                                        }
-                                    }
-                                    _ => {}
-                                }
-                            }
-                            ctx.project_params.set(new_params);
-
-                            ctx.trigger_run();
-                        },
-                        onmousemove: move |event| {
-                            let Some(state) = drag() else { return };
-                            if state.active {
-                                return;
-                            }
-                            if !event.held_buttons().contains(MouseButton::Primary) {
-                                drag.set(None);
-                                return;
-                            }
-                            let client = event.client_coordinates();
-                            let moved = (client.x - state.last.0).hypot(client.y - state.last.1);
-                            if moved >= DRAG_THRESHOLD_PX {
-                                let modifiers = event.modifiers();
-                                drag_to(state, (client.x, client.y), modifiers.alt(), modifiers.shift());
-                            }
-                        },
-                        onmouseup: move |_| end_drag(),
-
-                        for step in 1..(CANVAS_WIDTH / GRID_STEP) as i32 {
-                            {
-                                let at = step as f64 * GRID_STEP;
-                                rsx! {
-                                    line { class: "curve-grid", x1: "{at}", y1: "0", x2: "{at}", y2: "{CANVAS_HEIGHT}" }
-                                    line { class: "curve-grid", x1: "0", y1: "{at}", x2: "{CANVAS_WIDTH}", y2: "{at}" }
-                                }
-                            }
-                        }
-                        polyline {
-                            points: {
-                                graph.iter_points()
-                                    .map(|p| {
-                                        let x = p.x as f64 * GRAPH_WIDTH + MARGIN;
-                                        let y = GRAPH_BOTTOM - (p.y as f64 * GRAPH_HEIGHT);
-                                        format!("{},{}", x, y)
-                                    })
-                                    .collect::<Vec<_>>()
-                                    .join(" ")
-                            },
-                            class: "curve-line",
-                        }
-
-                        for (i, point) in graph.iter_points().enumerate() {
-                            {
-                                let cx = point.x as f64 * GRAPH_WIDTH + MARGIN;
-                                let cy = GRAPH_BOTTOM - (point.y as f64 * GRAPH_HEIGHT);
-                                rsx! {
-                                    circle {
-                                        cx: "{cx}",
-                                        cy: "{cy}",
-                                        r: "4",
-                                        class: "curve-handle",
-                                        ondoubleclick: move |event| {
-                                            event.stop_propagation();
-                                            if i > 0 && i < graph_len - 1 {
-                                                let mut new_params = ctx.project_params.read().clone();
-                                                let path = param_path.read().clone();
-                                                if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, &path) {
-                                                    match param_value {
-                                                        ProjectParamValue::Curve2DNorm(c) => {
-                                                            let _ = c.remove_point_at(i);
-                                                        }
-                                                        ProjectParamValue::Curve2D(c) => {
-                                                            let _ = c.remove_point_at(i);
-                                                        }
-                                                        ProjectParamValue::Optional(optional) => {
-                                                            match optional.value.as_mut() {
-                                                                ProjectParamValue::Curve2DNorm(c) => {
-                                                                    let _ = c.remove_point_at(i);
-                                                                }
-                                                                ProjectParamValue::Curve2D(c) => {
-                                                                    let _ = c.remove_point_at(i);
-                                                                }
-                                                                _ => {}
-                                                            }
-                                                        }
-                                                        _ => {}
-                                                    }
-                                                }
-                                                ctx.project_params.set(new_params);
-
-                                                ctx.trigger_run();
-                                            }
-                                        },
-                                        onmousedown: move |event| {
-                                            event.stop_propagation();
-                                            event.prevent_default();
-                                            let client = event.client_coordinates();
-                                            drag.set(Some(CurveDrag {
-                                                index: i,
-                                                last: (client.x, client.y),
-                                                pos: point,
-                                                active: false,
-                                            }));
-                                        },
-                                    }
-                                }
+                                },
+                                onmousedown: move |event| {
+                                    event.stop_propagation();
+                                    event.prevent_default();
+                                    let client = event.client_coordinates();
+                                    drag.set(Some(CurveDrag {
+                                        index: i,
+                                        last: (client.x, client.y),
+                                        pos: point,
+                                        active: false,
+                                    }));
+                                },
                             }
                         }
                     }

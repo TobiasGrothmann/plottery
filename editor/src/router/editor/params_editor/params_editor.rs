@@ -76,16 +76,24 @@ impl LeafProps {
 
     /// Applies `edit` to the leaf value at `path` and reruns the project. For the widget's handlers.
     pub fn edit(&self, edit: impl FnOnce(&mut ProjectParamValue)) {
-        let mut ctx = consume_context::<EditorCtx>();
-        let mut new_params = ctx.project_params.read().clone();
-        match get_param_value_mut_by_path(&mut new_params.list, &self.path) {
-            Some(value) => edit(leaf_value_mut(value)),
-            None => {
-                tracing::error!("Param path not found: {:?}", self.path);
-                return;
-            }
+        edit_leaf_at(&self.path, edit, true);
+    }
+}
+
+/// Applies `edit` to the leaf value at `path`, `Optional` unwrapped, and reruns the project if
+/// `rerun`. Drags pass `false` while moving and rerun on release.
+pub fn edit_leaf_at(path: &[String], edit: impl FnOnce(&mut ProjectParamValue), rerun: bool) {
+    let mut ctx = consume_context::<EditorCtx>();
+    let mut new_params = ctx.project_params.read().clone();
+    match get_param_value_mut_by_path(&mut new_params.list, path) {
+        Some(value) => edit(leaf_value_mut(value)),
+        None => {
+            tracing::error!("Param path not found: {:?}", path);
+            return;
         }
-        ctx.project_params.set(new_params);
+    }
+    ctx.project_params.set(new_params);
+    if rerun {
         ctx.trigger_run();
     }
 }
@@ -187,11 +195,7 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, ctx: EditorCtx) -> 
     match &param.value {
         ProjectParamValue::Float(_) | ProjectParamValue::Int(_) => {
             rsx! {
-                NumberField {
-                    key: "{key}",
-                    param,
-                    path,
-                }
+                NumberField { key: "{key}", ..LeafProps::new(param, path, ctx) }
             }
         }
         ProjectParamValue::FloatRanged { .. } | ProjectParamValue::IntRanged { .. } => {
@@ -201,20 +205,12 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, ctx: EditorCtx) -> 
         }
         ProjectParamValue::Bool(_) => {
             rsx! {
-                BoolField {
-                    key: "{key}",
-                    param,
-                    path,
-                }
+                BoolField { key: "{key}", ..LeafProps::new(param, path, ctx) }
             }
         }
         ProjectParamValue::Curve2DNorm(_) | ProjectParamValue::Curve2D(_) => {
             rsx! {
-                Curve2DField {
-                    key: "{key}",
-                    param,
-                    path,
-                }
+                Curve2DField { key: "{key}", ..LeafProps::new(param, path, ctx) }
             }
         }
         ProjectParamValue::Enum(_) | ProjectParamValue::DataEnum(_) => {
