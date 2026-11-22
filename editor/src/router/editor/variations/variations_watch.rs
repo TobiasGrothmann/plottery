@@ -11,7 +11,7 @@ use crate::router::editor::editor_ctx::EditorCtx;
 pub fn use_variations_watch(ctx: EditorCtx) {
     use_hook(move || {
         let project = ctx.project.peek().clone();
-        let (variations, console) = (ctx.variations.variations, ctx.console);
+        let (state, console) = (ctx.variations, ctx.console);
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
         let watcher = watch(&project.get_variations_dir(), tx);
         if let Err(e) = &watcher {
@@ -20,12 +20,12 @@ pub fn use_variations_watch(ctx: EditorCtx) {
                 .error(&format!("Failed to watch the variations: {e}"));
         }
         spawn(async move {
-            reload_variations(project.clone(), variations, console).await;
+            reload_variations(project.clone(), state, console).await;
             while rx.recv().await.is_some() {
                 // a roll writes several files at once
                 tokio::time::sleep(Duration::from_millis(100)).await;
                 while rx.try_recv().is_ok() {}
-                reload_variations(project.clone(), variations, console).await;
+                reload_variations(project.clone(), state, console).await;
             }
         });
         Rc::new(watcher.ok())

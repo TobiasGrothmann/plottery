@@ -139,6 +139,41 @@ pub fn get_param_value_mut_by_path<'a>(
     Some(value)
 }
 
+/// The dotted path of `plottery params` and `--set` for `path`, like `points.1.size` for
+/// `points`, `[1]`, `size`. `None` for a field of a variant that isn't selected.
+pub fn dot_path(list: &[ProjectParam], path: &[String]) -> Option<String> {
+    let (name, mut rest) = path.split_first()?;
+    let mut value = &field(list, name)?.value;
+    let mut segments = vec![name.clone()];
+    while let Some((segment, tail)) = rest.split_first() {
+        match value {
+            ProjectParamValue::Optional(optional) => {
+                value = &optional.value;
+                continue;
+            }
+            ProjectParamValue::Struct(param_struct) => {
+                value = &field(&param_struct.fields, segment)?.value;
+                segments.push(segment.clone());
+                rest = tail;
+            }
+            ProjectParamValue::Vec(vec_value) => {
+                let index = parse_index_segment(segment)?;
+                value = vec_value.items.get(index)?;
+                segments.push(index.to_string());
+                rest = tail;
+            }
+            ProjectParamValue::DataEnum(data_enum) if data_enum.selected == *segment => {
+                let (name, tail) = tail.split_first()?;
+                value = &field(&data_enum.variant(segment)?.fields, name)?.value;
+                segments.push(name.clone());
+                rest = tail;
+            }
+            _ => return None,
+        }
+    }
+    Some(segments.join("."))
+}
+
 fn parse_index_segment(segment: &str) -> Option<usize> {
     let index_text = segment.strip_prefix('[')?.strip_suffix(']')?;
     index_text.parse::<usize>().ok()

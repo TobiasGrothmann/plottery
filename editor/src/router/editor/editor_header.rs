@@ -129,6 +129,7 @@ fn run_status(state: &RunningState) -> Option<(Tone, &'static str)> {
         | RunningState::StartingRun { .. }
         | RunningState::Running { .. }
         | RunningState::Updating { .. } => (Tone::Busy, "Running…"),
+        RunningState::Rolling { .. } => (Tone::Busy, "Rolling…"),
         RunningState::BuildFailed { .. } => (Tone::Err, "Build failed"),
         RunningState::GetParamsFailed { .. } | RunningState::RunFailed { .. } => {
             (Tone::Err, "Run failed")

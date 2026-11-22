@@ -30,6 +30,7 @@ use crate::{
         project_runner::ProjectRunner,
         running_state::RunningState,
         variations::{
+            roll_panel::RollPanel,
             variations_grid::VariationsGrid,
             variations_state::{use_variations_state, EditorView},
         },
@@ -257,6 +258,9 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                         PanelHeader {
                             title: "Parameters",
                             on_collapse: move |_| toggle_panel(Panel::Params),
+                        }
+                        if !editing {
+                            RollPanel {}
                         }
                         div { class: "panel-body scroll",
                             ParamsEditor {}

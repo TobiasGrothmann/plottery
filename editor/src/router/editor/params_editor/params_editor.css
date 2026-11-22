@@ -396,3 +396,12 @@
 .font-empty {
   padding: 8px;
 }
+
+/* variations view: read-only params, ticks to roll them */
+.pctl[inert] {
+  opacity: 0.55;
+}
+.plabel .check,
+.psection-head .check {
+  margin-right: 6px;
+}

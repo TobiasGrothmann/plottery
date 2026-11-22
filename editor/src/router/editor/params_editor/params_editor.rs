@@ -1,5 +1,6 @@
 use dioxus::prelude::*;
 use dioxus_logger::tracing;
+use plottery_project::is_rollable;
 use plottery_runtime::{
     project_param::ProjectParam, project_param_optional::ProjectParamOptional,
     project_param_struct::ProjectParamStruct, project_param_value::ProjectParamValue,
@@ -8,7 +9,7 @@ use plottery_runtime::{
 
 use crate::components::{
     icon::{Icon, IconName},
-    ui::{Button, IconButton, Size, Switch, Variant},
+    ui::{Button, Checkbox, IconButton, Size, Switch, Variant},
 };
 use crate::model::app_state::{update_app_state, AppState};
 use crate::router::editor::{
@@ -25,8 +26,8 @@ use crate::router::editor::{
         number_field::NumberField,
         paper_field::PaperField,
         param_tree::{
-            get_default_value, get_param_value_by_path, get_param_value_mut_by_path, leaf_value,
-            leaf_value_mut, no_pick_at, reset_value,
+            dot_path, get_default_value, get_param_value_by_path, get_param_value_mut_by_path,
+            leaf_value, leaf_value_mut, no_pick_at, reset_value,
         },
         percent_field::PercentField,
         range_field::RangeField,
@@ -37,6 +38,7 @@ use crate::router::editor::{
         system_font_field::SystemFontField,
         v2_field::V2Field,
     },
+    variations::variations_state::EditorView,
 };
 
 /// Props shared by all leaf widgets. `param` already has `Optional` unwrapped, `path` has not.
@@ -370,6 +372,30 @@ fn section_state_key(ctx: EditorCtx, section_path: &str) -> String {
     )
 }
 
+/// In the variations view the params are read-only and rollable ones get a tick to roll them.
+fn selecting(ctx: EditorCtx) -> bool {
+    (ctx.variations.view)() == EditorView::Variations
+}
+
+/// The dotted path to roll the param at `path` by, and whether it is ticked. `None` outside the
+/// variations view and for params that can't be rolled.
+fn roll_tick(ctx: EditorCtx, value: &ProjectParamValue, path: &[String]) -> Option<(String, bool)> {
+    if !selecting(ctx) || !is_rollable(value) {
+        return None;
+    }
+    let dot = dot_path(&ctx.project_params.peek().list, path)?;
+    let ticked = ctx.variations.selected.read().contains(&dot);
+    Some((dot, ticked))
+}
+
+fn set_ticked(ctx: EditorCtx, dot: String, ticked: bool) {
+    let mut selected = ctx.variations.selected;
+    match ticked {
+        true => selected.write().insert(dot),
+        false => selected.write().remove(&dot),
+    };
+}
+
 /// Renders full-width rows, wrapping runs of params that share a `#[section]` in a `ParamSection`.
 fn render_param_list(params: &[ProjectParam], parent: &[String], ctx: EditorCtx) -> Element {
     // Flat list so every sibling is keyed; Dioxus panics on mixed keyed/unkeyed siblings.
@@ -414,6 +440,10 @@ fn render_struct_section(param: &ProjectParam, path: &[String], ctx: EditorCtx) 
     let on_enabled = enabled.map(|_| {
         EventHandler::new(move |enabled: bool| set_optional_enabled(&path_for_switch, enabled))
     });
+    let tick = roll_tick(ctx, &param.value, path);
+    let on_tick = tick
+        .clone()
+        .map(|(dot, _)| EventHandler::new(move |ticked: bool| set_ticked(ctx, dot.clone(), ticked)));
     Some(rsx! {
         ParamSection {
             key: "{state_key}",
@@ -422,6 +452,9 @@ fn render_struct_section(param: &ProjectParam, path: &[String], ctx: EditorCtx) 
             description: param.description.clone(),
             enabled,
             on_enabled,
+            locked: selecting(ctx),
+            ticked: tick.map(|(_, ticked)| ticked),
+            on_tick,
             {render_param_list(fields, path, ctx)}
         }
     })
@@ -435,6 +468,12 @@ fn ParamSection(
     /// Shows a switch in the header; the body is hidden while it is off.
     enabled: Option<bool>,
     on_enabled: Option<EventHandler<bool>>,
+    /// The switch can't be changed.
+    #[props(default)]
+    locked: bool,
+    /// Shows a tick in the header to roll the section's param.
+    ticked: Option<bool>,
+    on_tick: Option<EventHandler<bool>>,
     children: Element,
 ) -> Element {
     let app_state = use_context::<Signal<AppState>>();
@@ -451,6 +490,13 @@ fn ParamSection(
     rsx! {
         section { class: "psection",
             div { class: "psection-head",
+                if let (Some(ticked), Some(on_tick)) = (ticked, on_tick) {
+                    Checkbox {
+                        checked: ticked,
+                        aria_label: "Roll {title}",
+                        onchange: move |ticked: bool| on_tick.call(ticked),
+                    }
+                }
                 button {
                     r#type: "button",
                     class: "psection-toggle",
@@ -470,6 +516,7 @@ fn ParamSection(
                 if let (Some(enabled), Some(on_enabled)) = (enabled, on_enabled) {
                     Switch {
                         checked: enabled,
+                        disabled: locked,
                         aria_label: "Enable {title}",
                         onchange: move |enabled: bool| on_enabled.call(enabled),
                     }
@@ -507,7 +554,16 @@ fn render_named_param(
         None => "Double-click to reset".to_string(),
     };
     let reset_path = path.clone();
-    let onreset = move |_| reset_at(&reset_path, false);
+    let read_only = selecting(ctx);
+    let onreset = move |_| {
+        if !read_only {
+            reset_at(&reset_path, false)
+        }
+    };
+    let tick = match compact {
+        true => None,
+        false => roll_tick(ctx, &param.value, &path),
+    };
     let item_count = vec_item_count(&param.value).map(|count| match count {
         1 => "1 item".to_string(),
         n => format!("{n} items"),
@@ -548,7 +604,7 @@ fn render_named_param(
                         span { class: "count", "{item_count}" }
                     }
                 }
-                div { class: "pctl", {control} }
+                div { class: "pctl", inert: if read_only { "true" }, {control} }
             }
         }
     } else {
@@ -558,12 +614,19 @@ fn render_named_param(
                     class: "plabel {label_class}",
                     title: label_title,
                     ondoubleclick: onreset,
+                    if let Some((dot, ticked)) = tick {
+                        Checkbox {
+                            checked: ticked,
+                            aria_label: "Roll {formatted_name}",
+                            onchange: move |ticked: bool| set_ticked(ctx, dot.clone(), ticked),
+                        }
+                    }
                     "{formatted_name}"
                     if let Some(item_count) = item_count {
                         span { class: "count", "{item_count}" }
                     }
                 }
-                div { class: "pctl", {control} }
+                div { class: "pctl", inert: if read_only { "true" }, {control} }
                 if let Some(variant_rows) = variant_rows {
                     div { class: "psection-body penum-body", {variant_rows} }
                 }

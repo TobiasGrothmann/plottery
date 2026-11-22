@@ -1,0 +1,32 @@
+.roll-panel {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.roll-panel-label {
+  font-size: 12px;
+  color: var(--fg-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roll-panel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.roll-panel-count {
+  width: 72px;
+}
+
+.roll-panel-progress {
+  font-size: 12px;
+  color: var(--fg-2);
+  font-variant-numeric: tabular-nums;
+}

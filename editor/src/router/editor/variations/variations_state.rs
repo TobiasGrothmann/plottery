@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use dioxus::prelude::*;
 use dioxus_logger::tracing;
 use plottery_project::{Project, Variations};
@@ -11,32 +13,53 @@ pub enum EditorView {
     Variations,
 }
 
-/// Which view is shown and the stored variations of the open project.
+/// Which view is shown, the stored variations of the open project and what to roll next.
 #[derive(Clone, Copy)]
 pub struct VariationsState {
     pub view: Signal<EditorView>,
     /// Read while the variations view is open, `None` when there are none.
     pub variations: SyncSignal<Option<Variations>>,
+    /// Dotted paths of the params to roll.
+    pub selected: Signal<BTreeSet<String>>,
+    pub count: Signal<usize>,
+    /// Id of the roll that is running.
+    pub rolling: SyncSignal<Option<u64>>,
 }
 
 pub fn use_variations_state() -> VariationsState {
     VariationsState {
         view: use_signal(|| EditorView::Edit),
         variations: use_signal_sync(|| None),
+        selected: use_signal(BTreeSet::new),
+        count: use_signal(|| 24),
+        rolling: use_signal_sync(|| None),
     }
 }
 
-/// Reads the stored variations again, off the UI thread.
+/// Reads the stored variations again, off the UI thread. Nothing selected yet selects what they rolled.
 pub async fn reload_variations(
     project: Project,
-    mut variations: SyncSignal<Option<Variations>>,
+    mut state: VariationsState,
     console: SyncSignal<ConsoleMessages>,
 ) {
-    match tokio::task::spawn_blocking(move || project.load_variations()).await {
-        Ok(Ok(loaded)) => variations.set(loaded),
-        Ok(Err(e)) => console
-            .peek()
-            .error(&format!("Failed to read the variations: {e:#}")),
-        Err(e) => tracing::error!("Reading the variations panicked: {e}"),
+    let loaded = match tokio::task::spawn_blocking(move || project.load_variations()).await {
+        Ok(Ok(loaded)) => loaded,
+        Ok(Err(e)) => {
+            return console
+                .peek()
+                .error(&format!("Failed to read the variations: {e:#}"))
+        }
+        Err(e) => return tracing::error!("Reading the variations panicked: {e}"),
+    };
+    if let Some(variations) = &loaded {
+        if state.selected.peek().is_empty() && state.rolling.peek().is_none() {
+            state
+                .selected
+                .set(variations.meta.params.iter().cloned().collect());
+            state
+                .count
+                .set(variations.rolls.len().saturating_sub(1).max(1));
+        }
     }
+    state.variations.set(loaded);
 }
