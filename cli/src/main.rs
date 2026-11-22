@@ -570,8 +570,14 @@ pub fn main() -> Result<()> {
                     .map(|(path, value)| format!("{path}={value}"))
                     .collect::<Vec<_>>()
                     .join(" ");
-                let png = project.get_roll_path(roll.index, "png");
-                println!("{:>3}  {values}  {}", roll.index, png.display());
+                let result = match roll.skipped {
+                    true => "skipped, ran too long".to_string(),
+                    false => project
+                        .get_roll_path(roll.index, "png")
+                        .display()
+                        .to_string(),
+                };
+                println!("{:>3}  {values}  {result}", roll.index);
             }
             let Some(outcome) = outcome.filter(|_| !stopped) else {
                 bail!(
@@ -602,6 +608,9 @@ pub fn main() -> Result<()> {
             }
             let project = find_project(project.project)?;
             let picked = project.load_roll_params(roll)?;
+            if project.get_roll_path(roll, "skipped").exists() {
+                bail!("Roll {roll} ran too long and was skipped, it can't be picked");
+            }
             let (before, defaults) = build_and_resolve_params(
                 &project,
                 &ParamArgs {

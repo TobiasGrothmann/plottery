@@ -45,7 +45,7 @@ pub enum RollEvent {
         done: usize,
         total: usize,
     },
-    /// Roll `index` ran longer than `limit` and was killed, the others go on.
+    /// Roll `index` ran longer than `limit`, was killed and is stored as skipped. The others go on.
     Skipped {
         index: usize,
         values: String,
@@ -236,6 +236,9 @@ impl Project {
                     },
                     Err(RunError::Killed { .. }) => {
                         if let Some(limit) = *timed_out.lock().unwrap() {
+                            if let Err(e) = self.save_skipped_roll(index, &sets[index]) {
+                                return fail(format!("{name}: storing it as skipped failed: {e}"));
+                            }
                             let done = skipped.fetch_add(1, Ordering::SeqCst)
                                 + 1
                                 + done.load(Ordering::SeqCst);

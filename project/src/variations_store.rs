@@ -2,7 +2,7 @@
 
 use std::path::{Path, PathBuf};
 
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use chrono::{DateTime, Utc};
 use plottery_lib::Layer;
 use plottery_runtime::ProjectParamsListWrapper;
@@ -16,7 +16,7 @@ use crate::{rolled_values, Project};
 pub const ROLL_THUMBNAIL_SIZE: u32 = 768;
 
 const META_FILE: &str = "variations.json";
-const ROLL_EXTENSIONS: [&str; 3] = ["plotp", "plotl", "png"];
+const ROLL_EXTENSIONS: [&str; 4] = ["plotp", "plotl", "png", "skipped"];
 
 /// What a set of rolls was made of.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -33,6 +33,8 @@ pub struct Roll {
     pub params: ProjectParamsListWrapper,
     /// The rolled params and their values as text.
     pub values: Vec<(String, String)>,
+    /// It ran too long and was killed, there is no drawing.
+    pub skipped: bool,
 }
 
 /// The stored set of rolls of a project: the finished ones, also while more are running.
@@ -110,6 +112,7 @@ impl Project {
             rolls.push(Roll {
                 index,
                 values: rolled_values(&params, &meta.params),
+                skipped: self.get_roll_path(index, "skipped").exists(),
                 params,
             });
         }
@@ -118,6 +121,9 @@ impl Project {
 
     /// The drawing of roll `index`.
     pub fn load_roll_layer(&self, index: usize) -> Result<Layer> {
+        if self.get_roll_path(index, "skipped").exists() {
+            bail!("Roll {index} ran too long and was skipped, it has no drawing");
+        }
         Layer::new_from_file(&self.get_roll_path(index, "plotl"))
             .with_context(|| format!("There is no roll {index}"))
     }
@@ -173,6 +179,16 @@ impl Project {
         )?
         .encode_png()?;
         write_atomic(&self.get_roll_path(index, "png"), png)?;
+        write_atomic(&self.get_roll_path(index, "plotp"), params.to_file_bytes()?)
+    }
+
+    /// Stores roll `index` as skipped: its params and a marker, no drawing.
+    pub(crate) fn save_skipped_roll(
+        &self,
+        index: usize,
+        params: &ProjectParamsListWrapper,
+    ) -> Result<()> {
+        write_atomic(&self.get_roll_path(index, "skipped"), "ran too long\n")?;
         write_atomic(&self.get_roll_path(index, "plotp"), params.to_file_bytes()?)
     }
 }

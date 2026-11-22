@@ -9,6 +9,8 @@ pub fn RollTile(
     png: String,
     /// Its params are the project's current ones.
     current: bool,
+    /// It ran too long and has no drawing.
+    skipped: bool,
     values: Vec<(String, String)>,
     /// Changes with every new set of rolls, so a reused file name loads its new image.
     set_id: u32,
@@ -24,9 +26,14 @@ pub fn RollTile(
         .collect::<Vec<_>>()
         .join("\n");
 
-    let class = match current {
-        true => "card roll current",
-        false => "card roll",
+    let class = match (skipped, current) {
+        (true, _) => "card roll skipped",
+        (false, true) => "card roll current",
+        (false, false) => "card roll",
+    };
+    let title = match skipped {
+        true => format!("Ran too long and was skipped\n{title}"),
+        false => title,
     };
 
     rsx! {
@@ -35,14 +42,22 @@ pub fn RollTile(
             role: "button",
             tabindex: "0",
             title: "{title}",
-            onclick: move |_| on_pick.call(index),
+            onclick: move |_| {
+                if !skipped {
+                    on_pick.call(index);
+                }
+            },
             onkeydown: move |event| {
-                if event.key() == Key::Enter {
+                if !skipped && event.key() == Key::Enter {
                     on_pick.call(index);
                 }
             },
             div { class: "thumb",
-                Image { img_path: png, redraw_counter: set_id, class: "thumb_paper" }
+                if skipped {
+                    span { class: "roll_skipped", "ran too long" }
+                } else {
+                    Image { img_path: png, redraw_counter: set_id, class: "thumb_paper" }
+                }
             }
             span { class: "roll_number", "{name}" }
         }

@@ -73,12 +73,25 @@ mod tests {
         assert_eq!(project.load_roll_params(2).unwrap().list, sets[2].list);
         assert!(project.load_roll_params(1).is_err());
 
+        project.save_skipped_roll(1, &sets[1]).unwrap();
+        let skipped: Vec<(usize, bool)> = project
+            .load_variations()
+            .unwrap()
+            .unwrap()
+            .rolls
+            .iter()
+            .map(|roll| (roll.index, roll.skipped))
+            .collect();
+        assert_eq!(skipped, vec![(0, false), (1, true), (2, false)]);
+        assert!(project.load_roll_layer(1).is_err());
+
         let notes = project.get_variations_dir().join("notes.txt");
         std::fs::write(&notes, "mine").unwrap();
         project.start_variations(&meta()).unwrap();
         assert_eq!(rolls(&project), vec![]);
         assert!(notes.exists());
         assert!(!project.get_roll_path(1, "png").exists());
+        assert!(!project.get_roll_path(1, "skipped").exists());
         assert!(!project.get_roll_path(2, "plotl").exists());
         assert!(project.get_variations_dir().join(".gitignore").exists());
     }

@@ -63,13 +63,14 @@ pub fn VariationsGrid() -> Element {
                         .get_roll_path(roll.index, "png")
                         .to_string_lossy()
                         .to_string();
-                    let current = roll.params.list == current_params;
+                    let current = !roll.skipped && roll.params.list == current_params;
                     rsx! {
                         RollTile {
                             key: "{roll.index}",
                             index: roll.index,
                             png,
                             current,
+                            skipped: roll.skipped,
                             values: roll.values,
                             set_id,
                             on_pick: move |index| pick_roll(ctx, index),
@@ -128,7 +129,7 @@ fn pick_roll(ctx: EditorCtx, index: usize) {
             variations
                 .rolls
                 .iter()
-                .find(|roll| roll.index == index)
+                .find(|roll| roll.index == index && !roll.skipped)
                 .map(|roll| roll.params.clone())
         });
     let Some(picked) = picked else {
