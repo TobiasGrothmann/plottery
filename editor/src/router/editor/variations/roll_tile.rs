@@ -17,11 +17,6 @@ pub fn RollTile(
         0 => "start".to_string(),
         _ => index.to_string(),
     };
-    let caption = values
-        .iter()
-        .map(|(path, value)| format!("{path} {value}"))
-        .collect::<Vec<_>>()
-        .join(" · ");
     let title = values
         .iter()
         .map(|(path, value)| format!("{path} = {value}"))
@@ -48,10 +43,7 @@ pub fn RollTile(
                     span { class: "thumb_empty", "rolling…" }
                 }
             }
-            div { class: "card_body",
-                span { class: "card_name", "{name}" }
-                span { class: "card_meta roll_values", "{caption}" }
-            }
+            span { class: "roll_number", "{name}" }
         }
     }
 }

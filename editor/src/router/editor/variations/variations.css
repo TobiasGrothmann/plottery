@@ -42,8 +42,20 @@
   white-space: nowrap;
 }
 
-.roll_values {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.card.roll {
+  position: relative;
+}
+
+.roll_number {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 2px 6px;
+  border-radius: var(--r-sm);
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--fg-0);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
 }
