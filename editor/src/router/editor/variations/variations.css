@@ -1,0 +1,76 @@
+.variations {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.variations-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+}
+
+.variations-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 48px 32px;
+  color: var(--fg-2);
+}
+
+.variations-bar {
+  height: 30px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  background: var(--bg-1);
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--fg-2);
+  justify-content: flex-end;
+}
+
+
+.card.roll {
+  position: relative;
+}
+.card.roll.skipped {
+  cursor: default;
+  border-style: dashed;
+}
+.card.roll.skipped .thumb {
+  background: var(--bg-1);
+}
+.roll_skipped {
+  font-size: 12px;
+  color: var(--fg-2);
+}
+
+.card.roll.current,
+.card.roll.current:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.card.roll.current .roll_number {
+  background: var(--accent);
+  color: var(--accent-fg, #fff);
+}
+
+.roll_number {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 2px 6px;
+  border-radius: var(--r-sm);
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--fg-0);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}

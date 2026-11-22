@@ -6,7 +6,8 @@ use std::sync::{
 use crate::router::editor::running_state::RunningState;
 use dioxus::signals::{ReadableExt, SyncSignal, WritableExt};
 use dioxus_logger::tracing;
-use plottery_project::{Project, RunError, RunEvent, RunStage};
+use plottery_lib::Layer;
+use plottery_project::{Project, RollEvent, RunError, RunEvent, RunStage};
 use plottery_runtime::project_params_list_wrapper::ProjectParamsListWrapper;
 
 use super::{console_messages::ConsoleMessages, editor_data::LayerChangeWrapper};
@@ -180,6 +181,11 @@ impl ProjectRunner {
                 .build_and_run_async(release, &saved_params, on_event, cancel)
                 .await
             {
+                // stopped by the user; a newer run doesn't touch the state
+                Err(RunError::Killed { stage }) if is_current() => {
+                    log(console, |c| c.warn(&format!("Run stopped during {stage}")));
+                    set_state(running_state, RunningState::Idle);
+                }
                 Err(RunError::Killed { stage }) => {
                     log(console, |c| {
                         c.warn(format!("Previous run stopped during {stage}").as_str())
@@ -212,6 +218,182 @@ impl ProjectRunner {
                 Err(RunError::Failed { stage, msg }) => {
                     log(console, |c| c.error(msg.as_str()));
                     set_state(running_state, failed_state(stage, msg));
+                }
+            }
+        });
+    }
+
+    /// Shows `layer`, drawn from the current params, without running: a roll that is done.
+    /// Leaves a running roll alone.
+    pub fn show_layer(&self, new_layer: Layer, console: SyncSignal<ConsoleMessages>) {
+        if let Err(err) = self.project.save_editor_layer(&new_layer) {
+            log(console, |c| {
+                c.error(&format!("Failed to save the layer: {err:#}"))
+            });
+        }
+        let mut layer = self.layer;
+        if let Ok(mut current) = layer.try_write() {
+            current.layer = Some(new_layer);
+            current.change_counter += 1;
+        };
+    }
+
+    /// Stops the current run or roll.
+    pub fn stop(&self) {
+        *self
+            .cancel_tx
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
+    }
+
+    /// Builds, then rolls `paths` of the params `count` times into the project's variations,
+    /// canceling the previous run. `rolling` holds the roll's id while it runs.
+    pub fn trigger_roll(
+        &self,
+        release: bool,
+        paths: Vec<String>,
+        count: usize,
+        running_state: SyncSignal<RunningState>,
+        console: SyncSignal<ConsoleMessages>,
+        mut rolling: SyncSignal<Option<u64>>,
+    ) {
+        set_state(
+            running_state,
+            RunningState::Preparing {
+                msg: "Preparing…".to_string(),
+            },
+        );
+        let run_id = self.current_run.fetch_add(1, Ordering::SeqCst) + 1;
+        let current_run = self.current_run.clone();
+        log(console, |c| c.clear());
+
+        let (cancel_tx, mut cancel_rx) = tokio::sync::mpsc::channel::<()>(1);
+        *self
+            .cancel_tx
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(cancel_tx);
+        let project = self.project.clone();
+        let mut params = self.params;
+        let Ok(saved_params) = params.try_read().map(|p| p.list.clone()) else {
+            return;
+        };
+        if let Ok(mut current) = rolling.try_write() {
+            *current = Some(run_id);
+        }
+
+        tokio::spawn(async move {
+            let is_current = || current_run.load(Ordering::SeqCst) == run_id;
+            // one cancel for building and rolling
+            let mut cancel = Box::pin(async move {
+                cancel_rx.recv().await;
+            });
+            let on_build_event = |event: RunEvent| {
+                if !is_current() {
+                    return;
+                }
+                let (info, state) = match event {
+                    RunEvent::StageStarting(stage) => stage_starting(stage),
+                    RunEvent::StageRunning(stage) => stage_running(stage),
+                    RunEvent::Output(line) => {
+                        return log(console, |c| c.project_message(line.as_str()));
+                    }
+                    RunEvent::ParamsMerged(_) | RunEvent::Snapshot(_) => return,
+                };
+                log(console, |c| c.info(info));
+                set_state(running_state, state);
+            };
+            let built = project
+                .build_and_get_params_async(release, on_build_event, &mut cancel)
+                .await;
+
+            let rolled = match built {
+                Ok(defaults) => {
+                    let start =
+                        ProjectParamsListWrapper::new_combined(&saved_params, &defaults.list);
+                    if is_current() {
+                        if let Ok(mut current) = params.try_write() {
+                            *current = start.clone();
+                        }
+                    }
+                    let on_roll_event = |event: RollEvent| {
+                        if !is_current() {
+                            return;
+                        }
+                        let (done, total) = match event {
+                            RollEvent::Prepared { total } => (0, total),
+                            RollEvent::Finished { done, total, .. } => (done, total),
+                            RollEvent::Skipped {
+                                index,
+                                values,
+                                limit,
+                                done,
+                                total,
+                            } => {
+                                log(console, |c| {
+                                    c.warn(&format!(
+                                        "Roll {index} skipped, it ran longer than {}s: {values}",
+                                        limit.as_secs()
+                                    ))
+                                });
+                                (done, total)
+                            }
+                        };
+                        set_state(running_state, RunningState::Rolling { done, total });
+                    };
+                    Some(
+                        project
+                            .roll_async(release, &start, &paths, count, on_roll_event, &mut cancel)
+                            .await,
+                    )
+                }
+                Err(RunError::Killed { stage }) => {
+                    if is_current() {
+                        log(console, |c| c.warn(&format!("Roll stopped during {stage}")));
+                        set_state(running_state, RunningState::Idle);
+                    }
+                    None
+                }
+                Err(RunError::Failed { stage, msg }) => {
+                    if is_current() {
+                        log(console, |c| c.error(msg.as_str()));
+                        set_state(running_state, failed_state(stage, msg));
+                    }
+                    None
+                }
+            };
+
+            if is_current() {
+                match rolled {
+                    Some(Ok(outcome)) if outcome.canceled => {
+                        log(console, |c| {
+                            c.warn(&format!(
+                                "Roll stopped, {} of {} done",
+                                outcome.done, outcome.total
+                            ))
+                        });
+                        set_state(running_state, RunningState::Idle);
+                    }
+                    Some(Ok(outcome)) => {
+                        log(console, |c| match outcome.skipped {
+                            0 => c.success(&format!("Rolled {} times", outcome.total)),
+                            skipped => c.warn(&format!(
+                                "Rolled {} times, {skipped} ran too long and were skipped",
+                                outcome.total
+                            )),
+                        });
+                        set_state(running_state, RunningState::Idle);
+                    }
+                    Some(Err(e)) => {
+                        let msg = format!("{e:#}");
+                        log(console, |c| c.error(&msg));
+                        set_state(running_state, RunningState::RunFailed { msg });
+                    }
+                    None => {}
+                }
+            }
+            if let Ok(mut current) = rolling.try_write() {
+                if *current == Some(run_id) {
+                    *current = None;
                 }
             }
         });

@@ -19,11 +19,12 @@ pub enum MenuAction {
     ToggleConsole,
     ToggleFullscreenPreview,
     ResetZoom,
+    ToggleVariations,
     PlotterRemote,
 }
 
 impl MenuAction {
-    const ALL: [MenuAction; 9] = [
+    const ALL: [MenuAction; 10] = [
         MenuAction::Run,
         MenuAction::PlotSettings,
         MenuAction::BackToProjects,
@@ -32,6 +33,7 @@ impl MenuAction {
         MenuAction::ToggleConsole,
         MenuAction::ToggleFullscreenPreview,
         MenuAction::ResetZoom,
+        MenuAction::ToggleVariations,
         MenuAction::PlotterRemote,
     ];
 
@@ -114,6 +116,8 @@ pub fn menu_bar() -> Menu {
             &PredefinedMenuItem::separator(),
             &MenuAction::ToggleFullscreenPreview.item("Fullscreen Preview (F)", None),
             &MenuAction::ResetZoom.item("Reset Zoom", cmd(Code::Digit0)),
+            &PredefinedMenuItem::separator(),
+            &MenuAction::ToggleVariations.item("Toggle Variations", cmd(Code::KeyE)),
         ],
     )
     .expect("Failed to build the view menu");

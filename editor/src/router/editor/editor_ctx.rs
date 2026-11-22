@@ -6,6 +6,7 @@ use super::{
     console_messages::ConsoleMessages,
     project_runner::{trigger_run, ProjectRunner},
     running_state::RunningState,
+    variations::variations_state::VariationsState,
 };
 
 /// What the panels and param widgets of the open project share, provided as context by the editor.
@@ -17,6 +18,7 @@ pub struct EditorCtx {
     pub running_state: SyncSignal<RunningState>,
     pub console: SyncSignal<ConsoleMessages>,
     pub release: bool,
+    pub variations: VariationsState,
 }
 
 impl EditorCtx {

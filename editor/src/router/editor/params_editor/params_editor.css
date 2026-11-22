@@ -396,3 +396,93 @@
 .font-empty {
   padding: 8px;
 }
+
+/* variations view: params are read-only, a rollable row toggles whether it is rolled */
+.pctl[inert] {
+  opacity: 0.8;
+}
+.ParamsEditor .prow.roll-row {
+  position: relative;
+  margin: 4px 8px;
+  padding-right: 30px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--bg-2);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+/* a ring in the corner, filled with a check when the param is rolled */
+.ParamsEditor .prow.roll-row::after {
+  content: '';
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 14px;
+  height: 14px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--fg-2);
+  border-radius: 50%;
+  transition: border-color 0.12s, background 0.12s;
+}
+.ParamsEditor .prow.roll-row:hover {
+  background: var(--bg-3);
+  border-color: var(--accent);
+}
+.ParamsEditor .prow.roll-row:hover::after {
+  border-color: var(--accent);
+}
+.ParamsEditor .prow.roll-row.on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.ParamsEditor .prow.roll-row.on::after {
+  border-color: var(--accent);
+  background: var(--accent)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M4 7.2l2 2 4-4.4' fill='none' stroke='%230d1330' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    center / 14px no-repeat;
+}
+.ParamsEditor .prow.roll-row.on > .plabel {
+  color: var(--fg-0);
+}
+.ParamsEditor .prow.roll-locked {
+  opacity: 0.45;
+}
+.roll-chip {
+  height: 22px;
+  padding: 0 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg-2);
+  font: 500 11px 'Inter', system-ui, sans-serif;
+  cursor: pointer;
+}
+.roll-chip:hover {
+  color: var(--fg-0);
+}
+.roll-chip.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+}
+.ParamsEditor .prow.roll-row.frozen {
+  cursor: default;
+}
+.ParamsEditor .prow.roll-row.frozen:not(.on) {
+  opacity: 0.6;
+}
+.ParamsEditor .prow.roll-row.frozen:hover {
+  background: var(--bg-2);
+  border-color: var(--line-2);
+}
+.ParamsEditor .prow.roll-row.frozen:not(.on):hover::after {
+  border-color: var(--fg-2);
+}
+.ParamsEditor .prow.roll-row.frozen.on:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.roll-chip:disabled {
+  cursor: default;
+  opacity: 0.6;
+}

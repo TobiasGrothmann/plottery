@@ -8,8 +8,8 @@ mod tests {
     };
 
     use crate::router::editor::params_editor::param_tree::{
-        get_default_value, get_param_value_by_path, get_param_value_mut_by_path, no_pick_at,
-        reset_value,
+        dot_path, get_default_value, get_param_value_by_path, get_param_value_mut_by_path,
+        no_pick_at, reset_value,
     };
 
     fn path(segments: &[&str]) -> Vec<String> {
@@ -182,5 +182,23 @@ mod tests {
         assert!(no_pick_at(&list, &path(&["anchors", "[0]"])));
         assert!(!no_pick_at(&list, &path(&["shape", "Spiral", "turns"])));
         assert!(!no_pick_at(&list, &path(&["nope"])));
+    }
+
+    #[test]
+    fn dot_paths_are_the_cli_paths() {
+        let list = params();
+        let dot = |segments: &[&str]| dot_path(&list, &path(segments));
+        assert_eq!(dot(&["glow", "radius"]).as_deref(), Some("glow.radius"));
+        assert_eq!(
+            dot(&["points", "[1]", "size"]).as_deref(),
+            Some("points.1.size")
+        );
+        assert_eq!(
+            dot(&["shape", "Spiral", "turns"]).as_deref(),
+            Some("shape.turns")
+        );
+        assert_eq!(dot(&["shape"]).as_deref(), Some("shape"));
+        assert_eq!(dot(&["shape", "Blank", "turns"]), None);
+        assert_eq!(dot(&["points", "[5]", "size"]), None);
     }
 }

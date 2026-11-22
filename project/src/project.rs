@@ -21,7 +21,7 @@ use std::time::SystemTime;
 pub const EDITOR_THUMBNAIL_SIZE: u32 = 1024;
 
 /// Rasterizes SVG data, scaled so the longest side is `max_size` when given.
-fn render_svg(
+pub(crate) fn render_svg(
     svg_data: &[u8],
     max_size: Option<u32>,
     background: Option<tiny_skia::Color>,
@@ -112,7 +112,7 @@ fn plottery_cache_dir() -> Result<PathBuf> {
 }
 
 /// Writes a temp file and renames it, so nobody ever reads half a file.
-fn write_atomic(path: &Path, contents: impl AsRef<[u8]>) -> Result<()> {
+pub(crate) fn write_atomic(path: &Path, contents: impl AsRef<[u8]>) -> Result<()> {
     let mut temp_path = path.as_os_str().to_owned();
     temp_path.push(".tmp");
     std::fs::write(&temp_path, contents)?;

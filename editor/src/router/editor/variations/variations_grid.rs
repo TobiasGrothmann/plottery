@@ -1,0 +1,159 @@
+use std::rc::Rc;
+
+use dioxus::{html::geometry::PixelsVector2D, prelude::*};
+use plottery_runtime::project_params_list_wrapper::ProjectParamsListWrapper;
+
+use super::{
+    roll_panel::RollPanel, roll_tile::RollTile, variations_state::EditorView,
+    variations_watch::use_variations_watch,
+};
+use crate::{
+    components::tile_size_slider::TileSizeSlider,
+    model::app_state::{update_app_state, AppState, ROLL_TILE_SIZE_MAX},
+    router::editor::editor_ctx::EditorCtx,
+};
+
+/// The rolls of the open project as tiles, updated as they finish.
+#[component]
+pub fn VariationsGrid() -> Element {
+    let ctx = use_context::<EditorCtx>();
+    use_variations_watch(ctx);
+    let mut scroll_top = ctx.variations.scroll_top;
+    let mut scroller: Signal<Option<Rc<MountedData>>> = use_signal(|| None);
+    let mut restored = use_signal(|| false);
+    // back from the edit view: scroll to where the grid was, once its tiles are there
+    use_effect(move || {
+        let has_tiles = ctx
+            .variations
+            .variations
+            .read()
+            .as_ref()
+            .is_some_and(|variations| !variations.rolls.is_empty());
+        let Some(element) = scroller() else {
+            return;
+        };
+        if !has_tiles || *restored.peek() {
+            return;
+        }
+        restored.set(true);
+        let top = *scroll_top.peek();
+        if top > 0.0 {
+            spawn(async move {
+                let _ = element
+                    .scroll(PixelsVector2D::new(0.0, top), ScrollBehavior::Instant)
+                    .await;
+            });
+        }
+    });
+    let app_state = use_context::<Signal<AppState>>();
+    let tile_size = app_state.read().roll_tile_size;
+    let project = ctx.project.read().clone();
+    let variations = ctx.variations.variations.read().clone();
+    let rolling = ctx.variations.rolling.read().is_some()
+        || variations.as_ref().is_some_and(|v| v.progress().is_some());
+    let current_params = ctx.project_params.read().list.clone();
+
+    let tiles = match variations {
+        Some(variations) if !variations.rolls.is_empty() => {
+            let set_id = variations.meta.created.timestamp_millis() as u32;
+            let tiles = variations
+                .rolls
+                .into_iter()
+                .map(|roll| {
+                    let png = project
+                        .get_roll_path(roll.index, "png")
+                        .to_string_lossy()
+                        .to_string();
+                    let current = !roll.skipped && roll.params.list == current_params;
+                    rsx! {
+                        RollTile {
+                            key: "{roll.index}",
+                            index: roll.index,
+                            png,
+                            current,
+                            skipped: roll.skipped,
+                            values: roll.values,
+                            set_id,
+                            on_pick: move |index| pick_roll(ctx, index),
+                        }
+                    }
+                })
+                .collect::<Vec<_>>();
+            Some(tiles)
+        }
+        _ => None,
+    };
+
+    rsx! {
+        style { {include_str!("./variations.css")} }
+        div { class: "variations",
+            RollPanel {}
+            div {
+                class: "variations-scroll",
+                style: "--tile-size: {tile_size}px;",
+                onmounted: move |event| scroller.set(Some(event.data())),
+                onscroll: move |event| scroll_top.set(event.data().scroll_top()),
+                if let Some(tiles) = tiles {
+                    div { class: "grid_cards", {tiles.into_iter()} }
+                } else {
+                    div { class: "variations-empty",
+                        if rolling {
+                            p { "Rolling…" }
+                            p { class: "hint", "Each roll shows up when it is done." }
+                        } else {
+                            p { "No variations yet." }
+                            p { class: "hint", "Click the params on the left to pick what to roll, then Roll." }
+                        }
+                    }
+                }
+            }
+            div { class: "variations-bar",
+                TileSizeSlider {
+                    value: tile_size,
+                    max: ROLL_TILE_SIZE_MAX,
+                    on_change: move |size| update_app_state(app_state, |state| state.set_roll_tile_size(size)),
+                }
+            }
+        }
+    }
+}
+
+/// Makes the params and drawing of roll `index` the project's and shows them in the
+/// edit view. Nothing runs, so a roll in progress goes on.
+fn pick_roll(ctx: EditorCtx, index: usize) {
+    let picked = ctx
+        .variations
+        .variations
+        .peek()
+        .as_ref()
+        .and_then(|variations| {
+            variations
+                .rolls
+                .iter()
+                .find(|roll| roll.index == index && !roll.skipped)
+                .map(|roll| roll.params.clone())
+        });
+    let Some(picked) = picked else {
+        return;
+    };
+    let layer = match ctx.project.peek().load_roll_layer(index) {
+        Ok(layer) => layer,
+        Err(e) => {
+            return ctx
+                .console
+                .peek()
+                .error(&format!("Failed to open roll {index}: {e:#}"))
+        }
+    };
+    let mut project_params = ctx.project_params;
+    let defaults = project_params.peek().defaults.clone();
+    // without defaults (no run yet) the next run merges them
+    let params = match defaults.is_empty() {
+        true => picked,
+        false => ProjectParamsListWrapper::new_combined(&picked.list, &defaults),
+    };
+    project_params.set(params);
+    ctx.project_runner.peek().show_layer(layer, ctx.console);
+    let mut view = ctx.variations.view;
+    view.set(EditorView::Edit);
+}

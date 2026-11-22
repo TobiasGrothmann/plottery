@@ -10,7 +10,7 @@ use rfd::AsyncFileDialog;
 
 use crate::{
     components::{
-        icon::IconName,
+        icon::{Icon, IconName},
         remote::{poke_plotter, RemoteOpen},
         ui::{Button, IconButton, StatusPill, Switch, Tone, Variant},
     },
@@ -20,6 +20,7 @@ use crate::{
         editor_data::{use_plot_estimate, LayerChangeWrapper, PreviewSvg},
         external_editor_button::{installed_external_editors, ExternalEditorButton, OpensDir},
         running_state::RunningState,
+        variations::{roll_panel::ProgressBar, variations_state::EditorView},
     },
     routes::Route,
     util::format_svg,
@@ -42,7 +43,7 @@ fn parent_crumbs(dir: &Path) -> Vec<(String, PathBuf)> {
     crumbs
 }
 
-/// Back button, folder crumbs, project name and the buttons that open it elsewhere.
+/// Back button, folder crumbs, project name, the view switch and the buttons that open it elsewhere.
 #[component]
 pub fn ProjectTitle(cargo_path: PathBuf) -> Element {
     let ctx = use_context::<EditorCtx>();
@@ -91,6 +92,7 @@ pub fn ProjectTitle(cargo_path: PathBuf) -> Element {
             }
             h1 { "{project().config.name}" }
         }
+        ViewSwitch {}
         div { class: "vsep" }
         div { class: "hgroup tight",
             for editor in external_editors.iter().filter(|e| e.opens == OpensDir::Cargo) {
@@ -116,6 +118,33 @@ pub fn ProjectTitle(cargo_path: PathBuf) -> Element {
     }
 }
 
+/// Switches between the Edit and the Variations view.
+#[component]
+fn ViewSwitch() -> Element {
+    let ctx = use_context::<EditorCtx>();
+    let mut view = ctx.variations.view;
+    let options = [
+        (EditorView::Edit, IconName::Sliders, "Edit"),
+        (EditorView::Variations, IconName::Dice, "Variations"),
+    ];
+    rsx! {
+        div { class: "view-switch", role: "group", "aria-label": "View",
+            for (option, icon, text) in options {
+                button {
+                    key: "{text}",
+                    r#type: "button",
+                    class: if view() == option { "on" },
+                    "aria-pressed": if view() == option { "true" } else { "false" },
+                    title: "{text} (⌘E switches)",
+                    onclick: move |_| view.set(option),
+                    Icon { name: icon }
+                    span { "{text}" }
+                }
+            }
+        }
+    }
+}
+
 /// Header pill for the run state; nothing while idle.
 fn run_status(state: &RunningState) -> Option<(Tone, &'static str)> {
     let status = match state {
@@ -128,6 +157,7 @@ fn run_status(state: &RunningState) -> Option<(Tone, &'static str)> {
         | RunningState::StartingRun { .. }
         | RunningState::Running { .. }
         | RunningState::Updating { .. } => (Tone::Busy, "Running…"),
+        RunningState::Rolling { .. } => (Tone::Busy, "Rolling…"),
         RunningState::BuildFailed { .. } => (Tone::Err, "Build failed"),
         RunningState::GetParamsFailed { .. } | RunningState::RunFailed { .. } => {
             (Tone::Err, "Run failed")
@@ -136,7 +166,7 @@ fn run_status(state: &RunningState) -> Option<(Tone, &'static str)> {
     Some(status)
 }
 
-/// Run button, hot reload switch and the run state.
+/// Run button (Stop while running or rolling), hot reload switch and the run state.
 #[component]
 pub fn RunControls(hot_reload: bool, on_hot_reload: Callback<bool>) -> Element {
     let ctx = use_context::<EditorCtx>();
@@ -145,20 +175,41 @@ pub fn RunControls(hot_reload: bool, on_hot_reload: Callback<bool>) -> Element {
     let status = run_status(&state_now);
     let status_title = Some(state_now.get_msg()).filter(|msg| !msg.is_empty());
 
+    let editing = (ctx.variations.view)() == EditorView::Edit;
+
     rsx! {
-        Button {
-            variant: Variant::Primary,
-            icon: IconName::Play,
-            onclick: move |_| ctx.trigger_run(),
-            "Run"
+        if editing {
+            Switch {
+                class: "toggle-box",
+                label: "Hot reload".to_string(),
+                checked: hot_reload,
+                onchange: move |enabled| on_hot_reload.call(enabled),
+            }
+            // a run or a roll: either one stops
+            if state_now.is_busy() {
+                Button {
+                    variant: Variant::Secondary,
+                    icon: IconName::X,
+                    onclick: move |_| ctx.project_runner.peek().stop(),
+                    "Stop"
+                }
+            } else {
+                Button {
+                    variant: Variant::Primary,
+                    icon: IconName::Play,
+                    onclick: move |_| ctx.trigger_run(),
+                    "Run"
+                }
+            }
         }
-        Switch {
-            class: "toggle-box",
-            label: "Hot reload".to_string(),
-            checked: hot_reload,
-            onchange: move |enabled| on_hot_reload.call(enabled),
-        }
-        if let Some((tone, text)) = status {
+        if let RunningState::Rolling { done, total } = state_now {
+            span { class: "pill", role: "status", title: status_title,
+                span { class: "dot busy" }
+                span { "Rolling" }
+                ProgressBar { progress: Some(done as f32 / total.max(1) as f32) }
+                span { class: "pill-count", "{done}/{total}" }
+            }
+        } else if let Some((tone, text)) = status {
             StatusPill { tone, text, title: status_title }
         }
     }

@@ -1,4 +1,7 @@
-use std::rc::Rc;
+use std::{
+    f32::consts::{PI, TAU},
+    rc::Rc,
+};
 
 use dioxus::{
     html::{geometry::ClientPoint, input_data::MouseButton},
@@ -21,6 +24,9 @@ const SHIFT_STEP_DEGREES: f64 = 15.0;
 #[derive(PartialEq, Props, Clone)]
 pub struct AngleDialProps {
     pub rad: f32,
+    /// Radians the angle stays in, shown as a wedge.
+    #[props(default)]
+    pub range: Option<(f32, f32)>,
     /// Called with radians on every drag move, before the commit on release.
     pub oninput: EventHandler<f32>,
     pub oncommit: EventHandler<f32>,
@@ -56,6 +62,43 @@ pub fn stepped_rad(degrees: f64, step_degrees: f64) -> f32 {
     (stepped as f32).to_radians()
 }
 
+/// `rad` turned by whole turns into `min..=max`. Outside, the bound closer around the dial and `true`.
+pub fn fit_to_range(rad: f32, (min, max): (f32, f32)) -> (f32, bool) {
+    let inside = min + (rad - min).rem_euclid(TAU);
+    if inside <= max {
+        return (inside, false);
+    }
+    let bound = if inside - max <= min + TAU - inside {
+        max
+    } else {
+        min
+    };
+    (bound, true)
+}
+
+/// The reported angle for a handle at `degrees`, and where the handle is: a bound of `range`
+/// stops it, so turning back leaves the bound at once.
+pub fn dial_value(degrees: f64, step_degrees: f64, range: Option<(f32, f32)>) -> (f32, f64) {
+    let rad = stepped_rad(degrees, step_degrees);
+    match range.map(|range| fit_to_range(rad, range)) {
+        Some((bound, true)) => (bound, (bound as f64).to_degrees().rem_euclid(360.0)),
+        Some((rad, false)) => (rad, degrees),
+        None => (rad, degrees),
+    }
+}
+
+/// SVG path of the wedge from `min` to `max` counter-clockwise, `None` for a full turn or more.
+fn range_wedge(center: f32, radius: f32, (min, max): (f32, f32)) -> Option<String> {
+    (max - min < TAU).then(|| {
+        let point = |rad: f32| (center + rad.cos() * radius, center - rad.sin() * radius);
+        let ((x1, y1), (x2, y2)) = (point(min), point(max));
+        let large_arc = u8::from(max - min > PI);
+        format!(
+            "M {center} {center} L {x1:.2} {y1:.2} A {radius} {radius} 0 {large_arc} 0 {x2:.2} {y2:.2} Z"
+        )
+    })
+}
+
 fn step_degrees(shift: bool) -> f64 {
     if shift {
         SHIFT_STEP_DEGREES
@@ -80,6 +123,8 @@ pub fn AngleDial(props: AngleDialProps) -> Element {
     };
 
     let prop_rad = props.rad;
+    let range = props.range;
+    let wedge = range.and_then(|range| range_wedge(SIZE / 2.0, RIM_RADIUS, range));
     let shown_rad = drag().and_then(|state| state.rad).unwrap_or(prop_rad);
     let center = SIZE / 2.0;
     let (sin, cos) = shown_rad.sin_cos();
@@ -114,7 +159,8 @@ pub fn AngleDial(props: AngleDialProps) -> Element {
                         let last_cursor = cursor_degrees(center, cursor);
                         let (degrees, rad) = match last_cursor {
                             Some(degrees) if cursor.distance_to(handle) > JUMP_DISTANCE_PX => {
-                                (degrees, Some(stepped_rad(degrees, step)))
+                                let (rad, degrees) = dial_value(degrees, step, range);
+                                (degrees, Some(rad))
                             }
                             _ => ((prop_rad as f64).to_degrees().rem_euclid(360.0), None),
                         };
@@ -134,6 +180,9 @@ pub fn AngleDial(props: AngleDialProps) -> Element {
                     cx: "{center}",
                     cy: "{center}",
                     r: "{RIM_RADIUS}",
+                }
+                if let Some(wedge) = wedge {
+                    path { class: "angle_dial_range", d: "{wedge}" }
                 }
                 line {
                     class: "angle_dial_zero",
@@ -174,7 +223,8 @@ pub fn AngleDial(props: AngleDialProps) -> Element {
                         Some(last) => turned(state.degrees, last, cursor, speed),
                         None => cursor,
                     };
-                    let rad = stepped_rad(degrees, step_degrees(event.modifiers().shift()));
+                    let step = step_degrees(event.modifiers().shift());
+                    let (rad, degrees) = dial_value(degrees, step, range);
                     if state.rad != Some(rad) {
                         oninput.call(rad);
                     }

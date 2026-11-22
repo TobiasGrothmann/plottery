@@ -35,6 +35,7 @@ A **Plottery Project** is a user-created artwork generator: a standalone Cargo p
 - **Effects (blur, hatch):** `lib/src/effects/`
 - **Text & fonts:** `lib/src/text/`, font data in `fonts/fonts/`, credits in `fonts/LICENSES/CREDITS.md`
 - **Project management:** `project/src/project.rs`
+- **Variations (rolls):** roll logic `project/src/variations.rs`, storage in the project's `variations/` `project/src/variations_store.rs`, runner `project/src/variations_run.rs`; editor view `editor/src/router/editor/variations/`
 - **Param types:** `runtime/src/project_params/`, the `.plotp` format in `params_file_format.rs`
 - **Project binary:** entry point and subcommands in `runtime/src/project_main.rs`, `PROTOCOL_VERSION` in `runtime/src/protocol.rs`, run stream in `runtime/src/run_stream.rs` (project side) and `project/src/run_stream.rs` (host side)
 - **Project template:** `project/cargo_project_template/`, its agent doc is `project/resources/AGENTS.md`
@@ -88,12 +89,13 @@ Building, local checkouts in projects, examples, tests, pre-release checks and r
   - `runtime/src/project_params/mod.rs`: the module and re-export of a new value type
   - `runtime/src/protocol.rs`: `PROTOCOL_VERSION`
   - `cli/src/params.rs`: `constraint`, `same_value`
+  - `project/src/variations.rs`: `is_rollable`, `roll_value`, if the type has a range or a fixed set of choices
   - `editor/src/router/editor/params_editor/params_editor.rs`: `render_leaf_param`, with the widget as a new `*_field.rs` registered in `mod.rs`
   - `runtime/README.md`: the widget table
   - `project/resources/AGENTS.md`: "Parameters"
   - tests: `param_field_test.rs`, `param_text_test.rs`, `project_params_list_wrapper_test.rs`
-- **Compound param kinds:** `Struct`, `Optional`, `Vec` and `DataEnum` (an enum whose variants have fields) hold other params. Paths walk into them in `value_at_path` (`runtime/src/project_params/param_text.rs`, CLI `--set`), `editor/src/router/editor/params_editor/param_tree.rs` (editor, a `DataEnum` takes the variant name as a segment) and `push_value` in `cli/src/params.rs` (listing); merging is `combine_values` in `project_params_list_wrapper.rs`. A new compound kind needs all four.
-- **Project files:** Everything in a project folder is committed. Derived files (builds, previews, thumbnails) go to the cache dir, see `plottery_cache_dir` in `project/src/project.rs`.
+- **Compound param kinds:** `Struct`, `Optional`, `Vec` and `DataEnum` (an enum whose variants have fields) hold other params. Paths walk into them in `value_at_path` (`runtime/src/project_params/param_text.rs`, CLI `--set`), `editor/src/router/editor/params_editor/param_tree.rs` (editor, a `DataEnum` takes the variant name as a segment; `dot_path` turns its paths into CLI ones), `push_value` in `cli/src/params.rs` (listing) and `rollable_paths` in `project/src/variations.rs` (rolling); merging is `combine_values` in `project_params_list_wrapper.rs`. A new compound kind needs all five.
+- **Project files:** Everything in a project folder is committed. Derived files (builds, previews, thumbnails) go to the cache dir, see `plottery_cache_dir` in `project/src/project.rs`. The exception is `variations/`, the results of `plottery roll`: in the project so the user and agents find them, ignored by the `.gitignore` it writes into itself.
 - **Project template:** `project/resources/AGENTS.md` is copied into every new project and describes the project, not this workspace. Existing projects keep their old copy, so template changes have to be redistributed.
 - **API changes:** Update `examples/` in the same change; `scripts/check_examples.sh` must pass. When it fails, follow DEVELOPMENT.md "Examples".
 - **Crate READMEs:** `lib/README.md`, `runtime/README.md` and `project/README.md` are docs.rs pages with doctests, see DEVELOPMENT.md "Tests".

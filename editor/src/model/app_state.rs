@@ -13,6 +13,8 @@ use super::layer_view::LayerViewState;
 pub const TILE_SIZE_MIN: u32 = 140;
 pub const TILE_SIZE_MAX: u32 = 600;
 pub const TILE_SIZE_DEFAULT: u32 = 320;
+pub const ROLL_TILE_SIZE_DEFAULT: u32 = 220;
+pub const ROLL_TILE_SIZE_MAX: u32 = 1200;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Panel {
@@ -97,6 +99,9 @@ pub struct AppState {
     /// Minimum width of a project tile in the browser grid, in pixels.
     #[serde(default = "default_tile_size")]
     pub tile_size: u32,
+    /// Minimum width of a roll tile in the variations grid, in pixels.
+    #[serde(default = "default_roll_tile_size")]
+    pub roll_tile_size: u32,
     #[serde(default)]
     pub panel_layout: PanelLayout,
     /// Project grid sections the user collapsed.
@@ -114,6 +119,10 @@ fn default_tile_size() -> u32 {
     TILE_SIZE_DEFAULT
 }
 
+fn default_roll_tile_size() -> u32 {
+    ROLL_TILE_SIZE_DEFAULT
+}
+
 impl Default for AppState {
     fn default() -> Self {
         Self {
@@ -121,6 +130,7 @@ impl Default for AppState {
             selected_folder: None,
             expanded_folders: BTreeSet::new(),
             tile_size: TILE_SIZE_DEFAULT,
+            roll_tile_size: ROLL_TILE_SIZE_DEFAULT,
             panel_layout: PanelLayout::default(),
             collapsed_sections: BTreeSet::new(),
             collapsed_param_sections: BTreeSet::new(),
@@ -234,6 +244,10 @@ impl AppState {
 
     pub fn set_tile_size(&mut self, size: u32) {
         self.tile_size = size.clamp(TILE_SIZE_MIN, TILE_SIZE_MAX);
+    }
+
+    pub fn set_roll_tile_size(&mut self, size: u32) {
+        self.roll_tile_size = size.clamp(TILE_SIZE_MIN, ROLL_TILE_SIZE_MAX);
     }
 
     /// True if `dir` is a root or inside one, so the browser can show it.

@@ -10,14 +10,18 @@ use clap::{Args, Parser, Subcommand};
 use futures_lite::future::block_on;
 use plottery_project::{
     editor_roots, scan_roots, set_plottery_home, validate_project_name, LibSource, Project,
-    RunEvent, ScanOptions, PLOTTERY_HOME_ENV,
+    RollEvent, RunEvent, ScanOptions, PLOTTERY_HOME_ENV,
 };
 use plottery_runtime::project_params_list_wrapper::ProjectParamsListWrapper;
 use std::{
     cell::RefCell,
-    future::{pending, poll_fn},
+    future::{pending, poll_fn, Future},
     path::{Path, PathBuf},
-    task::Poll,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Mutex,
+    },
+    task::{Poll, Waker},
 };
 
 use animate::{VideoFormat, VideoOptions, VideoWriter};
@@ -119,6 +123,42 @@ enum Command {
     Open {
         #[command(flatten)]
         project: ProjectArg,
+        #[arg(long, help = "Show its variations instead of the drawing")]
+        variations: bool,
+    },
+    #[command(
+        about = "Roll params to random values and store a drawing per roll, the project's variations",
+        long_about = "Roll params to random values and store a drawing per roll, the project's variations.\n\nEach roll gives every named param a uniform random value: params with a #[range] within it, seeds from 100 to 999, angles over the full turn, bools, enums and options among their choices. Roll 0 is the start params themselves. The results replace the last ones in the project's variations/ folder (not committed): NNN.plotp, NNN.plotl and NNN.png per roll. The start params are the editor's saved values unless --defaults or --set say otherwise; the saved values don't change. The first failed run ends the roll, finished rolls stay. `plottery pick N` makes roll N the saved values."
+    )]
+    Roll {
+        #[arg(
+            value_name = "PARAM",
+            help = "Params to roll, as named by `plottery params`, e.g. seed size glow.radius. Without any, lists the rollable ones"
+        )]
+        names: Vec<String>,
+        #[arg(short = 'n', long, default_value_t = 24, help = "Number of rolls")]
+        count: usize,
+        #[command(flatten)]
+        project: ProjectFlag,
+        #[command(flatten)]
+        params: ParamArgs,
+        #[arg(
+            long,
+            help = "Open the variations in the editor, where the rolls show up as they finish"
+        )]
+        open: bool,
+    },
+    #[command(
+        about = "Make a roll of `plottery roll` the saved values and its drawing the editor's",
+        long_about = "Make a roll of `plottery roll` the saved values and its drawing the editor's, like `plottery set` and `plottery run` without running again.\n\nRoll 0 goes back to the params the rolls started from."
+    )]
+    Pick {
+        #[arg(value_name = "N", help = "Number of the roll")]
+        roll: usize,
+        #[command(flatten)]
+        project: ProjectFlag,
+        #[arg(long, help = "Open the project in the editor afterwards")]
+        open: bool,
     },
     #[command(
         about = "Print the folders of the projects the editor shows, one per line",
@@ -241,6 +281,8 @@ Typical loop inside a project folder:
   plottery params                                 the user's param values
   plottery render /tmp/a.png --set size=12        render with an override, print stats
   plottery animate /tmp/a.mp4 --every 5           video of how the drawing comes about (`snapshot`)
+  plottery roll seed size -n 24 --open            24 random variations, shown in the editor
+  plottery pick 7                                 make roll 7 the user's values
   plottery set size=12                            change the user's values
   plottery run ~/art/labyrinth                    run a project from anywhere
   plottery open                                   open the project in the editor";
@@ -353,6 +395,53 @@ fn build_and_resolve_params(
     Ok((params, defaults))
 }
 
+/// The editor app, or an error that says how to get it.
+static INTERRUPTED: AtomicBool = AtomicBool::new(false);
+static INTERRUPT_WAKER: Mutex<Option<Waker>> = Mutex::new(None);
+
+/// Catches Ctrl-C from now on: the first one resolves the future, a second one exits.
+fn interrupted() -> Result<impl Future<Output = ()>> {
+    ctrlc::set_handler(|| {
+        if INTERRUPTED.swap(true, Ordering::SeqCst) {
+            std::process::exit(130);
+        }
+        if let Some(waker) = INTERRUPT_WAKER.lock().unwrap().take() {
+            waker.wake();
+        }
+    })
+    .context("Could not listen for Ctrl-C")?;
+    Ok(poll_fn(|cx| {
+        *INTERRUPT_WAKER.lock().unwrap() = Some(cx.waker().clone());
+        match INTERRUPTED.load(Ordering::SeqCst) {
+            true => Poll::Ready(()),
+            false => Poll::Pending,
+        }
+    }))
+}
+
+fn check_editor_available() -> Result<PathBuf> {
+    if !cfg!(target_os = "macos") {
+        bail!("Opening the editor needs the Plottery Editor, which runs on macOS only");
+    }
+    editor_app::find_editor_app().context("Plottery Editor not found in /Applications or ~/Applications. Install it with: curl -fsSL https://raw.githubusercontent.com/TobiasGrothmann/plottery/main/scripts/install_macos.sh | bash")
+}
+
+/// Opens a project's `.plottery` file, or its `variations.json` to show the variations, in the editor.
+fn open_in_editor(file: &Path) -> Result<()> {
+    let app = check_editor_available()?;
+    let file = std::path::absolute(file)?;
+    let status = std::process::Command::new("open")
+        .arg("-a")
+        .arg(&app)
+        .arg(&file)
+        .status()
+        .context("Failed to run `open`")?;
+    if !status.success() {
+        bail!("`open -a {}` failed ({status})", app.display());
+    }
+    Ok(())
+}
+
 pub fn main() -> Result<()> {
     let args = Cli::parse();
     match args.command {
@@ -401,25 +490,155 @@ pub fn main() -> Result<()> {
             );
             println!("{}", stats::format_stats(&layer, &params.list));
         }
-        Command::Open { project } => {
-            if !cfg!(target_os = "macos") {
-                bail!("`plottery open` needs the Plottery Editor, which runs on macOS only");
-            }
+        Command::Open {
+            project,
+            variations,
+        } => {
             let project = project.find()?;
-            let Some(app) = editor_app::find_editor_app() else {
-                bail!("Plottery Editor not found in /Applications or ~/Applications. Install it with: curl -fsSL https://raw.githubusercontent.com/TobiasGrothmann/plottery/main/scripts/install_macos.sh | bash");
+            let file = match variations {
+                true => {
+                    let meta = project.get_variations_meta_path();
+                    if !meta.exists() {
+                        bail!(
+                            "'{}' has no variations yet, roll some first: plottery roll -p {} <PARAM>...",
+                            project.config.name,
+                            project.dir.display()
+                        );
+                    }
+                    meta
+                }
+                false => project.get_project_config_path(),
             };
-            let config_path = std::path::absolute(project.get_project_config_path())?;
-            let status = std::process::Command::new("open")
-                .arg("-a")
-                .arg(&app)
-                .arg(&config_path)
-                .status()
-                .context("Failed to run `open`")?;
-            if !status.success() {
-                bail!("`open -a {}` failed ({status})", app.display());
-            }
+            open_in_editor(&file)?;
             println!("Opened '{}' in the editor", project.config.name);
+        }
+        Command::Roll {
+            names,
+            count,
+            project,
+            params,
+            open,
+        } => {
+            if open {
+                check_editor_available()?;
+            }
+            let project = find_project(project.project)?;
+            let (start, _) = build_and_resolve_params(&project, &params)?;
+            let outcome = block_on(project.roll_async(
+                RELEASE,
+                &start,
+                &names,
+                count,
+                |event| match event {
+                    RollEvent::Prepared { total } => {
+                        eprintln!("Rolling {total} times...");
+                        if open {
+                            if let Err(e) = open_in_editor(&project.get_variations_meta_path()) {
+                                eprintln!("Could not open the editor: {e}");
+                            }
+                        }
+                    }
+                    RollEvent::Finished { index, done, total } => {
+                        eprintln!("{done}/{total} done (roll {index})")
+                    }
+                    RollEvent::Skipped {
+                        index,
+                        values,
+                        limit,
+                        done,
+                        total,
+                    } => eprintln!(
+                        "{done}/{total} done (roll {index} skipped, it ran longer than {}s: {values})",
+                        limit.as_secs()
+                    ),
+                },
+                interrupted()?,
+            ));
+            let stopped = INTERRUPTED.load(Ordering::SeqCst);
+            // Ctrl-C reaches the running rolls too, which can end them as failed
+            let outcome = match outcome {
+                Err(e) if !stopped => return Err(e),
+                outcome => outcome.ok(),
+            };
+            let variations = project
+                .load_variations()?
+                .context("The variations are gone")?;
+            for roll in variations.rolls {
+                let values = roll
+                    .values
+                    .iter()
+                    .map(|(path, value)| format!("{path}={value}"))
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                let result = match roll.skipped {
+                    true => "skipped, ran too long".to_string(),
+                    false => project
+                        .get_roll_path(roll.index, "png")
+                        .display()
+                        .to_string(),
+                };
+                println!("{:>3}  {values}  {result}", roll.index);
+            }
+            let Some(outcome) = outcome.filter(|_| !stopped) else {
+                bail!(
+                    "Stopped. The finished rolls are in '{}'.",
+                    project.get_variations_dir().display()
+                );
+            };
+            if outcome.skipped > 0 {
+                eprintln!(
+                    "{} of the rolls ran too long and were skipped.",
+                    outcome.skipped
+                );
+            }
+            println!(
+                "Rolled '{}' {} times, the results are in '{}'. `plottery pick N` makes roll N the saved values.",
+                project.config.name,
+                outcome.total,
+                project.get_variations_dir().display()
+            );
+        }
+        Command::Pick {
+            roll,
+            project,
+            open,
+        } => {
+            if open {
+                check_editor_available()?;
+            }
+            let project = find_project(project.project)?;
+            let picked = project.load_roll_params(roll)?;
+            if project.get_roll_path(roll, "skipped").exists() {
+                bail!("Roll {roll} ran too long and was skipped, it can't be picked");
+            }
+            let (before, defaults) = build_and_resolve_params(
+                &project,
+                &ParamArgs {
+                    defaults: false,
+                    set: Vec::new(),
+                },
+            )?;
+            let after = ProjectParamsListWrapper::new_combined(&picked.list, &defaults.list);
+            // a finished roll already has its drawing
+            let layer = match project.load_roll_layer(roll) {
+                Ok(layer) => layer,
+                Err(_) => block_on(project.run_with_params_async(
+                    RELEASE,
+                    &after,
+                    None,
+                    print_event,
+                    pending(),
+                ))?,
+            };
+            project.save_editor_outputs(&after, &layer)?;
+            println!(
+                "{}",
+                params::format_changes(&before.list, &after.list, &defaults.list)
+            );
+            println!("Picked roll {roll}, the editor shows it");
+            if open {
+                open_in_editor(&project.get_project_config_path())?;
+            }
         }
         Command::List { roots: only_roots } => {
             let roots = editor_roots()?;

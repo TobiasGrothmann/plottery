@@ -1,3 +1,4 @@
+use plottery_lib::Angle;
 use plottery_runtime::{ProjectParam, ProjectParamValue as Value};
 use std::collections::HashSet;
 
@@ -169,6 +170,10 @@ fn constraint(value: &Value) -> Option<String> {
         Value::FloatRanged { min, max, .. } => Some(format!("{min}..{max}")),
         Value::IntRanged { min, max, .. } => Some(format!("{min}..{max}")),
         Value::Percent { min, max, .. } => Some(format!("{min}%..{max}%")),
+        Value::AngleRanged { unit, min, max, .. } => {
+            let bound = |rad: f32| unit.text(Angle::from_rad(rad));
+            Some(format!("{}..{}", bound(*min), bound(*max)))
+        }
         Value::RangeF32 {
             bounds: Some((low, high)),
             ..

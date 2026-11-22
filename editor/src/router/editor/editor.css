@@ -192,16 +192,69 @@
 }
 
 .center-group {
-  --pill-slot: 140px;
+  --pill-slot: 190px;
   position: relative;
   padding-right: var(--pill-slot);
+}
+/* Edit | Variations, next to the project name: two joined buttons as high as the others */
+.view-switch {
+  display: inline-flex;
+  flex: none;
+}
+.view-switch button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-3);
+  color: var(--fg-1);
+  font: 600 13px/1 'Inter', system-ui, sans-serif;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.view-switch button:first-child {
+  border-radius: var(--r) 0 0 var(--r);
+}
+.view-switch button:last-child {
+  border-left: 0;
+  border-radius: 0 var(--r) var(--r) 0;
+}
+.view-switch button:hover {
+  color: var(--fg-0);
+  background: var(--bg-4);
+}
+.view-switch button.on {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+.view-switch button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.view-switch .i {
+  width: 15px;
+  height: 15px;
 }
 .center-group > .pill {
   position: absolute;
   left: calc(100% - var(--pill-slot) + 8px);
   top: 50%;
   transform: translateY(-50%);
+  height: 32px;
+  box-sizing: border-box;
+  border-radius: var(--r);
   white-space: nowrap;
+}
+.center-group > .pill .progress-bar {
+  width: 56px;
+  flex: none;
+}
+.pill-count {
+  font-variant-numeric: tabular-nums;
 }
 
 /* The hovered V2 or Rect param, drawn over the paper with the paper's size and transform. */

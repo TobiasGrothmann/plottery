@@ -3,7 +3,7 @@ mod tests {
     use dioxus::html::geometry::ClientPoint;
 
     use crate::router::editor::params_editor::widgets::angle_dial::{
-        cursor_degrees, stepped_rad, turned,
+        cursor_degrees, dial_value, fit_to_range, stepped_rad, turned,
     };
 
     /// Direction of a cursor `dx`, `dy` screen pixels away from the dial center.
@@ -48,5 +48,37 @@ mod tests {
         // a quarter of 20° forwards and backwards
         assert!(close(turned(358.0, 350.0, 10.0, 0.25), 3.0));
         assert!(close(turned(2.0, 10.0, 350.0, 0.25), 357.0));
+    }
+
+    fn deg(degrees: f32) -> f32 {
+        degrees.to_radians()
+    }
+
+    #[test]
+    fn range_across_zero_keeps_negative_angles() {
+        let range = (deg(-45.0), deg(45.0));
+        let (rad, stopped) = fit_to_range(deg(350.0), range);
+        assert!(close(rad.to_degrees() as f64, -10.0) && !stopped);
+        let (rad, stopped) = fit_to_range(deg(30.0), range);
+        assert!(close(rad.to_degrees() as f64, 30.0) && !stopped);
+    }
+
+    #[test]
+    fn outside_the_range_gives_the_closer_bound() {
+        let range = (deg(0.0), deg(90.0));
+        assert_eq!(fit_to_range(deg(100.0), range), (deg(90.0), true));
+        assert_eq!(fit_to_range(deg(350.0), range), (deg(0.0), true));
+    }
+
+    #[test]
+    fn bound_stops_the_handle() {
+        let range = Some((deg(0.0), deg(90.0)));
+        let (rad, handle) = dial_value(120.0, 1.0, range);
+        assert_eq!(rad, deg(90.0));
+        assert!(close(handle, 90.0));
+        // inside, the handle keeps its fraction for slow turning
+        let (rad, handle) = dial_value(45.3, 1.0, range);
+        assert!(close(rad.to_degrees() as f64, 45.0));
+        assert!(close(handle, 45.3));
     }
 }

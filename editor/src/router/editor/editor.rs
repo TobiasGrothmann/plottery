@@ -10,6 +10,7 @@ use crate::{
     model::{
         app_state::{update_app_state, AppState, Panel},
         layer_view::{LayerKey, RowTarget},
+        open_request::RequestedView,
     },
     router::editor::{
         console::Console,
@@ -28,6 +29,10 @@ use crate::{
         project_hot_reload::use_hot_reload,
         project_runner::ProjectRunner,
         running_state::RunningState,
+        variations::{
+            variations_grid::VariationsGrid,
+            variations_state::{use_variations_state, EditorView},
+        },
     },
     routes::Route,
     util::preview_zoom::PreviewZoom,
@@ -93,6 +98,8 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
 
     // running project
     let running_state = use_signal_sync(|| RunningState::Idle);
+    let variations = use_variations_state();
+    let mut view = variations.view;
     let project_runner =
         use_signal_sync(|| ProjectRunner::new(project.peek().clone(), layer, project_params));
     let ctx = use_context_provider(|| EditorCtx {
@@ -102,12 +109,14 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
         running_state,
         console,
         release,
+        variations,
     });
     use_context_provider(|| PickTarget {
         target: Signal::new(None),
         hovered: Signal::new(None),
     });
     use_autosave(ctx, params_file.clone(), plot_settings, layer, layer_view);
+    use_requested_view(ctx, params_file.clone());
     let (hot_reload, set_hot_reload) = use_hot_reload(ctx, cargo_path.clone(), params_file);
 
     let mut preview_zoom = use_signal(PreviewZoom::default);
@@ -165,6 +174,10 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
             preview_zoom.set(PreviewZoom::default());
         }
         MenuAction::ResetZoom => preview_zoom.set(PreviewZoom::default()),
+        MenuAction::ToggleVariations => view.set(match view() {
+            EditorView::Edit => EditorView::Variations,
+            EditorView::Variations => EditorView::Edit,
+        }),
         MenuAction::PlotterRemote => {}
     });
     let current_layout = layout();
@@ -173,6 +186,8 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
     let (console_min, console_max, console_default) = Panel::Console.size_limits();
 
     let busy = running_state().is_busy();
+    // the variations view has no drawing, so no layers
+    let editing = view() == EditorView::Edit;
     let has_drawing = layer_loading() || layer.read().layer.is_some();
 
     rsx! {
@@ -187,7 +202,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                 let modifiers = event.modifiers();
                 let command = modifiers.meta() || modifiers.ctrl();
                 let f = matches!(event.key(), Key::Character(ref key) if key.eq_ignore_ascii_case("f"));
-                if f && !command && !modifiers.alt() {
+                if f && !command && !modifiers.alt() && view() == EditorView::Edit {
                     spawn(async move {
                         let typing = document::eval(FOCUS_IS_TEXT_FIELD).await;
                         if typing.ok().and_then(|v| v.as_bool()) != Some(true) {
@@ -265,7 +280,10 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                     }
                 }
                 main { class: "center",
-                    PreviewStage {
+                    if view() == EditorView::Variations {
+                        VariationsGrid {}
+                    } else {
+                        PreviewStage {
                         svg,
                         cached_preview: cached_preview.clone(),
                         layer_bbox: (layer_view.bbox)(),
@@ -274,6 +292,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                         has_drawing,
                         fullscreen,
                         zoom: preview_zoom,
+                        }
                     }
                     if current_layout.console_open {
                         Resizer {
@@ -295,7 +314,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                         on_toggle: move |_| toggle_panel(Panel::Console),
                     }
                 }
-                if current_layout.layers_open {
+                if editing && current_layout.layers_open {
                     Resizer {
                         axis: Axis::Vertical,
                         value: current_layout.layers_w,
@@ -334,7 +353,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                             }
                         }
                     }
-                } else {
+                } else if editing {
                     div { class: "rail rail-right",
                         IconButton {
                             icon: IconName::ChevronLeft,
@@ -371,4 +390,37 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
             }
         }
     }
+}
+
+/// Shows the view an open request asked for, e.g. `plottery roll --open`. Asked for the edit view
+/// of the open project (`plottery pick --open`), it also picks up params changed on disk.
+fn use_requested_view(ctx: EditorCtx, params_file: ParamsFile) {
+    let RequestedView(mut requested) = use_context::<RequestedView>();
+    use_effect(move || {
+        let Some((dir, view)) = requested() else {
+            return;
+        };
+        // another project's request remounts the editor with that project
+        if dir != ctx.project.peek().dir {
+            return;
+        }
+        requested.set(None);
+        let mut shown = ctx.variations.view;
+        shown.set(view);
+        if view != EditorView::Edit {
+            return;
+        }
+        match params_file.read_external() {
+            Ok(Some(params)) if params.list != ctx.project_params.peek().list => {
+                let mut project_params = ctx.project_params;
+                project_params.set(params);
+                ctx.trigger_run();
+            }
+            Ok(_) => {}
+            Err(e) => ctx
+                .console
+                .peek()
+                .error(&format!("Failed to read the params: {e:#}")),
+        }
+    });
 }

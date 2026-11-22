@@ -1,17 +1,44 @@
 #[derive(Debug, Clone)]
 pub enum RunningState {
     Idle,
-    Preparing { msg: String },
-    StartingBuild { msg: String },
-    Building { msg: String },
-    BuildFailed { msg: String },
-    StartingGetParams { msg: String },
-    GetParams { msg: String },
-    GetParamsFailed { msg: String },
-    StartingRun { msg: String },
-    Running { msg: String },
-    RunFailed { msg: String },
-    Updating { msg: String },
+    Preparing {
+        msg: String,
+    },
+    StartingBuild {
+        msg: String,
+    },
+    Building {
+        msg: String,
+    },
+    BuildFailed {
+        msg: String,
+    },
+    StartingGetParams {
+        msg: String,
+    },
+    GetParams {
+        msg: String,
+    },
+    GetParamsFailed {
+        msg: String,
+    },
+    StartingRun {
+        msg: String,
+    },
+    Running {
+        msg: String,
+    },
+    RunFailed {
+        msg: String,
+    },
+    Updating {
+        msg: String,
+    },
+    /// `done` of `total` rolls finished.
+    Rolling {
+        done: usize,
+        total: usize,
+    },
 }
 impl RunningState {
     pub fn is_busy(&self) -> bool {
@@ -37,6 +64,7 @@ impl RunningState {
             RunningState::StartingGetParams { msg } => msg.clone(),
             RunningState::GetParams { msg } => msg.clone(),
             RunningState::GetParamsFailed { msg } => msg.clone(),
+            RunningState::Rolling { done, total } => format!("Rolling, {done} of {total} done"),
         }
     }
 }

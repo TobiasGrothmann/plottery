@@ -325,6 +325,19 @@ mod tests {
         ProjectParamValue::Percent { val, min, max }
     }
 
+    fn angle(rad: f32, unit: AngleUnit) -> ProjectParamValue {
+        ProjectParamValue::Angle { rad, unit }
+    }
+
+    fn angle_ranged(rad: f32, unit: AngleUnit, min: f32, max: f32) -> ProjectParamValue {
+        ProjectParamValue::AngleRanged {
+            rad,
+            unit,
+            min,
+            max,
+        }
+    }
+
     fn combined_values(
         old: Vec<(&str, ProjectParamValue)>,
         new: Vec<(&str, ProjectParamValue)>,
@@ -404,6 +417,11 @@ mod tests {
                 ("gains_range", ProjectParamValue::Int(40)),
                 ("optional", optional(int_ranged(9, 0, 10))),
                 ("percent", percent(90.0, 0.0, 100.0)),
+                ("angle", angle(3.0, AngleUnit::Rotations)),
+                (
+                    "angle_loses_range",
+                    angle_ranged(0.5, AngleUnit::Radians, 0.0, 1.0),
+                ),
                 (
                     "range",
                     ProjectParamValue::RangeF32 {
@@ -419,6 +437,8 @@ mod tests {
                 ("gains_range", int_ranged(1, 0, 5)),
                 ("optional", optional(int_ranged(1, 0, 5))),
                 ("percent", percent(10.0, 0.0, 50.0)),
+                ("angle", angle_ranged(0.0, AngleUnit::Degrees, -1.0, 1.0)),
+                ("angle_loses_range", angle(0.0, AngleUnit::Degrees)),
                 (
                     "range",
                     ProjectParamValue::RangeF32 {
@@ -437,6 +457,8 @@ mod tests {
                 int_ranged(5, 0, 5),
                 optional(int_ranged(5, 0, 5)),
                 percent(50.0, 0.0, 50.0),
+                angle_ranged(1.0, AngleUnit::Rotations, -1.0, 1.0),
+                angle(0.5, AngleUnit::Radians),
                 ProjectParamValue::RangeF32 {
                     min: 1.0,
                     max: 5.0,
