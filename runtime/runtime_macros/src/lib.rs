@@ -13,8 +13,8 @@ use syn::{
 /// and `///` doc comments become the param's description.
 #[proc_macro_derive(PlotteryParams, attributes(value, range, section, no_pick))]
 pub fn plottery_params(input: TokenStream) -> TokenStream {
-    let ast = syn::parse(input).expect("Failed to parse macro.");
-    plottery_params_impl(&ast)
+    let ast = syn::parse_macro_input!(input as syn::DeriveInput);
+    tokens_or_error(plottery_params_impl(&ast))
 }
 
 /// Derives `ParamField` for an enum. Exactly one variant must be marked `#[default]`.
@@ -24,8 +24,18 @@ pub fn plottery_params(input: TokenStream) -> TokenStream {
 /// as `Variant(Struct)`. The values of the other variants are kept.
 #[proc_macro_derive(PlotteryEnum, attributes(default, value, range, section, no_pick))]
 pub fn plottery_enum(input: TokenStream) -> TokenStream {
-    let ast = syn::parse(input).expect("Failed to parse macro.");
-    plottery_enum_impl(&ast)
+    let ast = syn::parse_macro_input!(input as syn::DeriveInput);
+    tokens_or_error(plottery_enum_impl(&ast))
+}
+
+/// An error becomes a `compile_error!` at the tokens it was created for.
+fn tokens_or_error(tokens: syn::Result<proc_macro2::TokenStream>) -> TokenStream {
+    tokens.unwrap_or_else(syn::Error::into_compile_error).into()
+}
+
+/// An error the compiler reports at `tokens`.
+fn error_at(tokens: impl ToTokens, message: impl std::fmt::Display) -> syn::Error {
+    syn::Error::new_spanned(tokens, message)
 }
 
 struct FieldAttributes {
@@ -36,30 +46,39 @@ struct FieldAttributes {
     no_pick: bool,
 }
 
-fn parse_attribute_args(list: &syn::MetaList, expected: usize) -> Vec<Expr> {
+fn parse_attribute_args(list: &syn::MetaList, expected: usize) -> syn::Result<Vec<Expr>> {
     let name = list.path.to_token_stream().to_string();
     let args = list
         .parse_args_with(Punctuated::<Expr, Token![,]>::parse_terminated)
-        .unwrap_or_else(|_| panic!("Failed to parse arguments of attribute '{}'", name));
+        .map_err(|e| {
+            let message = format!("Failed to parse arguments of attribute '{name}'");
+            syn::Error::new(e.span(), message)
+        })?;
     if args.len() != expected {
-        panic!(
-            "Invalid number of arguments for attribute '{}'. Expected {}, found {}",
-            name,
-            expected,
-            args.len()
-        );
+        return Err(error_at(
+            list,
+            format!(
+                "Invalid number of arguments for attribute '{}'. Expected {}, found {}",
+                name,
+                expected,
+                args.len()
+            ),
+        ));
     }
-    args.into_iter().collect()
+    Ok(args.into_iter().collect())
 }
 
-fn unknown_attribute(attr: &syn::Attribute) -> ! {
-    panic!(
-        "Unknown attribute '{}'. Fields support #[value(...)], #[range(...)], #[section(...)] and #[no_pick].",
-        attr.path().to_token_stream()
+fn unknown_attribute(attr: &syn::Attribute) -> syn::Error {
+    error_at(
+        attr,
+        format!(
+            "Unknown attribute '{}'. Fields support #[value(...)], #[range(...)], #[section(...)] and #[no_pick].",
+            attr.path().to_token_stream()
+        ),
     )
 }
 
-fn parse_field_attributes(field: &Field) -> FieldAttributes {
+fn parse_field_attributes(field: &Field) -> syn::Result<FieldAttributes> {
     let mut attributes = FieldAttributes {
         value: None,
         range: None,
@@ -91,23 +110,26 @@ fn parse_field_attributes(field: &Field) -> FieldAttributes {
             }
         }
         let Meta::List(list) = &attr.meta else {
-            unknown_attribute(attr);
+            return Err(unknown_attribute(attr));
         };
         if list.path.is_ident("value") {
-            let args = parse_attribute_args(list, 1);
+            let args = parse_attribute_args(list, 1)?;
             let value = &args[0];
             attributes.value = Some(quote!(#value));
         } else if list.path.is_ident("range") {
-            let args = parse_attribute_args(list, 2);
+            let args = parse_attribute_args(list, 2)?;
             let (min, max) = (&args[0], &args[1]);
             attributes.range = Some((quote!(#min), quote!(#max)));
         } else if list.path.is_ident("section") {
-            let title = list.parse_args::<syn::LitStr>().unwrap_or_else(|_| {
-                panic!("#[section] expects one string, e.g. #[section(\"Frames\")]")
-            });
+            let title = list.parse_args::<syn::LitStr>().map_err(|_| {
+                error_at(
+                    list,
+                    "#[section] expects one string, e.g. #[section(\"Frames\")]",
+                )
+            })?;
             attributes.section = Some(title.value());
         } else {
-            unknown_attribute(attr);
+            return Err(unknown_attribute(attr));
         }
     }
 
@@ -118,7 +140,7 @@ fn parse_field_attributes(field: &Field) -> FieldAttributes {
         .collect::<Vec<_>>()
         .join(" ");
     attributes.description = Some(description).filter(|d| !d.is_empty());
-    attributes
+    Ok(attributes)
 }
 
 fn single_generic_arg(ty: &syn::Type) -> Option<(String, &syn::Type)> {
@@ -139,29 +161,24 @@ fn single_generic_arg(ty: &syn::Type) -> Option<(String, &syn::Type)> {
 }
 
 /// Rejects wrappers the editor cannot render, before the trait bounds produce a less helpful error.
-fn check_field_type(field: &Field) {
+fn check_field_type(field: &Field) -> syn::Result<()> {
     let Some((outer, inner)) = single_generic_arg(&field.ty) else {
-        return;
+        return Ok(());
     };
     let Some((inner_name, _)) = single_generic_arg(inner) else {
-        return;
+        return Ok(());
     };
-    let field_name = field.ident.as_ref().expect("Named field").to_string();
-    match (outer.as_str(), inner_name.as_str()) {
-        ("Option", "Option") => panic!(
-            "Field '{}': Option<Option<T>> is not supported for PlotteryParams.",
-            field_name
-        ),
-        ("Vec", "Option") => panic!(
-            "Field '{}': Vec<Option<T>> is not supported for PlotteryParams.",
-            field_name
-        ),
-        ("Vec", "Vec") => panic!(
-            "Field '{}': Vec<Vec<T>> is not supported for PlotteryParams.",
-            field_name
-        ),
-        _ => {}
-    }
+    let unsupported = match (outer.as_str(), inner_name.as_str()) {
+        ("Option", "Option") => "Option<Option<T>>",
+        ("Vec", "Option") => "Vec<Option<T>>",
+        ("Vec", "Vec") => "Vec<Vec<T>>",
+        _ => return Ok(()),
+    };
+    let field_name = field.ident.as_ref().expect("Named field");
+    Err(error_at(
+        &field.ty,
+        format!("Field '{field_name}': {unsupported} is not supported for PlotteryParams."),
+    ))
 }
 
 /// Builds the `ProjectParamValue` for the reference `value` (or the type default when `None`), honoring `#[range]`.
@@ -200,7 +217,7 @@ struct FieldTokens {
 fn named_field_tokens(
     fields: &syn::FieldsNamed,
     access: impl Fn(&syn::Ident) -> proc_macro2::TokenStream,
-) -> FieldTokens {
+) -> syn::Result<FieldTokens> {
     let mut tokens = FieldTokens {
         defaults: Vec::new(),
         to_params: Vec::new(),
@@ -209,11 +226,11 @@ fn named_field_tokens(
     let mut current_section: Option<String> = None;
 
     for field in &fields.named {
-        check_field_type(field);
+        check_field_type(field)?;
         let ident = field.ident.as_ref().expect("Named field");
         let field_name = ident.to_string();
         let ty = &field.ty;
-        let attributes = parse_field_attributes(field);
+        let attributes = parse_field_attributes(field)?;
         if attributes.section.is_some() {
             current_section = attributes.section.clone();
         }
@@ -244,34 +261,50 @@ fn named_field_tokens(
             #ident: ::plottery_runtime::param_field_from_map(params, #field_name)?,
         });
     }
-    tokens
+    Ok(tokens)
 }
 
-fn plottery_params_impl(ast: &syn::DeriveInput) -> TokenStream {
+fn plottery_params_impl(ast: &syn::DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
     let name = &ast.ident;
-    let data = match &ast.data {
-        syn::Data::Struct(data) => data,
-        syn::Data::Enum(_) => {
-            panic!(
-                "PlotteryParams cannot be derived for enums. Use #[derive(PlotteryEnum)] instead."
-            )
-        }
-        syn::Data::Union(_) => panic!("PlotteryParams cannot be derived for unions."),
-    };
+    let data =
+        match &ast.data {
+            syn::Data::Struct(data) => data,
+            syn::Data::Enum(_) => return Err(error_at(
+                name,
+                "PlotteryParams cannot be derived for enums. Use #[derive(PlotteryEnum)] instead.",
+            )),
+            syn::Data::Union(_) => {
+                return Err(error_at(
+                    name,
+                    "PlotteryParams cannot be derived for unions.",
+                ))
+            }
+        };
     if !ast.generics.params.is_empty() {
-        panic!("PlotteryParams cannot be derived for generic structs.");
+        return Err(error_at(
+            &ast.generics,
+            "PlotteryParams cannot be derived for generic structs.",
+        ));
     }
-    let Fields::Named(fields) = &data.fields else {
-        panic!("PlotteryParams requires a struct with named fields.");
+    let fields = match &data.fields {
+        Fields::Named(fields) => fields,
+        other => {
+            let message = "PlotteryParams requires a struct with named fields.";
+            // a unit struct has no field tokens to point at
+            return Err(match other {
+                Fields::Unit => error_at(name, message),
+                _ => error_at(other, message),
+            });
+        }
     };
 
     let FieldTokens {
         defaults,
         to_params,
         from_map,
-    } = named_field_tokens(fields, |ident| quote!(&self.#ident));
+    } = named_field_tokens(fields, |ident| quote!(&self.#ident))?;
 
-    let expanded = quote! {
+    Ok(quote! {
         impl ::plottery_runtime::PlotteryParams for #name {
             fn param_defaults_list() -> ::std::vec::Vec<::plottery_runtime::ProjectParam> {
                 vec![ #(#defaults)* ]
@@ -316,43 +349,56 @@ fn plottery_params_impl(ast: &syn::DeriveInput) -> TokenStream {
                 }
             }
         }
-    };
-    TokenStream::from(expanded)
+    })
 }
 
-fn plottery_enum_impl(ast: &syn::DeriveInput) -> TokenStream {
+fn plottery_enum_impl(ast: &syn::DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
     let name = &ast.ident;
     let syn::Data::Enum(data) = &ast.data else {
-        panic!("PlotteryEnum can only be derived for enums.");
+        return Err(error_at(
+            name,
+            "PlotteryEnum can only be derived for enums.",
+        ));
     };
     if !ast.generics.params.is_empty() {
-        panic!("PlotteryEnum cannot be derived for generic enums.");
+        return Err(error_at(
+            &ast.generics,
+            "PlotteryEnum cannot be derived for generic enums.",
+        ));
     }
 
-    let default_variants: Vec<_> = data
-        .variants
-        .iter()
-        .filter(|variant| variant.attrs.iter().any(|a| a.path().is_ident("default")))
-        .collect();
-    let default_name = match default_variants.as_slice() {
-        [variant] => variant.ident.to_string(),
-        [] => panic!(
-            "PlotteryEnum: mark one variant of '{}' with #[default].",
-            name
-        ),
-        _ => panic!("PlotteryEnum: only one variant may be marked #[default]."),
+    let mut defaults = data.variants.iter().filter_map(|variant| {
+        let attr = variant
+            .attrs
+            .iter()
+            .find(|a| a.path().is_ident("default"))?;
+        Some((variant, attr))
+    });
+    let default_name = match (defaults.next(), defaults.next()) {
+        (Some((variant, _)), None) => variant.ident.to_string(),
+        (None, _) => {
+            return Err(error_at(
+                name,
+                format!("PlotteryEnum: mark one variant of '{name}' with #[default]."),
+            ))
+        }
+        (Some(_), Some((_, second))) => {
+            return Err(error_at(
+                second,
+                "PlotteryEnum: only one variant may be marked #[default].",
+            ))
+        }
     };
 
-    let expanded = if data
+    if data
         .variants
         .iter()
         .all(|v| matches!(v.fields, Fields::Unit))
     {
-        unit_enum_tokens(name, data, &default_name)
+        Ok(unit_enum_tokens(name, data, &default_name))
     } else {
         data_enum_tokens(name, data, &default_name)
-    };
-    TokenStream::from(expanded)
+    }
 }
 
 fn unit_enum_tokens(
@@ -407,7 +453,7 @@ fn data_enum_tokens(
     name: &syn::Ident,
     data: &syn::DataEnum,
     default_name: &str,
-) -> proc_macro2::TokenStream {
+) -> syn::Result<proc_macro2::TokenStream> {
     let mut default_variants = Vec::new();
     let mut to_param_arms = Vec::new();
     let mut from_param_arms = Vec::new();
@@ -429,7 +475,7 @@ fn data_enum_tokens(
                     defaults,
                     to_params,
                     from_map,
-                } = named_field_tokens(fields, |field| quote!(#field));
+                } = named_field_tokens(fields, |field| quote!(#field))?;
                 let field_idents = fields.named.iter().map(|f| &f.ident);
                 (
                     quote!(vec![ #(#defaults)* ]),
@@ -449,10 +495,14 @@ fn data_enum_tokens(
                     )),
                 )
             }
-            Fields::Unnamed(_) => panic!(
-                "PlotteryEnum: variant '{}' needs named fields or exactly one PlotteryParams struct, e.g. {}(MyParams).",
-                ident, ident
-            ),
+            Fields::Unnamed(fields) => {
+                return Err(error_at(
+                    fields,
+                    format!(
+                        "PlotteryEnum: variant '{ident}' needs named fields or exactly one PlotteryParams struct, e.g. {ident}(MyParams)."
+                    ),
+                ))
+            }
         };
         default_variants.push(quote! {
             ::plottery_runtime::ProjectParamVariant::new(#variant_name, #defaults),
@@ -461,7 +511,7 @@ fn data_enum_tokens(
         from_param_arms.push(quote!(#variant_name => Ok(#construct),));
     }
 
-    quote! {
+    Ok(quote! {
         impl ::plottery_runtime::ParamField for #name {
             fn default_param_value() -> ::plottery_runtime::ProjectParamValue {
                 ::plottery_runtime::ProjectParamValue::DataEnum(
@@ -510,5 +560,7 @@ fn data_enum_tokens(
                 }
             }
         }
-    }
+    })
 }
+
+mod lib_test;
