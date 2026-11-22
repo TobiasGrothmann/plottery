@@ -18,7 +18,7 @@ use crate::{
 };
 
 /// Most rolls in one set.
-pub const MAX_ROLLS: usize = 200;
+pub const MAX_ROLLS: usize = 1000;
 
 /// Output lines kept per roll for the error of a failed one.
 const OUTPUT_TAIL: usize = 20;
