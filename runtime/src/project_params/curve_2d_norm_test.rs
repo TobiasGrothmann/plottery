@@ -59,6 +59,15 @@ mod tests {
     }
 
     #[test]
+    fn test_sample_point_dragged_onto_left_edge() {
+        let mut curve = Curve2DNorm::new(0.2, vec![V2::new(0.5, 0.8)], 1.0);
+        curve.update_point_norm(0, V2::new(-1.0, 0.8)).unwrap();
+        assert_eq!(curve.iter_points().nth(1), Some(V2::new(0.0, 0.8)));
+        assert_eq!(curve.sample(0.0), 0.2);
+        assert!(curve.sample(0.5).is_finite());
+    }
+
+    #[test]
     fn test_add_point_clamps() {
         let mut curve = Curve2DNorm::default();
         curve.add_point(V2::new(0.5, 2.0)).unwrap();
@@ -83,6 +92,7 @@ mod tests {
         assert_eq!(curve.len(), 3);
         assert!(curve.remove_point_at(10).is_err());
         assert!(curve.remove_point_at(0).is_err()); // Cannot remove endpoint
+        assert!(curve.remove_point_at(2).is_err()); // nor the last one
     }
 
     #[test]

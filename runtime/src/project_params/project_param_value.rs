@@ -8,8 +8,8 @@ use super::project_param_file::ProjectParamFile;
 use super::seed::ProjectParamSeed;
 use serde::{Deserialize, Serialize};
 
-pub use super::curve_2d::Curve2D;
-pub use super::curve_2d_norm::Curve2DNorm;
+use super::curve_2d::Curve2D;
+use super::curve_2d_norm::Curve2DNorm;
 use super::project_param_data_enum::ProjectParamDataEnum;
 use super::project_param_enum::ProjectParamEnum;
 use super::project_param_optional::ProjectParamOptional;

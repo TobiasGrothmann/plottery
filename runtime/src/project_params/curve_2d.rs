@@ -126,11 +126,6 @@ impl Curve2D {
         self.curve.update_endpoint(is_first, y_norm)
     }
 
-    /// Update a point's y value in normalized coordinates.
-    pub fn update_point_y_norm(&mut self, index: usize, y: f32) -> Result<()> {
-        self.curve.update_point_y_norm(index, y)
-    }
-
     /// Update a point's x and y values in normalized coordinates.
     pub fn update_point_norm(&mut self, index: usize, new_loc_norm: V2) -> Result<()> {
         self.curve.update_point_norm(index, new_loc_norm)

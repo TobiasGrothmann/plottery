@@ -52,6 +52,13 @@ fn parse_attribute_args(list: &syn::MetaList, expected: usize) -> Vec<Expr> {
     args.into_iter().collect()
 }
 
+fn unknown_attribute(attr: &syn::Attribute) -> ! {
+    panic!(
+        "Unknown attribute '{}'. Fields support #[value(...)], #[range(...)], #[section(...)] and #[no_pick].",
+        attr.path().to_token_stream()
+    )
+}
+
 fn parse_field_attributes(field: &Field) -> FieldAttributes {
     let mut attributes = FieldAttributes {
         value: None,
@@ -84,10 +91,7 @@ fn parse_field_attributes(field: &Field) -> FieldAttributes {
             }
         }
         let Meta::List(list) = &attr.meta else {
-            panic!(
-                "Unknown attribute '{}'. Expected #[value(...)], #[range(...)], #[section(...)] or #[no_pick].",
-                attr.path().to_token_stream()
-            );
+            unknown_attribute(attr);
         };
         if list.path.is_ident("value") {
             let args = parse_attribute_args(list, 1);
@@ -103,10 +107,7 @@ fn parse_field_attributes(field: &Field) -> FieldAttributes {
             });
             attributes.section = Some(title.value());
         } else {
-            panic!(
-                "Unknown attribute '{}'. Only #[value(...)], #[range(...)], #[section(...)] and #[no_pick] are supported for fields.",
-                list.path.to_token_stream()
-            );
+            unknown_attribute(attr);
         }
     }
 

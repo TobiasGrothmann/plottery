@@ -5,7 +5,6 @@ use std::io::{self, Read, Write};
 use std::os::unix::net::UnixStream;
 use std::path::PathBuf;
 
-use crate::project_param::ProjectParam;
 use crate::plottery_params::PlotteryParams;
 use crate::project_params_list_wrapper::ProjectParamsListWrapper;
 use crate::protocol::PROTOCOL_VERSION;
@@ -47,11 +46,15 @@ struct Args {
     command: RunCommand,
 }
 
-fn read_params_from_stdin() -> Result<Vec<ProjectParam>, Box<dyn Error>> {
+/// The params piped to stdin, or the defaults.
+fn load_params<P: PlotteryParams>(piped: bool) -> Result<P, Box<dyn Error>> {
+    if !piped {
+        return Ok(P::try_new_from_list(P::param_defaults_list())?);
+    }
     let mut buffer = Vec::new();
     io::stdin().read_to_end(&mut buffer)?;
-    let params_list_wrapper: ProjectParamsListWrapper = postcard::from_bytes(&buffer)?;
-    Ok(params_list_wrapper.list)
+    let params: ProjectParamsListWrapper = postcard::from_bytes(&buffer)?;
+    Ok(P::try_new_from_list(params.list)?)
 }
 
 pub fn run_project<P, F>(generate_function: F) -> Result<(), Box<dyn Error>>
@@ -61,58 +64,30 @@ where
 {
     let args = Args::parse();
     match args.command {
-        RunCommand::Svg { path } => match path {
-            Some(path_string) => {
-                let path = PathBuf::from(&path_string);
-                if path.is_dir() {
-                    panic!(
-                        "Failed to write .svg - Path '{}' is a directory.",
-                        path_string
-                    );
-                }
-                let art = generate_function(P::new_with_defaults());
-                art.write_svg(path)?;
+        RunCommand::Svg { path } => {
+            let open_after = path.is_none();
+            let path =
+                path.map_or_else(|| std::env::temp_dir().join("temp_cli.svg"), PathBuf::from);
+            if path.is_dir() {
+                return Err(
+                    format!("Failed to write .svg, '{}' is a directory", path.display()).into(),
+                );
             }
-            None => {
-                let path = std::env::temp_dir().join("temp_cli.svg");
-                let art = generate_function(P::new_with_defaults());
-                art.write_svg(path.clone())?;
-
-                open::that_in_background(path)
-                    .join()
-                    .expect("Failed to join background process for opening SVG")
-                    .expect("Failed to open SVG file in default viewer");
+            generate_function(load_params(false)?).write_svg(path.clone())?;
+            if open_after {
+                open::that(path)?;
             }
-        },
+        }
         RunCommand::StdOut { piped_params } => {
-            let wait_for_stdin = piped_params.unwrap_or(false);
-
-            let params = if wait_for_stdin {
-                let list = read_params_from_stdin()?;
-                P::new_from_list(list)
-            } else {
-                P::new_with_defaults()
-            };
-
-            let mut stdout = io::stdout().lock();
-            let art = generate_function(params);
-            let binary = art
-                .to_binary()
-                .expect("Failed to convert layer to binary format");
-            stdout.write_all(&binary)?;
+            let art = generate_function(load_params(piped_params.unwrap_or(false))?);
+            io::stdout().lock().write_all(&art.to_binary()?)?;
         }
         RunCommand::Socket {
             path,
             piped_params,
             frame_every,
         } => {
-            let params = if piped_params {
-                let list = read_params_from_stdin()?;
-                P::new_from_list(list)
-            } else {
-                P::new_with_defaults()
-            };
-
+            let params = load_params(piped_params)?;
             let mut stream = UnixStream::connect(&path)?;
             if let Some(every) = frame_every {
                 let mut frames = stream.try_clone()?;
@@ -125,7 +100,7 @@ where
             write_message(&mut stream, MessageKind::Final, &art)?;
         }
         RunCommand::Dry {} => {
-            generate_function(P::new_with_defaults());
+            generate_function(load_params(false)?);
         }
         RunCommand::Params {} => {
             let mut stdout = io::stdout().lock();

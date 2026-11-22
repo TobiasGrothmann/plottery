@@ -12,4 +12,4 @@ pub use plottery_runtime_macros::*;
 pub use project_main::*;
 pub use project_params::*;
 pub use protocol::PROTOCOL_VERSION;
-pub use run_stream::{write_message, MessageKind};
+pub use run_stream::MessageKind;

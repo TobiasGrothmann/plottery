@@ -33,7 +33,7 @@ impl Curve2DNorm {
             point.y = point.y.clamp(0.0, 1.0);
         }
 
-        points.sort_by(|a, b| a.x.partial_cmp(&b.x).unwrap());
+        points.sort_by(|a, b| a.x.total_cmp(&b.x));
         points.retain(|p| p.x > 0.0 && p.x < 1.0);
 
         Self {
@@ -66,6 +66,10 @@ impl Curve2DNorm {
 
         for point in self.iter_points().skip(1) {
             if x <= point.x {
+                // a point on the left edge leaves a segment without width
+                if point.x <= prev_x {
+                    return prev_y;
+                }
                 let t = (x - prev_x) / (point.x - prev_x);
                 return prev_y + (point.y - prev_y) * t;
             }
@@ -88,38 +92,22 @@ impl Curve2DNorm {
 
         let index = self
             .points
-            .binary_search_by(|p| p.x.partial_cmp(&clamped.x).unwrap())
+            .binary_search_by(|p| p.x.total_cmp(&clamped.x))
             .unwrap_or_else(|i| i);
         self.points.insert(index, clamped);
         Ok(())
     }
 
     pub fn remove_point_at(&mut self, index: usize) -> Result<()> {
-        if index == 0 {
-            return Err(anyhow::anyhow!(
-                "Cannot remove point at index {}, endpoints are not removable",
-                index
-            ));
-        }
-        if index >= self.len() - 1 {
+        if index == 0 || index >= self.len() - 1 {
             return Err(anyhow::anyhow!(
                 "Cannot remove point at index {} (of {}), endpoints are not removable",
                 index,
                 self.len()
             ));
         }
-
-        let index_without_endpoints = index - 1;
-        if index_without_endpoints < self.points.len() {
-            self.points.remove(index_without_endpoints);
-            Ok(())
-        } else {
-            Err(anyhow::anyhow!(
-                "Cannot remove point at index {}, only {} points exist (excluding endpoints)",
-                index,
-                self.points.len()
-            ))
-        }
+        self.points.remove(index - 1);
+        Ok(())
     }
 
     pub fn update_endpoint(&mut self, is_first: bool, y: f32) {
@@ -128,15 +116,6 @@ impl Curve2DNorm {
         } else {
             self.y_last = y.clamp(0.0, 1.0);
         }
-    }
-
-    pub fn update_point_y_norm(&mut self, index: usize, y: f32) -> Result<()> {
-        if index >= self.points.len() {
-            return Err(anyhow::anyhow!("Point index {} out of bounds", index));
-        }
-
-        self.points[index].y = y.clamp(0.0, 1.0);
-        Ok(())
     }
 
     pub fn update_point_norm(&mut self, index: usize, new_loc_norm: V2) -> Result<()> {

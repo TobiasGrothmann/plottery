@@ -13,7 +13,11 @@ pub enum MessageKind {
 }
 
 /// Project side: sends `layer` as one message.
-pub fn write_message(stream: &mut impl Write, kind: MessageKind, layer: &Layer) -> Result<()> {
+pub(crate) fn write_message(
+    stream: &mut impl Write,
+    kind: MessageKind,
+    layer: &Layer,
+) -> Result<()> {
     let binary = layer.to_binary()?;
     let mut header = [kind as u8; 9];
     header[1..].copy_from_slice(&(binary.len() as u64).to_le_bytes());
