@@ -4316,7 +4316,7 @@ checksum = "f6b464fbc74e149a392436b17d523f769e057cb6877f6a5c4618bc6f11800548"
 
 [[package]]
 name = "plottery_cli"
-version = "0.22.0"
+version = "0.23.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -4331,7 +4331,7 @@ dependencies = [
 
 [[package]]
 name = "plottery_editor"
-version = "0.22.0"
+version = "0.23.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -4359,11 +4359,11 @@ dependencies = [
 
 [[package]]
 name = "plottery_fonts"
-version = "0.22.0"
+version = "0.23.0"
 
 [[package]]
 name = "plottery_lib"
-version = "0.22.0"
+version = "0.23.0"
 dependencies = [
  "anyhow",
  "fastnoise-lite",
@@ -4388,7 +4388,7 @@ dependencies = [
 
 [[package]]
 name = "plottery_project"
-version = "0.22.0"
+version = "0.23.0"
 dependencies = [
  "anyhow",
  "async-io",
@@ -4415,7 +4415,7 @@ dependencies = [
 
 [[package]]
 name = "plottery_runtime"
-version = "0.22.0"
+version = "0.23.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -4428,7 +4428,7 @@ dependencies = [
 
 [[package]]
 name = "plottery_runtime_macros"
-version = "0.22.0"
+version = "0.23.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4437,7 +4437,7 @@ dependencies = [
 
 [[package]]
 name = "plottery_server"
-version = "0.22.0"
+version = "0.23.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -4450,7 +4450,7 @@ dependencies = [
 
 [[package]]
 name = "plottery_server_lib"
-version = "0.22.0"
+version = "0.23.0"
 dependencies = [
  "anyhow",
  "itertools 0.15.0",
