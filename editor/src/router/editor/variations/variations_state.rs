@@ -24,6 +24,8 @@ pub struct VariationsState {
     pub count: Signal<usize>,
     /// Id of the roll that is running.
     pub rolling: SyncSignal<Option<u64>>,
+    /// Scroll position of the grid, kept while the edit view is shown.
+    pub scroll_top: Signal<f64>,
 }
 
 pub fn use_variations_state() -> VariationsState {
@@ -33,6 +35,7 @@ pub fn use_variations_state() -> VariationsState {
         selected: use_signal(BTreeSet::new),
         count: use_signal(|| 24),
         rolling: use_signal_sync(|| None),
+        scroll_top: use_signal(|| 0.0),
     }
 }
 

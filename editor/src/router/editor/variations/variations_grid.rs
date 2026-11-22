@@ -1,4 +1,6 @@
-use dioxus::prelude::*;
+use std::rc::Rc;
+
+use dioxus::{html::geometry::PixelsVector2D, prelude::*};
 use plottery_runtime::project_params_list_wrapper::ProjectParamsListWrapper;
 
 use super::{
@@ -16,6 +18,33 @@ use crate::{
 pub fn VariationsGrid() -> Element {
     let ctx = use_context::<EditorCtx>();
     use_variations_watch(ctx);
+    let mut scroll_top = ctx.variations.scroll_top;
+    let mut scroller: Signal<Option<Rc<MountedData>>> = use_signal(|| None);
+    let mut restored = use_signal(|| false);
+    // back from the edit view: scroll to where the grid was, once its tiles are there
+    use_effect(move || {
+        let has_tiles = ctx
+            .variations
+            .variations
+            .read()
+            .as_ref()
+            .is_some_and(|variations| !variations.rolls.is_empty());
+        let Some(element) = scroller() else {
+            return;
+        };
+        if !has_tiles || *restored.peek() {
+            return;
+        }
+        restored.set(true);
+        let top = *scroll_top.peek();
+        if top > 0.0 {
+            spawn(async move {
+                let _ = element
+                    .scroll(PixelsVector2D::new(0.0, top), ScrollBehavior::Instant)
+                    .await;
+            });
+        }
+    });
     let app_state = use_context::<Signal<AppState>>();
     let tile_size = app_state.read().roll_tile_size;
     let project = ctx.project.read().clone();
@@ -61,7 +90,11 @@ pub fn VariationsGrid() -> Element {
         style { {include_str!("./variations.css")} }
         div { class: "variations",
             RollPanel {}
-            div { class: "variations-scroll", style: "--tile-size: {tile_size}px;",
+            div {
+                class: "variations-scroll",
+                style: "--tile-size: {tile_size}px;",
+                onmounted: move |event| scroller.set(Some(event.data())),
+                onscroll: move |event| scroll_top.set(event.data().scroll_top()),
                 if let Some(tiles) = tiles {
                     div { class: "grid_cards", {tiles.into_iter()} }
                 } else {
