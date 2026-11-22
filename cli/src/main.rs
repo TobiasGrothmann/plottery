@@ -15,9 +15,13 @@ use plottery_project::{
 use plottery_runtime::project_params_list_wrapper::ProjectParamsListWrapper;
 use std::{
     cell::RefCell,
-    future::{pending, poll_fn},
+    future::{pending, poll_fn, Future},
     path::{Path, PathBuf},
-    task::Poll,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Mutex,
+    },
+    task::{Poll, Waker},
 };
 
 use animate::{VideoFormat, VideoOptions, VideoWriter};
@@ -392,6 +396,29 @@ fn build_and_resolve_params(
 }
 
 /// The editor app, or an error that says how to get it.
+static INTERRUPTED: AtomicBool = AtomicBool::new(false);
+static INTERRUPT_WAKER: Mutex<Option<Waker>> = Mutex::new(None);
+
+/// Catches Ctrl-C from now on: the first one resolves the future, a second one exits.
+fn interrupted() -> Result<impl Future<Output = ()>> {
+    ctrlc::set_handler(|| {
+        if INTERRUPTED.swap(true, Ordering::SeqCst) {
+            std::process::exit(130);
+        }
+        if let Some(waker) = INTERRUPT_WAKER.lock().unwrap().take() {
+            waker.wake();
+        }
+    })
+    .context("Could not listen for Ctrl-C")?;
+    Ok(poll_fn(|cx| {
+        *INTERRUPT_WAKER.lock().unwrap() = Some(cx.waker().clone());
+        match INTERRUPTED.load(Ordering::SeqCst) {
+            true => Poll::Ready(()),
+            false => Poll::Pending,
+        }
+    }))
+}
+
 fn check_editor_available() -> Result<PathBuf> {
     if !cfg!(target_os = "macos") {
         bail!("Opening the editor needs the Plottery Editor, which runs on macOS only");
@@ -515,8 +542,14 @@ pub fn main() -> Result<()> {
                         eprintln!("{done}/{total} done (roll {index})")
                     }
                 },
-                pending(),
-            ))?;
+                interrupted()?,
+            ));
+            let stopped = INTERRUPTED.load(Ordering::SeqCst);
+            // Ctrl-C reaches the running rolls too, which can end them as failed
+            let outcome = match outcome {
+                Err(e) if !stopped => return Err(e),
+                outcome => outcome.ok(),
+            };
             let variations = project
                 .load_variations()?
                 .context("The variations are gone")?;
@@ -530,6 +563,12 @@ pub fn main() -> Result<()> {
                 let png = project.get_roll_path(roll.index, "png");
                 println!("{:>3}  {values}  {}", roll.index, png.display());
             }
+            let Some(outcome) = outcome.filter(|_| !stopped) else {
+                bail!(
+                    "Stopped. The finished rolls are in '{}'.",
+                    project.get_variations_dir().display()
+                );
+            };
             println!(
                 "Rolled '{}' {} times, the results are in '{}'. `plottery pick N` makes roll N the saved values.",
                 project.config.name,
