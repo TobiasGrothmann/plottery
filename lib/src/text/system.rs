@@ -8,7 +8,23 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use skrifa::font::{attribute::Style, name::NameId, Blob};
 
-use super::{outline_font::name, Font, FontStyle};
+use super::{outline_font::name, Font};
+
+/// Requested style for system font lookup; `weight` is CSS-like, 400 regular, 700 bold.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct FontStyle {
+    pub weight: f32,
+    pub italic: bool,
+}
+
+impl Default for FontStyle {
+    fn default() -> Self {
+        Self {
+            weight: 400.0,
+            italic: false,
+        }
+    }
+}
 
 /// An installed font by family and style, looked up on the machine that runs the code.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -180,13 +196,6 @@ fn system_font_dirs() -> Vec<PathBuf> {
         .map(PathBuf::from)
         .chain(home().map(|home| home.join("Library/Fonts")))
         .collect()
-    } else if cfg!(target_os = "windows") {
-        std::iter::once(PathBuf::from(r"C:\Windows\Fonts"))
-            .chain(
-                std::env::var_os("LOCALAPPDATA")
-                    .map(|local| PathBuf::from(local).join(r"Microsoft\Windows\Fonts")),
-            )
-            .collect()
     } else {
         ["/usr/share/fonts", "/usr/local/share/fonts"]
             .iter()

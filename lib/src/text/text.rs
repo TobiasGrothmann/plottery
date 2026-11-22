@@ -3,8 +3,9 @@ use std::ops::Range;
 use anyhow::Result;
 
 use super::{
-    layout::{block_y_offset, break_lines, break_lines_balanced, line_width, line_x_offset, union},
-    Font, PlacedGlyph, PositionedGlyph, TextAlign, TextLayout, TextLine, VerticalAlign, Wrap,
+    layout::{block_y_offset, break_lines, break_lines_balanced, line_width, line_x_offset},
+    Font, FontMetrics, PlacedGlyph, PositionedGlyph, TextAlign, TextLayout, TextLine,
+    VerticalAlign, Wrap,
 };
 use crate::{Angle, BoundingBox, Layer, Rect, Rotate, SampleSettings, Spline, Translate, V2};
 
@@ -47,6 +48,18 @@ enum Anchor {
 enum Fit {
     Width(f32),
     Rect(Rect),
+}
+
+/// Halvings of the em size range when fitting a rect, enough for f32.
+const FIT_BISECTION_STEPS: usize = 24;
+/// Capital height in em for fonts that don't state it.
+const FALLBACK_CAP_HEIGHT_EM: f32 = 0.7;
+
+/// The paragraphs shaped at em size 1 with the font's measures at that size.
+struct Shaped {
+    paragraphs: Vec<Vec<Token>>,
+    space_advance: f32,
+    metrics_1: FontMetrics,
 }
 
 /// A word, word part or character shaped at em size 1, followed by `spaces` space characters.
@@ -105,7 +118,11 @@ impl Text {
 
     /// Em size such that the font's capitals are `cap_height` tall (0.7 em if the font does not say).
     pub fn with_cap_height(self, cap_height: f32) -> Self {
-        let cap_per_em = self.font.metrics(1.0).cap_height.unwrap_or(0.7);
+        let cap_per_em = self
+            .font
+            .metrics(1.0)
+            .cap_height
+            .unwrap_or(FALLBACK_CAP_HEIGHT_EM);
         self.with_size(cap_height / cap_per_em)
     }
 
@@ -175,102 +192,30 @@ impl Text {
     }
 
     pub fn layout(&self) -> Result<TextLayout> {
-        let spacing = self.letter_spacing;
-        let space_advance: f32 = self
-            .font
-            .shape(" ", 1.0)?
-            .iter()
-            .map(|glyph| glyph.advance)
-            .sum();
-        let paragraphs: Vec<Vec<Token>> = self
-            .text
-            .replace('\r', "")
-            .split('\n')
-            .map(|paragraph| self.tokenize(paragraph))
-            .collect::<Result<_>>()?;
-
-        // (width, glue_after) of every token of a paragraph at an em size
-        let measure = |tokens: &[Token], size: f32| -> Vec<(f32, f32)> {
-            tokens
+        let shaped = Shaped {
+            paragraphs: self
+                .text
+                .replace('\r', "")
+                .split('\n')
+                .map(|paragraph| self.tokenize(paragraph))
+                .collect::<Result<_>>()?,
+            space_advance: self
+                .font
+                .shape(" ", 1.0)?
                 .iter()
-                .map(|token| {
-                    let width = token.advance() * size
-                        + spacing * token.glyphs.len().saturating_sub(1) as f32;
-                    let glue = spacing + token.spaces as f32 * (space_advance * size + spacing);
-                    (width, glue)
-                })
-                .collect()
+                .map(|glyph| glyph.advance)
+                .sum(),
+            metrics_1: self.font.metrics(1.0),
         };
-        let rect = match self.anchor {
-            Anchor::Rect(rect) => Some(rect),
-            Anchor::Point(_) => None,
-        };
-        let max_width = match self.fit {
-            Some(Fit::Width(_)) => None,
-            Some(Fit::Rect(fit_rect)) => self.max_width.or(Some(fit_rect.width())),
-            None => self.max_width.or(rect.map(|rect| rect.width())),
-        };
-        let break_paragraph = |tokens: &[(f32, f32)]| -> Vec<Range<usize>> {
-            match (self.wrap, max_width) {
-                (Wrap::Balanced, Some(max_width)) => break_lines_balanced(tokens, max_width),
-                _ => break_lines(tokens, max_width),
-            }
-        };
-        let metrics_1 = self.font.metrics(1.0);
-        let block_height = |size: f32, lines: usize| {
-            (metrics_1.ascender - metrics_1.descender) * size
-                + lines.saturating_sub(1) as f32 * self.line_spacing * size
-        };
+        let max_width = self.max_width();
+        let size = self.fit_size(&shaped, max_width);
 
-        let size = match self.fit {
-            None => self.size,
-            Some(Fit::Width(target)) => paragraphs
-                .iter()
-                .filter_map(|tokens| {
-                    let advance: f32 = tokens
-                        .iter()
-                        .map(|token| token.advance() + token.spaces as f32 * space_advance)
-                        .sum();
-                    let glyphs: usize = tokens
-                        .iter()
-                        .map(|token| token.glyphs.len() + token.spaces)
-                        .sum();
-                    (advance > 0.0)
-                        .then(|| (target - spacing * glyphs.saturating_sub(1) as f32) / advance)
-                })
-                .min_by(f32::total_cmp)
-                .unwrap_or(self.size),
-            Some(Fit::Rect(rect)) => {
-                let fits = |size: f32| {
-                    let (lines, widest) = paragraphs.iter().fold((0, 0.0_f32), |acc, tokens| {
-                        let measured = measure(tokens, size);
-                        break_paragraph(&measured).into_iter().fold(
-                            acc,
-                            |(lines, widest), range| {
-                                (lines + 1, widest.max(line_width(&measured, range)))
-                            },
-                        )
-                    });
-                    widest <= rect.width() && block_height(size, lines) <= rect.height()
-                };
-                let (mut low, mut high) = (0.0, block_height(1.0, 1).recip() * rect.height());
-                for _ in 0..24 {
-                    let mid = (low + high) / 2.0;
-                    if fits(mid) {
-                        low = mid;
-                    } else {
-                        high = mid;
-                    }
-                }
-                low
-            }
-        };
-
-        let measured: Vec<Measured> = paragraphs
+        let measured: Vec<Measured> = shaped
+            .paragraphs
             .iter()
             .map(|tokens| {
-                let widths = measure(tokens, size);
-                let lines = break_paragraph(&widths);
+                let widths = self.measure(&shaped, tokens, size);
+                let lines = self.break_paragraph(&widths, max_width);
                 Measured {
                     tokens,
                     widths,
@@ -294,9 +239,126 @@ impl Text {
             })
             .collect();
 
-        let metrics = metrics_1.scale(size);
-        let line_height = self.line_spacing * size;
-        let anchor = match self.anchor {
+        let anchor = self.anchor_point();
+        let (mut glyphs, mut placed_lines) =
+            self.place_lines(&lines, &shaped, size, max_width, anchor);
+
+        if self.rotation.to_rad() != 0.0 {
+            for placed in &mut glyphs {
+                placed.glyph = placed.glyph.rotate_around(anchor, self.rotation);
+            }
+            for line in &mut placed_lines {
+                line.origin = line.origin.rotate_around(anchor, self.rotation);
+            }
+        }
+
+        let bounds = glyphs
+            .iter()
+            .filter_map(|placed| placed.glyph.bounding_box())
+            .reduce(|a, b| a.union(&b));
+
+        Ok(TextLayout {
+            glyphs,
+            lines: placed_lines,
+            bounds,
+        })
+    }
+
+    /// `(width, glue_after)` of every token of a paragraph at em size `size`.
+    fn measure(&self, shaped: &Shaped, tokens: &[Token], size: f32) -> Vec<(f32, f32)> {
+        let spacing = self.letter_spacing;
+        tokens
+            .iter()
+            .map(|token| {
+                let width =
+                    token.advance() * size + spacing * token.glyphs.len().saturating_sub(1) as f32;
+                let glue = spacing + token.spaces as f32 * (shaped.space_advance * size + spacing);
+                (width, glue)
+            })
+            .collect()
+    }
+
+    /// Where lines wrap: the explicit max width, else the fit or anchor rect's width; no wrapping for [`Text::fit_width`].
+    fn max_width(&self) -> Option<f32> {
+        match (self.fit, self.anchor) {
+            (Some(Fit::Width(_)), _) => None,
+            (Some(Fit::Rect(rect)), _) | (None, Anchor::Rect(rect)) => {
+                self.max_width.or(Some(rect.width()))
+            }
+            (None, Anchor::Point(_)) => self.max_width,
+        }
+    }
+
+    fn break_paragraph(&self, widths: &[(f32, f32)], max_width: Option<f32>) -> Vec<Range<usize>> {
+        match (self.wrap, max_width) {
+            (Wrap::Balanced, Some(max_width)) => break_lines_balanced(widths, max_width),
+            _ => break_lines(widths, max_width),
+        }
+    }
+
+    /// Height of `lines` lines from the first ascender to the last descender.
+    fn block_height(&self, metrics_1: &FontMetrics, size: f32, lines: usize) -> f32 {
+        (metrics_1.ascender - metrics_1.descender) * size
+            + lines.saturating_sub(1) as f32 * self.line_spacing * size
+    }
+
+    /// The em size: as set, or found by [`Text::fit_width`] or [`Text::fit_inside`].
+    fn fit_size(&self, shaped: &Shaped, max_width: Option<f32>) -> f32 {
+        let spacing = self.letter_spacing;
+        match self.fit {
+            None => self.size,
+            Some(Fit::Width(target)) => shaped
+                .paragraphs
+                .iter()
+                .filter_map(|tokens| {
+                    let advance: f32 = tokens
+                        .iter()
+                        .map(|token| token.advance() + token.spaces as f32 * shaped.space_advance)
+                        .sum();
+                    let glyphs: usize = tokens
+                        .iter()
+                        .map(|token| token.glyphs.len() + token.spaces)
+                        .sum();
+                    (advance > 0.0)
+                        .then(|| (target - spacing * glyphs.saturating_sub(1) as f32) / advance)
+                })
+                .min_by(f32::total_cmp)
+                .unwrap_or(self.size),
+            Some(Fit::Rect(rect)) => {
+                let fits = |size: f32| {
+                    let (lines, widest) =
+                        shaped.paragraphs.iter().fold((0, 0.0_f32), |acc, tokens| {
+                            let measured = self.measure(shaped, tokens, size);
+                            self.break_paragraph(&measured, max_width).into_iter().fold(
+                                acc,
+                                |(lines, widest), range| {
+                                    (lines + 1, widest.max(line_width(&measured, range)))
+                                },
+                            )
+                        });
+                    widest <= rect.width()
+                        && self.block_height(&shaped.metrics_1, size, lines) <= rect.height()
+                };
+                let (mut low, mut high) = (
+                    0.0,
+                    self.block_height(&shaped.metrics_1, 1.0, 1).recip() * rect.height(),
+                );
+                for _ in 0..FIT_BISECTION_STEPS {
+                    let mid = (low + high) / 2.0;
+                    if fits(mid) {
+                        low = mid;
+                    } else {
+                        high = mid;
+                    }
+                }
+                low
+            }
+        }
+    }
+
+    /// The point lines are aligned to, see [`Text::at`] and [`Text::in_rect`].
+    fn anchor_point(&self) -> V2 {
+        match self.anchor {
             Anchor::Point(point) => point,
             Anchor::Rect(rect) => V2::new(
                 match self.align {
@@ -310,7 +372,21 @@ impl Text {
                     VerticalAlign::Bottom | VerticalAlign::Baseline => rect.bl().y,
                 },
             ),
-        };
+        }
+    }
+
+    /// Glyphs and lines placed relative to `anchor`, justified lines stretched, before rotation.
+    fn place_lines(
+        &self,
+        lines: &[LineBreak],
+        shaped: &Shaped,
+        size: f32,
+        max_width: Option<f32>,
+        anchor: V2,
+    ) -> (Vec<PlacedGlyph>, Vec<TextLine>) {
+        let spacing = self.letter_spacing;
+        let metrics = shaped.metrics_1.scale(size);
+        let line_height = self.line_spacing * size;
         let first_baseline = match (self.anchor, self.vertical_align) {
             (Anchor::Rect(_), VerticalAlign::Baseline) => {
                 lines.len().saturating_sub(1) as f32 * line_height
@@ -366,26 +442,7 @@ impl Text {
                 glyphs: start..glyphs.len(),
             });
         }
-
-        if self.rotation.to_rad() != 0.0 {
-            for placed in &mut glyphs {
-                placed.glyph = placed.glyph.rotate_around(anchor, self.rotation);
-            }
-            for line in &mut placed_lines {
-                line.origin = line.origin.rotate_around(anchor, self.rotation);
-            }
-        }
-
-        let bounds = glyphs
-            .iter()
-            .filter_map(|placed| placed.glyph.bounding_box())
-            .reduce(union);
-
-        Ok(TextLayout {
-            glyphs,
-            lines: placed_lines,
-            bounds,
-        })
+        (glyphs, placed_lines)
     }
 
     /// Words and word parts ending in a hyphen, or single characters for [`Wrap::Anywhere`].

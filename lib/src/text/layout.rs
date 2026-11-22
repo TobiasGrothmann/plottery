@@ -190,7 +190,3 @@ pub(crate) fn block_y_offset(
         VerticalAlign::Center => (top + bottom) / 2.0,
     }
 }
-
-pub(crate) fn union(a: Rect, b: Rect) -> Rect {
-    Rect::new(a.bl().min(b.bl()), a.tr().max(b.tr()))
-}

@@ -44,6 +44,14 @@ mod test_rect {
     }
 
     #[test]
+    fn scale_mut_by_a_negative_factor_keeps_corners_sorted() {
+        let mut r = Rect::new(V2::new(1.0, 2.0), V2::new(4.0, 4.0));
+        r.scale_mut(-1.0);
+        assert_eq!(r, Rect::new(V2::new(-4.0, -4.0), V2::new(-1.0, -2.0)));
+        assert!(r.width() > 0.0 && r.height() > 0.0);
+    }
+
+    #[test]
     fn rotate_bl_tr_order() {
         let mut r = Rect::new(V2::new(1.0, 2.0), V2::new(4.0, 4.0));
         r.rotate_180_mut();

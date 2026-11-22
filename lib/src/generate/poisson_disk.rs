@@ -2,7 +2,7 @@ use std::f32::consts::TAU;
 
 use rand::{rngs::StdRng, RngExt, SeedableRng};
 
-use crate::{maths::RNG, Angle, Plottable, Rect, SpatialGrid, V2};
+use crate::{maths::random::rand_seed, Angle, Plottable, Rect, SpatialGrid, V2};
 
 /// Evenly spaced random points (blue noise) in a rect, with an optional spacing that varies by position.
 ///
@@ -53,8 +53,7 @@ impl<'a> PoissonDisk<'a> {
     /// The points in insertion order, all inside the bounds.
     pub fn points(&self) -> Vec<V2> {
         // one draw from the global RNG keeps it reproducible, a local RNG keeps the loop lock-free
-        let mut rng =
-            StdRng::seed_from_u64(RNG.lock().expect("Failed to acquire RNG lock").random());
+        let mut rng = StdRng::seed_from_u64(rand_seed());
         let first = self.bounds.bl() + self.bounds.size() * V2::new(rng.random(), rng.random());
         let mut points = vec![first];
         let mut radii = vec![self.dist_at(first)];

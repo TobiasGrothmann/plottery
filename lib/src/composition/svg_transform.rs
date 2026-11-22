@@ -1,12 +1,10 @@
 use svg::node::Attributes;
 
+use super::svg_path_data::svg_numbers;
 use crate::{TransformMatrix, V2};
 
-pub(crate) fn iter_svg_f32_tokens(input: &str) -> impl Iterator<Item = f32> + '_ {
-    input
-        .split(|c: char| c == ',' || c.is_ascii_whitespace())
-        .filter(|token| !token.is_empty())
-        .filter_map(|token| token.parse::<f32>().ok())
+pub(crate) fn iter_svg_f32_tokens(input: &str) -> impl Iterator<Item = f32> {
+    svg_numbers(input)
 }
 
 pub(crate) fn parse_svg_transform_attr(attributes: &Attributes) -> Option<TransformMatrix> {

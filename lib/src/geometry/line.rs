@@ -1,4 +1,3 @@
-use geometry_predicates::orient2d;
 use itertools::Itertools;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -102,11 +101,11 @@ impl Line {
     ///
     /// If you need to check membership on the finite segment, use [`Self::contains_point_on_segment`].
     pub fn point_relation(&self, point: V2) -> PointLineRelation {
-        let orientation = orient2d(
-            [self.from.x as f64, self.from.y as f64],
-            [self.to.x as f64, self.to.y as f64],
-            [point.x as f64, point.y as f64],
-        );
+        // twice the signed area of the triangle, positive if `point` is to the left
+        let f64s = |p: V2| (p.x as f64, p.y as f64);
+        let (from, to, point) = (f64s(self.from), f64s(self.to), f64s(point));
+        let orientation =
+            (from.0 - point.0) * (to.1 - point.1) - (from.1 - point.1) * (to.0 - point.0);
         if orientation >= AREA_TOLERANCE as f64 {
             return PointLineRelation::Left;
         } else if orientation <= -AREA_TOLERANCE as f64 {
@@ -130,43 +129,21 @@ impl Line {
             return LineIntersection::Intersection(self.to);
         }
 
-        let x1 = self.from.x;
-        let y1 = self.from.y;
-        let x2 = self.to.x;
-        let y2 = self.to.y;
-
-        let x3 = other.from.x;
-        let y3 = other.from.y;
-        let x4 = other.to.x;
-        let y4 = other.to.y;
-
-        let denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-
-        if denom == 0.0 {
-            return LineIntersection::NoIntersection; // Lines are parallel
-        }
-
-        let num_x = (x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4);
-        let num_y = (x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4);
-
-        let x = num_x / denom;
-        let y = num_y / denom;
-
-        // Check if the intersection point lies on both line segments
-        // by verifying both x and y coordinates are within bounds
-        if x < f32::min(x1, x2) - LENGTH_TOLERANCE
-            || x > f32::max(x1, x2) + LENGTH_TOLERANCE
-            || x < f32::min(x3, x4) - LENGTH_TOLERANCE
-            || x > f32::max(x3, x4) + LENGTH_TOLERANCE
-            || y < f32::min(y1, y2) - LENGTH_TOLERANCE
-            || y > f32::max(y1, y2) + LENGTH_TOLERANCE
-            || y < f32::min(y3, y4) - LENGTH_TOLERANCE
-            || y > f32::max(y3, y4) + LENGTH_TOLERANCE
-        {
+        let LineIntersection::Intersection(point) = self.intersection_as_inf_lines(&other) else {
             return LineIntersection::NoIntersection;
+        };
+        // the point has to lie on both segments
+        let within = |line: &Line| {
+            point.x >= line.from.x.min(line.to.x) - LENGTH_TOLERANCE
+                && point.x <= line.from.x.max(line.to.x) + LENGTH_TOLERANCE
+                && point.y >= line.from.y.min(line.to.y) - LENGTH_TOLERANCE
+                && point.y <= line.from.y.max(line.to.y) + LENGTH_TOLERANCE
+        };
+        if within(self) && within(&other) {
+            LineIntersection::Intersection(point)
+        } else {
+            LineIntersection::NoIntersection
         }
-
-        LineIntersection::Intersection(V2::new(x, y))
     }
 
     /// Checks for an intersection between this line and another, treating both as infinite lines.

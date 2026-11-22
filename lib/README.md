@@ -155,9 +155,11 @@ let noise = Noise::perlin().with_frequency(0.3);
 let points = PoissonDisk::new(bounds, 0.1)
     .with_density_fn(0.5, noise.as_fn())
     .points();
+# #[cfg(feature = "voronoi")] {
 let smooth = Voronoi::new(&points, bounds).relax_weighted(2, noise.as_fn()).sites();
 
 let dots: Layer = smooth.iter().map(|p| Circle::new_shape(*p, 0.03)).collect();
+# }
 ```
 
 ## Text

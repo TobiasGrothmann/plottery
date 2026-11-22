@@ -72,7 +72,7 @@ impl BoundingBox for Glyph {
         self.contours
             .iter()
             .filter_map(Spline::bounding_box)
-            .reduce(|a, b| Rect::new(a.bl().min(b.bl()), a.tr().max(b.tr())))
+            .reduce(|a, b| a.union(&b))
     }
 }
 

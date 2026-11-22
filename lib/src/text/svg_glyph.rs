@@ -1,18 +1,11 @@
 use std::io::Read;
 
 use anyhow::{bail, Context, Result};
-use svg::{
-    node::{element::tag::Type as SvgTagType, Attributes},
-    parser::Event,
-};
+use svg::{node::element::tag::Type as SvgTagType, parser::Event};
 
 use crate::{
-    composition::{
-        svg_path_data::parse_svg_path_data,
-        svg_transform::{iter_svg_f32_tokens, parse_svg_transform_attr},
-    },
-    shapes::spline::sink::SplineSink,
-    Spline, Transform, TransformMatrix, V2,
+    composition::{svg_elements::element_contours, svg_transform::parse_svg_transform_attr},
+    Spline, Transform, TransformMatrix,
 };
 
 /// Contours of one OpenType `SVG ` table document in font units, y-up.
@@ -66,39 +59,4 @@ pub(crate) fn parse_svg_glyph(document: &[u8]) -> Result<Vec<Spline>> {
         );
     }
     Ok(contours)
-}
-
-fn element_contours(tag: &str, attributes: &Attributes) -> Vec<Spline> {
-    let attr = |key: &str| attributes.get(key).map(|value| value.to_string());
-    let number = |key: &str| attr(key).and_then(|value| value.trim().parse::<f32>().ok());
-    match tag {
-        "path" => attr("d").map_or_else(Vec::new, |data| parse_svg_path_data(&data)),
-        "line" => match (number("x1"), number("y1"), number("x2"), number("y2")) {
-            (Some(x1), Some(y1), Some(x2), Some(y2)) => {
-                let mut sink = SplineSink::new();
-                sink.move_to(V2::new(x1, y1));
-                sink.line_to(V2::new(x2, y2));
-                sink.finish()
-            }
-            _ => Vec::new(),
-        },
-        "polyline" | "polygon" => {
-            let points = attr("points").unwrap_or_default();
-            let values: Vec<f32> = iter_svg_f32_tokens(&points).collect();
-            let mut sink = SplineSink::new();
-            for (i, pair) in values.chunks_exact(2).enumerate() {
-                let point = V2::new(pair[0], pair[1]);
-                if i == 0 {
-                    sink.move_to(point);
-                } else {
-                    sink.line_to(point);
-                }
-            }
-            if tag == "polygon" {
-                sink.close();
-            }
-            sink.finish()
-        }
-        _ => Vec::new(),
-    }
 }

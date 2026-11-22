@@ -6,8 +6,17 @@ use svg::{
     parser::Event,
 };
 
-use super::{FontMetrics, Glyph, GlyphId, PositionedGlyph};
-use crate::{composition::svg_path_data::parse_svg_path_data, Scale, Spline};
+use super::{
+    metrics::{DEFAULT_UNITS_PER_EM, FALLBACK_ASCENDER_EM, FALLBACK_DESCENDER_EM},
+    FontMetrics, Glyph, GlyphId, PositionedGlyph,
+};
+use crate::{
+    composition::{
+        svg_elements::{attr, attr_f32},
+        svg_path_data::parse_svg_path_data,
+    },
+    Scale, Spline,
+};
 
 /// Single-stroke SVG 1.1 font (Hershey, EMS); font units, y-up, index 0 is the missing glyph.
 pub(crate) struct StrokeFont {
@@ -39,7 +48,7 @@ impl StrokeFont {
         let mut seen_font = false;
         let mut id_name = None;
         let mut family = None;
-        let mut units_per_em = 1000.0;
+        let mut units_per_em = DEFAULT_UNITS_PER_EM;
         let mut ascent = None;
         let mut descent = None;
         let mut cap_height = None;
@@ -69,7 +78,8 @@ impl StrokeFont {
                 }
                 "font-face" => {
                     family = attr(&attributes, "font-family").map(decode_xml_entities);
-                    units_per_em = attr_f32(&attributes, "units-per-em").unwrap_or(1000.0);
+                    units_per_em =
+                        attr_f32(&attributes, "units-per-em").unwrap_or(DEFAULT_UNITS_PER_EM);
                     ascent = attr_f32(&attributes, "ascent");
                     descent = attr_f32(&attributes, "descent");
                     cap_height = attr_f32(&attributes, "cap-height");
@@ -131,8 +141,10 @@ impl StrokeFont {
             advance: default_advance,
             contours: Vec::new(),
         });
-        let ascender = ascent.unwrap_or(units_per_em * 0.8);
-        let descender = descent.map_or(-units_per_em * 0.2, |descent| -descent.abs());
+        let ascender = ascent.unwrap_or(units_per_em * FALLBACK_ASCENDER_EM);
+        let descender = descent.map_or(-units_per_em * FALLBACK_DESCENDER_EM, |descent| {
+            -descent.abs()
+        });
 
         Ok(StrokeFont {
             family: family.or(id_name),
@@ -216,14 +228,6 @@ impl StrokeGlyph {
             contours: attr(attributes, "d").map_or_else(Vec::new, parse_svg_path_data),
         }
     }
-}
-
-fn attr<'a>(attributes: &'a Attributes, key: &str) -> Option<&'a str> {
-    attributes.get(key).map(|value| &**value)
-}
-
-fn attr_f32(attributes: &Attributes, key: &str) -> Option<f32> {
-    attr(attributes, key)?.trim().parse().ok()
 }
 
 fn single_char(text: &str) -> Option<char> {

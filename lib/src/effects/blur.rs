@@ -141,15 +141,7 @@ impl Blur<'_> {
 
     /// Shapes are numbered depth first, each gets its own seed from that number.
     fn blur_layer_from(&self, layer: &Layer, seed: u64, index: &mut u64) -> Layer {
-        let shapes = self.blur_shapes(&layer.shapes, seed, index);
-        let sublayers = layer
-            .sublayers
-            .iter()
-            .map(|sublayer| self.blur_layer_from(sublayer, seed, index))
-            .collect();
-        Layer::new_from_shapes_and_layers(shapes, sublayers)
-            .with_props_inheritable(layer.props_inheritable.clone())
-            .with_props(layer.props.clone())
+        layer.map_layers(&mut |shapes| self.blur_shapes(shapes, seed, index))
     }
 
     fn blur_shapes<P: Plottable>(&self, shapes: &[P], seed: u64, index: &mut u64) -> Vec<Shape> {

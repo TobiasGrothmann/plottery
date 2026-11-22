@@ -1,4 +1,4 @@
-use anyhow::{Context, Ok, Result};
+use anyhow::{bail, Context, Result};
 use std::{fmt::Write, path::PathBuf};
 use svg::{
     node::{element::tag::Type as SvgTagType, Attributes},
@@ -12,7 +12,7 @@ use crate::{
 };
 
 use super::{
-    svg_path_data::parse_svg_path_data,
+    svg_elements::{attr, element_contours},
     svg_transform::{iter_svg_f32_tokens, parse_svg_transform_attr},
     Layer, LayerPropsInheritable,
 };
@@ -199,7 +199,8 @@ impl Layer {
 
     /// Creates a new `Layer` from an .svg file.
     ///
-    /// Currently this only imports basic `<path d="...">` commands (`M/m`, `L/l`, `H/h`, `V/v`, `Z/z`).
+    /// Imports `path` (all commands, arcs as straight lines), `line`, `polyline` and `polygon`
+    /// with their `transform`s, scaled to cm by the root's `viewBox` and size. Filled paths are closed.
     pub fn new_from_svg(path: &PathBuf) -> Result<Layer> {
         let mut svg_content = String::new();
         let mut layer = Layer::new();
@@ -207,100 +208,49 @@ impl Layer {
         let mut svg_units_to_cm_scale: f32 = 1.0;
 
         for event in svg::open(path, &mut svg_content)? {
-            if let Event::Tag(tag, tag_type, attributes) = event {
-                if tag == "svg" && !matches!(tag_type, SvgTagType::End) {
-                    if let Some(scale) = Self::parse_svg_root_units_to_cm_scale(&attributes) {
-                        svg_units_to_cm_scale = scale;
-                    }
+            let Event::Tag(tag, tag_type, attributes) = event else {
+                if let Event::Error(error) = event {
+                    bail!("invalid SVG '{}': {error}", path.display());
                 }
-
-                let parent_transform = *transform_stack
-                    .last()
-                    .unwrap_or(&TransformMatrix::identity());
-                let local_transform =
-                    parse_svg_transform_attr(&attributes).unwrap_or(TransformMatrix::identity());
-                let combined_transform = parent_transform.mul_matrix(&local_transform);
-
-                if matches!(tag_type, SvgTagType::Start) {
-                    transform_stack.push(combined_transform);
-                }
-
-                if !matches!(tag_type, SvgTagType::End) {
-                    match tag {
-                        "path" => {
-                            let Some(data_value) = attributes.get("d") else {
-                                // TODO: Handle malformed `<path>` nodes without `d` attribute more explicitly.
-                                continue;
-                            };
-
-                            let path_data = data_value.to_string();
-                            let should_close_paths = Self::svg_path_has_fill(&attributes);
-                            let sample_settings = SampleSettings::new(
-                                SampleSettings::default().points_per_unit * svg_units_to_cm_scale,
-                            );
-                            for mut path in parse_svg_path_data(path_data.as_str())
-                                .iter()
-                                .map(|spline| spline.to_path(sample_settings))
-                            {
-                                if should_close_paths {
-                                    Self::close_path_if_needed(&mut path);
-                                }
-
-                                if path.as_slice().len() >= 2 {
-                                    layer.push(Self::apply_svg_transform_to_path(
-                                        &path,
-                                        combined_transform,
-                                        svg_units_to_cm_scale,
-                                    ));
-                                }
-                            }
-                        }
-                        "line" => {
-                            if let (Some(x1), Some(y1), Some(x2), Some(y2)) = (
-                                Self::parse_svg_attr_f32(&attributes, "x1"),
-                                Self::parse_svg_attr_f32(&attributes, "y1"),
-                                Self::parse_svg_attr_f32(&attributes, "x2"),
-                                Self::parse_svg_attr_f32(&attributes, "y2"),
-                            ) {
-                                layer.push(Self::apply_svg_transform_to_path(
-                                    &Path::new_from(vec![V2::new(x1, y1), V2::new(x2, y2)]),
-                                    combined_transform,
-                                    svg_units_to_cm_scale,
-                                ));
-                            } else {
-                                // TODO: Handle malformed `<line>` nodes more explicitly.
-                            }
-                        }
-                        "polyline" | "polygon" => {
-                            let Some(points_attr) = attributes.get("points") else {
-                                // TODO: Handle malformed polyline/polygon nodes without points attribute.
-                                continue;
-                            };
-
-                            let mut points = Self::parse_svg_points_attr(points_attr);
-                            if tag == "polygon"
-                                && points.len() >= 2
-                                && points.first() != points.last()
-                            {
-                                points.push(*points.first().unwrap());
-                            }
-
-                            if points.len() >= 2 {
-                                layer.push(Self::apply_svg_transform_to_path(
-                                    &Path::new_from(points),
-                                    combined_transform,
-                                    svg_units_to_cm_scale,
-                                ));
-                            }
-                        }
-                        _ => {
-                            // TODO: Support importing non-path SVG elements (`circle`, `rect`, etc.).
-                        }
-                    }
-                }
-
-                if matches!(tag_type, SvgTagType::End) && transform_stack.len() > 1 {
+                continue;
+            };
+            if matches!(tag_type, SvgTagType::End) {
+                if transform_stack.len() > 1 {
                     transform_stack.pop();
+                }
+                continue;
+            }
+            if tag == "svg" {
+                if let Some(scale) = svg_root_units_to_cm_scale(&attributes) {
+                    svg_units_to_cm_scale = scale;
+                }
+            }
+
+            let parent_transform = *transform_stack
+                .last()
+                .unwrap_or(&TransformMatrix::identity());
+            let transform = parent_transform.mul_matrix(
+                &parse_svg_transform_attr(&attributes).unwrap_or(TransformMatrix::identity()),
+            );
+            if matches!(tag_type, SvgTagType::Start) {
+                transform_stack.push(transform);
+            }
+
+            let close_filled = tag == "path" && svg_path_has_fill(&attributes);
+            let sample_settings = SampleSettings::new(
+                SampleSettings::default().points_per_unit * svg_units_to_cm_scale,
+            );
+            for contour in element_contours(tag, &attributes) {
+                let mut path = contour.to_path(sample_settings);
+                if close_filled {
+                    close_path_if_needed(&mut path);
+                }
+                if path.len() >= 2 {
+                    layer.push(
+                        path.iter()
+                            .map(|&point| transform.mul_vector(point) * svg_units_to_cm_scale)
+                            .collect::<Path>(),
+                    );
                 }
             }
         }
@@ -313,144 +263,66 @@ impl Layer {
 
         Ok(layer)
     }
+}
 
-    fn parse_svg_attr_f32(attributes: &Attributes, key: &str) -> Option<f32> {
-        let value = attributes.get(key)?;
-        value.to_string().parse::<f32>().ok()
+/// cm per SVG user unit from the root's `viewBox` and `width`/`height`, averaged over both axes.
+fn svg_root_units_to_cm_scale(attributes: &Attributes) -> Option<f32> {
+    let mut view_box = iter_svg_f32_tokens(attr(attributes, "viewBox")?).skip(2);
+    let (view_box_w, view_box_h) = (view_box.next()?, view_box.next()?);
+    let scale = |length: Option<&str>, view_box_size: f32| {
+        (view_box_size.abs() > f32::EPSILON)
+            .then(|| svg_length_to_cm(length?).map(|cm| cm / view_box_size))
+            .flatten()
+    };
+    match (
+        scale(attr(attributes, "width"), view_box_w),
+        scale(attr(attributes, "height"), view_box_h),
+    ) {
+        (Some(sx), Some(sy)) => Some((sx + sy) * 0.5),
+        (sx, sy) => sx.or(sy),
     }
+}
 
-    fn parse_svg_points_attr(points_attr: &svg::node::Value) -> Vec<V2> {
-        let points = points_attr.to_string();
-        let mut tokens = iter_svg_f32_tokens(points.as_str());
-        let mut parsed_points = Vec::new();
+/// A length like `21cm` or `5.5in` in cm; plain numbers and unknown units are `None`.
+fn svg_length_to_cm(length: &str) -> Option<f32> {
+    let trimmed = length.trim();
+    let split_at = trimmed
+        .find(|ch: char| !(ch.is_ascii_digit() || matches!(ch, '.' | '-' | '+' | 'e' | 'E')))
+        .unwrap_or(trimmed.len());
+    let value = trimmed[..split_at].trim().parse::<f32>().ok()?;
+    let cm_per_unit = match trimmed[split_at..].trim().to_ascii_lowercase().as_str() {
+        "cm" => 1.0,
+        "mm" => 0.1,
+        "in" => 2.54,
+        "px" => 2.54 / 96.0,
+        "pt" => 2.54 / 72.0,
+        "pc" => 2.54 / 6.0,
+        "q" => 0.025, // quarter-millimeter
+        _ => return None,
+    };
+    Some(value * cm_per_unit)
+}
 
-        while let Some(x) = tokens.next() {
-            let Some(y) = tokens.next() else {
-                break;
-            };
-            parsed_points.push(V2::new(x, y));
-        }
-
-        parsed_points
-    }
-
-    fn apply_svg_transform_to_path(
-        path: &Path,
-        transform: TransformMatrix,
-        scale_to_cm: f32,
-    ) -> Path {
-        Path::new_from(
-            path.as_slice()
-                .iter()
-                .map(|point| transform.mul_vector(*point) * scale_to_cm),
-        )
-    }
-
-    fn parse_svg_root_units_to_cm_scale(attributes: &Attributes) -> Option<f32> {
-        let view_box = attributes.get("viewBox")?.to_string();
-        let mut view_box_values = iter_svg_f32_tokens(view_box.as_str());
-        let _view_box_x = view_box_values.next()?;
-        let _view_box_y = view_box_values.next()?;
-        let view_box_w = view_box_values.next()?;
-        let view_box_h = view_box_values.next()?;
-
-        let width_cm = attributes
-            .get("width")
-            .and_then(|w| Self::parse_svg_length_to_cm(w.to_string().as_str()));
-        let height_cm = attributes
-            .get("height")
-            .and_then(|h| Self::parse_svg_length_to_cm(h.to_string().as_str()));
-
-        let scale_x = if view_box_w.abs() > f32::EPSILON {
-            width_cm.map(|w| w / view_box_w)
-        } else {
-            None
-        };
-        let scale_y = if view_box_h.abs() > f32::EPSILON {
-            height_cm.map(|h| h / view_box_h)
-        } else {
-            None
-        };
-
-        match (scale_x, scale_y) {
-            (Some(sx), Some(sy)) => Some((sx + sy) * 0.5),
-            (Some(sx), None) => Some(sx),
-            (None, Some(sy)) => Some(sy),
-            (None, None) => None,
+fn close_path_if_needed(path: &mut Path) {
+    if let [first, .., last] = path.as_slice() {
+        if path.len() >= 3 && first != last {
+            let first = *first;
+            path.push(first);
         }
     }
+}
 
-    fn parse_svg_length_to_cm(length: &str) -> Option<f32> {
-        let trimmed = length.trim();
-        if trimmed.is_empty() {
-            return None;
-        }
-
-        let mut split_at = trimmed.len();
-        for (idx, ch) in trimmed.char_indices() {
-            if !(ch.is_ascii_digit()
-                || ch == '.'
-                || ch == '-'
-                || ch == '+'
-                || ch == 'e'
-                || ch == 'E')
-            {
-                split_at = idx;
-                break;
-            }
-        }
-
-        let value_str = trimmed[..split_at].trim();
-        let unit_str = trimmed[split_at..].trim().to_ascii_lowercase();
-        let value = value_str.parse::<f32>().ok()?;
-
-        match unit_str.as_str() {
-            "cm" => Some(value),
-            "mm" => Some(value * 0.1),
-            "in" => Some(value * 2.54),
-            "px" => Some(value * (2.54 / 96.0)),
-            "pt" => Some(value * (2.54 / 72.0)),
-            "pc" => Some(value * (2.54 / 6.0)),
-            "q" => Some(value * 0.025), // quarter-millimeter
-            _ => {
-                // TODO: Support additional SVG/CSS units or project-level unit defaults.
-                None
-            }
-        }
-    }
-
-    fn close_path_if_needed(path: &mut Path) {
-        let points = path.as_slice();
-        if points.len() >= 3 {
-            if let (Some(first), Some(last)) = (points.first(), points.last()) {
-                if first != last {
-                    path.push(*first);
-                }
-            }
-        }
-    }
-
-    fn svg_path_has_fill(attributes: &Attributes) -> bool {
-        if let Some(fill_value) = attributes.get("fill") {
-            let fill = fill_value.to_string().trim().to_ascii_lowercase();
-            if !fill.is_empty() && fill != "none" {
-                return true;
-            }
-        }
-
-        if let Some(style_value) = attributes.get("style") {
-            let style = style_value.to_string().to_ascii_lowercase();
-            for part in style.split(';') {
-                let part = part.trim();
-                if let Some(value) = part.strip_prefix("fill:") {
-                    let fill = value.trim();
-                    if !fill.is_empty() && fill != "none" {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        false
-    }
+/// True if a `fill` attribute or style declaration sets a fill other than `none`.
+fn svg_path_has_fill(attributes: &Attributes) -> bool {
+    let is_fill = |value: &str| {
+        let value = value.trim();
+        !value.is_empty() && !value.eq_ignore_ascii_case("none")
+    };
+    attr(attributes, "fill").is_some_and(is_fill)
+        || attr(attributes, "style").is_some_and(|style| {
+            style
+                .to_ascii_lowercase()
+                .split(';')
+                .any(|part| part.trim().strip_prefix("fill:").is_some_and(is_fill))
+        })
 }

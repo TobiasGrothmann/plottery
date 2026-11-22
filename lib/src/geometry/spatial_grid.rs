@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use rustc_hash::FxHashMap;
 
-use crate::V2;
+use crate::{Rect, V2};
 
 type Cell = (i64, i64);
 
@@ -199,13 +199,10 @@ fn closer_then_earlier<T>(a: &(f32, &Entry<T>), b: &(f32, &Entry<T>)) -> Orderin
 
 /// About one point per cell, for points spread over an area or along a line; 1 when there is no spread.
 fn mean_spacing<T>(entries: &[(V2, T)]) -> f32 {
-    let Some((first, _)) = entries.first() else {
+    let Some(bounds) = Rect::from_points(entries.iter().map(|(p, _)| *p)) else {
         return 1.0;
     };
-    let (min, max) = entries.iter().fold((*first, *first), |(min, max), (p, _)| {
-        (min.min(*p), max.max(*p))
-    });
-    let size = max - min;
+    let size = bounds.size();
     let count = entries.len() as f32;
     let spacing = (size.x * size.y / count)
         .sqrt()

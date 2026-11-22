@@ -1,20 +1,18 @@
 //! Contains functions for generating random numbers.
-//! see also [`crate::maths::seed`]
+//! see also [`crate::seed`]
 
 use rand::seq::IndexedRandom;
 use rand::RngExt;
 use rand_distr::{Distribution, Normal, SkewNormal};
 
-use super::global_rng::RNG;
+use super::global_rng::with_rng;
 
 /// uniform random float between `from` and `to`; `from` if the range is empty
 pub fn rand_range(from: f32, to: f32) -> f32 {
     if from >= to {
         return from;
     }
-    RNG.lock()
-        .expect("Failed to acquire RNG lock")
-        .random_range(from..to)
+    with_rng(|rng| rng.random_range(from..to))
 }
 
 /// uniform random integer between `from` and `to`; `from` if the range is empty
@@ -22,9 +20,7 @@ pub fn rand_range_i(from: i32, to: i32) -> i32 {
     if from >= to {
         return from;
     }
-    RNG.lock()
-        .expect("Failed to acquire RNG lock")
-        .random_range(from..to)
+    with_rng(|rng| rng.random_range(from..to))
 }
 
 /// uniform random integer between `from` and `to`, both inclusive
@@ -34,9 +30,7 @@ pub fn rand_range_i_inclusive(from: i32, to: i32) -> i32 {
     if from > to {
         return from;
     }
-    RNG.lock()
-        .expect("Failed to acquire RNG lock")
-        .random_range(from..=to)
+    with_rng(|rng| rng.random_range(from..=to))
 }
 
 /// randomly `1.0` or `-1.0`
@@ -53,9 +47,7 @@ pub fn rand_sign() -> f32 {
 /// panics if `len` is 0
 pub fn rand_index(len: usize) -> usize {
     assert!(len > 0, "rand_index called with len 0");
-    RNG.lock()
-        .expect("Failed to acquire RNG lock")
-        .random_range(0..len)
+    with_rng(|rng| rng.random_range(0..len))
 }
 
 /// uniform random element of `items`
@@ -63,22 +55,17 @@ pub fn rand_index(len: usize) -> usize {
 /// panics if `items` is empty
 pub fn rand_choice<T>(items: &[T]) -> &T {
     assert!(!items.is_empty(), "rand_choice called with an empty slice");
-    items
-        .choose(&mut *RNG.lock().expect("Failed to acquire RNG lock"))
-        .expect("slice is not empty")
+    with_rng(|rng| items.choose(rng)).expect("slice is not empty")
 }
 
 /// Seed for a generator of its own, drawn from the global RNG.
 pub(crate) fn rand_seed() -> u64 {
-    RNG.lock().expect("Failed to acquire RNG lock").random()
+    with_rng(|rng| rng.random())
 }
 
 /// random boolean with given `chance` of being true
 pub fn coin(chance: f32) -> bool {
-    RNG.lock()
-        .expect("Failed to acquire RNG lock")
-        .random::<f32>()
-        < chance
+    with_rng(|rng| rng.random::<f32>()) < chance
 }
 
 /// see [`rand_distr::Normal`]
@@ -89,7 +76,7 @@ pub fn rand_normal(mean: f32, std_dev: f32) -> f32 {
             mean, std_dev
         )
     });
-    normal.sample(&mut *RNG.lock().expect("Failed to acquire RNG lock"))
+    with_rng(|rng| normal.sample(rng))
 }
 
 /// see [`rand_distr::SkewNormal`]
@@ -100,7 +87,7 @@ pub fn rand_normal_skewed(location: f32, scale: f32, shape: f32) -> f32 {
             location, scale, shape
         )
     });
-    normal_skewed.sample(&mut *RNG.lock().expect("Failed to acquire RNG lock"))
+    with_rng(|rng| normal_skewed.sample(rng))
 }
 
 /// see [`rand_distr::Exp`]
@@ -111,5 +98,5 @@ pub fn rand_exponential(lambda: f32) -> f32 {
             lambda
         )
     });
-    exponential.sample(&mut *RNG.lock().expect("Failed to acquire RNG lock"))
+    with_rng(|rng| exponential.sample(rng))
 }

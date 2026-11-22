@@ -3,119 +3,73 @@ use std::ops;
 use super::angle::Angle;
 use crate::ANGLE_TOLERANCE;
 
-// add
-impl ops::Add<Angle> for Angle {
-    type Output = Angle;
-    fn add(self, _rhs: Angle) -> Angle {
-        Angle::from_rad(self.to_rad() + _rhs.to_rad())
-    }
-}
-impl ops::Add<&Angle> for Angle {
-    type Output = Angle;
-    fn add(self, _rhs: &Angle) -> Angle {
-        Angle::from_rad(self.to_rad() + _rhs.to_rad())
-    }
-}
-impl ops::Add<Angle> for &Angle {
-    type Output = Angle;
-    fn add(self, _rhs: Angle) -> Angle {
-        Angle::from_rad(self.to_rad() + _rhs.to_rad())
-    }
-}
-impl ops::Add<&Angle> for &Angle {
-    type Output = Angle;
-    fn add(self, _rhs: &Angle) -> Angle {
-        Angle::from_rad(self.to_rad() + _rhs.to_rad())
-    }
-}
-// add assign
-impl ops::AddAssign<Angle> for Angle {
-    fn add_assign(&mut self, rhs: Angle) {
-        *self = Angle::from_rad(self.to_rad() + rhs.to_rad());
-    }
-}
-impl ops::AddAssign<&Angle> for Angle {
-    fn add_assign(&mut self, rhs: &Angle) {
-        *self = Angle::from_rad(self.to_rad() + rhs.to_rad());
-    }
-}
-
-// subtract
-impl ops::Sub<Angle> for Angle {
-    type Output = Angle;
-    fn sub(self, _rhs: Angle) -> Angle {
-        Angle::from_rad(self.to_rad() - _rhs.to_rad())
-    }
-}
-impl ops::Sub<&Angle> for Angle {
-    type Output = Angle;
-    fn sub(self, _rhs: &Angle) -> Angle {
-        Angle::from_rad(self.to_rad() - _rhs.to_rad())
-    }
-}
-impl ops::Sub<Angle> for &Angle {
-    type Output = Angle;
-    fn sub(self, _rhs: Angle) -> Angle {
-        Angle::from_rad(self.to_rad() - _rhs.to_rad())
-    }
-}
-impl ops::Sub<&Angle> for &Angle {
-    type Output = Angle;
-    fn sub(self, _rhs: &Angle) -> Angle {
-        Angle::from_rad(self.to_rad() - _rhs.to_rad())
-    }
-}
-// subtract assign
-impl ops::SubAssign<Angle> for Angle {
-    fn sub_assign(&mut self, rhs: Angle) {
-        *self = Angle::from_rad(self.to_rad() - rhs.to_rad());
-    }
-}
-impl ops::SubAssign<&Angle> for Angle {
-    fn sub_assign(&mut self, rhs: &Angle) {
-        *self = Angle::from_rad(self.to_rad() - rhs.to_rad());
-    }
+/// `$op` between angles, owned or borrowed, and its assign form.
+macro_rules! angle_op {
+    ($Op:ident, $op:ident, $OpAssign:ident, $op_assign:ident, $sym:tt) => {
+        impl ops::$Op<Angle> for Angle {
+            type Output = Angle;
+            fn $op(self, rhs: Angle) -> Angle {
+                Angle::from_rad(self.to_rad() $sym rhs.to_rad())
+            }
+        }
+        impl ops::$Op<&Angle> for Angle {
+            type Output = Angle;
+            fn $op(self, rhs: &Angle) -> Angle {
+                self $sym *rhs
+            }
+        }
+        impl ops::$Op<Angle> for &Angle {
+            type Output = Angle;
+            fn $op(self, rhs: Angle) -> Angle {
+                *self $sym rhs
+            }
+        }
+        impl ops::$Op<&Angle> for &Angle {
+            type Output = Angle;
+            fn $op(self, rhs: &Angle) -> Angle {
+                *self $sym *rhs
+            }
+        }
+        impl ops::$OpAssign<Angle> for Angle {
+            fn $op_assign(&mut self, rhs: Angle) {
+                *self = *self $sym rhs;
+            }
+        }
+        impl ops::$OpAssign<&Angle> for Angle {
+            fn $op_assign(&mut self, rhs: &Angle) {
+                *self = *self $sym *rhs;
+            }
+        }
+    };
 }
 
-// multiply
-impl ops::Mul<f32> for Angle {
-    type Output = Angle;
-    fn mul(self, _rhs: f32) -> Angle {
-        Angle::from_rad(self.to_rad() * _rhs)
-    }
-}
-impl ops::Mul<f32> for &Angle {
-    type Output = Angle;
-    fn mul(self, _rhs: f32) -> Angle {
-        Angle::from_rad(self.to_rad() * _rhs)
-    }
-}
-// multiply assign
-impl ops::MulAssign<f32> for Angle {
-    fn mul_assign(&mut self, rhs: f32) {
-        *self = Angle::from_rad(self.to_rad() * rhs);
-    }
+/// `$op` of an angle, owned or borrowed, by an `f32`, and its assign form.
+macro_rules! angle_scalar_op {
+    ($Op:ident, $op:ident, $OpAssign:ident, $op_assign:ident, $sym:tt) => {
+        impl ops::$Op<f32> for Angle {
+            type Output = Angle;
+            fn $op(self, rhs: f32) -> Angle {
+                Angle::from_rad(self.to_rad() $sym rhs)
+            }
+        }
+        impl ops::$Op<f32> for &Angle {
+            type Output = Angle;
+            fn $op(self, rhs: f32) -> Angle {
+                *self $sym rhs
+            }
+        }
+        impl ops::$OpAssign<f32> for Angle {
+            fn $op_assign(&mut self, rhs: f32) {
+                *self = *self $sym rhs;
+            }
+        }
+    };
 }
 
-// divide
-impl ops::Div<f32> for Angle {
-    type Output = Angle;
-    fn div(self, _rhs: f32) -> Angle {
-        Angle::from_rad(self.to_rad() / _rhs)
-    }
-}
-impl ops::Div<f32> for &Angle {
-    type Output = Angle;
-    fn div(self, _rhs: f32) -> Angle {
-        Angle::from_rad(self.to_rad() / _rhs)
-    }
-}
-// divide assign
-impl ops::DivAssign<f32> for Angle {
-    fn div_assign(&mut self, rhs: f32) {
-        *self = Angle::from_rad(self.to_rad() / rhs);
-    }
-}
+angle_op!(Add, add, AddAssign, add_assign, +);
+angle_op!(Sub, sub, SubAssign, sub_assign, -);
+angle_scalar_op!(Mul, mul, MulAssign, mul_assign, *);
+angle_scalar_op!(Div, div, DivAssign, div_assign, /);
 
 // equality
 impl PartialEq<Angle> for Angle {

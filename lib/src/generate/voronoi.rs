@@ -46,12 +46,10 @@ impl VoronoiCell {
             return self.site;
         }
         let step = (area / 40.0).sqrt();
-        let (min, max) = self
-            .vertices
-            .iter()
-            .fold((V2::xy(f32::MAX), V2::xy(f32::MIN)), |(min, max), p| {
-                (min.min(*p), max.max(*p))
-            });
+        let Some(bounds) = Rect::from_points(&self.vertices) else {
+            return self.site;
+        };
+        let (min, max) = (bounds.bl(), bounds.tr());
         let mut weight_sum = 0.0;
         let mut weighted = V2::zero();
         let mut y = min.y + step * 0.5;

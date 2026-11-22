@@ -1,12 +1,12 @@
 use std::{fmt, path::Path, sync::Arc};
 
-use anyhow::{bail, Context, Result};
-use serde::{Deserialize, Serialize};
-
 use super::{
-    outline_font::OutlineFont, stroke_font::StrokeFont, system::find_system_font, FontMetrics,
-    Glyph, GlyphId, PositionedGlyph,
+    outline_font::OutlineFont,
+    stroke_font::StrokeFont,
+    system::{find_system_font, FontStyle},
+    FontMetrics, Glyph, GlyphId, PositionedGlyph,
 };
+use anyhow::{bail, Context, Result};
 
 /// A loaded font: outlines (TTF, OTF, TTC) or a single-stroke SVG 1.1 font (Hershey, EMS). Cheap to clone.
 #[derive(Clone)]
@@ -19,20 +19,14 @@ enum FontData {
     Stroke(StrokeFont),
 }
 
-/// Requested style for system font lookup; `weight` is CSS-like, 400 regular, 700 bold.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-pub struct FontStyle {
-    pub weight: f32,
-    pub italic: bool,
-}
-
-impl Default for FontStyle {
-    fn default() -> Self {
-        Self {
-            weight: 400.0,
-            italic: false,
+/// The same expression for either backend, with the backend font bound to `$font`.
+macro_rules! backend {
+    ($data:expr, $font:ident => $e:expr) => {
+        match $data {
+            FontData::Outline($font) => $e,
+            FontData::Stroke($font) => $e,
         }
-    }
+    };
 }
 
 impl Font {
@@ -115,10 +109,7 @@ impl Font {
     }
 
     pub fn family_name(&self) -> Option<&str> {
-        match &*self.data {
-            FontData::Outline(font) => font.family(),
-            FontData::Stroke(font) => font.family(),
-        }
+        backend!(&*self.data, font => font.family())
     }
 
     pub fn is_stroke(&self) -> bool {
@@ -130,42 +121,35 @@ impl Font {
         matches!(&*self.data, FontData::Outline(font) if font.open_contours())
     }
 
+    /// Factor from font units to cm at em size `size`.
+    fn scale(&self, size: f32) -> f32 {
+        size / backend!(&*self.data, font => font.units_per_em())
+    }
+
     /// Vertical metrics in cm at em size `size`.
     pub fn metrics(&self, size: f32) -> FontMetrics {
-        let (metrics, units_per_em) = match &*self.data {
-            FontData::Outline(font) => (font.metrics(), font.units_per_em()),
-            FontData::Stroke(font) => (font.metrics(), font.units_per_em()),
-        };
-        metrics.scale(size / units_per_em)
+        backend!(&*self.data, font => font.metrics()).scale(self.scale(size))
     }
 
     pub fn has_glyph(&self, ch: char) -> bool {
-        match &*self.data {
-            FontData::Outline(font) => font.has_glyph(ch),
-            FontData::Stroke(font) => font.has_glyph(ch),
-        }
+        backend!(&*self.data, font => font.has_glyph(ch))
     }
 
     /// Glyph of `ch` in cm at em size `size`; unmapped chars yield the font's missing glyph.
     pub fn glyph(&self, ch: char, size: f32) -> Glyph {
-        let id = match &*self.data {
-            FontData::Outline(font) => font.glyph_id(ch),
-            FontData::Stroke(font) => font.glyph_id(ch),
-        };
-        self.glyph_by_id(id, size)
+        self.glyph_by_id(backend!(&*self.data, font => font.glyph_id(ch)), size)
     }
 
     pub(crate) fn glyph_by_id(&self, id: GlyphId, size: f32) -> Glyph {
-        match &*self.data {
-            FontData::Outline(font) => font.glyph(id, size / font.units_per_em()),
-            FontData::Stroke(font) => font.glyph(id, size / font.units_per_em()),
-        }
+        let scale = self.scale(size);
+        backend!(&*self.data, font => font.glyph(id, scale))
     }
 
     pub(crate) fn shape(&self, text: &str, size: f32) -> Result<Vec<PositionedGlyph>> {
+        let scale = self.scale(size);
         match &*self.data {
-            FontData::Outline(font) => font.shape(text, size / font.units_per_em()),
-            FontData::Stroke(font) => Ok(font.shape(text, size / font.units_per_em())),
+            FontData::Outline(font) => font.shape(text, scale),
+            FontData::Stroke(font) => Ok(font.shape(text, scale)),
         }
     }
 }

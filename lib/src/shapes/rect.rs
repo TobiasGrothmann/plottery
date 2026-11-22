@@ -1,7 +1,7 @@
 use super::containment::contains_shape_by_variant;
-use super::path::segments_intersect_or_touch;
+use super::segments::{any_segments_touch, segment_touches_circle, segments};
 use crate::{
-    traits::{bounds_may_touch, ClosestPoint, Fit, Scale, Scale2D, Translate},
+    traits::{bounds_may_touch, ClosestPoint, Scale, Scale2D, Translate},
     Angle, BoundingBox, Circle, Containment, Line, Mirror, Path, Plottable, Rotate, Rotate90,
     SampleSettings, Shape, LENGTH_TOLERANCE, V2,
 };
@@ -22,6 +22,23 @@ impl Rect {
             top_right: tr.max(bl),
         }
     }
+    /// Smallest rect around all `points`, `None` if there are none.
+    pub fn from_points<P: std::borrow::Borrow<V2>>(
+        points: impl IntoIterator<Item = P>,
+    ) -> Option<Rect> {
+        let mut points = points.into_iter().map(|p| *p.borrow());
+        let first = points.next()?;
+        let (min, max) = points.fold((first, first), |(min, max), p| (min.min(p), max.max(p)));
+        Some(Rect::new(min, max))
+    }
+    /// Smallest rect around both rects.
+    #[must_use]
+    pub fn union(&self, other: &Rect) -> Rect {
+        Rect::new(
+            self.bot_left.min(other.bot_left),
+            self.top_right.max(other.top_right),
+        )
+    }
     pub fn new_shape(bl: V2, tr: V2) -> Shape {
         Shape::Rect(Rect::new(bl, tr))
     }
@@ -35,11 +52,9 @@ impl Rect {
         Shape::Rect(Rect::new_from_center(center, size))
     }
 
-    fn fix_corners_min_max(&mut self) {
-        let bl = self.bot_left.min(self.top_right);
-        let tr = self.bot_left.max(self.top_right);
-        self.bot_left = bl;
-        self.top_right = tr;
+    /// Both corners mapped by `f`, sorted again into bottom left and top right.
+    fn map_corners(&self, f: impl Fn(V2) -> V2) -> Rect {
+        Rect::new(f(self.bot_left), f(self.top_right))
     }
 
     pub fn tr(&self) -> V2 {
@@ -309,47 +324,13 @@ impl Rect {
     }
 
     pub fn intersects_rect(&self, other: &Rect) -> bool {
-        let self_edges = [
-            (self.bl(), self.tl()),
-            (self.tl(), self.tr()),
-            (self.tr(), self.br()),
-            (self.br(), self.bl()),
-        ];
-        let other_edges = [
-            (other.bl(), other.tl()),
-            (other.tl(), other.tr()),
-            (other.tr(), other.br()),
-            (other.br(), other.bl()),
-        ];
-
-        self_edges.iter().any(|(self_from, self_to)| {
-            let self_segment = Line::new(*self_from, *self_to);
-            other_edges.iter().any(|(other_from, other_to)| {
-                segments_intersect_or_touch(self_segment, Line::new(*other_from, *other_to))
-            })
-        })
+        any_segments_touch(self.edges(), other.edges().into_iter())
     }
 
     pub fn intersects_circle(&self, other: &Circle) -> bool {
-        let radius_squared = other.radius.powi(2);
-        let edges = [
-            (self.bl(), self.tl()),
-            (self.tl(), self.tr()),
-            (self.tr(), self.br()),
-            (self.br(), self.bl()),
-        ];
-
-        edges.iter().any(|(from, to)| {
-            let segment = Line::new(*from, *to);
-            let from_dist_squared = from.dist_squared(other.center);
-            let to_dist_squared = to.dist_squared(other.center);
-            let closest_dist_squared = segment
-                .closest_point(other.center)
-                .dist_squared(other.center);
-
-            closest_dist_squared <= radius_squared
-                && (from_dist_squared >= radius_squared || to_dist_squared >= radius_squared)
-        })
+        self.edges()
+            .into_iter()
+            .any(|edge| segment_touches_circle(edge, other))
     }
 
     pub fn intersects_path(&self, other: &Path) -> bool {
@@ -422,11 +403,7 @@ impl Rect {
             return Containment::Partial;
         }
 
-        let other_closed = match other_points_closed {
-            std::borrow::Cow::Owned(points) => Path::new_from(points),
-            std::borrow::Cow::Borrowed(points) => Path::from(points),
-        };
-        if self.intersects_path(&other_closed) {
+        if any_segments_touch(segments(&other_points_closed), self.edges().into_iter()) {
             return Containment::Partial;
         }
 
@@ -525,119 +502,40 @@ impl Plottable for Rect {
 
 impl Rotate90 for Rect {
     fn rotate_90(&self) -> Self {
-        Rect::new(self.bot_left.rotate_90(), self.top_right.rotate_90())
-    }
-    fn rotate_90_mut(&mut self) {
-        self.top_right = self.top_right.rotate_90();
-        self.bot_left = self.bot_left.rotate_90();
-        self.fix_corners_min_max();
+        self.map_corners(|p| p.rotate_90())
     }
     fn rotate_180(&self) -> Self {
-        Rect::new(self.bot_left.rotate_180(), self.top_right.rotate_180())
-    }
-    fn rotate_180_mut(&mut self) {
-        self.top_right = self.top_right.rotate_180();
-        self.bot_left = self.bot_left.rotate_180();
-        self.fix_corners_min_max();
+        self.map_corners(|p| p.rotate_180())
     }
     fn rotate_270(&self) -> Self {
-        Rect::new(self.bot_left.rotate_270(), self.top_right.rotate_270())
-    }
-    fn rotate_270_mut(&mut self) {
-        self.top_right = self.top_right.rotate_270();
-        self.bot_left = self.bot_left.rotate_270();
-        self.fix_corners_min_max();
-    }
-
-    fn rotate_90_around(&self, pivot: V2) -> Self {
-        Rect::new(
-            self.bot_left.rotate_90_around(pivot),
-            self.top_right.rotate_90_around(pivot),
-        )
-    }
-    fn rotate_90_around_mut(&mut self, pivot: V2) {
-        self.top_right = self.top_right.rotate_90_around(pivot);
-        self.bot_left = self.bot_left.rotate_90_around(pivot);
-        self.fix_corners_min_max();
-    }
-    fn rotate_180_around(&self, pivot: V2) -> Self {
-        Rect::new(
-            self.bot_left.rotate_180_around(pivot),
-            self.top_right.rotate_180_around(pivot),
-        )
-    }
-    fn rotate_180_around_mut(&mut self, pivot: V2) {
-        self.top_right = self.top_right.rotate_180_around(pivot);
-        self.bot_left = self.bot_left.rotate_180_around(pivot);
-        self.fix_corners_min_max();
-    }
-    fn rotate_270_around(&self, pivot: V2) -> Self {
-        Rect::new(
-            self.bot_left.rotate_270_around(pivot),
-            self.top_right.rotate_270_around(pivot),
-        )
-    }
-    fn rotate_270_around_mut(&mut self, pivot: V2) {
-        self.top_right = self.top_right.rotate_270_around(pivot);
-        self.bot_left = self.bot_left.rotate_270_around(pivot);
-        self.fix_corners_min_max();
+        self.map_corners(|p| p.rotate_270())
     }
 }
 
 impl Translate for Rect {
     fn translate(&self, dist: V2) -> Self {
-        Rect::new(self.bot_left + dist, self.top_right + dist)
-    }
-
-    fn translate_mut(&mut self, dist: V2) {
-        self.bot_left += dist;
-        self.top_right += dist;
+        self.map_corners(|p| p + dist)
     }
 }
 
 impl Scale for Rect {
     fn scale(&self, scale: f32) -> Self {
-        Rect::new(self.bot_left * scale, self.top_right * scale)
-    }
-
-    fn scale_mut(&mut self, scale: f32) {
-        self.bot_left *= scale;
-        self.top_right *= scale;
+        self.map_corners(|p| p * scale)
     }
 }
 
 impl Scale2D for Rect {
     fn scale_2d(&self, scale: V2) -> Self {
-        Rect::new(self.bot_left * scale, self.top_right * scale)
-    }
-
-    fn scale_2d_mut(&mut self, scale: V2) {
-        self.bot_left *= scale;
-        self.top_right *= scale;
+        self.map_corners(|p| p * scale)
     }
 }
 
-impl Fit for Rect {}
-
 impl Mirror for Rect {
     fn mirror_x(&self) -> Self {
-        Rect::new(self.bot_left.mirror_x(), self.top_right.mirror_x())
+        self.map_corners(|p| p.mirror_x())
     }
-
-    fn mirror_x_mut(&mut self) {
-        self.bot_left.mirror_x_mut();
-        self.top_right.mirror_x_mut();
-        self.fix_corners_min_max();
-    }
-
     fn mirror_y(&self) -> Self {
-        Rect::new(self.bot_left.mirror_y(), self.top_right.mirror_y())
-    }
-
-    fn mirror_y_mut(&mut self) {
-        self.bot_left.mirror_y_mut();
-        self.top_right.mirror_y_mut();
-        self.fix_corners_min_max();
+        self.map_corners(|p| p.mirror_y())
     }
 }
 

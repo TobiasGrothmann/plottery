@@ -1,7 +1,11 @@
 use anyhow::{anyhow, Result};
 use skrifa::{font::name::NameId, raw::TableProvider, DrawMemory, PathSink, ScalerFont};
 
-use super::{svg_glyph::parse_svg_glyph, FontMetrics, Glyph, GlyphId, PositionedGlyph};
+use super::{
+    metrics::{DEFAULT_UNITS_PER_EM, FALLBACK_ASCENDER_EM, FALLBACK_DESCENDER_EM},
+    svg_glyph::parse_svg_glyph,
+    FontMetrics, Glyph, GlyphId, PositionedGlyph,
+};
 use crate::{shapes::spline::sink::SplineSink, Scale, Spline, V2};
 
 /// TrueType / OpenType font read by skrifa and shaped by harfrust; font units, y-up.
@@ -25,13 +29,17 @@ impl OutlineFont {
     pub(crate) fn from_font(font: skrifa::Font, open_contours: bool) -> Self {
         let raw = font.metrics();
         let units_per_em = match raw.units_per_em {
-            0 => 1000.0,
+            0 => DEFAULT_UNITS_PER_EM,
             upem => f32::from(upem),
         };
         let line = raw.h_line();
         let metrics = FontMetrics {
-            ascender: line.map_or(units_per_em * 0.8, |line| line.ascender.to_f32()),
-            descender: line.map_or(-units_per_em * 0.2, |line| line.descender.to_f32()),
+            ascender: line.map_or(units_per_em * FALLBACK_ASCENDER_EM, |line| {
+                line.ascender.to_f32()
+            }),
+            descender: line.map_or(-units_per_em * FALLBACK_DESCENDER_EM, |line| {
+                line.descender.to_f32()
+            }),
             line_gap: line.map_or(0.0, |line| line.line_gap.to_f32()),
             cap_height: raw.cap_height.map(|v| v.to_f32()),
             x_height: raw.x_height.map(|v| v.to_f32()),
@@ -121,15 +129,10 @@ impl OutlineFont {
 }
 
 impl OutlineFont {
+    /// `None` without an SVG document or if it can't be read, then the outline is drawn instead.
     fn svg_glyph(&self, id: skrifa::GlyphId) -> Option<Vec<Spline>> {
         let document = self.font.tables().svg().ok()?.glyph_data(id)?;
-        match parse_svg_glyph(document) {
-            Ok(contours) => Some(contours),
-            Err(error) => {
-                eprintln!("ignoring SVG glyph {}: {error:#}", id.to_u32());
-                None
-            }
-        }
+        parse_svg_glyph(document).ok()
     }
 
     fn drawn_outline(&self, id: skrifa::GlyphId) -> (Vec<Spline>, Option<f32>) {

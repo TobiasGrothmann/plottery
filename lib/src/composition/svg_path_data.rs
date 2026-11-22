@@ -158,6 +158,16 @@ pub(crate) fn parse_svg_path_data(path_data: &str) -> Vec<Spline> {
     sink.finish()
 }
 
+/// The numbers in `input`, split like path data: `10-5` is two numbers, `1.5.5` too.
+pub(crate) fn svg_numbers(input: &str) -> impl Iterator<Item = f32> {
+    tokenize_svg_path_data(input)
+        .into_iter()
+        .filter_map(|token| match token {
+            SvgPathToken::Number(value) => Some(value),
+            SvgPathToken::Command(_) => None,
+        })
+}
+
 fn tokenize_svg_path_data(path_data: &str) -> Vec<SvgPathToken> {
     let mut tokens = Vec::new();
     let mut chars = path_data.chars().peekable();
@@ -176,9 +186,18 @@ fn tokenize_svg_path_data(path_data: &str) -> Vec<SvgPathToken> {
 
         let mut number = String::new();
         let mut seen_exponent = false;
+        let mut seen_dot = false;
 
         while let Some(next_ch) = chars.peek().copied() {
-            if next_ch.is_ascii_digit() || next_ch == '.' {
+            if next_ch.is_ascii_digit() {
+                number.push(next_ch);
+                chars.next();
+                continue;
+            }
+
+            // a second dot, or one in the exponent, starts the next number: `1.5.5` is 1.5 and 0.5
+            if next_ch == '.' && !seen_dot && !seen_exponent {
+                seen_dot = true;
                 number.push(next_ch);
                 chars.next();
                 continue;

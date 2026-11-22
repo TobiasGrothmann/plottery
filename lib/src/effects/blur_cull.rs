@@ -1,16 +1,16 @@
 use std::collections::HashMap;
 
-use crate::{Line, Path, Shape, V2};
+use crate::{Line, Path, Shape, SpatialGrid, V2};
 
 type Cell = (i64, i64);
 
-/// Items bucketed by position. Anything within one cell size of a point is in its 3×3 neighborhood.
-struct Grid<T> {
+/// Segments bucketed into every cell they span. Anything within one cell size of a point is in its 3×3 neighborhood.
+struct SegmentGrid {
     cell_size: f32,
-    cells: HashMap<Cell, Vec<T>>,
+    cells: HashMap<Cell, Vec<Line>>,
 }
 
-impl<T> Grid<T> {
+impl SegmentGrid {
     fn new(cell_size: f32) -> Self {
         Self {
             cell_size,
@@ -25,7 +25,7 @@ impl<T> Grid<T> {
         )
     }
 
-    fn near(&self, point: V2) -> impl Iterator<Item = &T> {
+    fn near(&self, point: V2) -> impl Iterator<Item = &Line> {
         let (x, y) = self.cell(point);
         (-1..=1)
             .flat_map(move |dx| (-1..=1).map(move |dy| (x + dx, y + dy)))
@@ -37,7 +37,7 @@ impl<T> Grid<T> {
 /// Drops dots closer than `min_distance` to a path or to an earlier kept dot. Paths are kept.
 pub(super) fn cull_dots(shapes: Vec<Shape>, min_distance: f32, cell_size: f32) -> Vec<Shape> {
     let cell_size = cell_size.max(min_distance);
-    let mut segments: Grid<Line> = Grid::new(cell_size);
+    let mut segments = SegmentGrid::new(cell_size);
     let lines = shapes
         .iter()
         .filter_map(|shape| match shape {
@@ -54,7 +54,7 @@ pub(super) fn cull_dots(shapes: Vec<Shape>, min_distance: f32, cell_size: f32) -
     }
 
     let min_distance_squared = min_distance * min_distance;
-    let mut dots: Grid<V2> = Grid::new(cell_size);
+    let mut dots: SpatialGrid<()> = SpatialGrid::new(cell_size);
     shapes
         .into_iter()
         .filter(|shape| {
@@ -66,11 +66,10 @@ pub(super) fn cull_dots(shapes: Vec<Shape>, min_distance: f32, cell_size: f32) -
                 .near(point)
                 .any(|line| line.closest_point(point).dist_squared(point) < min_distance_squared)
                 || dots
-                    .near(point)
-                    .any(|kept| kept.dist_squared(point) < min_distance_squared);
+                    .within(point, min_distance)
+                    .any(|(kept, _)| kept.dist_squared(point) < min_distance_squared);
             if !near_ink {
-                let cell = dots.cell(point);
-                dots.cells.entry(cell).or_default().push(point);
+                dots.insert(point, ());
             }
             !near_ink
         })

@@ -5,6 +5,7 @@ pub(crate) mod path;
 mod path_test;
 pub(crate) mod rect;
 mod rect_test;
+pub(crate) mod segments;
 pub(crate) mod shape;
 mod shape_test;
 pub(crate) mod spline;

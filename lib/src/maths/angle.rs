@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::f32::consts::PI;
 
-use crate::{rand_range, SampleSettings, GOLDEN_RATIO};
+use crate::{rand_range, Interpolate, Interpolator, SampleSettings, GOLDEN_RATIO};
 
 /// A struct for working with angles in different units (radians, degrees, or rotations).
 ///
@@ -260,35 +260,12 @@ impl Angle {
     }
 }
 
-pub struct AngleInterpolator {
-    start_rad: f32,
-    end_rad: f32,
-    steps: usize,
-    current_step: usize,
-}
+pub type AngleInterpolator = Interpolator<Angle>;
 
-impl AngleInterpolator {
-    pub fn new(start: Angle, end: Angle, steps: usize) -> Self {
-        Self {
-            start_rad: start.rad,
-            end_rad: end.rad,
-            steps,
-            current_step: 0,
-        }
-    }
-}
-
-impl Iterator for AngleInterpolator {
-    type Item = Angle;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.current_step > self.steps {
-            return None;
-        }
-        let t = self.current_step as f32 / self.steps as f32;
-        let interpolated_rad = self.start_rad * (1.0 - t) + self.end_rad * t;
-        self.current_step += 1;
-        Some(Angle::from_rad(interpolated_rad))
+impl Interpolate for Angle {
+    fn interpolate(self, end: Self, step: usize, steps: usize) -> Self {
+        let t = step as f32 / steps as f32;
+        Angle::from_rad(self.rad * (1.0 - t) + end.rad * t)
     }
 }
 

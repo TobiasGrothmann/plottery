@@ -22,6 +22,7 @@ pub(crate) mod paper;
 mod paper_test;
 mod path_end;
 mod snapshot;
+pub(crate) mod svg_elements;
 pub(crate) mod svg_path_data;
 mod svg_path_data_test;
 pub(crate) mod svg_transform;

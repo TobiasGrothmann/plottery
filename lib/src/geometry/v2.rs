@@ -1,12 +1,11 @@
 use std::{f32::consts::PI, iter::Sum};
 
-use geo_types::Coord;
-use mint::Point2;
+use geo::Coord;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    rand_range, Angle, Mirror, Rect, Rotate, Rotate90, SampleSettings, Scale, Transform, Translate,
-    V2i, LENGTH_TOLERANCE,
+    rand_range, Angle, Interpolate, Interpolator, Mirror, Rect, Rotate, Rotate90, SampleSettings,
+    Scale, Transform, Translate, V2i, LENGTH_TOLERANCE,
 };
 
 /// A 2D vector with floating-point coordinates.
@@ -554,35 +553,11 @@ impl V2 {
     }
 }
 
-pub struct V2Interpolator {
-    start: V2,
-    end: V2,
-    steps: usize,
-    current_step: usize,
-}
+pub type V2Interpolator = Interpolator<V2>;
 
-impl V2Interpolator {
-    pub fn new(start: V2, end: V2, steps: usize) -> Self {
-        Self {
-            start,
-            end,
-            steps,
-            current_step: 0,
-        }
-    }
-}
-
-impl Iterator for V2Interpolator {
-    type Item = V2;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.current_step > self.steps {
-            return None;
-        }
-        let t = self.current_step as f32 / self.steps as f32;
-        let interpolated = self.start.lerp(self.end, t);
-        self.current_step += 1;
-        Some(interpolated)
+impl Interpolate for V2 {
+    fn interpolate(self, end: Self, step: usize, steps: usize) -> Self {
+        self.lerp(end, step as f32 / steps as f32)
     }
 }
 
@@ -710,30 +685,6 @@ where
 impl From<&V2> for V2 {
     fn from(v: &V2) -> Self {
         *v
-    }
-}
-
-impl From<Point2<f32>> for V2 {
-    fn from(point: Point2<f32>) -> Self {
-        Self::new(point.x, point.y)
-    }
-}
-
-impl From<V2> for Point2<f32> {
-    fn from(v2: V2) -> Self {
-        Point2 { x: v2.x, y: v2.y }
-    }
-}
-
-impl From<&V2> for Point2<f32> {
-    fn from(v2: &V2) -> Self {
-        Point2 { x: v2.x, y: v2.y }
-    }
-}
-
-impl From<&Point2<f32>> for V2 {
-    fn from(point: &Point2<f32>) -> Self {
-        Self::new(point.x, point.y)
     }
 }
 

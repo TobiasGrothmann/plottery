@@ -1,19 +1,18 @@
-use anyhow::{bail, Context, Ok, Result};
+use anyhow::{Context, Result};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use std::{iter::FromIterator, path::PathBuf, vec};
 
 use crate::{
     geometry::TransformMatrix,
-    traits::{Fit, Scale, Scale2D, Transform, Translate},
-    Angle, Blur, BoundingBox, Circle, Hatch, Masked, Mirror, Path, Plottable, Rect, Rotate,
-    Rotate90, SampleSettings, Shape, SpatialGrid, V2,
+    traits::{Scale, Scale2D, Transform, Translate},
+    Angle, Blur, BoundingBox, Hatch, Masked, Mirror, Path, Plottable, Rect, Rotate, Rotate90,
+    SampleSettings, Shape, SpatialGrid, V2,
 };
 
 use super::{
     combine_paths::combine_paths,
-    file_header::{split_file_header, with_file_header},
+    file_header::{read_versioned, write_versioned},
     ColorRgb, Inheritable, LayerProps, LayerPropsInheritable,
 };
 
@@ -46,20 +45,10 @@ impl Layer {
     const FILE_VERSION: u16 = 2;
 
     pub fn new() -> Self {
-        Self {
-            shapes: Vec::new(),
-            sublayers: Vec::new(),
-            props_inheritable: Inheritable::Inherit,
-            props: LayerProps::default(),
-        }
+        Self::new_from_shapes_and_layers(Vec::new(), Vec::new())
     }
     pub fn with_capacity(capacity: usize) -> Self {
-        Self {
-            shapes: Vec::with_capacity(capacity),
-            sublayers: Vec::new(),
-            props_inheritable: Inheritable::Inherit,
-            props: LayerProps::default(),
-        }
+        Self::new_from_shapes_and_layers(Vec::with_capacity(capacity), Vec::new())
     }
     /// Creates a new `Layer` from anything that yields shapes.
     pub fn new_from<I>(shapes: I) -> Self
@@ -67,12 +56,7 @@ impl Layer {
         I: IntoIterator,
         I::Item: Into<Shape>,
     {
-        Self {
-            shapes: shapes.into_iter().map(Into::into).collect(),
-            sublayers: Vec::new(),
-            props_inheritable: Inheritable::Inherit,
-            props: LayerProps::default(),
-        }
+        Self::new_from_shapes_and_layers(shapes.into_iter().map(Into::into).collect(), Vec::new())
     }
     /// Creates a new `Layer` from both a list of shapes and a list of sublayers.
     pub fn new_from_shapes_and_layers(shapes: Vec<Shape>, sublayers: Vec<Layer>) -> Self {
@@ -97,20 +81,12 @@ impl Layer {
     }
     /// Reads the `.plotl` format written by [`Layer::to_binary`]. There is no migration between its versions.
     pub fn new_from_binary(binary_data: &[u8]) -> Result<Layer> {
-        match split_file_header(&Self::FILE_MAGIC, binary_data) {
-            Some((Self::FILE_VERSION, payload)) => Ok(postcard::from_bytes(payload)?),
-            _ => bail!(
-                "The layer is from another Plottery version and can't be read, render it again."
-            ),
-        }
+        read_versioned(&Self::FILE_MAGIC, Self::FILE_VERSION, binary_data, "layer")
+            .context("The layer can't be read, render it again")
     }
     /// The `.plotl` format: a file header followed by the postcard of the `Layer`.
     pub fn to_binary(&self) -> Result<Vec<u8>> {
-        Ok(with_file_header(
-            &Self::FILE_MAGIC,
-            Self::FILE_VERSION,
-            &postcard::to_stdvec(self)?,
-        ))
+        write_versioned(&Self::FILE_MAGIC, Self::FILE_VERSION, self)
     }
 
     #[must_use]
@@ -210,41 +186,25 @@ impl Layer {
     /// `max_angle_delta` is the maximum angle difference between the start/end points of the two shapes that will still be combined. Set to `None` to ignore angles.
     #[must_use]
     pub fn combine_shapes_recursive(&self, max_angle_delta: Option<Angle>) -> Self {
-        let (combineable, noncombineable) =
-            Layer::group_shapes_combineable_noncombineable(self.shapes.iter());
-
-        let shapes: Vec<Shape> = combine_paths(combineable, max_angle_delta)
-            .into_iter()
-            .map(|path| path.into())
-            .chain(noncombineable)
-            .collect();
-
-        let sublayers = self
-            .sublayers
-            .iter()
-            .map(|sublayer| sublayer.combine_shapes_recursive(max_angle_delta))
-            .collect();
-
-        Layer::new_from_shapes_and_layers(shapes, sublayers)
-            .with_props_inheritable(self.props_inheritable.clone())
-            .with_props(self.props.clone())
+        self.map_layers(&mut |shapes| Self::combined(shapes, max_angle_delta))
     }
 
     /// Returns a new flattened `Layer` with [`Shape`]s that start/end at another [`Shape`]'s start/end combined into a single [`Path`]. see [`Layer::combine_shapes_recursive`].
     #[must_use]
     pub fn combine_shapes_flat(&self, max_angle_delta: Option<Angle>) -> Self {
-        let (combineable, noncombineable) =
-            Layer::group_shapes_combineable_noncombineable(self.iter());
-
-        let shapes: Vec<Shape> = combine_paths(combineable, max_angle_delta)
+        self.rebuilt(Self::combined(self.iter(), max_angle_delta), Vec::new())
+    }
+    /// The paths joined where they meet, followed by the circles and rects.
+    fn combined<'a>(
+        shapes: impl IntoIterator<Item = &'a Shape>,
+        max_angle_delta: Option<Angle>,
+    ) -> Vec<Shape> {
+        let (combineable, noncombineable) = Layer::group_shapes_combineable_noncombineable(shapes);
+        combine_paths(combineable, max_angle_delta)
             .into_iter()
-            .map(|path| path.into())
+            .map(Shape::from)
             .chain(noncombineable)
-            .collect();
-
-        Layer::new_from(shapes)
-            .with_props_inheritable(self.props_inheritable.clone())
-            .with_props(self.props.clone())
+            .collect()
     }
     fn group_shapes_combineable_noncombineable<'a, I>(shapes: I) -> (Vec<Path>, Vec<Shape>)
     where
@@ -271,34 +231,58 @@ impl Layer {
         (combineable, noncombineable)
     }
 
+    /// A layer with `shapes` and `sublayers` and this layer's props.
+    pub(crate) fn rebuilt(&self, shapes: Vec<Shape>, sublayers: Vec<Layer>) -> Layer {
+        Layer {
+            shapes,
+            sublayers,
+            props: self.props.clone(),
+            props_inheritable: self.props_inheritable.clone(),
+        }
+    }
+
+    /// The same tree and props, each layer's shapes replaced by `f(shapes)`; layers in depth-first order.
+    pub(crate) fn map_layers(&self, f: &mut impl FnMut(&[Shape]) -> Vec<Shape>) -> Layer {
+        let shapes = f(&self.shapes);
+        let sublayers = self
+            .sublayers
+            .iter()
+            .map(|sublayer| sublayer.map_layers(f))
+            .collect();
+        self.rebuilt(shapes, sublayers)
+    }
+
+    /// Parallel [`Layer::map_layers`], only for closures that can't reach any rng.
+    fn map_layers_par(&self, f: &(impl Fn(&[Shape]) -> Vec<Shape> + Sync)) -> Layer {
+        let (shapes, sublayers) = rayon::join(
+            || f(&self.shapes),
+            || {
+                self.sublayers
+                    .par_iter()
+                    .map(|sublayer| sublayer.map_layers_par(f))
+                    .collect()
+            },
+        );
+        self.rebuilt(shapes, sublayers)
+    }
+
+    /// Calls `f` on this layer, then on all sublayers depth first.
+    fn for_each_layer_mut(&mut self, f: &mut impl FnMut(&mut Layer)) {
+        f(self);
+        for sublayer in &mut self.sublayers {
+            sublayer.for_each_layer_mut(f);
+        }
+    }
+
     /// Map a function recursively to all [`Shape`]s in the `Layer` and its sublayers.
     pub fn map_recursive_mut<F: Fn(&mut Shape)>(&mut self, f: F) {
-        self.map_recursive_mut_internal(&f)
-    }
-    fn map_recursive_mut_internal<F: Fn(&mut Shape)>(&mut self, f: &F) {
-        for shape in &mut self.shapes {
-            f(shape);
-        }
-        for sublayer in &mut self.sublayers {
-            sublayer.map_recursive_mut_internal(f);
-        }
+        self.for_each_layer_mut(&mut |layer| layer.shapes.iter_mut().for_each(&f));
     }
 
     /// Create a new [`Layer`] with a function mapped recursively to all [`Shape`]s in the `Layer` and its sublayers.
     #[must_use]
     pub fn map_recursive<F: Fn(&Shape) -> Shape>(&self, f: F) -> Self {
-        self.map_recursive_internal(&f)
-    }
-    fn map_recursive_internal<F: Fn(&Shape) -> Shape>(&self, f: &F) -> Self {
-        Layer::new_from_shapes_and_layers(
-            self.shapes.iter().map(f).collect(),
-            self.sublayers
-                .iter()
-                .map(|sublayer| sublayer.map_recursive_internal(f))
-                .collect(),
-        )
-        .with_props_inheritable(self.props_inheritable.clone())
-        .with_props(self.props.clone())
+        self.map_layers(&mut |shapes| shapes.iter().map(&f).collect())
     }
 
     /// Parallel [`Layer::map_recursive`], only for closures that can't reach any rng.
@@ -306,26 +290,7 @@ impl Layer {
     where
         F: Fn(&Shape) -> Shape + Send + Sync,
     {
-        let f = Arc::new(f);
-        self.map_shapes_recursive_internal(f)
-    }
-    fn map_shapes_recursive_internal<F>(&self, f: Arc<F>) -> Self
-    where
-        F: Fn(&Shape) -> Shape + Send + Sync,
-    {
-        let (shapes, sublayers) = rayon::join(
-            || self.shapes.par_iter().map(|shape| f(shape)).collect(),
-            || {
-                self.sublayers
-                    .par_iter()
-                    .map(|sublayer| sublayer.map_shapes_recursive_internal(f.clone()))
-                    .collect()
-            },
-        );
-
-        Layer::new_from_shapes_and_layers(shapes, sublayers)
-            .with_props_inheritable(self.props_inheritable.clone())
-            .with_props(self.props.clone())
+        self.map_layers_par(&|shapes: &[Shape]| shapes.par_iter().map(&f).collect())
     }
 
     /// Filter the [`Shape`]s in the `Layer` and its sublayers with a predicate function.
@@ -333,16 +298,7 @@ impl Layer {
     where
         F: Fn(&Shape) -> bool,
     {
-        self.filter_recursive_mut_internal(&predicate)
-    }
-    fn filter_recursive_mut_internal<F>(&mut self, predicate: &F)
-    where
-        F: Fn(&Shape) -> bool,
-    {
-        self.shapes.retain(|shape| predicate(shape));
-        for sublayer in &mut self.sublayers {
-            sublayer.filter_recursive_mut_internal(predicate);
-        }
+        self.for_each_layer_mut(&mut |layer| layer.shapes.retain(&predicate));
     }
 
     /// Like [`Layer::map_recursive`], but `f` may return any number of shapes (or a whole [`Layer`]) per shape.
@@ -353,28 +309,7 @@ impl Layer {
         I: IntoIterator,
         I::Item: Into<Shape>,
     {
-        self.flat_map_recursive_internal(&f)
-    }
-    fn flat_map_recursive_internal<F, I>(&self, f: &F) -> Self
-    where
-        F: Fn(&Shape) -> I,
-        I: IntoIterator,
-        I::Item: Into<Shape>,
-    {
-        let shapes: Vec<Shape> = self
-            .shapes
-            .iter()
-            .flat_map(|shape| f(shape).into_iter().map(Into::into))
-            .collect();
-        let sublayers = self
-            .sublayers
-            .iter()
-            .map(|layer| layer.flat_map_recursive_internal(f))
-            .collect();
-
-        Layer::new_from_shapes_and_layers(shapes, sublayers)
-            .with_props_inheritable(self.props_inheritable.clone())
-            .with_props(self.props.clone())
+        self.map_layers(&mut |shapes| Self::flat_mapped(shapes, &f))
     }
 
     /// Parallel [`Layer::flat_map_recursive`], only for closures that can't reach any rng.
@@ -384,28 +319,18 @@ impl Layer {
         I: IntoIterator,
         I::Item: Into<Shape>,
     {
-        self.flat_map_recursive_par_internal(Arc::new(f))
+        self.map_layers_par(&|shapes: &[Shape]| Self::flat_mapped(shapes, &f))
     }
-    fn flat_map_recursive_par_internal<F, I>(&self, f: Arc<F>) -> Self
+    fn flat_mapped<F, I>(shapes: &[Shape], f: &F) -> Vec<Shape>
     where
-        F: Fn(&Shape) -> I + Send + Sync,
+        F: Fn(&Shape) -> I,
         I: IntoIterator,
         I::Item: Into<Shape>,
     {
-        let shapes: Vec<Shape> = self
-            .shapes
+        shapes
             .iter()
             .flat_map(|shape| f(shape).into_iter().map(Into::into))
-            .collect();
-        let sublayers = self
-            .sublayers
-            .par_iter()
-            .map(|layer| layer.flat_map_recursive_par_internal(f.clone()))
-            .collect();
-
-        Layer::new_from_shapes_and_layers(shapes, sublayers)
-            .with_props_inheritable(self.props_inheritable.clone())
-            .with_props(self.props.clone())
+            .collect()
     }
 
     /// Oversamples every shape and moves each point with `f`, recursively. see [`Shape::distort`].
@@ -444,22 +369,7 @@ impl Layer {
     /// Create a new [`Layer`] with the [`Shape`]s in the `Layer` and its sublayers filtered with a predicate function.
     #[must_use]
     pub fn filter_recursive<F: Fn(&Shape) -> bool>(&self, f: F) -> Self {
-        self.filter_recursive_internal(&f)
-    }
-    fn filter_recursive_internal<F: Fn(&Shape) -> bool>(&self, f: &F) -> Self {
-        Layer::new_from_shapes_and_layers(
-            self.shapes
-                .iter()
-                .filter(|shape| f(shape))
-                .cloned()
-                .collect(),
-            self.sublayers
-                .iter()
-                .map(|layer| layer.filter_recursive_internal(f))
-                .collect(),
-        )
-        .with_props_inheritable(self.props_inheritable.clone())
-        .with_props(self.props.clone())
+        self.map_layers(&mut |shapes| shapes.iter().filter(|shape| f(shape)).cloned().collect())
     }
 
     /// Returns a [`Masked`] object all [`Shape`]s of the `Layer` and its sublayers, grouping parts of all [`Shape`]s into `inside` and `outside`.
@@ -579,11 +489,18 @@ impl Layer {
     /// see also [`Layer::optimize_recursive`].
     #[must_use]
     pub fn optimize(&self) -> Self {
-        let starts_and_ends: Vec<_> = self
-            .shapes
-            .iter()
-            .map(Self::optimize_shape_start_end)
-            .collect();
+        self.rebuilt(Self::optimized(&self.shapes), Vec::new())
+    }
+
+    /// Applies the same optimization like [`Layer::optimize`], recursively for all sublayers.
+    #[must_use]
+    pub fn optimize_recursive(&self) -> Self {
+        self.map_layers(&mut |shapes| Self::optimized(shapes))
+    }
+
+    /// `shapes` in greedy nearest-neighbor order, see [`Layer::optimize`].
+    fn optimized(shapes: &[Shape]) -> Vec<Shape> {
+        let starts_and_ends: Vec<_> = shapes.iter().map(Self::optimize_shape_start_end).collect();
 
         // each shape is in the grid twice, at its start and at its end
         let mut ends: SpatialGrid<(usize, bool)> = starts_and_ends
@@ -593,28 +510,16 @@ impl Layer {
             .collect();
 
         let mut pos = V2::zero();
-        let shapes = std::iter::from_fn(|| {
+        std::iter::from_fn(|| {
             let (_, &(index, entered_at_start)) = ends.nearest(pos)?;
             let (start, end) = starts_and_ends[index];
             ends.remove(start, &(index, true));
             ends.remove(end, &(index, false));
             // the pen leaves from the end it did not enter at
             pos = if entered_at_start { end } else { start };
-            Some(self.shapes[index].clone())
-        });
-        Layer::new_from(shapes)
-            .with_props_inheritable(self.props_inheritable.clone())
-            .with_props(self.props.clone())
-    }
-
-    /// Applies the same optimization like [`Layer::optimize`], recursively for all sublayers.
-    #[must_use]
-    pub fn optimize_recursive(&self) -> Self {
-        let mut optimized = self.optimize();
-        for sublayer in &self.sublayers {
-            optimized.push_layer(sublayer.optimize_recursive());
-        }
-        optimized
+            Some(shapes[index].clone())
+        })
+        .collect()
     }
 
     /// Returns a new `Layer` without any sublayers direclty containing all [`Shape`]s of this `Layer` and its sublayers.
@@ -622,9 +527,7 @@ impl Layer {
     /// see also [`Layer::iter`].
     #[must_use]
     pub fn flatten(&self) -> Self {
-        Layer::new_from_shapes_and_layers(self.iter().cloned().collect(), Vec::new())
-            .with_props_inheritable(self.props_inheritable.clone())
-            .with_props(self.props.clone())
+        self.rebuilt(self.iter().cloned().collect(), Vec::new())
     }
 }
 
@@ -634,57 +537,9 @@ impl Default for Layer {
     }
 }
 
-impl From<Vec<Shape>> for Layer {
-    fn from(shapes: Vec<Shape>) -> Self {
+impl<S: Into<Shape>> From<Vec<S>> for Layer {
+    fn from(shapes: Vec<S>) -> Self {
         Layer::new_from(shapes)
-    }
-}
-
-impl From<Vec<&Shape>> for Layer {
-    fn from(shapes: Vec<&Shape>) -> Self {
-        Layer::new_from(shapes)
-    }
-}
-
-impl From<Vec<Path>> for Layer {
-    fn from(paths: Vec<Path>) -> Self {
-        Layer::new_from(paths)
-    }
-}
-
-impl From<Vec<&Path>> for Layer {
-    fn from(paths: Vec<&Path>) -> Self {
-        Layer::new_from(paths)
-    }
-}
-
-impl From<Vec<Vec<V2>>> for Layer {
-    fn from(points_lists: Vec<Vec<V2>>) -> Self {
-        points_lists.into_iter().collect()
-    }
-}
-
-impl From<Vec<Circle>> for Layer {
-    fn from(circles: Vec<Circle>) -> Self {
-        Layer::new_from(circles)
-    }
-}
-
-impl From<Vec<&Circle>> for Layer {
-    fn from(circles: Vec<&Circle>) -> Self {
-        Layer::new_from(circles)
-    }
-}
-
-impl From<Vec<Rect>> for Layer {
-    fn from(rects: Vec<Rect>) -> Self {
-        Layer::new_from(rects)
-    }
-}
-
-impl From<Vec<&Rect>> for Layer {
-    fn from(rects: Vec<&Rect>) -> Self {
-        Layer::new_from(rects)
     }
 }
 
@@ -743,12 +598,7 @@ where
     S: Into<Shape>,
 {
     fn from_iter<I: IntoIterator<Item = S>>(iter: I) -> Self {
-        Layer {
-            shapes: iter.into_iter().map(Into::into).collect(),
-            sublayers: Vec::new(),
-            props_inheritable: Inheritable::Inherit,
-            props: LayerProps::default(),
-        }
+        Layer::new_from(iter)
     }
 }
 
@@ -803,8 +653,6 @@ impl Scale2D for Layer {
     }
 }
 
-impl Fit for Layer {}
-
 impl Mirror for Layer {
     fn mirror_x(&self) -> Self {
         self.map_recursive_par(|shape| shape.mirror_x())
@@ -825,26 +673,9 @@ impl Mirror for Layer {
 
 impl BoundingBox for Layer {
     fn bounding_box(&self) -> Option<Rect> {
-        let mut min = None;
-        let mut max = None;
-        for shape in self.iter() {
-            if let Some(bb) = shape.bounding_box() {
-                if min.is_none() {
-                    min = Some(bb.bl());
-                } else {
-                    min = Some(min.unwrap().min(bb.bl()));
-                }
-                if max.is_none() {
-                    max = Some(bb.tr());
-                } else {
-                    max = Some(max.unwrap().max(bb.tr()));
-                }
-            }
-        }
-        if min.is_none() || max.is_none() {
-            return None;
-        }
-        Some(Rect::new(min.unwrap(), max.unwrap()))
+        self.iter()
+            .filter_map(BoundingBox::bounding_box)
+            .reduce(|a, b| a.union(&b))
     }
 }
 

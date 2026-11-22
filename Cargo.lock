@@ -2202,12 +2202,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "geometry-predicates"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8dba84198cf199c11b83f1cb9243eaeb70dc50b719d2835ebf34bf2481bca010"
-
-[[package]]
 name = "gethostname"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3188,16 +3182,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a79a3332a6609480d7d0c9eab957bca6b455b91bb84e66d19f5ff66294b85b8"
 
 [[package]]
-name = "legasea_line"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02c52c7afd027647b204fffa34fd1be9d11f335b8df36439ab8733ae70310be6"
-dependencies = [
- "mint",
- "num-traits",
-]
-
-[[package]]
 name = "libappindicator"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3556,12 +3540,6 @@ dependencies = [
  "adler2",
  "simd-adler32",
 ]
-
-[[package]]
-name = "mint"
-version = "0.5.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e53debba6bda7a793e5f99b8dacf19e626084f525f7829104ba9898f367d85ff"
 
 [[package]]
 name = "mio"
@@ -4379,16 +4357,12 @@ dependencies = [
  "fastnoise-lite",
  "flate2",
  "geo",
- "geo-types",
- "geometry-predicates",
  "harfrust 0.16.0",
  "image",
  "itertools 0.15.0",
- "mint",
  "num-traits",
  "plottery_fonts",
  "postcard",
- "ramer_douglas_peucker",
  "rand 0.10.4",
  "rand_distr",
  "rayon",
@@ -4712,17 +4686,6 @@ name = "r-efi"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
-
-[[package]]
-name = "ramer_douglas_peucker"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "190a05d51f07ac36d6353dc72101cbb315dd94f8bf1673629420bbf9d301cf42"
-dependencies = [
- "legasea_line",
- "mint",
- "num-traits",
-]
 
 [[package]]
 name = "rand"

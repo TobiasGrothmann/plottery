@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod test_svg_path_data {
-    use crate::{composition::svg_path_data::parse_svg_path_data, Segment, V2};
+    use crate::{
+        composition::{svg_path_data::parse_svg_path_data, svg_transform::iter_svg_f32_tokens},
+        Segment, V2,
+    };
 
     #[test]
     fn line_quad_and_close_make_one_closed_spline() {
@@ -42,5 +45,11 @@ mod test_svg_path_data {
         assert!(splines[0].is_closed());
         assert_eq!(splines[1].start_point(), Some(V2::new(1.0, 1.0)));
         assert_eq!(splines[1].end_point(), Some(V2::new(0.0, 1.0)));
+    }
+
+    #[test]
+    fn number_lists_split_compact_signs_and_dots() {
+        let numbers: Vec<f32> = iter_svg_f32_tokens("0,0 10-5 1.5.5").collect();
+        assert_eq!(numbers, [0.0, 0.0, 10.0, -5.0, 1.5, 0.5]);
     }
 }

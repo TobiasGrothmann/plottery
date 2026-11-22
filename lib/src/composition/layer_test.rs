@@ -829,9 +829,21 @@ mod test_layer {
         let mut newer = binary.clone();
         newer[4] += 1;
 
-        for unreadable in [headerless, newer, b"PLT".to_vec()] {
+        let mut older = binary.clone();
+        older[4] -= 1;
+        let mut damaged = binary.clone();
+        damaged.truncate(7);
+
+        for (unreadable, reason) in [
+            (headerless, "not a layer file"),
+            (b"PLT".to_vec(), "not a layer file"),
+            (older, "old format version"),
+            (newer, "Update Plottery"),
+            (damaged, "damaged"),
+        ] {
             let err = Layer::new_from_binary(&unreadable).unwrap_err();
-            assert!(err.to_string().contains("another Plottery version"));
+            assert!(err.to_string().contains("render it again"));
+            assert!(format!("{err:#}").contains(reason), "{err:#}");
         }
     }
 

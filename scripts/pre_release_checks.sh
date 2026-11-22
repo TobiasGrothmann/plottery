@@ -15,6 +15,8 @@ echo ""
 
 echo -e "${YELLOW}Running tests...${NC}"
 cargo test --workspace
+# the server builds the lib without its default features
+cargo test -p plottery_lib --no-default-features
 echo -e "${GREEN}✓ Tests passed${NC}"
 echo ""
 

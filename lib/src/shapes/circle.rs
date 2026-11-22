@@ -2,8 +2,9 @@ use serde::{Deserialize, Serialize};
 use std::f32::consts::PI;
 
 use super::containment::contains_shape_by_variant;
+use super::segments::{segment_touches_circle, segments};
 use crate::{
-    traits::{bounds_may_touch, ClosestPoint, Fit, Mirror, Scale, Translate},
+    traits::{bounds_may_touch, ClosestPoint, Mirror, Scale, Translate},
     Angle, BoundingBox, Containment, Path, Plottable, Rect, Rotate, Rotate90, SampleSettings,
     Shape, AREA_TOLERANCE, LENGTH_TOLERANCE, V2,
 };
@@ -17,6 +18,9 @@ pub struct Circle {
 impl Circle {
     pub fn new(center: V2, radius: f32) -> Self {
         Self { center, radius }
+    }
+    fn map_center(&self, f: impl Fn(V2) -> V2) -> Self {
+        Self::new(f(self.center), self.radius)
     }
     pub fn new_shape(center: V2, radius: f32) -> Shape {
         Shape::Circle(Self { center, radius })
@@ -316,11 +320,7 @@ impl Circle {
             return Containment::Partial;
         }
 
-        let other_closed = match other_points_closed {
-            std::borrow::Cow::Owned(points) => Path::new_from(points),
-            std::borrow::Cow::Borrowed(points) => Path::from(points),
-        };
-        if self.intersects_path(&other_closed) {
+        if segments(&other_points_closed).any(|segment| segment_touches_circle(segment, self)) {
             return Containment::Partial;
         }
 
@@ -366,136 +366,42 @@ impl Plottable for Circle {
 
 impl Rotate for Circle {
     fn rotate(&self, angle: Angle) -> Self {
-        Circle {
-            center: self.center.rotate(angle),
-            radius: self.radius,
-        }
-    }
-    fn rotate_mut(&mut self, angle: Angle) {
-        self.center.rotate_mut(angle);
-    }
-
-    fn rotate_around(&self, pivot: V2, angle: Angle) -> Self {
-        Circle {
-            center: self.center.rotate_around(pivot, angle),
-            radius: self.radius,
-        }
-    }
-    fn rotate_around_mut(&mut self, pivot: V2, angle: Angle) {
-        self.center.rotate_around_mut(pivot, angle);
+        self.map_center(|c| c.rotate(angle))
     }
 }
 
 impl Rotate90 for Circle {
     fn rotate_90(&self) -> Self {
-        Circle {
-            center: self.center.rotate_90(),
-            radius: self.radius,
-        }
+        self.map_center(|c| c.rotate_90())
     }
-    fn rotate_90_mut(&mut self) {
-        self.center.rotate_90_mut();
-    }
-
     fn rotate_180(&self) -> Self {
-        Circle {
-            center: self.center.rotate_180(),
-            radius: self.radius,
-        }
+        self.map_center(|c| c.rotate_180())
     }
-    fn rotate_180_mut(&mut self) {
-        self.center.rotate_180_mut();
-    }
-
     fn rotate_270(&self) -> Self {
-        Circle {
-            center: self.center.rotate_270(),
-            radius: self.radius,
-        }
-    }
-    fn rotate_270_mut(&mut self) {
-        self.center.rotate_270_mut();
-    }
-
-    fn rotate_90_around(&self, pivot: V2) -> Self {
-        Circle {
-            center: self.center.rotate_90_around(pivot),
-            radius: self.radius,
-        }
-    }
-    fn rotate_90_around_mut(&mut self, pivot: V2) {
-        self.center.rotate_90_around_mut(pivot);
-    }
-
-    fn rotate_180_around(&self, pivot: V2) -> Self {
-        Circle {
-            center: self.center.rotate_180_around(pivot),
-            radius: self.radius,
-        }
-    }
-    fn rotate_180_around_mut(&mut self, pivot: V2) {
-        self.center.rotate_180_around_mut(pivot);
-    }
-
-    fn rotate_270_around(&self, pivot: V2) -> Self {
-        Circle {
-            center: self.center.rotate_270_around(pivot),
-            radius: self.radius,
-        }
-    }
-    fn rotate_270_around_mut(&mut self, pivot: V2) {
-        self.center.rotate_270_around_mut(pivot);
+        self.map_center(|c| c.rotate_270())
     }
 }
 
 impl Translate for Circle {
     fn translate(&self, dist: V2) -> Self {
-        Circle {
-            center: self.center + dist,
-            radius: self.radius,
-        }
-    }
-    fn translate_mut(&mut self, dist: V2) {
-        self.center += dist;
+        self.map_center(|c| c + dist)
     }
 }
 
 impl Scale for Circle {
     fn scale(&self, scale: f32) -> Self {
-        Circle {
-            center: self.center * scale,
-            radius: self.radius * scale,
-        }
-    }
-    fn scale_mut(&mut self, scale: f32) {
-        self.center *= scale;
-        self.radius *= scale;
+        Circle::new(self.center * scale, self.radius * scale)
     }
 }
 
 impl Mirror for Circle {
     fn mirror_x(&self) -> Self {
-        Circle {
-            center: self.center.mirror_x(),
-            radius: self.radius,
-        }
+        self.map_center(|c| c.mirror_x())
     }
-    fn mirror_x_mut(&mut self) {
-        self.center.mirror_x_mut();
-    }
-
     fn mirror_y(&self) -> Self {
-        Circle {
-            center: self.center.mirror_y(),
-            radius: self.radius,
-        }
-    }
-    fn mirror_y_mut(&mut self) {
-        self.center.mirror_y_mut();
+        self.map_center(|c| c.mirror_y())
     }
 }
-
-impl Fit for Circle {}
 
 impl BoundingBox for Circle {
     fn bounding_box(&self) -> Option<Rect> {

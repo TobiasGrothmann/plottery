@@ -1,46 +1,23 @@
 use num_traits::{Float, FromPrimitive};
 
+use super::interpolator::{Interpolate, Interpolator};
+
 /// Iterator for interpolating between two float values.
-pub struct FloatInterpolator<T> {
-    start: T,
-    end: T,
-    steps: usize,
-    current_step: usize,
-}
-
-impl<T: FloatInterpolation> FloatInterpolator<T> {
-    pub fn new(start: T, end: T, steps: usize) -> Self {
-        Self {
-            start,
-            end,
-            steps,
-            current_step: 0,
-        }
-    }
-}
-
-impl<T: FloatInterpolation> Iterator for FloatInterpolator<T> {
-    type Item = T;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.current_step > self.steps {
-            return None;
-        }
-        let t = T::from_usize(self.current_step).unwrap() / T::from_usize(self.steps).unwrap();
-        let interpolated = self.start.lerp(self.end, t);
-        self.current_step += 1;
-        Some(interpolated)
-    }
-}
+pub type FloatInterpolator<T> = Interpolator<T>;
 
 /// Trait for interpolating between float values.
-pub trait FloatInterpolation: Float + FromPrimitive {
+pub trait FloatInterpolation: Float + FromPrimitive + Interpolate {
     fn lerp(self, end: Self, t: Self) -> Self {
         self * (Self::one() - t) + end * t
     }
 
     fn lerp_iter(self, end: Self, step_size: Self) -> FloatInterpolator<Self> {
-        let steps = ((end - self) / step_size).abs().round().to_usize().unwrap();
+        // A zero or NaN step size gives no steps, so only `self`.
+        let steps = ((end - self) / step_size)
+            .abs()
+            .round()
+            .to_usize()
+            .unwrap_or(0);
         FloatInterpolator::new(self, end, steps)
     }
 
@@ -79,6 +56,18 @@ pub trait FloatInterpolation: Float + FromPrimitive {
 impl FloatInterpolation for f32 {}
 
 impl FloatInterpolation for f64 {}
+
+impl Interpolate for f32 {
+    fn interpolate(self, end: Self, step: usize, steps: usize) -> Self {
+        self.lerp(end, step as f32 / steps as f32)
+    }
+}
+
+impl Interpolate for f64 {
+    fn interpolate(self, end: Self, step: usize, steps: usize) -> Self {
+        self.lerp(end, step as f64 / steps as f64)
+    }
+}
 
 /// `steps + 1` evenly spaced values from 0.0 to 1.0, both inclusive.
 pub fn fractions(steps: usize) -> FloatInterpolator<f32> {

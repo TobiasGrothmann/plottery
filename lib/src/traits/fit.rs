@@ -13,10 +13,7 @@ pub enum Alignment {
 }
 
 /// Uniform scaling and translation into a target rect, keeping the aspect ratio.
-pub trait Fit: Scale + Translate + BoundingBox + Clone
-where
-    Self: Sized,
-{
+pub trait Fit: Scale + Translate + BoundingBox + Clone {
     /// Scales to fit inside `target`.
     fn fit_inside(&self, target: Rect, alignment: Alignment) -> Result<Self> {
         let mut copy = self.clone();
@@ -39,6 +36,8 @@ where
         fit_mut(self, target, alignment, true)
     }
 }
+
+impl<T: Scale + Translate + BoundingBox + Clone> Fit for T {}
 
 fn fit_mut<T: Fit>(shape: &mut T, target: Rect, alignment: Alignment, around: bool) -> Result<()> {
     let bounds = shape.bounding_box().context("no bounding box")?;

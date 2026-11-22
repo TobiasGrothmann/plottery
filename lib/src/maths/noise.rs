@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::V2;
 
-use super::global_rng::RNG;
+use super::global_rng::with_rng;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum NoiseType {
@@ -116,7 +116,7 @@ pub struct Noise {
 impl Noise {
     /// Seeded from the global random number generator, see [`seed`](crate::seed).
     pub fn new(noise_type: NoiseType) -> Self {
-        let seed = RNG.lock().expect("Failed to acquire RNG lock").random();
+        let seed = with_rng(|rng| rng.random());
         Self::build(noise_type, seed, 1.0, 1)
     }
     pub fn perlin() -> Self {

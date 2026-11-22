@@ -1,7 +1,5 @@
-use geo_types::{LineString, Polygon};
+use geo::{LineString, Polygon, SimplifyIdx};
 use itertools::Itertools;
-use ramer_douglas_peucker::rdp;
-use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
     borrow::{Borrow, Cow},
@@ -10,11 +8,12 @@ use std::{
 };
 
 use super::containment::contains_shape_by_variant;
+use super::segments::{any_segments_touch, ray_cast_inside, segment_touches_circle, segments};
 use crate::{
     geometry::TransformMatrix,
-    traits::{bounds_may_touch, ClosestPoint, Fit, Scale, Scale2D, Transform, Translate},
-    Angle, BoundingBox, Circle, Containment, Line, LineIntersection, Mirror, Plottable,
-    PointLineRelation, Rect, Rotate, Rotate90, SampleSettings, Shape, V2,
+    traits::{bounds_may_touch, ClosestPoint, Scale, Scale2D, Transform, Translate},
+    Angle, BoundingBox, Circle, Containment, Line, Mirror, Plottable, Rect, Rotate, Rotate90,
+    SampleSettings, Shape, V2,
 };
 
 /// A polyline. Derefs to its points, so slice methods like `len`, `first`, `last` and `windows` are available.
@@ -25,6 +24,15 @@ pub struct Path {
 }
 
 impl Path {
+    fn map_points(&self, f: impl Fn(V2) -> V2) -> Path {
+        self.iter().copied().map(f).collect()
+    }
+    fn map_points_mut(&mut self, f: impl Fn(V2) -> V2) {
+        for point in self.points.iter_mut() {
+            *point = f(*point);
+        }
+    }
+
     pub fn new() -> Self {
         Self { points: Vec::new() }
     }
@@ -103,11 +111,8 @@ impl Path {
         self.points.iter()
     }
     /// The segments between consecutive points.
-    pub fn segments(&self) -> impl Iterator<Item = Line> + '_ {
-        self.points
-            .iter()
-            .tuple_windows()
-            .map(|(from, to)| Line::new(*from, *to))
+    pub fn segments(&self) -> impl Iterator<Item = Line> + Clone + '_ {
+        segments(&self.points)
     }
     pub fn iter_mut(&mut self) -> IterMut<'_, V2> {
         self.points.iter_mut()
@@ -143,32 +148,25 @@ impl Path {
         if points.len() <= 2 {
             return points;
         }
+        let (first, last) = (points[0], points[points.len() - 1]);
+        // a closed path also cuts the corner at its start, an open one keeps both end points
+        let closed = first == last;
+        let segment_count = points.len() - 1;
 
         let mut new_points = Vec::with_capacity(points.len() * 2 + 1);
-
-        if points.first().unwrap() == points.last().unwrap() {
-            // if shape was closed, the beginning to end corner needs to be cut of as well
-            for i in 0..(points.len() - 1) {
-                let vec = points[(i + 1) % points.len()] - points[i];
-                new_points.push(points[i] + vec * 0.25);
-                new_points.push(points[i] + vec * 0.75);
-            }
-            new_points.push(*new_points.first().unwrap());
-        } else {
-            new_points.push(*points.first().unwrap());
-            new_points.push(points[0] + (points[1] - points[0]) * 0.75); // in first segment only 0.75 is needed
-            for i in 1..(points.len() - 2) {
-                let vec = points[i + 1] - points[i];
-                new_points.push(points[i] + vec * 0.25);
-                new_points.push(points[i] + vec * 0.75);
-            }
-            new_points.push(
-                points[points.len() - 2]
-                    + (points[points.len() - 1] - points[points.len() - 2]) * 0.25,
-            ); // in last segment only 0.25 is needed
-            new_points.push(*points.last().unwrap());
+        if !closed {
+            new_points.push(first);
         }
-
+        for (i, (from, to)) in points.iter().tuple_windows().enumerate() {
+            let vec = *to - *from;
+            if closed || i > 0 {
+                new_points.push(*from + vec * 0.25);
+            }
+            if closed || i < segment_count - 1 {
+                new_points.push(*from + vec * 0.75);
+            }
+        }
+        new_points.push(if closed { new_points[0] } else { last });
         new_points
     }
 
@@ -211,21 +209,8 @@ impl Path {
             return false;
         }
 
-        let radius_squared = other.radius.powi(2);
-
-        self.points.iter().tuple_windows().any(|(from, to)| {
-            let segment = Line::new(*from, *to);
-            let from_dist_squared = from.dist_squared(other.center);
-            let to_dist_squared = to.dist_squared(other.center);
-            let closest_dist_squared = segment
-                .closest_point(other.center)
-                .dist_squared(other.center);
-
-            // Intersects/touches the circle boundary iff the segment reaches radius distance,
-            // and is not fully inside the circle.
-            closest_dist_squared <= radius_squared
-                && (from_dist_squared >= radius_squared || to_dist_squared >= radius_squared)
-        })
+        self.segments()
+            .any(|segment| segment_touches_circle(segment, other))
     }
 
     pub fn intersects_rect(&self, other: &Rect) -> bool {
@@ -233,19 +218,7 @@ impl Path {
             return false;
         }
 
-        let rect_edges = [
-            (other.bl(), other.tl()),
-            (other.tl(), other.tr()),
-            (other.tr(), other.br()),
-            (other.br(), other.bl()),
-        ];
-
-        self.points.iter().tuple_windows().any(|(from, to)| {
-            let segment = Line::new(*from, *to);
-            rect_edges.iter().any(|(edge_from, edge_to)| {
-                segments_intersect_or_touch(segment, Line::new(*edge_from, *edge_to))
-            })
-        })
+        any_segments_touch(self.segments(), other.edges().into_iter())
     }
 
     pub fn intersects_path(&self, other: &Path) -> bool {
@@ -253,19 +226,7 @@ impl Path {
             return false;
         }
 
-        self.points
-            .iter()
-            .tuple_windows()
-            .any(|(self_from, self_to)| {
-                let self_segment = Line::new(*self_from, *self_to);
-                other
-                    .points
-                    .iter()
-                    .tuple_windows()
-                    .any(|(other_from, other_to)| {
-                        segments_intersect_or_touch(self_segment, Line::new(*other_from, *other_to))
-                    })
-            })
+        any_segments_touch(self.segments(), other.segments())
     }
 
     pub(crate) fn points_closed(&self) -> Cow<'_, [V2]> {
@@ -286,26 +247,8 @@ impl Path {
             return false;
         }
 
-        if points_closed
-            .iter()
-            .tuple_windows()
-            .any(|(from, to)| Line::new(*from, *to).contains_point_on_segment(point))
-        {
-            return true;
-        }
-
-        let mut inside = false;
-        for (from, to) in points_closed.iter().tuple_windows() {
-            let crosses_horizontal_line_through_point = (from.y > point.y) != (to.y > point.y);
-            let intersec_right_of_point =
-                point.x < (to.x - from.x) * (point.y - from.y) / (to.y - from.y) + from.x;
-
-            if crosses_horizontal_line_through_point && intersec_right_of_point {
-                inside = !inside;
-            }
-        }
-
-        inside
+        segments(points_closed).any(|segment| segment.contains_point_on_segment(point))
+            || ray_cast_inside(points_closed.iter().tuple_windows(), point)
     }
 
     pub fn contains_circle(&self, other: &Circle) -> Containment {
@@ -318,19 +261,7 @@ impl Path {
         }
 
         let radius_squared = other.radius.powi(2);
-        let intersects_boundary = self_points.iter().tuple_windows().any(|(from, to)| {
-            let segment = Line::new(*from, *to);
-            let from_dist_squared = from.dist_squared(other.center);
-            let to_dist_squared = to.dist_squared(other.center);
-            let closest_dist_squared = segment
-                .closest_point(other.center)
-                .dist_squared(other.center);
-
-            closest_dist_squared <= radius_squared
-                && (from_dist_squared >= radius_squared || to_dist_squared >= radius_squared)
-        });
-
-        if intersects_boundary {
+        if segments(&self_points).any(|segment| segment_touches_circle(segment, other)) {
             return Containment::Partial;
         }
 
@@ -338,11 +269,9 @@ impl Path {
             self_points.as_ref(),
             other.center,
         );
-        let min_dist_to_boundary_squared = self_points
-            .iter()
-            .tuple_windows()
-            .map(|(from, to)| {
-                Line::new(*from, *to)
+        let min_dist_to_boundary_squared = segments(&self_points)
+            .map(|segment| {
+                segment
                     .closest_point(other.center)
                     .dist_squared(other.center)
             })
@@ -372,21 +301,8 @@ impl Path {
             return Containment::None;
         }
 
-        let rect_points = [other.bl(), other.tl(), other.tr(), other.br()];
-        let rect_edges = [
-            (other.bl(), other.tl()),
-            (other.tl(), other.tr()),
-            (other.tr(), other.br()),
-            (other.br(), other.bl()),
-        ];
-
-        let intersects_boundary = self_points.iter().tuple_windows().any(|(from, to)| {
-            let path_segment = Line::new(*from, *to);
-            rect_edges.iter().any(|(edge_from, edge_to)| {
-                segments_intersect_or_touch(path_segment, Line::new(*edge_from, *edge_to))
-            })
-        });
-        if intersects_boundary {
+        let rect_points = other.corners();
+        if any_segments_touch(segments(&self_points), other.edges().into_iter()) {
             return Containment::Partial;
         }
 
@@ -417,19 +333,7 @@ impl Path {
             return Containment::None;
         }
 
-        let intersects_boundary = self_points
-            .iter()
-            .tuple_windows()
-            .any(|(self_from, self_to)| {
-                let self_segment = Line::new(*self_from, *self_to);
-                other_points
-                    .iter()
-                    .tuple_windows()
-                    .any(|(other_from, other_to)| {
-                        segments_intersect_or_touch(self_segment, Line::new(*other_from, *other_to))
-                    })
-            });
-        if intersects_boundary {
+        if any_segments_touch(segments(&self_points), segments(&other_points)) {
             return Containment::Partial;
         }
 
@@ -452,33 +356,6 @@ impl Path {
     }
 
     contains_shape_by_variant!();
-}
-
-pub(super) fn segments_intersect_or_touch(a: Line, b: Line) -> bool {
-    if matches!(a.intersection(b), LineIntersection::Intersection(_)) {
-        return true;
-    }
-
-    if a.point_relation(b.from) == PointLineRelation::OnLine
-        && a.point_relation(b.to) == PointLineRelation::OnLine
-    {
-        let a_min_x = a.from.x.min(a.to.x);
-        let a_max_x = a.from.x.max(a.to.x);
-        let a_min_y = a.from.y.min(a.to.y);
-        let a_max_y = a.from.y.max(a.to.y);
-
-        let b_min_x = b.from.x.min(b.to.x);
-        let b_max_x = b.from.x.max(b.to.x);
-        let b_min_y = b.from.y.min(b.to.y);
-        let b_max_y = b.from.y.max(b.to.y);
-
-        let overlaps_x = a_min_x <= b_max_x && a_max_x >= b_min_x;
-        let overlaps_y = a_min_y <= b_max_y && a_max_y >= b_min_y;
-
-        return overlaps_x && overlaps_y;
-    }
-
-    false
 }
 
 impl Plottable for Path {
@@ -515,40 +392,22 @@ impl Plottable for Path {
     }
 
     fn contains_point(&self, point: V2) -> bool {
-        let mut inside = false;
-        for (from, to) in self.points.iter().circular_tuple_windows() {
-            let crosses_horizontal_line_through_point = (from.y > point.y) != (to.y > point.y);
-            let intersec_right_of_point =
-                point.x < (to.x - from.x) * (point.y - from.y) / (to.y - from.y) + from.x;
-
-            if crosses_horizontal_line_through_point && intersec_right_of_point {
-                inside = !inside;
-            }
-        }
-        inside
+        ray_cast_inside(self.points.iter().circular_tuple_windows(), point)
     }
 
     fn reduce_points(&self, aggression_factor: f32) -> Self {
         let epsilon = 0.0001 + aggression_factor.clamp(0.0, 1.0).powf(3.0);
 
-        let points: Vec<_> = self.points.iter().map(|v| v.into()).collect();
-        let rdp_indices = rdp(points.as_slice(), epsilon as f64);
-
-        let mut keep_mask = vec![false; self.points.len()];
-        for i in rdp_indices {
-            if i < keep_mask.len() {
-                keep_mask[i] = true;
-            }
-        }
-
-        let mut reduced = Vec::with_capacity(self.points.len());
-        for (i, point) in self.points.iter().enumerate() {
-            if keep_mask[i] {
-                reduced.push(*point);
-            }
-        }
-
-        Path::new_from(reduced)
+        // in f64 so nearly collinear points are judged as precisely as before
+        let line: LineString<f64> = self
+            .points
+            .iter()
+            .map(|point| (point.x as f64, point.y as f64))
+            .collect();
+        line.simplify_idx(epsilon as f64)
+            .into_iter()
+            .map(|index| self.points[index])
+            .collect()
     }
 }
 
@@ -570,105 +429,55 @@ impl<'a> FromIterator<&'a V2> for Path {
 
 impl Rotate for Path {
     fn rotate(&self, angle: Angle) -> Self {
-        Path {
-            points: self.iter().map(|point| point.rotate(angle)).collect(),
-        }
+        self.map_points(|p| p.rotate(angle))
     }
     fn rotate_mut(&mut self, angle: Angle) {
-        for point in self.iter_mut() {
-            point.rotate_mut(angle);
-        }
+        self.map_points_mut(|p| p.rotate(angle));
     }
-
     fn rotate_around(&self, pivot: V2, angle: Angle) -> Self {
-        Path {
-            points: self
-                .iter()
-                .map(|point| point.rotate_around(pivot, angle))
-                .collect(),
-        }
+        self.map_points(|p| p.rotate_around(pivot, angle))
     }
     fn rotate_around_mut(&mut self, pivot: V2, angle: Angle) {
-        for point in self.iter_mut() {
-            point.rotate_around_mut(pivot, angle);
-        }
+        self.map_points_mut(|p| p.rotate_around(pivot, angle));
     }
 }
 
 impl Rotate90 for Path {
     fn rotate_90(&self) -> Self {
-        Path {
-            points: self.iter().map(|point| point.rotate_90()).collect(),
-        }
+        self.map_points(|p| p.rotate_90())
     }
     fn rotate_90_mut(&mut self) {
-        for point in self.iter_mut() {
-            point.rotate_90_mut();
-        }
+        self.map_points_mut(|p| p.rotate_90());
     }
-
     fn rotate_180(&self) -> Self {
-        Path {
-            points: self.iter().map(|point| point.rotate_180()).collect(),
-        }
+        self.map_points(|p| p.rotate_180())
     }
     fn rotate_180_mut(&mut self) {
-        for point in self.iter_mut() {
-            point.rotate_180_mut();
-        }
+        self.map_points_mut(|p| p.rotate_180());
     }
-
     fn rotate_270(&self) -> Self {
-        Path {
-            points: self.iter().map(|point| point.rotate_270()).collect(),
-        }
+        self.map_points(|p| p.rotate_270())
     }
     fn rotate_270_mut(&mut self) {
-        for point in self.iter_mut() {
-            point.rotate_270_mut();
-        }
+        self.map_points_mut(|p| p.rotate_270());
     }
-
     fn rotate_90_around(&self, pivot: V2) -> Self {
-        Path {
-            points: self
-                .iter()
-                .map(|point| point.rotate_90_around(pivot))
-                .collect(),
-        }
+        self.map_points(|p| p.rotate_90_around(pivot))
     }
     fn rotate_90_around_mut(&mut self, pivot: V2) {
-        for point in self.iter_mut() {
-            point.rotate_90_around_mut(pivot);
-        }
+        self.map_points_mut(|p| p.rotate_90_around(pivot));
     }
-
     fn rotate_180_around(&self, pivot: V2) -> Self {
-        Path {
-            points: self
-                .iter()
-                .map(|point| point.rotate_180_around(pivot))
-                .collect(),
-        }
+        self.map_points(|p| p.rotate_180_around(pivot))
     }
     fn rotate_180_around_mut(&mut self, pivot: V2) {
-        for point in self.iter_mut() {
-            point.rotate_180_around_mut(pivot);
-        }
+        self.map_points_mut(|p| p.rotate_180_around(pivot));
     }
-
     fn rotate_270_around(&self, pivot: V2) -> Self {
-        Path {
-            points: self
-                .iter()
-                .map(|point| point.rotate_270_around(pivot))
-                .collect(),
-        }
+        self.map_points(|p| p.rotate_270_around(pivot))
     }
     fn rotate_270_around_mut(&mut self, pivot: V2) {
-        for point in self.iter_mut() {
-            point.rotate_270_around_mut(pivot);
-        }
+        self.map_points_mut(|p| p.rotate_270_around(pivot));
     }
 }
 
@@ -712,113 +521,70 @@ impl<'a> Extend<&'a V2> for Path {
 
 impl Translate for Path {
     fn translate(&self, dist: V2) -> Self {
-        Path {
-            points: self.iter().map(|point| point + dist).collect(),
-        }
+        self.map_points(|p| p + dist)
     }
     fn translate_mut(&mut self, dist: V2) {
-        for point in self.iter_mut() {
-            *point += dist;
-        }
+        self.map_points_mut(|p| p + dist);
     }
 }
 
 impl Scale for Path {
     fn scale(&self, scale: f32) -> Self {
-        Path {
-            points: self.iter().map(|point| point * scale).collect(),
-        }
+        self.map_points(|p| p * scale)
     }
     fn scale_mut(&mut self, scale: f32) {
-        for point in self.iter_mut() {
-            *point *= scale;
-        }
+        self.map_points_mut(|p| p * scale);
     }
 }
 
 impl Scale2D for Path {
     fn scale_2d(&self, factor: V2) -> Self {
-        Path {
-            points: self.iter().map(|point| point * factor).collect(),
-        }
+        self.map_points(|p| p * factor)
     }
     fn scale_2d_mut(&mut self, factor: V2) {
-        for point in self.iter_mut() {
-            *point *= factor;
-        }
+        self.map_points_mut(|p| p * factor);
     }
 }
 
-impl Fit for Path {}
-
 impl BoundingBox for Path {
     fn bounding_box(&self) -> Option<Rect> {
-        let bounds = self.iter().fold((None, None), |acc, point| match acc {
-            (None, None) => (Some(*point), Some(*point)),
-            (Some(min), Some(max)) => (Some(min.min(*point)), Some(max.max(*point))),
-            _ => unreachable!(),
-        });
-
-        match bounds {
-            (None, None) => None,
-            (Some(min), Some(max)) => Some(Rect::new(min, max)),
-            _ => unreachable!(),
-        }
+        Rect::from_points(self.iter())
     }
 }
 
 impl Transform for Path {
     fn transform(&self, matrix: &TransformMatrix) -> Self {
-        Path {
-            points: self.iter().map(|point| matrix.mul_vector(*point)).collect(),
-        }
+        self.map_points(|p| matrix.mul_vector(p))
     }
     fn transform_mut(&mut self, matrix: &TransformMatrix) {
-        for point in self.iter_mut() {
-            *point = matrix.mul_vector(*point);
-        }
+        self.map_points_mut(|p| matrix.mul_vector(p));
     }
 }
 
 impl Mirror for Path {
     fn mirror_x(&self) -> Self {
-        Path {
-            points: self.iter().map(|point| point.mirror_x()).collect(),
-        }
+        self.map_points(|p| p.mirror_x())
     }
-
     fn mirror_x_mut(&mut self) {
-        for point in self.iter_mut() {
-            point.mirror_x_mut();
-        }
+        self.map_points_mut(|p| p.mirror_x());
     }
-
     fn mirror_y(&self) -> Self {
-        Path {
-            points: self.iter().map(|point| point.mirror_y()).collect(),
-        }
+        self.map_points(|p| p.mirror_y())
     }
-
     fn mirror_y_mut(&mut self) {
-        for point in self.iter_mut() {
-            point.mirror_y_mut();
-        }
+        self.map_points_mut(|p| p.mirror_y());
     }
 }
 
 impl ClosestPoint for Path {
-    fn closest_point(&self, sample_settings: SampleSettings, point: V2) -> Option<V2> {
-        self.line_segments(sample_settings)
-            .par_iter()
+    fn closest_point(&self, _: SampleSettings, point: V2) -> Option<V2> {
+        self.segments()
             .map(|line| {
-                let closest_point = line.closest_point(point);
-                let dist_squared = closest_point.dist_squared(point);
-                (closest_point, dist_squared)
+                let closest = line.closest_point(point);
+                (closest, closest.dist_squared(point))
             })
-            .min_by(|(_a, dist_squared_a), (_b, dist_squared_b)| {
-                dist_squared_a.partial_cmp(dist_squared_b).unwrap()
-            })
-            .map(|closest| closest.0)
+            .min_by(|a, b| a.1.total_cmp(&b.1))
+            .map(|(closest, _)| closest)
     }
 }
 
