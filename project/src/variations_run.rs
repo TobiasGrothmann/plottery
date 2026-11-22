@@ -37,7 +37,7 @@ const OUTPUT_TAIL: usize = 20;
 
 #[derive(Debug, Clone)]
 pub enum RollEvent {
-    /// The runs of all `total` rolls, start included, begin.
+    /// The runs begin: `total` rolls plus roll 0, the start params, which the counts leave out.
     Prepared { total: usize },
     /// Roll `index` finished and is stored. `done` counts finished and skipped rolls.
     Finished {
@@ -58,7 +58,7 @@ pub enum RollEvent {
 /// How a set of rolls ended. A failed roll is an error instead.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RollOutcome {
-    /// Finished and stored.
+    /// Finished and stored, roll 0 left out like in `total`.
     pub done: usize,
     /// Killed for running too long.
     pub skipped: usize,
@@ -149,7 +149,8 @@ impl Project {
         }
         let paths = check_rollable(start, paths)?;
         let sets = roll_param_sets(start, &paths, count, &mut rand::make_rng::<StdRng>());
-        let total = sets.len();
+        let runs = sets.len();
+        let total = count;
         let meta = VariationsMeta {
             created: Utc::now(),
             params: paths.clone(),
@@ -177,7 +178,7 @@ impl Project {
             canceled.store(true, Ordering::SeqCst);
         };
 
-        run_concurrently(total, default_roll_parallelism(), &stop, cancel, |index| {
+        run_concurrently(runs, default_roll_parallelism(), &stop, cancel, |index| {
             let (sets, paths, stop, done, skipped, slowest, limit, fail, on_event) = (
                 &sets, &paths, &stop, &done, &skipped, &slowest, &limit, &fail, &on_event,
             );
@@ -218,6 +219,8 @@ impl Project {
                         futures_lite::future::or(stopped, too_long),
                     )
                     .await;
+                // roll 0 runs too but is not one of the `count` rolls
+                let counted = usize::from(index > 0);
                 let name = match index {
                     0 => "Roll 0 (the start params)".to_string(),
                     _ => format!("Roll {index}"),
@@ -227,8 +230,8 @@ impl Project {
                         Ok(()) => {
                             let took = started.elapsed().as_millis().max(1) as u64;
                             slowest.fetch_max(took, Ordering::SeqCst);
-                            let done = done.fetch_add(1, Ordering::SeqCst)
-                                + 1
+                            let done = done.fetch_add(counted, Ordering::SeqCst)
+                                + counted
                                 + skipped.load(Ordering::SeqCst);
                             on_event(RollEvent::Finished { index, done, total });
                         }
@@ -239,8 +242,8 @@ impl Project {
                             if let Err(e) = self.save_skipped_roll(index, &sets[index]) {
                                 return fail(format!("{name}: storing it as skipped failed: {e}"));
                             }
-                            let done = skipped.fetch_add(1, Ordering::SeqCst)
-                                + 1
+                            let done = skipped.fetch_add(counted, Ordering::SeqCst)
+                                + counted
                                 + done.load(Ordering::SeqCst);
                             let values = format_values(&rolled_values(&sets[index], paths));
                             on_event(RollEvent::Skipped {

@@ -531,7 +531,7 @@ pub fn main() -> Result<()> {
                 count,
                 |event| match event {
                     RollEvent::Prepared { total } => {
-                        eprintln!("Rolling, {total} runs...");
+                        eprintln!("Rolling {total} times...");
                         if open {
                             if let Err(e) = open_in_editor(&project.get_variations_meta_path()) {
                                 eprintln!("Could not open the editor: {e}");
@@ -594,7 +594,7 @@ pub fn main() -> Result<()> {
             println!(
                 "Rolled '{}' {} times, the results are in '{}'. `plottery pick N` makes roll N the saved values.",
                 project.config.name,
-                outcome.total - 1,
+                outcome.total,
                 project.get_variations_dir().display()
             );
         }

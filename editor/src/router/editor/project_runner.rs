@@ -370,10 +370,10 @@ impl ProjectRunner {
                     }
                     Some(Ok(outcome)) => {
                         log(console, |c| match outcome.skipped {
-                            0 => c.success(&format!("Rolled {} times", outcome.total - 1)),
+                            0 => c.success(&format!("Rolled {} times", outcome.total)),
                             skipped => c.warn(&format!(
                                 "Rolled {} times, {skipped} ran too long and were skipped",
-                                outcome.total - 1
+                                outcome.total
                             )),
                         });
                         set_state(running_state, RunningState::Idle);
