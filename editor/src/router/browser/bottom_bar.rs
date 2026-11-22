@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::model::app_state::{TILE_SIZE_MAX, TILE_SIZE_MIN};
+use crate::components::tile_size_slider::TileSizeSlider;
 
 #[derive(PartialEq, Props, Clone)]
 pub struct BottomBarProps {
@@ -19,25 +19,7 @@ pub fn BottomBar(props: BottomBarProps) -> Element {
             if let Some(detail) = props.detail.as_ref() {
                 span { class: "mono bottom_bar_detail selectable", title: "{detail}", "{detail}" }
             }
-            div { class: "tile_size_control",
-                span { class: "hint", "Tile size" }
-                span { class: "tile_size_glyph tile_size_glyph_small" }
-                input {
-                    r#type: "range",
-                    class: "range",
-                    "aria-label": "Tile size",
-                    min: "{TILE_SIZE_MIN}",
-                    max: "{TILE_SIZE_MAX}",
-                    step: "10",
-                    value: "{props.tile_size}",
-                    oninput: move |event| {
-                        if let Ok(size) = event.value().parse::<u32>() {
-                            props.on_tile_size.call(size);
-                        }
-                    },
-                }
-                span { class: "tile_size_glyph tile_size_glyph_large" }
-            }
+            TileSizeSlider { value: props.tile_size, on_change: props.on_tile_size }
         }
     }
 }

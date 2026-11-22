@@ -20,6 +20,7 @@ use crate::{
         editor_data::{use_plot_estimate, LayerChangeWrapper, PreviewSvg},
         external_editor_button::{installed_external_editors, ExternalEditorButton, OpensDir},
         running_state::RunningState,
+        variations::variations_state::EditorView,
     },
     routes::Route,
     util::format_svg,
@@ -145,18 +146,22 @@ pub fn RunControls(hot_reload: bool, on_hot_reload: Callback<bool>) -> Element {
     let status = run_status(&state_now);
     let status_title = Some(state_now.get_msg()).filter(|msg| !msg.is_empty());
 
+    let editing = (ctx.variations.view)() == EditorView::Edit;
+
     rsx! {
-        Button {
-            variant: Variant::Primary,
-            icon: IconName::Play,
-            onclick: move |_| ctx.trigger_run(),
-            "Run"
-        }
-        Switch {
-            class: "toggle-box",
-            label: "Hot reload".to_string(),
-            checked: hot_reload,
-            onchange: move |enabled| on_hot_reload.call(enabled),
+        if editing {
+            Button {
+                variant: Variant::Primary,
+                icon: IconName::Play,
+                onclick: move |_| ctx.trigger_run(),
+                "Run"
+            }
+            Switch {
+                class: "toggle-box",
+                label: "Hot reload".to_string(),
+                checked: hot_reload,
+                onchange: move |enabled| on_hot_reload.call(enabled),
+            }
         }
         if let Some((tone, text)) = status {
             StatusPill { tone, text, title: status_title }

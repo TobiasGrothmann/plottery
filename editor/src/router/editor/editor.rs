@@ -4,7 +4,7 @@ use crate::{
         icon::IconName,
         modal::{Modal, ModalWidth},
         resizer::{Axis, Resizer},
-        ui::{Button, IconButton, PanelHeader, Size, Variant},
+        ui::{Button, IconButton, PanelHeader, Segmented, Size, Variant},
     },
     menu::{use_menu_action, MenuAction},
     model::{
@@ -28,6 +28,10 @@ use crate::{
         project_hot_reload::use_hot_reload,
         project_runner::ProjectRunner,
         running_state::RunningState,
+        variations::{
+            variations_grid::VariationsGrid,
+            variations_state::{use_variations_state, EditorView},
+        },
     },
     routes::Route,
     util::preview_zoom::PreviewZoom,
@@ -93,6 +97,8 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
 
     // running project
     let running_state = use_signal_sync(|| RunningState::Idle);
+    let variations = use_variations_state();
+    let mut view = variations.view;
     let project_runner =
         use_signal_sync(|| ProjectRunner::new(project.peek().clone(), layer, project_params));
     let ctx = use_context_provider(|| EditorCtx {
@@ -102,6 +108,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
         running_state,
         console,
         release,
+        variations,
     });
     use_context_provider(|| PickTarget {
         target: Signal::new(None),
@@ -173,6 +180,8 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
     let (console_min, console_max, console_default) = Panel::Console.size_limits();
 
     let busy = running_state().is_busy();
+    // the variations view has no drawing, so no layers
+    let editing = view() == EditorView::Edit;
     let has_drawing = layer_loading() || layer.read().layer.is_some();
 
     rsx! {
@@ -187,7 +196,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                 let modifiers = event.modifiers();
                 let command = modifiers.meta() || modifiers.ctrl();
                 let f = matches!(event.key(), Key::Character(ref key) if key.eq_ignore_ascii_case("f"));
-                if f && !command && !modifiers.alt() {
+                if f && !command && !modifiers.alt() && view() == EditorView::Edit {
                     spawn(async move {
                         let typing = document::eval(FOCUS_IS_TEXT_FIELD).await;
                         if typing.ok().and_then(|v| v.as_bool()) != Some(true) {
@@ -213,6 +222,14 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                     ProjectTitle { cargo_path }
                 }
                 div { class: "hgroup center-group",
+                    Segmented {
+                        options: vec![
+                            (EditorView::Edit, "Edit".to_string()),
+                            (EditorView::Variations, "Variations".to_string()),
+                        ],
+                        value: view(),
+                        onchange: move |new_view| view.set(new_view),
+                    }
                     RunControls { hot_reload, on_hot_reload: set_hot_reload }
                 }
                 div { class: "hgroup end",
@@ -265,7 +282,10 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                     }
                 }
                 main { class: "center",
-                    PreviewStage {
+                    if view() == EditorView::Variations {
+                        VariationsGrid {}
+                    } else {
+                        PreviewStage {
                         svg,
                         cached_preview: cached_preview.clone(),
                         layer_bbox: (layer_view.bbox)(),
@@ -274,6 +294,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                         has_drawing,
                         fullscreen,
                         zoom: preview_zoom,
+                        }
                     }
                     if current_layout.console_open {
                         Resizer {
@@ -295,7 +316,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                         on_toggle: move |_| toggle_panel(Panel::Console),
                     }
                 }
-                if current_layout.layers_open {
+                if editing && current_layout.layers_open {
                     Resizer {
                         axis: Axis::Vertical,
                         value: current_layout.layers_w,
@@ -334,7 +355,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                             }
                         }
                     }
-                } else {
+                } else if editing {
                     div { class: "rail rail-right",
                         IconButton {
                             icon: IconName::ChevronLeft,

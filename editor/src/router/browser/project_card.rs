@@ -37,7 +37,6 @@ pub fn ProjectCard(props: ProjectCardProps) -> Element {
     let key_project = props.project.clone();
 
     rsx! {
-        style { { include_str!("./project_card.css") } }
         div {
             class: "card",
             role: "button",
