@@ -541,6 +541,16 @@ pub fn main() -> Result<()> {
                     RollEvent::Finished { index, done, total } => {
                         eprintln!("{done}/{total} done (roll {index})")
                     }
+                    RollEvent::Skipped {
+                        index,
+                        values,
+                        limit,
+                        done,
+                        total,
+                    } => eprintln!(
+                        "{done}/{total} done (roll {index} skipped, it ran longer than {}s: {values})",
+                        limit.as_secs()
+                    ),
                 },
                 interrupted()?,
             ));
@@ -569,6 +579,12 @@ pub fn main() -> Result<()> {
                     project.get_variations_dir().display()
                 );
             };
+            if outcome.skipped > 0 {
+                eprintln!(
+                    "{} of the rolls ran too long and were skipped.",
+                    outcome.skipped
+                );
+            }
             println!(
                 "Rolled '{}' {} times, the results are in '{}'. `plottery pick N` makes roll N the saved values.",
                 project.config.name,

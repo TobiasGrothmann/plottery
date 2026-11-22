@@ -7,7 +7,7 @@ mod tests {
     use futures_lite::future::{block_on, yield_now};
     use plottery_runtime::ProjectParamsListWrapper;
 
-    use crate::variations_run::run_concurrently;
+    use crate::variations_run::{run_concurrently, time_limit};
     use crate::{Project, ProjectConfig};
 
     #[test]
@@ -98,5 +98,19 @@ mod tests {
         };
         let start = ProjectParamsListWrapper::empty();
         assert_send(project.roll_async(true, &start, &[], 1, |_| {}, pending()));
+    }
+
+    #[test]
+    fn the_time_limit_is_five_times_the_slowest_roll_and_at_least_20s() {
+        use std::time::Duration;
+        assert_eq!(time_limit(None), None);
+        assert_eq!(
+            time_limit(Some(Duration::from_secs(1))),
+            Some(Duration::from_secs(20))
+        );
+        assert_eq!(
+            time_limit(Some(Duration::from_secs(8))),
+            Some(Duration::from_secs(40))
+        );
     }
 }

@@ -317,6 +317,21 @@ impl ProjectRunner {
                         let (done, total) = match event {
                             RollEvent::Prepared { total } => (0, total),
                             RollEvent::Finished { done, total, .. } => (done, total),
+                            RollEvent::Skipped {
+                                index,
+                                values,
+                                limit,
+                                done,
+                                total,
+                            } => {
+                                log(console, |c| {
+                                    c.warn(&format!(
+                                        "Roll {index} skipped, it ran longer than {}s: {values}",
+                                        limit.as_secs()
+                                    ))
+                                });
+                                (done, total)
+                            }
                         };
                         set_state(running_state, RunningState::Rolling { done, total });
                     };
@@ -354,8 +369,12 @@ impl ProjectRunner {
                         set_state(running_state, RunningState::Idle);
                     }
                     Some(Ok(outcome)) => {
-                        log(console, |c| {
-                            c.success(&format!("Rolled {} times", outcome.total - 1))
+                        log(console, |c| match outcome.skipped {
+                            0 => c.success(&format!("Rolled {} times", outcome.total - 1)),
+                            skipped => c.warn(&format!(
+                                "Rolled {} times, {skipped} ran too long and were skipped",
+                                outcome.total - 1
+                            )),
                         });
                         set_state(running_state, RunningState::Idle);
                     }
