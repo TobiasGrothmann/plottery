@@ -166,7 +166,7 @@ fn run_status(state: &RunningState) -> Option<(Tone, &'static str)> {
     Some(status)
 }
 
-/// Run button, hot reload switch and the run state.
+/// Run button (Stop while running or rolling), hot reload switch and the run state.
 #[component]
 pub fn RunControls(hot_reload: bool, on_hot_reload: Callback<bool>) -> Element {
     let ctx = use_context::<EditorCtx>();
@@ -185,11 +185,21 @@ pub fn RunControls(hot_reload: bool, on_hot_reload: Callback<bool>) -> Element {
                 checked: hot_reload,
                 onchange: move |enabled| on_hot_reload.call(enabled),
             }
-            Button {
-                variant: Variant::Primary,
-                icon: IconName::Play,
-                onclick: move |_| ctx.trigger_run(),
-                "Run"
+            // a run or a roll: either one stops
+            if state_now.is_busy() {
+                Button {
+                    variant: Variant::Secondary,
+                    icon: IconName::X,
+                    onclick: move |_| ctx.project_runner.peek().stop(),
+                    "Stop"
+                }
+            } else {
+                Button {
+                    variant: Variant::Primary,
+                    icon: IconName::Play,
+                    onclick: move |_| ctx.trigger_run(),
+                    "Run"
+                }
             }
         }
         if let RunningState::Rolling { done, total } = state_now {

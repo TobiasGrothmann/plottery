@@ -181,6 +181,11 @@ impl ProjectRunner {
                 .build_and_run_async(release, &saved_params, on_event, cancel)
                 .await
             {
+                // stopped by the user; a newer run doesn't touch the state
+                Err(RunError::Killed { stage }) if is_current() => {
+                    log(console, |c| c.warn(&format!("Run stopped during {stage}")));
+                    set_state(running_state, RunningState::Idle);
+                }
                 Err(RunError::Killed { stage }) => {
                     log(console, |c| {
                         c.warn(format!("Previous run stopped during {stage}").as_str())
