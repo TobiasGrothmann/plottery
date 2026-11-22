@@ -175,6 +175,10 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
             preview_zoom.set(PreviewZoom::default());
         }
         MenuAction::ResetZoom => preview_zoom.set(PreviewZoom::default()),
+        MenuAction::ToggleVariations => view.set(match view() {
+            EditorView::Edit => EditorView::Variations,
+            EditorView::Variations => EditorView::Edit,
+        }),
         MenuAction::PlotterRemote => {}
     });
     let current_layout = layout();

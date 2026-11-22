@@ -35,7 +35,9 @@ See [Layers](#layers).
   copied in by the editor. The params hold paths relative to the project root.
 - `resources/latest_editor.*`: the user's param values (`.plotp`), plot settings (`.plots`) and the
   layer of the last run (`.plotl`). Binary, don't edit them by hand.
-- The project root is its own git repository. Commit there, not in Plottery. Everything in the
+- `variations/`: the results of `plottery roll`, one `.plotp`, `.svg` and `.png` per roll. Not
+  committed, it ignores itself.
+- The project root is its own git repository. Commit there, not in Plottery. Everything else in the
   folder is committed, `Cargo.lock` and `resources/` included. Previews and builds are not in the
   folder, they live in the editor's cache.
 
@@ -51,6 +53,8 @@ plottery render /tmp/a.png /tmp/a.svg --set size=12 --set glow.radius=2   # try 
 plottery set size=12 glow.radius=2                # change the user's values, like the editor
 plottery run                                      # like the editor's Run button
 plottery animate /tmp/a.mp4 --every 5             # video of how the drawing comes about, see `snapshot`
+plottery roll seed size -n 24 --open              # 24 random variations, shown in the editor as they finish
+plottery pick 7                                   # make roll 7 the user's values and run it
 ```
 
 `plottery --help` lists all commands. If `plottery` is missing or lacks a command, install the version
@@ -76,6 +80,13 @@ and runs with the user's param values, so a render shows what the user sees.
   keeps every N-th) and the finished drawing as the last frame. Takes `--set`, `--defaults` and `--size`
   like `render`, plus `--fps` and `--hold`. Needs ffmpeg and a `Paper` param. To check single frames,
   take stills out of the video with ffmpeg.
+- `roll PARAM... -n N` gives the named params N uniform random values: within their `#[range]`, seeds
+  100 to 999, angles over the full turn, bools, enums and options among their choices. Other params
+  fail with the list of rollable ones. Roll 0 is the start params (the user's values, or `--set` and
+  `--defaults` like `render`). It prints one line per roll with its values and png. The results replace
+  the last ones in `variations/`; the user's values don't change. The first failed run ends the roll.
+  `--open` shows them in the editor while they come in. Use it when the user asks for variations.
+- `pick N` makes roll N the user's values and runs it, like `set` plus `run`. Only when the user picks.
 - Compiler errors show paths relative to `{{project-name}}/`, e.g. `src/generate.rs` is
   `{{project-name}}/src/generate.rs`.
 
