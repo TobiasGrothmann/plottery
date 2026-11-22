@@ -81,7 +81,7 @@ mod tests {
         );
         assert!(notes.exists());
         assert!(!project.get_roll_path(2, "plotp").exists());
-        assert!(!project.get_roll_path(2, "svg").exists());
+        assert!(!project.get_roll_path(2, "png").exists());
         assert!(project.get_variations_dir().join(".gitignore").exists());
     }
 

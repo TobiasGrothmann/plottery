@@ -128,7 +128,7 @@ enum Command {
     },
     #[command(
         about = "Roll params to random values and store a drawing per roll, the project's variations",
-        long_about = "Roll params to random values and store a drawing per roll, the project's variations.\n\nEach roll gives every named param a uniform random value: params with a #[range] within it, seeds from 100 to 999, angles over the full turn, bools, enums and options among their choices. Roll 0 is the start params themselves. The results replace the last ones in the project's variations/ folder (not committed): NNN.plotp, NNN.plotl, NNN.svg and NNN.png per roll. The start params are the editor's saved values unless --defaults or --set say otherwise; the saved values don't change. The first failed run ends the roll, finished rolls stay. `plottery pick N` makes roll N the saved values."
+        long_about = "Roll params to random values and store a drawing per roll, the project's variations.\n\nEach roll gives every named param a uniform random value: params with a #[range] within it, seeds from 100 to 999, angles over the full turn, bools, enums and options among their choices. Roll 0 is the start params themselves. The results replace the last ones in the project's variations/ folder (not committed): NNN.plotp, NNN.plotl and NNN.png per roll. The start params are the editor's saved values unless --defaults or --set say otherwise; the saved values don't change. The first failed run ends the roll, finished rolls stay. `plottery pick N` makes roll N the saved values."
     )]
     Roll {
         #[arg(

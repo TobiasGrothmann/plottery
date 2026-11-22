@@ -16,7 +16,7 @@ use crate::{rolled_values, Project};
 pub const ROLL_THUMBNAIL_SIZE: u32 = 768;
 
 const META_FILE: &str = "variations.json";
-const ROLL_EXTENSIONS: [&str; 4] = ["plotp", "plotl", "svg", "png"];
+const ROLL_EXTENSIONS: [&str; 3] = ["plotp", "plotl", "png"];
 
 /// What a set of rolls was made of.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -169,13 +169,11 @@ impl Project {
         )
     }
 
-    /// Writes the layer, the SVG and then the PNG of roll `index`. The PNG marks the roll as done.
+    /// Writes the layer and then the PNG of roll `index`. The PNG marks the roll as done.
     pub(crate) fn save_roll_output(&self, index: usize, layer: &Layer) -> Result<()> {
         write_atomic(&self.get_roll_path(index, "plotl"), layer.to_binary()?)?;
-        let svg = layer.to_svg();
-        write_atomic(&self.get_roll_path(index, "svg"), &svg)?;
         let png = render_svg(
-            svg.as_bytes(),
+            layer.to_svg().as_bytes(),
             Some(ROLL_THUMBNAIL_SIZE),
             Some(tiny_skia::Color::WHITE),
         )?

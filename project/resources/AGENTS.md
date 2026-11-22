@@ -35,7 +35,7 @@ See [Layers](#layers).
   copied in by the editor. The params hold paths relative to the project root.
 - `resources/latest_editor.*`: the user's param values (`.plotp`), plot settings (`.plots`) and the
   layer of the last run (`.plotl`). Binary, don't edit them by hand.
-- `variations/`: the results of `plottery roll`, one `.plotp`, `.plotl`, `.svg` and `.png` per roll. Not
+- `variations/`: the results of `plottery roll`, one `.plotp`, `.plotl` and `.png` per roll. Not
   committed, it ignores itself.
 - The project root is its own git repository. Commit there, not in Plottery. Everything else in the
   folder is committed, `Cargo.lock` and `resources/` included. Previews and builds are not in the
