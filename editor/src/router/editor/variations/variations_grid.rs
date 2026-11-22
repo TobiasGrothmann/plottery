@@ -9,7 +9,7 @@ use super::{
 };
 use crate::{
     components::tile_size_slider::TileSizeSlider,
-    model::app_state::{update_app_state, AppState},
+    model::app_state::{update_app_state, AppState, ROLL_TILE_SIZE_MAX},
     router::editor::editor_ctx::EditorCtx,
 };
 
@@ -50,14 +50,8 @@ pub fn VariationsGrid() -> Element {
     let project = ctx.project.read().clone();
     let variations = ctx.variations.variations.read().clone();
 
-    let (tiles, status) = match variations {
+    let tiles = match variations {
         Some(variations) if !variations.rolls.is_empty() => {
-            let done = variations.rolls.iter().filter(|roll| roll.done).count();
-            let status = format!(
-                "{done} of {} done · rolled {}",
-                variations.rolls.len(),
-                variations.meta.params.join(", ")
-            );
             let set_id = variations.meta.created.timestamp_millis() as u32;
             let tiles = variations
                 .rolls
@@ -81,9 +75,9 @@ pub fn VariationsGrid() -> Element {
                     }
                 })
                 .collect::<Vec<_>>();
-            (Some(tiles), status)
+            Some(tiles)
         }
-        _ => (None, "No variations yet".to_string()),
+        _ => None,
     };
 
     rsx! {
@@ -105,9 +99,9 @@ pub fn VariationsGrid() -> Element {
                 }
             }
             div { class: "variations-bar",
-                span { class: "variations-status", "{status}" }
                 TileSizeSlider {
                     value: tile_size,
+                    max: ROLL_TILE_SIZE_MAX,
                     on_change: move |size| update_app_state(app_state, |state| state.set_roll_tile_size(size)),
                 }
             }

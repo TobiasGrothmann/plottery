@@ -14,6 +14,7 @@ pub const TILE_SIZE_MIN: u32 = 140;
 pub const TILE_SIZE_MAX: u32 = 600;
 pub const TILE_SIZE_DEFAULT: u32 = 320;
 pub const ROLL_TILE_SIZE_DEFAULT: u32 = 220;
+pub const ROLL_TILE_SIZE_MAX: u32 = 1200;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Panel {
@@ -246,7 +247,7 @@ impl AppState {
     }
 
     pub fn set_roll_tile_size(&mut self, size: u32) {
-        self.roll_tile_size = size.clamp(TILE_SIZE_MIN, TILE_SIZE_MAX);
+        self.roll_tile_size = size.clamp(TILE_SIZE_MIN, ROLL_TILE_SIZE_MAX);
     }
 
     /// True if `dir` is a root or inside one, so the browser can show it.
