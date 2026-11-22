@@ -2,13 +2,13 @@ use dioxus::prelude::*;
 use plottery_lib::ColorRgb;
 use plottery_runtime::project_param_value::ProjectParamValue;
 
-use crate::router::editor::params_editor::params_editor::LeafProps;
+use crate::router::editor::params_editor::params_editor::{LeafHandle, LeafProps};
 
-fn set_color(props: &LeafProps, hex: &str) {
+fn set_color(leaf: LeafHandle, hex: &str) {
     let Some(color) = ColorRgb::from_hex(hex) else {
         return;
     };
-    props.edit(|value| {
+    leaf.edit(|value| {
         if let ProjectParamValue::Color(inner) = value {
             *inner = color;
         }
@@ -17,6 +17,7 @@ fn set_color(props: &LeafProps, hex: &str) {
 
 #[component]
 pub fn ColorField(props: LeafProps) -> Element {
+    let leaf = props.use_handle();
     let ProjectParamValue::Color(color) = props.param.value else {
         return rsx! {
             p { "unexpected value type" }
@@ -24,8 +25,6 @@ pub fn ColorField(props: LeafProps) -> Element {
     };
     let hex = color.hex();
     let name = color.name().name.to_lowercase();
-    let picker_props = props.clone();
-    let text_props = props.clone();
 
     rsx! {
         div { class: "hrow",
@@ -34,14 +33,14 @@ pub fn ColorField(props: LeafProps) -> Element {
                 class: "color-swatch",
                 "aria-label": "Pick color",
                 value: "{hex}",
-                onchange: move |event| set_color(&picker_props, &event.value()),
+                onchange: move |event| set_color(leaf, &event.value()),
             }
             input {
                 r#type: "text",
                 class: "input color-hex",
                 "aria-label": "Hex color",
                 value: "{hex}",
-                onchange: move |event| set_color(&text_props, &event.value()),
+                onchange: move |event| set_color(leaf, &event.value()),
             }
             span { class: "hint", "{name}" }
         }

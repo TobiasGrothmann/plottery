@@ -5,7 +5,7 @@ use plottery_runtime::{project_param_value::ProjectParamValue, Curve2D};
 use crate::router::editor::{
     editor_ctx::EditorCtx,
     params_editor::{
-        params_editor::{edit_leaf_at, LeafProps},
+        params_editor::{LeafHandle, LeafProps},
         widgets::{number_input::NumberInput, slider_input::ALT_SPEED_FACTOR},
     },
 };
@@ -117,7 +117,7 @@ impl Domain {
 }
 
 #[component]
-fn DomainInput(leaf: LeafProps, value: f32, domain: Domain, label: String) -> Element {
+fn DomainInput(leaf: LeafHandle, value: f32, domain: Domain, label: String) -> Element {
     rsx! {
         NumberInput {
             value,
@@ -130,10 +130,9 @@ fn DomainInput(leaf: LeafProps, value: f32, domain: Domain, label: String) -> El
 /// Curve editor for `Curve2DNorm`, plus the x and y range for `Curve2D`.
 #[component]
 pub fn Curve2DField(props: LeafProps) -> Element {
+    let leaf = props.use_handle();
     let ctx = use_context::<EditorCtx>();
     let mut drag = use_signal(|| None::<CurveDrag>);
-    // The field is keyed by its path, so the path never changes while it is mounted.
-    let param_path = use_hook(|| CopyValue::new(props.path.clone()));
 
     let svg_width = format!("{}", CANVAS_WIDTH as i32);
     let svg_height = format!("{}", CANVAS_HEIGHT as i32);
@@ -156,11 +155,7 @@ pub fn Curve2DField(props: LeafProps) -> Element {
         } else {
             pos
         };
-        edit_leaf_at(
-            &param_path.read(),
-            |value| move_curve_point(value, state.index, point),
-            false,
-        );
+        leaf.edit_without_run(|value| move_curve_point(value, state.index, point));
         drag.set(Some(CurveDrag {
             last: client,
             pos,
@@ -199,28 +194,28 @@ pub fn Curve2DField(props: LeafProps) -> Element {
                 div { class: "domain-fields",
                     span { class: "hint", "x" }
                     DomainInput {
-                        leaf: props.clone(),
+                        leaf,
                         value: Domain::XStart.get(&curve),
                         domain: Domain::XStart,
                         label: "x from",
                     }
                     span { class: "hint", "–" }
                     DomainInput {
-                        leaf: props.clone(),
+                        leaf,
                         value: Domain::XEnd.get(&curve),
                         domain: Domain::XEnd,
                         label: "x to",
                     }
                     span { class: "hint", "y" }
                     DomainInput {
-                        leaf: props.clone(),
+                        leaf,
                         value: Domain::YStart.get(&curve),
                         domain: Domain::YStart,
                         label: "y from",
                     }
                     span { class: "hint", "–" }
                     DomainInput {
-                        leaf: props.clone(),
+                        leaf,
                         value: Domain::YEnd.get(&curve),
                         domain: Domain::YEnd,
                         label: "y to",
@@ -236,7 +231,7 @@ pub fn Curve2DField(props: LeafProps) -> Element {
                     let rect = event.data.element_coordinates();
                     let x = ((rect.x - MARGIN) / GRAPH_WIDTH).clamp(0.0, 1.0) as f32;
                     let y = ((GRAPH_BOTTOM - rect.y) / GRAPH_HEIGHT).clamp(0.0, 1.0) as f32;
-                    edit_leaf_at(&param_path.read(), |value| add_curve_point(value, V2::new(x, y)), true);
+                    leaf.edit(|value| add_curve_point(value, V2::new(x, y)));
                 },
                 onmousemove: move |event| {
                     let Some(state) = drag() else { return };
@@ -280,7 +275,7 @@ pub fn Curve2DField(props: LeafProps) -> Element {
                                 ondoubleclick: move |event| {
                                     event.stop_propagation();
                                     if i > 0 && i < graph_len - 1 {
-                                        edit_leaf_at(&param_path.read(), |value| remove_curve_point(value, i), true);
+                                        leaf.edit(|value| remove_curve_point(value, i));
                                     }
                                 },
                                 onmousedown: move |event| {

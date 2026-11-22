@@ -62,22 +62,20 @@ fn set_range(value: &mut ProjectParamValue, new_min: f32, new_max: f32) {
 /// Min and max boxes; with `#[range]` bounds a two-thumb slider between them.
 #[component]
 pub fn RangeField(props: LeafProps) -> Element {
+    let leaf = props.use_handle();
     // values while the slider is dragged, so the boxes follow before the commit
     let mut live = use_signal(|| None::<(f32, f32)>);
     let Some(view) = RangeView::from_value(&props.param.value) else {
         return rsx! { p { "unexpected value type" } };
     };
     let (shown_min, shown_max) = live().unwrap_or((view.min, view.max));
-    let min_props = props.clone();
-    let max_props = props.clone();
-    let slider_props = props.clone();
     let min_box = rsx! {
         NumberInput {
             value: shown_min,
             integer: view.is_int,
             placeholder: "min",
             aria_label: "Minimum",
-            oncommit: move |new_min: f32| min_props.edit(|value| set_range(value, new_min, view.max)),
+            oncommit: move |new_min: f32| leaf.edit(|value| set_range(value, new_min, view.max)),
         }
     };
     let max_box = rsx! {
@@ -86,7 +84,7 @@ pub fn RangeField(props: LeafProps) -> Element {
             integer: view.is_int,
             placeholder: "max",
             aria_label: "Maximum",
-            oncommit: move |new_max: f32| max_props.edit(|value| set_range(value, view.min, new_max)),
+            oncommit: move |new_max: f32| leaf.edit(|value| set_range(value, view.min, new_max)),
         }
     };
 
@@ -106,7 +104,7 @@ pub fn RangeField(props: LeafProps) -> Element {
                         if live.take().is_none() {
                             return;
                         }
-                        slider_props.edit(|value| set_range(value, low, high));
+                        leaf.edit(|value| set_range(value, low, high));
                     },
                 }
                 div { class: "range-box", {max_box} }

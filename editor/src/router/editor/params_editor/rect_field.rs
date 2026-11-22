@@ -26,10 +26,9 @@ fn CornerRow(leaf: LeafProps, part: PickPart, label: String, rect: Rect) -> Elem
         PickPart::BottomLeft => rect.bl(),
         _ => rect.tr(),
     };
-    let x_props = leaf.clone();
-    let y_props = leaf.clone();
-    let edit_corner = move |props: &LeafProps, point: V2| {
-        props.edit(|value| {
+    let handle = leaf.use_handle();
+    let edit_corner = move |point: V2| {
+        handle.edit(|value| {
             if let ProjectParamValue::Rect(rect) = value {
                 *rect = with_corner(*rect, part, point);
             }
@@ -61,12 +60,12 @@ fn CornerRow(leaf: LeafProps, part: PickPart, label: String, rect: Rect) -> Elem
                 NumberInput {
                     value: corner.x,
                     affix: "x",
-                    oncommit: move |x: f32| edit_corner(&x_props, V2::new(x, corner.y)),
+                    oncommit: move |x: f32| edit_corner(V2::new(x, corner.y)),
                 }
                 NumberInput {
                     value: corner.y,
                     affix: "y",
-                    oncommit: move |y: f32| edit_corner(&y_props, V2::new(corner.x, y)),
+                    oncommit: move |y: f32| edit_corner(V2::new(corner.x, y)),
                 }
                 if pickable {
                     IconButton {

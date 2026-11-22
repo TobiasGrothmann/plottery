@@ -27,6 +27,7 @@ fn FontPreviewSvg(preview: Arc<FontPreview>, height: f32) -> Element {
 
 #[component]
 pub fn FontField(props: LeafProps) -> Element {
+    let leaf = props.use_handle();
     let ProjectParamValue::Font(name) = &props.param.value else {
         return rsx! {
             p { "unexpected value type" }
@@ -66,12 +67,9 @@ pub fn FontField(props: LeafProps) -> Element {
         })
         .collect();
 
-    let pick = {
-        let props = props.clone();
-        move |name: String| {
-            if BundledFont::from_name(&name) != selected {
-                props.edit(|value| *value = ProjectParamValue::Font(name));
-            }
+    let pick = move |name: String| {
+        if BundledFont::from_name(&name) != selected {
+            leaf.edit(|value| *value = ProjectParamValue::Font(name));
         }
     };
 

@@ -3,7 +3,7 @@ use plottery_lib::{Margin, Paper, PaperSize};
 use plottery_runtime::project_param_value::ProjectParamValue;
 
 use crate::router::editor::params_editor::{
-    params_editor::LeafProps,
+    params_editor::{LeafHandle, LeafProps},
     widgets::{dropdown::Dropdown, format_number, number_input::NumberInput, segmented::Segmented},
 };
 
@@ -17,8 +17,8 @@ fn din_number(size: &PaperSize) -> u8 {
     }
 }
 
-fn edit_paper(props: &LeafProps, edit: impl FnOnce(&mut Paper)) {
-    props.edit(|value| {
+fn edit_paper(leaf: LeafHandle, edit: impl FnOnce(&mut Paper)) {
+    leaf.edit(|value| {
         if let ProjectParamValue::Paper(paper) = value {
             edit(paper);
         }
@@ -27,6 +27,7 @@ fn edit_paper(props: &LeafProps, edit: impl FnOnce(&mut Paper)) {
 
 #[component]
 pub fn PaperField(props: LeafProps) -> Element {
+    let leaf = props.use_handle();
     let ProjectParamValue::Paper(paper) = props.param.value else {
         return rsx! {
             p { "unexpected value type" }
@@ -58,14 +59,6 @@ pub fn PaperField(props: LeafProps) -> Element {
         format_number(resolved.y)
     );
 
-    let kind_props = props.clone();
-    let number_props = props.clone();
-    let width_props = props.clone();
-    let height_props = props.clone();
-    let landscape_props = props.clone();
-    let margin_kind_props = props.clone();
-    let margin_props = props.clone();
-
     rsx! {
         div { class: "sub",
             span { class: "sublabel", "size" }
@@ -74,7 +67,7 @@ pub fn PaperField(props: LeafProps) -> Element {
                     options: vec!["A".to_string(), "B".to_string(), "custom".to_string()],
                     selected: Some(size_kind),
                     onselect: move |index: usize| edit_paper(
-                        &kind_props,
+                        leaf,
                         |paper| {
                             let number = din_number(&paper.size);
                             paper.size = match index {
@@ -101,7 +94,7 @@ pub fn PaperField(props: LeafProps) -> Element {
                         affix: "w",
                         aria_label: "Width",
                         oncommit: move |x: f32| edit_paper(
-                            &width_props,
+                            leaf,
                             |paper| {
                                 if let PaperSize::Custom(size) = &mut paper.size {
                                     size.x = x.max(0.0);
@@ -115,7 +108,7 @@ pub fn PaperField(props: LeafProps) -> Element {
                         affix: "h",
                         aria_label: "Height",
                         oncommit: move |y: f32| edit_paper(
-                            &height_props,
+                            leaf,
                             |paper| {
                                 if let PaperSize::Custom(size) = &mut paper.size {
                                     size.y = y.max(0.0);
@@ -132,7 +125,7 @@ pub fn PaperField(props: LeafProps) -> Element {
                     options: din_options,
                     selected: Some(din_number(&paper.size) as usize),
                     onselect: move |index: usize| edit_paper(
-                        &number_props,
+                        leaf,
                         |paper| {
                             paper.size = match paper.size {
                                 PaperSize::DinB(_) => PaperSize::DinB(index as u8),
@@ -150,7 +143,7 @@ pub fn PaperField(props: LeafProps) -> Element {
                     options: orientation_options,
                     selected: Some(if paper.landscape { 1 } else { 0 }),
                     onselect: move |index: usize| edit_paper(
-                        &landscape_props,
+                        leaf,
                         |paper| paper.landscape = index == 1,
                     ),
                 }
@@ -163,7 +156,7 @@ pub fn PaperField(props: LeafProps) -> Element {
                     value: margin_value,
                     aria_label: "Margin",
                     oncommit: move |value: f32| edit_paper(
-                        &margin_props,
+                        leaf,
                         |paper| {
                             paper.margin = match paper.margin {
                                 Margin::Cm(_) => Margin::Cm(value.max(0.0)),
@@ -176,7 +169,7 @@ pub fn PaperField(props: LeafProps) -> Element {
                     options: vec!["cm".to_string(), "fraction".to_string()],
                     selected: Some(margin_kind),
                     onselect: move |index: usize| edit_paper(
-                        &margin_kind_props,
+                        leaf,
                         |paper| {
                             let margin_cm = paper.margin_cm();
                             paper.margin = if index == 0 {

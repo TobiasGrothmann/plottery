@@ -9,6 +9,7 @@ use crate::router::editor::params_editor::{
 /// Slider in whole percents.
 #[component]
 pub fn PercentField(props: LeafProps) -> Element {
+    let leaf = props.use_handle();
     let ProjectParamValue::Percent { val, min, max } = props.param.value else {
         return rsx! {
             p { "unexpected value type" }
@@ -17,7 +18,6 @@ pub fn PercentField(props: LeafProps) -> Element {
     // value while the slider is dragged, so the label follows before the commit
     let mut live = use_signal(|| None::<f32>);
     let shown = format_number(live().unwrap_or(val));
-    let edit_props = props.clone();
     rsx! {
         SliderInput {
             value: val,
@@ -31,7 +31,7 @@ pub fn PercentField(props: LeafProps) -> Element {
                 if live.take().is_none() {
                     return;
                 }
-                edit_props.edit(|param| {
+                leaf.edit(|param| {
                     if let ProjectParamValue::Percent { val, min, max } = param {
                         *val = value.clamp(*min, *max);
                     }

@@ -3,7 +3,7 @@ use plottery_lib::{Easing, EasingKind};
 use plottery_runtime::project_param_value::ProjectParamValue;
 
 use crate::router::editor::params_editor::{
-    params_editor::LeafProps,
+    params_editor::{LeafHandle, LeafProps},
     widgets::{segmented::Segmented, slider_input::SliderInput},
 };
 
@@ -11,8 +11,8 @@ const PREVIEW_SIZE: f32 = 48.0;
 const PREVIEW_INSET: f32 = 3.0;
 const PREVIEW_SAMPLES: usize = 32;
 
-fn edit_easing(props: &LeafProps, edit: impl FnOnce(&mut Easing)) {
-    props.edit(|value| {
+fn edit_easing(leaf: LeafHandle, edit: impl FnOnce(&mut Easing)) {
+    leaf.edit(|value| {
         if let ProjectParamValue::Easing(easing) = value {
             edit(easing);
         }
@@ -35,6 +35,7 @@ fn preview_points(easing: &Easing) -> String {
 
 #[component]
 pub fn EasingField(props: LeafProps) -> Element {
+    let leaf = props.use_handle();
     let ProjectParamValue::Easing(easing) = props.param.value else {
         return rsx! {
             p { "unexpected value type" }
@@ -50,9 +51,6 @@ pub fn EasingField(props: LeafProps) -> Element {
     let points = preview_points(&preview);
     let (lo, hi) = (PREVIEW_INSET, PREVIEW_SIZE - PREVIEW_INSET);
 
-    let kind_props = props.clone();
-    let amount_props = props.clone();
-
     rsx! {
         div { class: "EasingField",
             div { class: "easing-controls",
@@ -60,7 +58,7 @@ pub fn EasingField(props: LeafProps) -> Element {
                     options: vec!["power".to_string(), "bias".to_string(), "s-curve".to_string()],
                     selected: kind_index,
                     onselect: move |index: usize| edit_easing(
-                        &kind_props,
+                        leaf,
                         |easing| {
                             easing.kind = EasingKind::ALL[index];
                         },
@@ -73,7 +71,7 @@ pub fn EasingField(props: LeafProps) -> Element {
                     oninput: move |value: f32| live_amount.set(Some(value)),
                     oncommit: move |value: f32| {
                         live_amount.set(None);
-                        edit_easing(&amount_props, |easing| easing.amount = value);
+                        edit_easing(leaf, |easing| easing.amount = value);
                     },
                 }
             }

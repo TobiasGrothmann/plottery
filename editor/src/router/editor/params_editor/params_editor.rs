@@ -62,9 +62,31 @@ impl LeafProps {
         }
     }
 
-    /// Applies `edit` to the leaf value at `path` and reruns the project. For the widget's handlers.
+    /// Hook: the handle the widget's handlers edit the value with. Call it before any early return.
+    pub fn use_handle(&self) -> LeafHandle {
+        let mut path = use_hook(|| CopyValue::new(self.path.clone()));
+        if *path.peek() != self.path {
+            path.set(self.path.clone());
+        }
+        LeafHandle { path }
+    }
+}
+
+/// Copyable access to a leaf value, so every handler of a widget can edit it.
+#[derive(Clone, Copy, PartialEq)]
+pub struct LeafHandle {
+    path: CopyValue<Vec<String>>,
+}
+
+impl LeafHandle {
+    /// Applies `edit` to the leaf value and reruns the project.
     pub fn edit(&self, edit: impl FnOnce(&mut ProjectParamValue)) {
-        edit_leaf_at(&self.path, edit, true);
+        edit_leaf_at(&self.path.read(), edit, true);
+    }
+
+    /// Like [`LeafHandle::edit`] without the rerun, for drags that rerun on release.
+    pub fn edit_without_run(&self, edit: impl FnOnce(&mut ProjectParamValue)) {
+        edit_leaf_at(&self.path.read(), edit, false);
     }
 }
 

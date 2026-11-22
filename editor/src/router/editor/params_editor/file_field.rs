@@ -13,7 +13,7 @@ use crate::{
     router::editor::{
         editor_ctx::EditorCtx,
         params_editor::{
-            params_editor::LeafProps,
+            params_editor::{LeafHandle, LeafProps},
             widgets::{dropdown::Dropdown, segmented::Segmented},
         },
     },
@@ -80,8 +80,8 @@ fn file_mtime_millis(path: &Path) -> u128 {
         .unwrap_or(0)
 }
 
-fn edit_file(props: &LeafProps, kind: FileKind, edit: impl FnOnce(&mut ProjectParamFile)) {
-    props.edit(|value| {
+fn edit_file(leaf: LeafHandle, kind: FileKind, edit: impl FnOnce(&mut ProjectParamFile)) {
+    leaf.edit(|value| {
         if let Some(file) = kind.file_mut(value) {
             edit(file);
         }
@@ -91,6 +91,7 @@ fn edit_file(props: &LeafProps, kind: FileKind, edit: impl FnOnce(&mut ProjectPa
 /// Picker for `ImagePath` and `SvgPath` params: copy or link a file, preview it, pick recents.
 #[component]
 pub fn FileField(props: LeafProps) -> Element {
+    let leaf = props.use_handle();
     let Some((kind, file)) = FileKind::of(&props.param.value) else {
         return rsx! {
             p { "unexpected value type" }
@@ -118,10 +119,6 @@ pub fn FileField(props: LeafProps) -> Element {
     let recent = file.recent.clone();
     let recent_names: Vec<String> = recent.iter().map(|p| file_name_of(p)).collect();
 
-    let choose_props = props.clone();
-    let recent_props = props.clone();
-    let clear_props = props.clone();
-
     rsx! {
         style { {include_str!("file_field.css")} }
         div {
@@ -144,7 +141,6 @@ pub fn FileField(props: LeafProps) -> Element {
                 size: Size::Sm,
                 icon: IconName::Image,
                 onclick: move |_| {
-                    let props = choose_props.clone();
                     let project_dir = project_dir.clone();
                     async move {
                         let Some(picked) = AsyncFileDialog::new()
@@ -159,7 +155,7 @@ pub fn FileField(props: LeafProps) -> Element {
                         import_error.set(None);
                         if !copy_mode() {
                             edit_file(
-                                &props,
+                                leaf,
                                 kind,
                                 |file| { file.set(Some(picked.to_string_lossy().to_string())) },
                             );
@@ -171,7 +167,7 @@ pub fn FileField(props: LeafProps) -> Element {
                             })
                             .await;
                         match result {
-                            Ok(Ok(stored)) => edit_file(&props, kind, |file| file.set(Some(stored))),
+                            Ok(Ok(stored)) => edit_file(leaf, kind, |file| file.set(Some(stored))),
                             Ok(Err(e)) => {
                                 ctx.console.peek().error(&format!("Failed to import {noun}: {e:#}"));
                                 import_error.set(Some(format!("{e:#}")));
@@ -196,7 +192,7 @@ pub fn FileField(props: LeafProps) -> Element {
                     icon: IconName::X,
                     label: "Remove {noun}",
                     size: Size::Sm,
-                    onclick: move |_| edit_file(&clear_props, kind, |file| file.set(None)),
+                    onclick: move |_| edit_file(leaf, kind, |file| file.set(None)),
                 }
             }
         }
@@ -217,7 +213,7 @@ pub fn FileField(props: LeafProps) -> Element {
                 placeholder: "Recent {noun}s…",
                 onselect: move |index: usize| {
                     let Some(path) = recent.get(index).cloned() else { return };
-                    edit_file(&recent_props, kind, |file| file.set(Some(path)));
+                    edit_file(leaf, kind, |file| file.set(Some(path)));
                 },
             }
         }

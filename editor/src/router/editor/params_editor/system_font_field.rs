@@ -32,6 +32,7 @@ fn style_labels(family: &SystemFontFamily) -> Vec<String> {
 
 #[component]
 pub fn SystemFontField(props: LeafProps) -> Element {
+    let leaf = props.use_handle();
     let ProjectParamValue::SystemFont(font) = &props.param.value else {
         return rsx! {
             p { "unexpected value type" }
@@ -90,7 +91,6 @@ pub fn SystemFontField(props: LeafProps) -> Element {
         .collect();
 
     let pick_family = {
-        let props = props.clone();
         let list = list.clone();
         let font = font.clone();
         move |name: String| {
@@ -106,20 +106,19 @@ pub fn SystemFontField(props: LeafProps) -> Element {
                 style,
             };
             if new_font != font {
-                props.edit(|value| *value = ProjectParamValue::SystemFont(new_font));
+                leaf.edit(|value| *value = ProjectParamValue::SystemFont(new_font));
             }
         }
     };
 
     let pick_style = {
-        let props = props.clone();
         let family = family.clone();
         move |index: usize| {
             let Some(face) = family.as_ref().and_then(|family| family.faces.get(index)) else {
                 return;
             };
             let style = face.style;
-            props.edit(|value| {
+            leaf.edit(|value| {
                 if let ProjectParamValue::SystemFont(font) = value {
                     font.style = style;
                 }

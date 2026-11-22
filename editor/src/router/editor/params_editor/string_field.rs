@@ -7,15 +7,15 @@ use crate::router::editor::params_editor::{
 
 #[component]
 pub fn StringField(props: LeafProps) -> Element {
+    let leaf = props.use_handle();
     let ProjectParamValue::String(value) = &props.param.value else {
         return rsx! { p { "unexpected value type" } };
     };
-    let edit_props = props.clone();
     rsx! {
         TextInput {
             value: value.clone(),
             oncommit: move |text: String| {
-                edit_props.edit(|value| {
+                leaf.edit(|value| {
                     if let ProjectParamValue::String(inner) = value {
                         *inner = text;
                     }

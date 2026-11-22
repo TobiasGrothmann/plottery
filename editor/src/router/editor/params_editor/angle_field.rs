@@ -9,6 +9,7 @@ use crate::router::editor::params_editor::{
 
 #[component]
 pub fn AngleField(props: LeafProps) -> Element {
+    let leaf = props.use_handle();
     let ProjectParamValue::Angle { rad, unit } = props.param.value else {
         return rsx! { p { "unexpected value type" } };
     };
@@ -17,10 +18,6 @@ pub fn AngleField(props: LeafProps) -> Element {
     let shown = unit.from_angle(Angle::from_rad(live_rad().unwrap_or(rad)));
     let unit_index = AngleUnit::ALL.iter().position(|u| *u == unit);
 
-    let dial_props = props.clone();
-    let value_props = props.clone();
-    let unit_props = props.clone();
-
     rsx! {
         div { class: "AngleField",
             AngleDial {
@@ -28,7 +25,7 @@ pub fn AngleField(props: LeafProps) -> Element {
                 oninput: move |value: f32| live_rad.set(Some(value)),
                 oncommit: move |value: f32| {
                     live_rad.set(None);
-                    dial_props.edit(|param| {
+                    leaf.edit(|param| {
                         if let ProjectParamValue::Angle { rad, .. } = param {
                             *rad = value;
                         }
@@ -38,7 +35,7 @@ pub fn AngleField(props: LeafProps) -> Element {
             div { class: "angle-controls",
                 NumberInput {
                     value: shown,
-                    oncommit: move |value: f32| value_props.edit(|param| {
+                    oncommit: move |value: f32| leaf.edit(|param| {
                         if let ProjectParamValue::Angle { rad, unit } = param {
                             *rad = unit.to_angle(value).to_rad();
                         }
@@ -47,7 +44,7 @@ pub fn AngleField(props: LeafProps) -> Element {
                 Segmented {
                     options: AngleUnit::ALL.iter().map(|u| u.short_name().to_string()).collect(),
                     selected: unit_index,
-                    onselect: move |index: usize| unit_props.edit(|param| {
+                    onselect: move |index: usize| leaf.edit(|param| {
                         if let ProjectParamValue::Angle { unit, .. } = param {
                             *unit = AngleUnit::ALL[index];
                         }

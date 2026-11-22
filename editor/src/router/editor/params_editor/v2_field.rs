@@ -12,6 +12,7 @@ use crate::router::editor::{
 
 #[component]
 pub fn V2Field(props: LeafProps) -> Element {
+    let leaf = props.use_handle();
     let (x, y, integer) = match props.param.value {
         ProjectParamValue::V2(v) => (v.x, v.y, false),
         ProjectParamValue::V2i(v) => (v.x as f32, v.y as f32, true),
@@ -21,8 +22,6 @@ pub fn V2Field(props: LeafProps) -> Element {
             }
         }
     };
-    let x_props = props.clone();
-    let y_props = props.clone();
     let mut pick_target = use_context::<PickTarget>();
     let picking = pick_target.is_target(&props.path, PickPart::Point);
     let pick_path = props.path.clone();
@@ -49,8 +48,7 @@ pub fn V2Field(props: LeafProps) -> Element {
                 integer,
                 affix: "x",
                 oncommit: move |x: f32| {
-                    x_props
-                        .edit(|value| match value {
+                    leaf.edit(|value| match value {
                             ProjectParamValue::V2(v) => v.x = x,
                             ProjectParamValue::V2i(v) => v.x = x.round() as i32,
                             _ => {}
@@ -62,8 +60,7 @@ pub fn V2Field(props: LeafProps) -> Element {
                 integer,
                 affix: "y",
                 oncommit: move |y: f32| {
-                    y_props
-                        .edit(|value| match value {
+                    leaf.edit(|value| match value {
                             ProjectParamValue::V2(v) => v.y = y,
                             ProjectParamValue::V2i(v) => v.y = y.round() as i32,
                             _ => {}

@@ -45,17 +45,17 @@ fn set_ranged_value(param_value: &mut ProjectParamValue, new_val: f32) {
 
 #[component]
 pub fn Slider(props: LeafProps) -> Element {
+    let leaf = props.use_handle();
     let Some(ranged) = Ranged::from_value(&props.param.value) else {
         return rsx! { p { "unexpected value type" } };
     };
-    let edit_props = props.clone();
     rsx! {
         SliderInput {
             value: ranged.val,
             min: ranged.min,
             max: ranged.max,
             integer: ranged.is_int,
-            oncommit: move |value: f32| edit_props.edit(|param| set_ranged_value(param, value)),
+            oncommit: move |value: f32| leaf.edit(|param| set_ranged_value(param, value)),
         }
     }
 }
