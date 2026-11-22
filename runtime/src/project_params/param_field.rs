@@ -108,50 +108,42 @@ impl RangedParamField for i32 {
     }
 }
 
-impl ParamField for bool {
-    fn default_param_value() -> ProjectParamValue {
-        ProjectParamValue::Bool(false)
-    }
-    fn to_param_value(&self) -> ProjectParamValue {
-        ProjectParamValue::Bool(*self)
-    }
-    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
-        match value {
-            ProjectParamValue::Bool(val) => Ok(*val),
-            other => Err(param_type_mismatch("bool", other)),
+/// `ParamField` for a type that one `ProjectParamValue` variant holds as it is.
+macro_rules! value_param_field {
+    ($ty:ty, $variant:ident, $default:expr) => {
+        impl ParamField for $ty {
+            fn default_param_value() -> ProjectParamValue {
+                ProjectParamValue::$variant($default)
+            }
+            fn to_param_value(&self) -> ProjectParamValue {
+                ProjectParamValue::$variant(Clone::clone(self))
+            }
+            fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
+                match value {
+                    ProjectParamValue::$variant(inner) => Ok(Clone::clone(inner)),
+                    other => Err(param_type_mismatch(
+                        &Self::default_param_value().type_name(),
+                        other,
+                    )),
+                }
+            }
         }
-    }
+    };
 }
 
-impl ParamField for String {
-    fn default_param_value() -> ProjectParamValue {
-        ProjectParamValue::String(String::new())
-    }
-    fn to_param_value(&self) -> ProjectParamValue {
-        ProjectParamValue::String(self.clone())
-    }
-    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
-        match value {
-            ProjectParamValue::String(val) => Ok(val.clone()),
-            other => Err(param_type_mismatch("string", other)),
-        }
-    }
-}
-
-impl ParamField for Paper {
-    fn default_param_value() -> ProjectParamValue {
-        ProjectParamValue::Paper(Self::default())
-    }
-    fn to_param_value(&self) -> ProjectParamValue {
-        ProjectParamValue::Paper(*self)
-    }
-    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
-        match value {
-            ProjectParamValue::Paper(paper) => Ok(*paper),
-            other => Err(param_type_mismatch("paper", other)),
-        }
-    }
-}
+value_param_field!(bool, Bool, false);
+value_param_field!(String, String, String::new());
+value_param_field!(Paper, Paper, Paper::default());
+value_param_field!(V2, V2, V2::zero());
+value_param_field!(V2i, V2i, V2i::default());
+// A 10 cm square at the origin, as an empty rect would be invisible.
+value_param_field!(Rect, Rect, Rect::new(V2::zero(), V2::xy(10.0)));
+value_param_field!(Easing, Easing, Easing::default());
+value_param_field!(ColorRgb, Color, ColorRgb::black());
+// Not checked against the installed fonts: params have to load on a machine without the font.
+value_param_field!(SystemFont, SystemFont, SystemFont::default());
+value_param_field!(Curve2DNorm, Curve2DNorm, Curve2DNorm::default());
+value_param_field!(Curve2D, Curve2D, Curve2D::default());
 
 impl ParamField for Range<f32> {
     fn default_param_value() -> ProjectParamValue {
@@ -262,37 +254,6 @@ impl RangedParamField for Percent {
             val: self.percent().clamp(min, max),
             min,
             max,
-        }
-    }
-}
-
-impl ParamField for V2 {
-    fn default_param_value() -> ProjectParamValue {
-        ProjectParamValue::V2(V2::zero())
-    }
-    fn to_param_value(&self) -> ProjectParamValue {
-        ProjectParamValue::V2(*self)
-    }
-    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
-        match value {
-            ProjectParamValue::V2(v) => Ok(*v),
-            other => Err(param_type_mismatch("v2", other)),
-        }
-    }
-}
-
-impl ParamField for Rect {
-    /// A 10 cm square at the origin, as an empty rect would be invisible.
-    fn default_param_value() -> ProjectParamValue {
-        ProjectParamValue::Rect(Rect::new(V2::zero(), V2::xy(10.0)))
-    }
-    fn to_param_value(&self) -> ProjectParamValue {
-        ProjectParamValue::Rect(*self)
-    }
-    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
-        match value {
-            ProjectParamValue::Rect(rect) => Ok(*rect),
-            other => Err(param_type_mismatch("rect", other)),
         }
     }
 }
@@ -474,51 +435,6 @@ impl RangedParamField for Ramp {
     }
 }
 
-impl ParamField for Easing {
-    fn default_param_value() -> ProjectParamValue {
-        ProjectParamValue::Easing(Self::default())
-    }
-    fn to_param_value(&self) -> ProjectParamValue {
-        ProjectParamValue::Easing(*self)
-    }
-    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
-        match value {
-            ProjectParamValue::Easing(easing) => Ok(*easing),
-            other => Err(param_type_mismatch("easing", other)),
-        }
-    }
-}
-
-impl ParamField for ColorRgb {
-    fn default_param_value() -> ProjectParamValue {
-        ProjectParamValue::Color(ColorRgb::black())
-    }
-    fn to_param_value(&self) -> ProjectParamValue {
-        ProjectParamValue::Color(*self)
-    }
-    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
-        match value {
-            ProjectParamValue::Color(color) => Ok(*color),
-            other => Err(param_type_mismatch("color", other)),
-        }
-    }
-}
-
-impl ParamField for V2i {
-    fn default_param_value() -> ProjectParamValue {
-        ProjectParamValue::V2i(V2i::default())
-    }
-    fn to_param_value(&self) -> ProjectParamValue {
-        ProjectParamValue::V2i(*self)
-    }
-    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
-        match value {
-            ProjectParamValue::V2i(v) => Ok(*v),
-            other => Err(param_type_mismatch("v2i", other)),
-        }
-    }
-}
-
 impl ParamField for BundledFont {
     fn default_param_value() -> ProjectParamValue {
         BundledFont::EmsReadability.to_param_value()
@@ -531,52 +447,6 @@ impl ParamField for BundledFont {
             ProjectParamValue::Font(name) => BundledFont::from_name(name)
                 .ok_or_else(|| anyhow::anyhow!("unknown bundled font '{}'", name)),
             other => Err(param_type_mismatch("font", other)),
-        }
-    }
-}
-
-impl ParamField for SystemFont {
-    fn default_param_value() -> ProjectParamValue {
-        ProjectParamValue::SystemFont(Self::default())
-    }
-    fn to_param_value(&self) -> ProjectParamValue {
-        ProjectParamValue::SystemFont(self.clone())
-    }
-    // Not checked against the installed fonts: params have to load on a machine without the font.
-    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
-        match value {
-            ProjectParamValue::SystemFont(font) => Ok(font.clone()),
-            other => Err(param_type_mismatch("system_font", other)),
-        }
-    }
-}
-
-impl ParamField for Curve2DNorm {
-    fn default_param_value() -> ProjectParamValue {
-        ProjectParamValue::Curve2DNorm(Self::default())
-    }
-    fn to_param_value(&self) -> ProjectParamValue {
-        ProjectParamValue::Curve2DNorm(self.clone())
-    }
-    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
-        match value {
-            ProjectParamValue::Curve2DNorm(curve) => Ok(curve.clone()),
-            other => Err(param_type_mismatch("curve2d_norm", other)),
-        }
-    }
-}
-
-impl ParamField for Curve2D {
-    fn default_param_value() -> ProjectParamValue {
-        ProjectParamValue::Curve2D(Self::default())
-    }
-    fn to_param_value(&self) -> ProjectParamValue {
-        ProjectParamValue::Curve2D(self.clone())
-    }
-    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
-        match value {
-            ProjectParamValue::Curve2D(curve) => Ok(curve.clone()),
-            other => Err(param_type_mismatch("curve2d", other)),
         }
     }
 }
