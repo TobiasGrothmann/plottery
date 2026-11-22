@@ -19,8 +19,7 @@ pub fn RollTile(
     };
     let title = values
         .iter()
-        .map(|(path, value)| format!("{path} = {value}"))
-        .chain(std::iter::once("Click to edit these params".to_string()))
+        .map(|(path, value)| format!("{}: {}", path.replace('_', " "), neat_value(value)))
         .collect::<Vec<_>>()
         .join("\n");
 
@@ -51,4 +50,44 @@ pub fn RollTile(
             span { class: "roll_number", "{name}" }
         }
     }
+}
+
+/// A value's text for reading: decimals cut to two places, degrees as °.
+pub(super) fn neat_value(text: &str) -> String {
+    let mut neat = String::new();
+    let mut number = String::new();
+    let flush = |number: &mut String, neat: &mut String| {
+        match number
+            .contains('.')
+            .then(|| number.parse::<f32>().ok())
+            .flatten()
+        {
+            Some(value) => {
+                let short = format!("{value:.2}");
+                neat.push_str(short.trim_end_matches('0').trim_end_matches('.'));
+            }
+            None => neat.push_str(number),
+        }
+        number.clear();
+    };
+    let chars: Vec<char> = text.chars().collect();
+    for (i, &c) in chars.iter().enumerate() {
+        // a dot belongs to the number when a digit follows, `..` of a range doesn't
+        let in_number = c.is_ascii_digit()
+            || (c == '.'
+                && chars.get(i + 1).is_some_and(char::is_ascii_digit)
+                && number.chars().any(|c| c.is_ascii_digit())
+                && !number.contains('.'))
+            || (c == '-'
+                && number.is_empty()
+                && chars.get(i + 1).is_some_and(char::is_ascii_digit));
+        if in_number {
+            number.push(c);
+        } else {
+            flush(&mut number, &mut neat);
+            neat.push(c);
+        }
+    }
+    flush(&mut number, &mut neat);
+    neat.replace("deg", "°")
 }
