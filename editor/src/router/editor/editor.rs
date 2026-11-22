@@ -80,10 +80,10 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
     let plot_settings = use_plot_settings(project, console);
     let (layer, layer_loading) = use_saved_layer(project, console);
     let layer_view = use_layer_view(project, layer);
-    let svg = use_preview_svg(layer_view);
+    let svg = use_preview_svg(project, layer_view);
     let params_file = use_hook(|| ParamsFile::new(project.peek().clone()));
-    // The cached preview is shown until the layer is loaded and rendered. Checked once: loading
-    // the layer saves it again, which makes the cache look outdated until the new preview is saved.
+    // The cached preview is shown until the layer is loaded and rendered. Checked once: a run
+    // saves its layer first, which makes the cache look outdated until the new preview is saved.
     let cached_preview = use_hook(|| {
         project
             .peek()
@@ -107,14 +107,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
         target: Signal::new(None),
         hovered: Signal::new(None),
     });
-    use_autosave(
-        ctx,
-        params_file.clone(),
-        plot_settings,
-        layer,
-        layer_view,
-        svg,
-    );
+    use_autosave(ctx, params_file.clone(), plot_settings, layer, layer_view);
     let (hot_reload, set_hot_reload) = use_hot_reload(ctx, cargo_path.clone(), params_file);
 
     let mut preview_zoom = use_signal(PreviewZoom::default);
@@ -276,7 +269,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                         svg,
                         cached_preview: cached_preview.clone(),
                         layer_bbox: (layer_view.bbox)(),
-                        redraw_counter: layer().change_counter,
+                        redraw_counter: layer.read().change_counter,
                         busy,
                         has_drawing,
                         fullscreen,

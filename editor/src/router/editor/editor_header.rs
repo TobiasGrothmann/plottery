@@ -16,7 +16,7 @@ use crate::{
     model::app_state::{update_app_state, AppState, Panel, PanelLayout},
     router::editor::{
         editor_ctx::EditorCtx,
-        editor_data::{use_plot_estimate, LayerChangeWrapper},
+        editor_data::{use_plot_estimate, LayerChangeWrapper, PreviewSvg},
         external_editor_button::{installed_external_editors, ExternalEditorButton, OpensDir},
         running_state::RunningState,
     },
@@ -195,7 +195,7 @@ pub fn PanelToggles(layout: PanelLayout, on_toggle: Callback<Panel>) -> Element 
 /// Plotter remote, plot settings, the svg in another app, and sending the visible layers.
 #[component]
 pub fn PlotActions(
-    svg: SyncSignal<Option<String>>,
+    svg: SyncSignal<Option<PreviewSvg>>,
     only_visible: Memo<LayerChangeWrapper>,
     plot_settings: SyncSignal<PlotSettings>,
     on_plot_settings: Callback<()>,
@@ -222,7 +222,8 @@ pub fn PlotActions(
             onclick: move |_| {
                 if let Some(svg) = svg() {
                     let path = std::env::temp_dir().join("temp_editor.svg");
-                    let opened = std::fs::write(&path, svg).and_then(|_| open::that(&path));
+                    // A copy, so the other app keeps its file when the preview is rendered again.
+                    let opened = std::fs::copy(&svg.path, &path).and_then(|_| open::that(&path));
                     if let Err(err) = opened {
                         console.peek().error(&format!("Failed to open the SVG: {err}"));
                     }

@@ -111,6 +111,15 @@ fn plottery_cache_dir() -> Result<PathBuf> {
         .to_path_buf())
 }
 
+/// Writes a temp file and renames it, so nobody ever reads half a file.
+fn write_atomic(path: &Path, contents: impl AsRef<[u8]>) -> Result<()> {
+    let mut temp_path = path.as_os_str().to_owned();
+    temp_path.push(".tmp");
+    std::fs::write(&temp_path, contents)?;
+    std::fs::rename(temp_path, path)?;
+    Ok(())
+}
+
 fn modified(path: &Path) -> Option<SystemTime> {
     std::fs::metadata(path).and_then(|m| m.modified()).ok()
 }
@@ -221,6 +230,10 @@ impl Project {
     /// The layer of the last run as SVG, a cache outside the project.
     pub fn get_editor_preview_image_path(&self) -> Result<PathBuf> {
         self.get_editor_cache_path("svg")
+    }
+    /// The SVG the editor shows while layers are hidden, kept apart from the preview of the whole drawing.
+    fn get_editor_visible_layers_image_path(&self) -> Result<PathBuf> {
+        self.get_editor_cache_path("visible.svg")
     }
     /// Rasterized version of the editor preview, used by the project browser.
     pub fn get_editor_thumbnail_path(&self) -> Result<PathBuf> {
@@ -450,37 +463,49 @@ impl Project {
         }
     }
 
-    /// Writes a temp file and renames it, so a watching editor never reads half a file.
-    /// Fails instead of replacing a file that can't be read.
+    /// Fails instead of replacing a file that can't be read. A watching editor never reads half a file.
     pub fn save_editor_params(&self, params: &ProjectParamsListWrapper) -> Result<()> {
         self.load_editor_params()
             .context("Params not saved, fix or delete the file")?;
-        let path = self.get_editor_params_path();
-        let temp_path = path.with_extension("plotp.tmp");
-        std::fs::write(&temp_path, params.to_file_bytes()?)?;
-        std::fs::rename(temp_path, path)?;
-        Ok(())
+        write_atomic(&self.get_editor_params_path(), params.to_file_bytes()?)
     }
 
     pub fn save_editor_layer(&self, layer: &Layer) -> Result<()> {
-        std::fs::write(self.get_editor_layer_path(), layer.to_binary()?)?;
-        Ok(())
+        write_atomic(&self.get_editor_layer_path(), layer.to_binary()?)
     }
 
-    /// Writes the editor preview SVG and the browser thumbnail rendered from it into the cache.
-    pub fn save_editor_preview(&self, svg: &str) -> Result<()> {
-        let preview_path = self.get_editor_preview_image_path()?;
-        let thumbnail_path = self.get_editor_thumbnail_path()?;
-        if let Some(dir) = preview_path.parent() {
+    /// Writes the SVG the editor shows into the cache and returns its path. `whole` is false while
+    /// layers are hidden: the preview of the whole drawing stays as it is then.
+    pub fn save_editor_view(&self, svg: &str, whole: bool) -> Result<PathBuf> {
+        let path = match whole {
+            true => self.get_editor_preview_image_path()?,
+            false => self.get_editor_visible_layers_image_path()?,
+        };
+        if let Some(dir) = path.parent() {
             std::fs::create_dir_all(dir)?;
         }
-        std::fs::write(preview_path, svg)?;
+        write_atomic(&path, svg)?;
+        Ok(path)
+    }
+
+    /// Writes the browser thumbnail, rendered from the SVG of the whole drawing, into the cache.
+    pub fn save_editor_thumbnail(&self, svg: &str) -> Result<()> {
+        let thumbnail_path = self.get_editor_thumbnail_path()?;
+        if let Some(dir) = thumbnail_path.parent() {
+            std::fs::create_dir_all(dir)?;
+        }
         render_svg_to_png(
             svg.as_bytes(),
             &thumbnail_path,
             Some(EDITOR_THUMBNAIL_SIZE),
             None,
         )
+    }
+
+    /// Writes the editor preview SVG and the browser thumbnail rendered from it into the cache.
+    pub fn save_editor_preview(&self, svg: &str) -> Result<()> {
+        self.save_editor_view(svg, true)?;
+        self.save_editor_thumbnail(svg)
     }
 
     /// Writes params, layer, preview and thumbnail, like a run in the editor.

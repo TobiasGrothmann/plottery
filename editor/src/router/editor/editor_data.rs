@@ -1,6 +1,9 @@
 //! Data hooks of the project editor: what is loaded, saved and derived for the panels.
 
-use std::time::Duration;
+use std::{
+    path::PathBuf,
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
 
 use dioxus::prelude::*;
 use dioxus_logger::tracing;
@@ -235,31 +238,96 @@ pub fn use_layer_view(
     }
 }
 
-/// The svg of the visible layers, rendered in the background.
-pub fn use_preview_svg(layer_view: LayerView) -> SyncSignal<Option<String>> {
-    let mut svg = use_signal_sync(|| None as Option<String>);
+/// The svg of the visible layers, a file in the cache that the webview loads.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PreviewSvg {
+    pub path: PathBuf,
+    /// `path` with a query that is new for every render, so the webview loads the file again.
+    pub src: String,
+}
+
+struct PreviewJob {
+    layer: Layer,
+    view: Option<Rect>,
+    /// Nothing is hidden, so the svg is also the cached preview of the whole drawing.
+    whole: bool,
+}
+
+/// Renders the svg of `job`, writes it into the cache and returns its path and the svg.
+fn render_preview(project: &Project, job: &PreviewJob) -> anyhow::Result<(PathBuf, String)> {
+    let svg = match job.view {
+        Some(view) => job.layer.to_svg_in(view),
+        None => job.layer.to_svg(),
+    };
+    let path = project.save_editor_view(&svg, job.whole)?;
+    Ok((path, svg))
+}
+
+/// The svg of the visible layers, rendered in the background. While nothing is hidden it is also
+/// saved as the cached preview, with the thumbnail rendered from it.
+pub fn use_preview_svg(
+    project: Signal<Project>,
+    layer_view: LayerView,
+) -> SyncSignal<Option<PreviewSvg>> {
+    let mut preview = use_signal_sync(|| None as Option<PreviewSvg>);
+    // One render at a time: an old render never replaces a newer one, and no two write the file.
+    let jobs = use_hook(|| {
+        let (jobs, mut queue) = tokio::sync::mpsc::unbounded_channel::<PreviewJob>();
+        let project = project.peek().clone();
+        tokio::spawn(async move {
+            let mut renders = 0u32;
+            while let Some(mut job) = queue.recv().await {
+                // Only the newest layer is worth rendering.
+                while let Ok(newer) = queue.try_recv() {
+                    job = newer;
+                }
+                let whole = job.whole;
+                let render_project = project.clone();
+                let render = move || render_preview(&render_project, &job);
+                let (path, svg) = match tokio::task::spawn_blocking(render).await {
+                    Ok(Ok(rendered)) => rendered,
+                    Ok(Err(err)) => {
+                        tracing::error!("Failed to write the preview svg: {err:#}");
+                        continue;
+                    }
+                    Err(err) => {
+                        tracing::error!("Failed to render the preview svg: {err:?}");
+                        continue;
+                    }
+                };
+                renders += 1;
+                let millis = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .map_or(0, |since_epoch| since_epoch.as_millis());
+                if let Ok(mut current) = preview.try_write() {
+                    *current = Some(PreviewSvg {
+                        src: format!("{}?{millis}-{renders}", path.display()),
+                        path,
+                    });
+                }
+                if whole {
+                    let project = project.clone();
+                    tokio::task::spawn_blocking(move || {
+                        if let Err(err) = project.save_editor_thumbnail(&svg) {
+                            tracing::error!("Failed to write the editor thumbnail: {err:#}");
+                        }
+                    });
+                }
+            }
+        });
+        jobs
+    });
     use_effect(move || {
         let layer = (layer_view.only_visible)().layer;
         let view = (layer_view.bbox)();
+        let whole = !layer_view.visibility.read().hides_anything();
 
         if let Some(layer) = layer {
-            tokio::spawn(async move {
-                let render = move || match view {
-                    Some(view) => layer.to_svg_in(view).to_string(),
-                    None => layer.to_svg().to_string(),
-                };
-                match tokio::task::spawn_blocking(render).await {
-                    Ok(svg_str) => {
-                        if let Ok(mut svg_write) = svg.try_write() {
-                            *svg_write = Some(svg_str);
-                        }
-                    }
-                    Err(err) => tracing::error!("failed to generate preview svg: {:?}", err),
-                }
-            });
+            // Fails only once the editor is closed.
+            let _ = jobs.send(PreviewJob { layer, view, whole });
         }
     });
-    svg
+    preview
 }
 
 /// Formatted estimate of how long plotting the visible layers takes, computed in the background.
@@ -300,20 +368,14 @@ pub fn use_plot_estimate(
     })
 }
 
-fn save_preview(project: &Project, svg: &str) {
-    if let Err(e) = project.save_editor_preview(svg) {
-        tracing::error!("Failed to write editor preview: {:?}", e);
-    }
-}
-
-/// Saves params, plot settings, the layer and the cached preview whenever they change.
+/// Saves params and plot settings whenever they change, and the cached preview of a new layer
+/// while layers are hidden. The runner saves the layer, [`use_preview_svg`] the preview otherwise.
 pub fn use_autosave(
     ctx: EditorCtx,
     params_file: ParamsFile,
     plot_settings: SyncSignal<PlotSettings>,
     layer: SyncSignal<LayerChangeWrapper>,
     layer_view: LayerView,
-    svg: SyncSignal<Option<String>>,
 ) {
     let EditorCtx {
         project,
@@ -336,30 +398,20 @@ pub fn use_autosave(
                 .error(&format!("Failed to save plot settings: {e:#}"));
         }
     });
-    use_effect(move || {
-        if let Some(layer) = layer.read().layer.as_ref() {
-            if let Err(e) = project().save_editor_layer(layer) {
-                console
-                    .peek()
-                    .error(&format!("Failed to save the layer: {e:#}"));
-            }
-        }
-    });
-    // The cached preview and the thumbnail show the whole drawing: the svg on screen while
-    // nothing is hidden, otherwise one more render of each new layer.
+    // The cached preview and the thumbnail show the whole drawing. While layers are hidden that
+    // is not the svg on screen, so each new layer takes one more render.
     let visibility = layer_view.visibility;
     use_effect(move || {
-        if let Some(svg) = svg().filter(|_| !visibility.peek().hides_anything()) {
-            let project = project();
-            tokio::task::spawn_blocking(move || save_preview(&project, &svg));
+        let layer = layer.read();
+        if !visibility.peek().hides_anything() {
+            return;
         }
-    });
-    use_effect(move || {
-        let whole_layer = layer.read().layer.clone();
-        if let Some(layer) = whole_layer.filter(|_| visibility.peek().hides_anything()) {
+        if let Some(layer) = layer.layer.clone() {
             let project = project();
             tokio::task::spawn_blocking(move || {
-                save_preview(&project, &layer.to_svg().to_string())
+                if let Err(err) = project.save_editor_preview(&layer.to_svg()) {
+                    tracing::error!("Failed to write the editor preview: {err:#}");
+                }
             });
         }
     });

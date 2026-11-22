@@ -9,7 +9,6 @@ use crate::{
         ui::{IconButton, Size},
     },
     util::{
-        format_svg,
         preview_coords::preview_click_to_layer,
         preview_zoom::{PreviewZoom, ZoomViewport, CLICK_ZOOM},
     },
@@ -17,7 +16,8 @@ use crate::{
 
 #[derive(PartialEq, Props, Clone)]
 pub struct SVGImageProps {
-    pub svg: String,
+    /// Url of the svg, a new one for every render of the drawing.
+    pub src: String,
     /// Bounding box of the layer the svg was made from, needed to map clicks back.
     pub layer_bbox: Option<Rect>,
     /// Shows a crosshair and reports clicks through `onpick`.
@@ -108,7 +108,6 @@ struct PickState {
 
 #[component]
 pub fn SVGImage(props: SVGImageProps) -> Element {
-    let svg_data_url = format_svg(props.svg.as_bytes());
     let mut zoom = props.zoom;
     let mut animate = use_signal(|| false);
     // The stage stays hidden until the svg is decoded, so a cached preview below it shows through.
@@ -259,7 +258,7 @@ pub fn SVGImage(props: SVGImageProps) -> Element {
             div { class: "papers",
                 img {
                     class: paper_class,
-                    src: "{svg_data_url}",
+                    src: "{props.src}",
                     draggable: "false",
                     style: "{fit} {transform} cursor: {paper_cursor};",
                     onload: move |_| {
@@ -270,7 +269,7 @@ pub fn SVGImage(props: SVGImageProps) -> Element {
                     },
                 }
                 div { class: sharp_class, style: "{sharp_style}",
-                    img { src: "{svg_data_url}", style: "{sharp_img_style}" }
+                    img { src: "{props.src}", style: "{sharp_img_style}" }
                 }
             }
             if let Some((view_box, mark)) = mark {

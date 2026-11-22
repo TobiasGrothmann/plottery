@@ -194,6 +194,13 @@ impl ProjectRunner {
                             msg: "Updating editor…".to_string(),
                         },
                     );
+                    // Saved before the editor shows it: the preview rendered from it is newer
+                    // than the layer file then, which is what marks the cache as up to date.
+                    if let Err(err) = project.save_editor_layer(&new_layer) {
+                        log(console, |c| {
+                            c.error(&format!("Failed to save the layer: {err:#}"))
+                        });
+                    }
                     let mut layer = layer;
                     if let Ok(mut current) = layer.try_write() {
                         current.layer = Some(new_layer);

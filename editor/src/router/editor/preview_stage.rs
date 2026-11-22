@@ -12,6 +12,7 @@ use crate::{
     },
     router::editor::{
         editor_ctx::EditorCtx,
+        editor_data::PreviewSvg,
         params_editor::param_tree::{
             get_param_value_by_path, get_param_value_mut_by_path, leaf_value_mut,
         },
@@ -23,7 +24,7 @@ use crate::{
 #[derive(PartialEq, Props, Clone)]
 pub struct PreviewStageProps {
     /// The live preview, `None` until the first render.
-    pub svg: SyncSignal<Option<String>>,
+    pub svg: SyncSignal<Option<PreviewSvg>>,
     /// Shown below the live preview until that is on screen.
     pub cached_preview: Option<String>,
     pub layer_bbox: Option<Rect>,
@@ -132,7 +133,7 @@ pub fn PreviewStage(props: PreviewStageProps) -> Element {
             }
             if let Some(svg) = (props.svg)() {
                 SVGImage {
-                    svg,
+                    src: svg.src,
                     layer_bbox: props.layer_bbox,
                     pick_active: pick_target.is_active(),
                     onpick,
