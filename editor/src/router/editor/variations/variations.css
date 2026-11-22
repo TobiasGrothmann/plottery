@@ -45,6 +45,9 @@
 .card.roll {
   position: relative;
 }
+.card.roll.pending {
+  cursor: default;
+}
 
 .roll_number {
   position: absolute;

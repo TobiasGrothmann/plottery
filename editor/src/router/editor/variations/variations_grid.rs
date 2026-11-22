@@ -82,7 +82,8 @@ pub fn VariationsGrid() -> Element {
     }
 }
 
-/// Makes the params of roll `index` the project's and shows them in the edit view.
+/// Makes the params and drawing of finished roll `index` the project's and shows them in the
+/// edit view. Nothing runs, so a roll in progress goes on.
 fn pick_roll(ctx: EditorCtx, index: usize) {
     let picked = ctx
         .variations
@@ -93,21 +94,30 @@ fn pick_roll(ctx: EditorCtx, index: usize) {
             variations
                 .rolls
                 .iter()
-                .find(|roll| roll.index == index)
+                .find(|roll| roll.index == index && roll.done)
                 .map(|roll| roll.params.clone())
         });
     let Some(picked) = picked else {
         return;
     };
+    let layer = match ctx.project.peek().load_roll_layer(index) {
+        Ok(layer) => layer,
+        Err(e) => {
+            return ctx
+                .console
+                .peek()
+                .error(&format!("Failed to open roll {index}: {e:#}"))
+        }
+    };
     let mut project_params = ctx.project_params;
     let defaults = project_params.peek().defaults.clone();
-    // without defaults (no run yet) the run merges them
+    // without defaults (no run yet) the next run merges them
     let params = match defaults.is_empty() {
         true => picked,
         false => ProjectParamsListWrapper::new_combined(&picked.list, &defaults),
     };
     project_params.set(params);
+    ctx.project_runner.peek().show_layer(layer, ctx.console);
     let mut view = ctx.variations.view;
     view.set(EditorView::Edit);
-    ctx.trigger_run();
 }

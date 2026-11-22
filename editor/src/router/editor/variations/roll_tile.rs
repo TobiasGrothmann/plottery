@@ -24,9 +24,14 @@ pub fn RollTile(
         .collect::<Vec<_>>()
         .join("\n");
 
+    let class = match png {
+        Some(_) => "card roll",
+        None => "card roll pending",
+    };
+
     rsx! {
         div {
-            class: "card roll",
+            class,
             role: "button",
             tabindex: "0",
             title: "{title}",

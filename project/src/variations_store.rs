@@ -1,4 +1,4 @@
-//! The stored variations of a project: `variations/` with the params, SVG and PNG of every roll.
+//! The stored variations of a project: `variations/` with the params, layer, SVG and PNG of every roll.
 
 use std::path::{Path, PathBuf};
 
@@ -16,7 +16,7 @@ use crate::{rolled_values, Project};
 pub const ROLL_THUMBNAIL_SIZE: u32 = 768;
 
 const META_FILE: &str = "variations.json";
-const ROLL_EXTENSIONS: [&str; 3] = ["plotp", "svg", "png"];
+const ROLL_EXTENSIONS: [&str; 4] = ["plotp", "plotl", "svg", "png"];
 
 /// What a set of rolls was made of.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -33,7 +33,7 @@ pub struct Roll {
     pub params: ProjectParamsListWrapper,
     /// The rolled params and their values as text.
     pub values: Vec<(String, String)>,
-    /// Its SVG and PNG are written.
+    /// Its layer, SVG and PNG are written.
     pub done: bool,
 }
 
@@ -119,6 +119,12 @@ impl Project {
         Ok(Some(Variations { meta, rolls }))
     }
 
+    /// The drawing of roll `index`, once it is done.
+    pub fn load_roll_layer(&self, index: usize) -> Result<Layer> {
+        Layer::new_from_file(&self.get_roll_path(index, "plotl"))
+            .with_context(|| format!("Roll {index} has no drawing yet"))
+    }
+
     /// The params of roll `index`.
     pub fn load_roll_params(&self, index: usize) -> Result<ProjectParamsListWrapper> {
         let path = self.get_roll_path(index, "plotp");
@@ -163,8 +169,9 @@ impl Project {
         )
     }
 
-    /// Writes the SVG and then the PNG of roll `index`. The PNG marks the roll as done.
+    /// Writes the layer, the SVG and then the PNG of roll `index`. The PNG marks the roll as done.
     pub(crate) fn save_roll_output(&self, index: usize, layer: &Layer) -> Result<()> {
+        write_atomic(&self.get_roll_path(index, "plotl"), layer.to_binary()?)?;
         let svg = layer.to_svg();
         write_atomic(&self.get_roll_path(index, "svg"), &svg)?;
         let png = render_svg(

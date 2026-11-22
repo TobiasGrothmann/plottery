@@ -6,6 +6,7 @@ use std::sync::{
 use crate::router::editor::running_state::RunningState;
 use dioxus::signals::{ReadableExt, SyncSignal, WritableExt};
 use dioxus_logger::tracing;
+use plottery_lib::Layer;
 use plottery_project::{Project, RollEvent, RunError, RunEvent, RunStage};
 use plottery_runtime::project_params_list_wrapper::ProjectParamsListWrapper;
 
@@ -215,6 +216,21 @@ impl ProjectRunner {
                 }
             }
         });
+    }
+
+    /// Shows `layer`, drawn from the current params, without running: a roll that is done.
+    /// Leaves a running roll alone.
+    pub fn show_layer(&self, new_layer: Layer, console: SyncSignal<ConsoleMessages>) {
+        if let Err(err) = self.project.save_editor_layer(&new_layer) {
+            log(console, |c| {
+                c.error(&format!("Failed to save the layer: {err:#}"))
+            });
+        }
+        let mut layer = self.layer;
+        if let Ok(mut current) = layer.try_write() {
+            current.layer = Some(new_layer);
+            current.change_counter += 1;
+        };
     }
 
     /// Stops the current run or roll.
