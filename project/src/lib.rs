@@ -16,6 +16,10 @@ mod protocol;
 mod protocol_test;
 mod run_stream;
 mod variations;
+mod variations_run;
+mod variations_run_test;
+mod variations_store;
+mod variations_store_test;
 mod variations_test;
 
 pub use cargo_project_template::*;
@@ -28,3 +32,5 @@ pub use project_scan::*;
 pub use project_util::*;
 pub use run_stream::RunSocket;
 pub use variations::*;
+pub use variations_run::*;
+pub use variations_store::*;
