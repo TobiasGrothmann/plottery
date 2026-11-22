@@ -440,3 +440,21 @@
   border-color: var(--accent);
   color: var(--accent-fg);
 }
+.ParamsEditor .prow.roll-row.frozen {
+  cursor: default;
+}
+.ParamsEditor .prow.roll-row.frozen:not(.on) {
+  opacity: 0.6;
+}
+.ParamsEditor .prow.roll-row.frozen:hover {
+  background: none;
+  border-color: var(--line);
+}
+.ParamsEditor .prow.roll-row.frozen.on:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.roll-chip:disabled {
+  cursor: default;
+  opacity: 0.6;
+}

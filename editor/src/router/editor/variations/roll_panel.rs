@@ -61,6 +61,7 @@ pub fn RollPanel() -> Element {
                             key: "{path}",
                             r#type: "button",
                             class: "roll-param-chip",
+                            disabled: rolling,
                             title: "Don't roll {path}",
                             onclick: move |_| {
                                 selected.write().remove(&path);
@@ -77,6 +78,7 @@ pub fn RollPanel() -> Element {
                         class: "input",
                         inputmode: "numeric",
                         "aria-label": "Number of rolls",
+                        disabled: rolling,
                         value: "{count_text}",
                         oninput: move |event| {
                             let text = event.value();

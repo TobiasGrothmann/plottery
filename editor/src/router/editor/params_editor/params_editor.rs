@@ -379,6 +379,11 @@ fn selecting(ctx: EditorCtx) -> bool {
     (ctx.variations.view)() == EditorView::Variations
 }
 
+/// While a roll runs, what it rolls can't change.
+fn rolling(ctx: EditorCtx) -> bool {
+    (ctx.variations.rolling)().is_some()
+}
+
 /// The dotted path to roll the param at `path` by, and whether it is ticked. `None` outside the
 /// variations view and for params that can't be rolled.
 fn roll_tick(ctx: EditorCtx, value: &ProjectParamValue, path: &[String]) -> Option<(String, bool)> {
@@ -391,6 +396,9 @@ fn roll_tick(ctx: EditorCtx, value: &ProjectParamValue, path: &[String]) -> Opti
 }
 
 fn set_ticked(ctx: EditorCtx, dot: String, ticked: bool) {
+    if ctx.variations.rolling.peek().is_some() {
+        return;
+    }
     let mut selected = ctx.variations.selected;
     match ticked {
         true => selected.write().insert(dot),
@@ -479,6 +487,7 @@ fn ParamSection(
     children: Element,
 ) -> Element {
     let app_state = use_context::<Signal<AppState>>();
+    let ticks_locked = rolling(use_context::<EditorCtx>());
     let mut collapsed = use_signal(|| {
         app_state
             .peek()
@@ -513,6 +522,7 @@ fn ParamSection(
                         r#type: "button",
                         class: if ticked { "roll-chip on" } else { "roll-chip" },
                         "aria-pressed": if ticked { "true" } else { "false" },
+                        disabled: ticks_locked,
                         title: "Roll whether {title} is on",
                         onclick: move |_| on_tick.call(!ticked),
                         "roll"
@@ -575,6 +585,10 @@ fn render_named_param(
         (Some((_, false)), _) => "prow roll-row",
         (None, true) => "prow roll-locked",
         (None, false) => "prow",
+    };
+    let row_class = match read_only && rolling(ctx) {
+        true => format!("{row_class} frozen"),
+        false => row_class.to_string(),
     };
     let item_count = vec_item_count(&param.value).map(|count| match count {
         1 => "1 item".to_string(),
