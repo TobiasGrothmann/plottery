@@ -38,9 +38,24 @@ fn CornerRow(leaf: LeafProps, part: PickPart, label: String, rect: Rect) -> Elem
     let mut pick_target = use_context::<PickTarget>();
     let picking = pick_target.is_target(&leaf.path, part);
     let pick_path = leaf.path.clone();
+    let hover_path = leaf.path.clone();
+    let drop_path = leaf.path.clone();
+    use_drop(move || pick_target.unhover_path(&drop_path));
+    let pickable = !leaf.no_pick;
 
     rsx! {
-        div { class: "sub",
+        div {
+            class: "sub",
+            onmouseenter: move |_| {
+                if pickable {
+                    pick_target.hover(&hover_path, part);
+                }
+            },
+            onmouseleave: move |_| {
+                if pickable {
+                    pick_target.unhover();
+                }
+            },
             span { class: "sublabel", "{label}" }
             div { class: "hrow",
                 NumberInput {
@@ -53,7 +68,7 @@ fn CornerRow(leaf: LeafProps, part: PickPart, label: String, rect: Rect) -> Elem
                     affix: "y",
                     oncommit: move |y: f32| edit_corner(&y_props, V2::new(corner.x, y)),
                 }
-                if !leaf.no_pick {
+                if pickable {
                     IconButton {
                         icon: IconName::Crosshair,
                         label: "Pick {label} on preview",

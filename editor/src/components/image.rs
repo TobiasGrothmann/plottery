@@ -23,9 +23,49 @@ pub struct SVGImageProps {
     /// Shows a crosshair and reports clicks through `onpick`.
     pub pick_active: bool,
     pub onpick: EventHandler<V2>,
+    /// Drawn on top of the paper, in layer coordinates.
+    pub mark: Option<PreviewMark>,
     pub zoom: Signal<PreviewZoom>,
     /// Called once the svg is decoded and on screen.
     pub onready: EventHandler<()>,
+}
+
+/// A param value shown on the preview, e.g. while its field is hovered.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum PreviewMark {
+    Point(V2),
+    /// A rect, with one corner highlighted.
+    Rect {
+        rect: Rect,
+        corner: Option<V2>,
+    },
+}
+
+/// `mark` as svg elements in layer coordinates, y flipped like the preview svg; `size` is the
+/// marker size in cm.
+fn mark_svg(mark: PreviewMark, size: f32) -> Element {
+    let cross = move |p: V2| {
+        let (x, y) = (p.x, -p.y);
+        rsx! {
+            circle { cx: x, cy: y, r: size * 0.5 }
+            line { x1: x - size, y1: y, x2: x + size, y2: y }
+            line { x1: x, y1: y - size, x2: x, y2: y + size }
+        }
+    };
+    match mark {
+        PreviewMark::Point(p) => cross(p),
+        PreviewMark::Rect { rect, corner } => rsx! {
+            rect {
+                x: rect.bl().x,
+                y: -rect.tr().y,
+                width: rect.width(),
+                height: rect.height(),
+            }
+            if let Some(corner) = corner {
+                {cross(corner)}
+            }
+        },
+    }
 }
 
 /// An input event from `preview_input.js`; positions are relative to the stage center.
@@ -198,6 +238,14 @@ pub fn SVGImage(props: SVGImageProps) -> Element {
         (false, false) => ("zoom-out", "zoom-out"),
     };
     let paper_class = if animate() { "paper animate" } else { "paper" };
+    let marks_class = if animate() { "marks animate" } else { "marks" };
+    let mark = props.mark.zip(props.layer_bbox).map(|(mark, bbox)| {
+        let size = bbox.size();
+        let view_box = format!("{} {} {} {}", bbox.bl().x, -bbox.tr().y, size.x, size.y);
+        // About 2 % of the paper at fit, the same size on screen when zoomed in.
+        let marker = size.x.max(size.y) * 0.02 / current.scale;
+        (view_box, mark_svg(mark, marker))
+    });
     let sharp_class = if animate() { "sharp animate" } else { "sharp" };
     let percent = (current.scale * 100.0).round();
     let visibility = if ready() { "visible" } else { "hidden" };
@@ -223,6 +271,16 @@ pub fn SVGImage(props: SVGImageProps) -> Element {
                 }
                 div { class: sharp_class, style: "{sharp_style}",
                     img { src: "{svg_data_url}", style: "{sharp_img_style}" }
+                }
+            }
+            if let Some((view_box, mark)) = mark {
+                div { class: "mark-layer",
+                    svg {
+                        class: marks_class,
+                        view_box,
+                        style: "{fit} {transform}",
+                        {mark}
+                    }
                 }
             }
             if !current.is_fit() {

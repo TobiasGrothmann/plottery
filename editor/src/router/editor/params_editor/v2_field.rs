@@ -26,9 +26,24 @@ pub fn V2Field(props: LeafProps) -> Element {
     let mut pick_target = use_context::<PickTarget>();
     let picking = pick_target.is_target(&props.path, PickPart::Point);
     let pick_path = props.path.clone();
+    let hover_path = props.path.clone();
+    let drop_path = props.path.clone();
+    use_drop(move || pick_target.unhover_path(&drop_path));
+    let pickable = !integer && !props.no_pick;
 
     rsx! {
-        div { class: "hrow",
+        div {
+            class: "hrow",
+            onmouseenter: move |_| {
+                if pickable {
+                    pick_target.hover(&hover_path, PickPart::Point);
+                }
+            },
+            onmouseleave: move |_| {
+                if pickable {
+                    pick_target.unhover();
+                }
+            },
             NumberInput {
                 value: x,
                 integer,
@@ -55,7 +70,7 @@ pub fn V2Field(props: LeafProps) -> Element {
                         })
                 },
             }
-            if !integer && !props.no_pick {
+            if pickable {
                 IconButton {
                     icon: IconName::Crosshair,
                     label: "Pick on preview",

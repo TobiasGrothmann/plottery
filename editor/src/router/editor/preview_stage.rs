@@ -12,7 +12,9 @@ use crate::{
     },
     router::editor::{
         editor_ctx::EditorCtx,
-        params_editor::param_tree::{get_param_value_mut_by_path, leaf_value_mut},
+        params_editor::param_tree::{
+            get_param_value_by_path, get_param_value_mut_by_path, leaf_value_mut,
+        },
         pick_target::{PickPart, PickTarget},
     },
     util::preview_zoom::PreviewZoom,
@@ -76,6 +78,27 @@ pub fn PreviewStage(props: PreviewStageProps) -> Element {
         ctx.trigger_run();
     };
 
+    let mark = pick_target.marked().and_then(|pick| {
+        let value = get_param_value_by_path(&project_params.read().list, &pick.path)?;
+        let value = match value {
+            ProjectParamValue::Optional(optional) if !optional.enabled => return None,
+            ProjectParamValue::Optional(optional) => *optional.value,
+            other => other,
+        };
+        match (value, pick.part) {
+            (ProjectParamValue::V2(v), _) => Some(PreviewMark::Point(v)),
+            (ProjectParamValue::Rect(rect), part) => Some(PreviewMark::Rect {
+                rect,
+                corner: match part {
+                    PickPart::BottomLeft => Some(rect.bl()),
+                    PickPart::TopRight => Some(rect.tr()),
+                    PickPart::Point => None,
+                },
+            }),
+            _ => None,
+        }
+    });
+
     let busy = props.busy;
     rsx! {
         section {
@@ -113,6 +136,7 @@ pub fn PreviewStage(props: PreviewStageProps) -> Element {
                     layer_bbox: props.layer_bbox,
                     pick_active: pick_target.is_active(),
                     onpick,
+                    mark,
                     zoom,
                     onready: move |_| svg_on_screen.set(true),
                 }

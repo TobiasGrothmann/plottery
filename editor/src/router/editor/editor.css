@@ -203,3 +203,29 @@
   transform: translateY(-50%);
   white-space: nowrap;
 }
+
+/* The hovered V2 or Rect param, drawn over the paper with the paper's size and transform. */
+.mark-layer {
+  position: absolute;
+  inset: 0;
+  padding: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.marks {
+  flex: none;
+  overflow: visible;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
+  will-change: transform;
+}
+.marks * {
+  vector-effect: non-scaling-stroke;
+}
+.marks.animate {
+  transition: transform 0.2s ease;
+}

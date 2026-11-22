@@ -105,6 +105,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
     });
     use_context_provider(|| PickTarget {
         target: Signal::new(None),
+        hovered: Signal::new(None),
     });
     use_autosave(
         ctx,
