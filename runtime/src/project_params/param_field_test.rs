@@ -3,7 +3,7 @@ mod tests {
     use crate::*;
     use plottery_lib::{
         Angle, BundledFont, ColorRgb, Easing, Margin, NoiseScale, NoiseSettings, NoiseType, Paper,
-        Range, Rect, SystemFont, V2i, V2,
+        Ramp, Range, Rect, SystemFont, V2i, V2,
     };
 
     #[derive(PlotteryEnum, Debug, Clone, Copy, PartialEq)]
@@ -73,6 +73,10 @@ mod tests {
         share: Percent,
         default_share: Percent,
         area: Rect,
+        fade: Ramp,
+        #[value(Ramp::new(2.0, -9.0))]
+        #[range(0.0, 5.0)]
+        ranged_fade: Ramp,
     }
 
     #[test]
@@ -201,6 +205,8 @@ mod tests {
             share: Percent::new(42.5),
             default_share: Percent::new(100.0),
             area: Rect::new(V2::new(1.0, 2.0), V2::new(3.0, 5.0)),
+            fade: Ramp::new(3.0, -1.0).with_easing(Easing::s_curve(0.4)),
+            ranged_fade: Ramp::new(4.0, 1.0),
         };
 
         let round_tripped = Params::new_from_list(params.to_params_list());
@@ -238,6 +244,8 @@ mod tests {
         assert_eq!(params.default_system_font, SystemFont::default());
         assert_eq!(params.share, Percent::new(80.0));
         assert_eq!(params.area, Rect::new(V2::zero(), V2::xy(10.0)));
+        assert_eq!(params.fade, Ramp::new(0.0, 1.0));
+        assert_eq!(params.ranged_fade, Ramp::new(2.0, 0.0));
     }
 
     #[test]

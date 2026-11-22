@@ -1,14 +1,15 @@
 #[cfg(test)]
 mod tests {
     use plottery_lib::{
-        ColorRgb, Margin, NoiseScale, NoiseSettings, NoiseType, Paper, PaperSize, Rect, SystemFont,
-        V2i, V2,
+        ColorRgb, Margin, NoiseScale, NoiseSettings, NoiseType, Paper, PaperSize, Ramp, Rect,
+        SystemFont, V2i, V2,
     };
 
     use crate::{
         AngleUnit, ParamField, ProjectParam, ProjectParamDataEnum, ProjectParamEnum,
         ProjectParamFile, ProjectParamOptional, ProjectParamSeed, ProjectParamStruct,
         ProjectParamValue as Value, ProjectParamVariant, ProjectParamVec, ProjectParamsListWrapper,
+        RangedParamField,
     };
 
     /// Sets `text` on `start`, expects `expected`, and that `expected` prints as `text`.
@@ -367,6 +368,22 @@ mod tests {
             NoiseSettings::new(NoiseType::Simplex, 2.0, 3, NoiseScale::PerPaper)
         );
         assert!(params.set("noise.octaves", "0").is_err());
+    }
+
+    #[test]
+    fn set_ramp_fields_within_range() {
+        let mut params = ProjectParamsListWrapper::new(vec![ProjectParam::new(
+            "fade",
+            Ramp::default_ranged_param_value(0.0, 5.0),
+        )]);
+        params.set("fade.from", "4").unwrap();
+        params.set("fade.to", "1").unwrap();
+
+        assert_eq!(
+            Ramp::from_param_value(&params.list[0].value).unwrap(),
+            Ramp::new(4.0, 1.0)
+        );
+        assert!(params.set("fade.to", "6").is_err());
     }
 
     #[test]

@@ -117,7 +117,7 @@ Check here before writing your own helper. Paths are in `plottery_lib/src/`; the
 | fast neighbor queries over many points: all within a radius, nearest; instead of comparing all pairs | `SpatialGrid` in `geometry/spatial_grid.rs` |
 | `Paper` (DIN A/B, custom, landscape, margin), `Frame` | `composition/paper.rs`, `composition/frame.rs` |
 | grids, hex grids, colors and color names | `composition/` |
-| `Angle` with constants like `golden_angle`, `Range`, easing | `maths/` |
+| `Angle` with constants like `golden_angle`, `Range`, `Ramp`, easing | `maths/` |
 | float helpers: `lerp`, `linlin`, `sin01`, `cos01`, `clamp01`; evenly spaced steps `fractions`, `linspace` | `maths/float.rs` |
 | perlin, simplex and worley noise, scaled per cm or per paper | `maths/noise.rs` |
 | random helpers and seeding | `maths/random.rs`, `maths/global_rng.rs` |
@@ -144,7 +144,8 @@ constants in code. Where to find out what is possible, all in `plottery_runtime`
 Choosing well:
 
 - Use the most specific type: `Angle` instead of an `f32` in radians, `Percent` instead of an `f32`
-  from 0 to 1 for a share or probability, `Range` for a random min/max, `V2` for a position, `Rect`
+  from 0 to 1 for a share or probability, `Range` for a random min/max, `Ramp` for a value that goes
+  from one number to another across the drawing, `V2` for a position, `Rect`
   for a region (`Option<Rect>` when the default is the whole frame), `Seed` for randomness,
   `BundledFont` for a font, a `PlotteryEnum` for modes. `SystemFont` picks an installed outline font
   instead.

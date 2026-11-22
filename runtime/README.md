@@ -86,6 +86,7 @@ Field types and their widgets:
 | `Rect` | x and y of the bottom left and top right corner, each also picked by clicking the drawing; defaults to a 10 cm square at the origin |
 | `Seed` | number, dice button, recent seeds |
 | `Easing` | power, bias or s-curve, slider, curve preview |
+| `Ramp` | its own section: from, to and an easing between them; `#[range]` turns from and to into sliders; `at(t)` and `steps(n)` give the values |
 | `ColorRgb` | color picker and hex code |
 | `NoiseSettings` | its own section: perlin/simplex/worley, frequency, per cm or per paper, octaves |
 | `BundledFont` | picker for the bundled single-line fonts, with previews |

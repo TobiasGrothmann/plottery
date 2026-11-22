@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 pub use anyhow::Error as ParamFieldError;
 use plottery_lib::{
-    Angle, BundledFont, ColorRgb, Easing, NoiseScale, NoiseSettings, NoiseType, Paper, Range, Rect,
-    SystemFont, V2i, V2,
+    Angle, BundledFont, ColorRgb, Easing, NoiseScale, NoiseSettings, NoiseType, Paper, Ramp, Range,
+    Rect, SystemFont, V2i, V2,
 };
 use plottery_runtime_macros::PlotteryParams;
 
@@ -414,6 +414,60 @@ impl ParamField for NoiseSettings {
             fields.octaves.max(1) as u32,
             fields.scale,
         ))
+    }
+}
+
+/// The fields a [`Ramp`] param has, as the lib type can't derive `PlotteryParams`.
+#[derive(PlotteryParams)]
+struct RampFields {
+    /// value at the start
+    from: f32,
+    /// value at the end
+    #[value(1.0)]
+    to: f32,
+    /// how it gets from `from` to `to`
+    easing: Easing,
+}
+
+impl From<Ramp> for RampFields {
+    fn from(ramp: Ramp) -> Self {
+        Self {
+            from: ramp.from,
+            to: ramp.to,
+            easing: ramp.easing,
+        }
+    }
+}
+
+impl ParamField for Ramp {
+    fn default_param_value() -> ProjectParamValue {
+        Self::default().to_param_value()
+    }
+    fn to_param_value(&self) -> ProjectParamValue {
+        RampFields::from(*self).to_param_value()
+    }
+    fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
+        let fields = RampFields::from_param_value(value)?;
+        Ok(Ramp::new(fields.from, fields.to).with_easing(fields.easing))
+    }
+}
+
+/// `#[range]` turns `from` and `to` into sliders.
+impl RangedParamField for Ramp {
+    type Bound = f32;
+    fn default_ranged_param_value(min: f32, max: f32) -> ProjectParamValue {
+        Self::default().to_ranged_param_value(min, max)
+    }
+    fn to_ranged_param_value(&self, min: f32, max: f32) -> ProjectParamValue {
+        let mut value = self.to_param_value();
+        if let ProjectParamValue::Struct(fields) = &mut value {
+            for field in &mut fields.fields {
+                if let Ok(number) = field.value.get_f32() {
+                    field.value = number.to_ranged_param_value(min, max);
+                }
+            }
+        }
+        value
     }
 }
 
