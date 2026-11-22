@@ -15,6 +15,8 @@ mod project_util;
 mod protocol;
 mod protocol_test;
 mod run_stream;
+mod variations;
+mod variations_test;
 
 pub use cargo_project_template::*;
 pub use editor_state::*;
@@ -25,3 +27,4 @@ pub use project_pipeline::*;
 pub use project_scan::*;
 pub use project_util::*;
 pub use run_stream::RunSocket;
+pub use variations::*;

@@ -147,10 +147,15 @@ impl ProjectParamsListWrapper {
     /// Sets the param at a dotted path like `size`, `glow.radius` or `points.0` from text.
     /// Fields of an enum's selected variant are `<name>.<field>`.
     pub fn set(&mut self, path: &str, text: &str) -> Result<()> {
-        let value = value_at_path(&mut self.list, path)?;
+        let value = self.value_at_path_mut(path)?;
         value
             .set_from_text(text)
             .map_err(|e| anyhow!("{path}: {e}"))
+    }
+
+    /// The value at a dotted path as [`Self::set`] takes it, or an error that names what exists.
+    pub fn value_at_path_mut(&mut self, path: &str) -> Result<&mut ProjectParamValue> {
+        value_at_path(&mut self.list, path)
     }
 }
 

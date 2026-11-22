@@ -23,6 +23,7 @@ serde.workspace = true
 serde_json.workspace = true
 toml = "1"
 tempfile.workspace = true
+rand = "0.10"
 resvg = "0.50"
 async-process = "2.0.1"
 async-io = "2.3.0"
