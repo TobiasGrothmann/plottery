@@ -196,15 +196,46 @@
   position: relative;
   padding-right: var(--pill-slot);
 }
-/* view switch, hot reload, Run and the status share one height */
-.center-group > .seg {
+/* Edit | Variations, next to the project name */
+.view-switch {
+  display: inline-flex;
+  flex: none;
   height: 32px;
   box-sizing: border-box;
-  align-items: stretch;
+  padding: 2px;
+  gap: 2px;
+  background: var(--bg-0);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
 }
-.center-group > .seg button {
-  height: auto;
+.view-switch button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 0 12px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--fg-1);
+  font: 600 13px 'Inter', system-ui, sans-serif;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.view-switch button:hover {
+  color: var(--fg-0);
+  background: var(--bg-3);
+}
+.view-switch button.on {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+.view-switch button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.view-switch .i {
+  width: 15px;
+  height: 15px;
 }
 .center-group > .pill {
   position: absolute;

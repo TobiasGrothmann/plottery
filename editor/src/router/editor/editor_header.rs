@@ -10,7 +10,7 @@ use rfd::AsyncFileDialog;
 
 use crate::{
     components::{
-        icon::IconName,
+        icon::{Icon, IconName},
         remote::{poke_plotter, RemoteOpen},
         ui::{Button, IconButton, StatusPill, Switch, Tone, Variant},
     },
@@ -43,7 +43,7 @@ fn parent_crumbs(dir: &Path) -> Vec<(String, PathBuf)> {
     crumbs
 }
 
-/// Back button, folder crumbs, project name and the buttons that open it elsewhere.
+/// Back button, folder crumbs, project name, the view switch and the buttons that open it elsewhere.
 #[component]
 pub fn ProjectTitle(cargo_path: PathBuf) -> Element {
     let ctx = use_context::<EditorCtx>();
@@ -92,6 +92,7 @@ pub fn ProjectTitle(cargo_path: PathBuf) -> Element {
             }
             h1 { "{project().config.name}" }
         }
+        ViewSwitch {}
         div { class: "vsep" }
         div { class: "hgroup tight",
             for editor in external_editors.iter().filter(|e| e.opens == OpensDir::Cargo) {
@@ -112,6 +113,33 @@ pub fn ProjectTitle(cargo_path: PathBuf) -> Element {
             }
             for editor in external_editors.iter().filter(|e| e.opens == OpensDir::Project) {
                 ExternalEditorButton { editor: *editor, dir: project_dir }
+            }
+        }
+    }
+}
+
+/// Switches between the Edit and the Variations view.
+#[component]
+fn ViewSwitch() -> Element {
+    let ctx = use_context::<EditorCtx>();
+    let mut view = ctx.variations.view;
+    let options = [
+        (EditorView::Edit, IconName::Sliders, "Edit"),
+        (EditorView::Variations, IconName::Dice, "Variations"),
+    ];
+    rsx! {
+        div { class: "view-switch", role: "group", "aria-label": "View",
+            for (option, icon, text) in options {
+                button {
+                    key: "{text}",
+                    r#type: "button",
+                    class: if view() == option { "on" },
+                    "aria-pressed": if view() == option { "true" } else { "false" },
+                    title: "{text} (⌘E switches)",
+                    onclick: move |_| view.set(option),
+                    Icon { name: icon }
+                    span { "{text}" }
+                }
             }
         }
     }

@@ -4,7 +4,7 @@ use crate::{
         icon::IconName,
         modal::{Modal, ModalWidth},
         resizer::{Axis, Resizer},
-        ui::{Button, IconButton, PanelHeader, Segmented, Size, Variant},
+        ui::{Button, IconButton, PanelHeader, Size, Variant},
     },
     menu::{use_menu_action, MenuAction},
     model::{
@@ -228,14 +228,6 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                     ProjectTitle { cargo_path }
                 }
                 div { class: "hgroup center-group",
-                    Segmented {
-                        options: vec![
-                            (EditorView::Edit, "Edit".to_string()),
-                            (EditorView::Variations, "Variations".to_string()),
-                        ],
-                        value: view(),
-                        onchange: move |new_view| view.set(new_view),
-                    }
                     RunControls { hot_reload, on_hot_reload: set_hot_reload }
                 }
                 div { class: "hgroup end",
