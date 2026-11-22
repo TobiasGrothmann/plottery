@@ -2,12 +2,14 @@
 mod tests {
     use plottery_lib::V2;
     use plottery_runtime::{
-        ProjectParam, ProjectParamDataEnum, ProjectParamOptional, ProjectParamStruct,
-        ProjectParamValue as Value, ProjectParamVariant, ProjectParamVec,
+        AngleUnit, ProjectParam, ProjectParamDataEnum, ProjectParamFile, ProjectParamOptional,
+        ProjectParamSeed, ProjectParamStruct, ProjectParamValue as Value, ProjectParamVariant,
+        ProjectParamVec,
     };
 
     use crate::router::editor::params_editor::param_tree::{
-        get_default_leaf_value, get_param_value_by_path, get_param_value_mut_by_path, no_pick_at,
+        get_default_value, get_param_value_by_path, get_param_value_mut_by_path, no_pick_at,
+        reset_value,
     };
 
     fn path(segments: &[&str]) -> Vec<String> {
@@ -114,16 +116,60 @@ mod tests {
     }
 
     #[test]
-    fn defaults_unwrap_optionals_and_fall_back_to_the_item_prototype() {
-        let defaults = params();
-        assert!(matches!(
-            get_default_leaf_value(&defaults, &path(&["glow"])),
-            Some(Value::Struct(_))
-        ));
+    fn default_of_a_vec_item_past_the_end_is_the_item_prototype() {
         assert_eq!(
-            get_default_leaf_value(&defaults, &path(&["points", "[5]", "size"])),
+            get_default_value(&params(), &path(&["points", "[5]", "size"])),
             Some(Value::Float(0.0))
         );
+    }
+
+    #[test]
+    fn reset_keeps_seed_history_recent_files_and_the_angle_unit() {
+        let mut seed = ProjectParamSeed::new(1);
+        seed.set(2);
+        let mut value = Value::Seed(seed);
+        reset_value(&mut value, &Value::Seed(ProjectParamSeed::new(7)));
+        let Value::Seed(seed) = value else {
+            panic!("not a seed");
+        };
+        assert_eq!((seed.current, seed.history), (7, vec![2, 1]));
+
+        let mut value = Value::Image(ProjectParamFile::new(Some("a.png".to_string())));
+        reset_value(&mut value, &Value::Image(ProjectParamFile::default()));
+        let Value::Image(file) = value else {
+            panic!("not an image");
+        };
+        assert_eq!((file.path, file.recent), (None, vec!["a.png".to_string()]));
+
+        let mut value = Value::Angle {
+            rad: 1.0,
+            unit: AngleUnit::Radians,
+        };
+        let default = Value::Angle {
+            rad: 0.5,
+            unit: AngleUnit::Degrees,
+        };
+        reset_value(&mut value, &default);
+        assert_eq!(
+            value,
+            Value::Angle {
+                rad: 0.5,
+                unit: AngleUnit::Radians
+            }
+        );
+    }
+
+    #[test]
+    fn reset_restores_the_switch_of_an_option_and_skips_another_type() {
+        let optional =
+            |enabled, x| Value::Optional(ProjectParamOptional::new(enabled, Value::Float(x)));
+        let mut value = optional(true, 5.0);
+        reset_value(&mut value, &optional(false, 1.0));
+        assert_eq!(value, optional(false, 1.0));
+
+        let mut value = Value::Float(5.0);
+        reset_value(&mut value, &Value::Bool(true));
+        assert_eq!(value, Value::Float(5.0));
     }
 
     #[test]

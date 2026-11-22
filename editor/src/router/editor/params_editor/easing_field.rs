@@ -64,15 +64,20 @@ pub fn EasingField(props: LeafProps) -> Element {
                         },
                     ),
                 }
-                SliderInput {
-                    value: easing.amount,
-                    min: -1.0,
-                    max: 1.0,
-                    oninput: move |value: f32| live_amount.set(Some(value)),
-                    oncommit: move |value: f32| {
-                        live_amount.set(None);
-                        edit_easing(leaf, |easing| easing.amount = value);
-                    },
+                div { class: "reset-target", ondoubleclick: move |_| leaf.reset(),
+                    SliderInput {
+                        value: easing.amount,
+                        min: -1.0,
+                        max: 1.0,
+                        oninput: move |value: f32| live_amount.set(Some(value)),
+                        oncommit: move |value: f32| {
+                            live_amount.set(None);
+                            // a click that moved nothing doesn't rerun the project
+                            if value != easing.amount {
+                                edit_easing(leaf, |easing| easing.amount = value);
+                            }
+                        },
+                    }
                 }
             }
             svg {

@@ -11,6 +11,14 @@ pub fn leaf_value_mut(value: &mut ProjectParamValue) -> &mut ProjectParamValue {
     }
 }
 
+/// Unwraps `Optional`, like [`leaf_value_mut`].
+pub fn leaf_value(value: &ProjectParamValue) -> &ProjectParamValue {
+    match value {
+        ProjectParamValue::Optional(optional) => optional.value.as_ref(),
+        other => other,
+    }
+}
+
 pub fn get_param_value_by_path(
     list: &[ProjectParam],
     path: &[String],
@@ -18,17 +26,34 @@ pub fn get_param_value_by_path(
     walk(list, path, false).map(|(_, value)| value.clone())
 }
 
-/// The default of the leaf at `path`, `Optional` unwrapped. Vec items past the defaults' end use the item prototype.
-pub fn get_default_leaf_value(
-    defaults: &[ProjectParam],
-    path: &[String],
-) -> Option<ProjectParamValue> {
-    walk(defaults, path, true)
-        .map(|(_, value)| match value {
-            ProjectParamValue::Optional(optional) => optional.value.as_ref(),
-            other => other,
-        })
-        .cloned()
+/// The project's default for the value at `path`. Vec items past the defaults' end use the item prototype.
+pub fn get_default_value(defaults: &[ProjectParam], path: &[String]) -> Option<ProjectParamValue> {
+    walk(defaults, path, true).map(|(_, value)| value.clone())
+}
+
+/// Sets `value` to `default` if they have the same type. Keeps what the editor remembers in a
+/// value: seed history, recent files and the unit of an angle.
+pub fn reset_value(value: &mut ProjectParamValue, default: &ProjectParamValue) {
+    if !value.same_schema(default) {
+        return;
+    }
+    match (value, default) {
+        (ProjectParamValue::Optional(optional), ProjectParamValue::Optional(default)) => {
+            optional.enabled = default.enabled;
+            reset_value(&mut optional.value, &default.value);
+        }
+        (ProjectParamValue::Seed(seed), ProjectParamValue::Seed(default)) => {
+            seed.set(default.current)
+        }
+        (ProjectParamValue::Image(file), ProjectParamValue::Image(default))
+        | (ProjectParamValue::Svg(file), ProjectParamValue::Svg(default)) => {
+            file.set(default.path.clone())
+        }
+        (ProjectParamValue::Angle { rad, .. }, ProjectParamValue::Angle { rad: default, .. }) => {
+            *rad = *default
+        }
+        (value, default) => *value = default.clone(),
+    }
 }
 
 /// `#[no_pick]` of the innermost param on `path`; a Vec item has the flag of its Vec.

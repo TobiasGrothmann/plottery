@@ -20,17 +20,19 @@ pub fn AngleField(props: LeafProps) -> Element {
 
     rsx! {
         div { class: "AngleField",
-            AngleDial {
-                rad,
-                oninput: move |value: f32| live_rad.set(Some(value)),
-                oncommit: move |value: f32| {
-                    live_rad.set(None);
-                    leaf.edit(|param| {
-                        if let ProjectParamValue::Angle { rad, .. } = param {
-                            *rad = value;
-                        }
-                    });
-                },
+            div { class: "reset-target", ondoubleclick: move |_| leaf.reset(),
+                AngleDial {
+                    rad,
+                    oninput: move |value: f32| live_rad.set(Some(value)),
+                    oncommit: move |value: f32| {
+                        live_rad.set(None);
+                        leaf.edit(|param| {
+                            if let ProjectParamValue::Angle { rad, .. } = param {
+                                *rad = value;
+                            }
+                        });
+                    },
+                }
             }
             div { class: "angle-controls",
                 NumberInput {

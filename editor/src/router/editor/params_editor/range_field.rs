@@ -92,20 +92,22 @@ pub fn RangeField(props: LeafProps) -> Element {
         Some((lo, hi)) => rsx! {
             div { class: "hrow",
                 div { class: "range-box", {min_box} }
-                RangeSliderInput {
-                    low: view.min,
-                    high: view.max,
-                    min: lo,
-                    max: hi,
-                    integer: view.is_int,
-                    oninput: move |values: (f32, f32)| live.set(Some(values)),
-                    oncommit: move |(low, high): (f32, f32)| {
-                        // a press that moved nothing keeps the value as it is
-                        if live.take().is_none() {
-                            return;
-                        }
-                        leaf.edit(|value| set_range(value, low, high));
-                    },
+                div { class: "reset-target", ondoubleclick: move |_| leaf.reset(),
+                    RangeSliderInput {
+                        low: view.min,
+                        high: view.max,
+                        min: lo,
+                        max: hi,
+                        integer: view.is_int,
+                        oninput: move |values: (f32, f32)| live.set(Some(values)),
+                        oncommit: move |(low, high): (f32, f32)| {
+                            // a press that moved nothing keeps the value as it is
+                            if live.take().is_none() {
+                                return;
+                            }
+                            leaf.edit(|value| set_range(value, low, high));
+                        },
+                    }
                 }
                 div { class: "range-box", {max_box} }
             }

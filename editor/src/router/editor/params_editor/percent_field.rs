@@ -19,24 +19,26 @@ pub fn PercentField(props: LeafProps) -> Element {
     let mut live = use_signal(|| None::<f32>);
     let shown = format_number(live().unwrap_or(val));
     rsx! {
-        SliderInput {
-            value: val,
-            min,
-            max,
-            integer: true,
-            label: "{shown}%",
-            oninput: move |value: f32| live.set(Some(value)),
-            oncommit: move |value: f32| {
-                // a click that moved nothing keeps a value with decimals as it is
-                if live.take().is_none() {
-                    return;
-                }
-                leaf.edit(|param| {
-                    if let ProjectParamValue::Percent { val, min, max } = param {
-                        *val = value.clamp(*min, *max);
+        div { class: "reset-target", ondoubleclick: move |_| leaf.reset(),
+            SliderInput {
+                value: val,
+                min,
+                max,
+                integer: true,
+                label: "{shown}%",
+                oninput: move |value: f32| live.set(Some(value)),
+                oncommit: move |value: f32| {
+                    // a click that moved nothing keeps a value with decimals as it is
+                    if live.take().is_none() {
+                        return;
                     }
-                });
-            },
+                    leaf.edit(|param| {
+                        if let ProjectParamValue::Percent { val, min, max } = param {
+                            *val = value.clamp(*min, *max);
+                        }
+                    });
+                },
+            }
         }
     }
 }

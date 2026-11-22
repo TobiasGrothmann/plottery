@@ -50,12 +50,19 @@ pub fn Slider(props: LeafProps) -> Element {
         return rsx! { p { "unexpected value type" } };
     };
     rsx! {
-        SliderInput {
-            value: ranged.val,
-            min: ranged.min,
-            max: ranged.max,
-            integer: ranged.is_int,
-            oncommit: move |value: f32| leaf.edit(|param| set_ranged_value(param, value)),
+        div { class: "reset-target", ondoubleclick: move |_| leaf.reset(),
+            SliderInput {
+                value: ranged.val,
+                min: ranged.min,
+                max: ranged.max,
+                integer: ranged.is_int,
+                oncommit: move |value: f32| {
+                    // a click that moved nothing doesn't rerun the project
+                    if value != ranged.val {
+                        leaf.edit(|param| set_ranged_value(param, value));
+                    }
+                },
+            }
         }
     }
 }

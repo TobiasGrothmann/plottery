@@ -25,7 +25,8 @@ use crate::router::editor::{
         number_field::NumberField,
         paper_field::PaperField,
         param_tree::{
-            get_default_leaf_value, get_param_value_mut_by_path, leaf_value_mut, no_pick_at,
+            get_default_value, get_param_value_by_path, get_param_value_mut_by_path, leaf_value,
+            leaf_value_mut, no_pick_at, reset_value,
         },
         percent_field::PercentField,
         range_field::RangeField,
@@ -43,21 +44,16 @@ use crate::router::editor::{
 pub struct LeafProps {
     pub param: ProjectParam,
     pub path: Vec<String>,
-    /// The project's default for `param`, `None` until the first run got the params.
-    pub default: Option<ProjectParamValue>,
     /// From `#[no_pick]` in the project: no picking on the preview.
     pub no_pick: bool,
 }
 
 impl LeafProps {
     fn new(param: ProjectParam, path: Vec<String>, ctx: EditorCtx) -> Self {
-        let params = ctx.project_params.read();
-        let default = get_default_leaf_value(&params.defaults, &path);
-        let no_pick = no_pick_at(&params.defaults, &path);
+        let no_pick = no_pick_at(&ctx.project_params.read().defaults, &path);
         Self {
             param,
             path,
-            default,
             no_pick,
         }
     }
@@ -88,6 +84,11 @@ impl LeafHandle {
     pub fn edit_without_run(&self, edit: impl FnOnce(&mut ProjectParamValue)) {
         edit_leaf_at(&self.path.read(), edit, false);
     }
+
+    /// Sets the leaf value back to the project's default, for a double-click on a drag widget.
+    pub fn reset(&self) {
+        reset_at(&self.path.read(), true);
+    }
 }
 
 /// Applies `edit` to the value at `path` and reruns the project if `rerun`.
@@ -109,6 +110,31 @@ fn edit_value_at(path: &[String], edit: impl FnOnce(&mut ProjectParamValue), rer
 /// while moving and rerun on release.
 pub fn edit_leaf_at(path: &[String], edit: impl FnOnce(&mut ProjectParamValue), rerun: bool) {
     edit_value_at(path, |value| edit(leaf_value_mut(value)), rerun);
+}
+
+/// Sets the param at `path` back to the project's default and reruns, unless it is there
+/// already. With `leaf_only` an `Option` keeps its switch. Does nothing until the first run has
+/// delivered the defaults.
+pub fn reset_at(path: &[String], leaf_only: bool) {
+    let ctx = consume_context::<EditorCtx>();
+    let (current, default) = {
+        let params = ctx.project_params.read();
+        (
+            get_param_value_by_path(&params.list, path),
+            get_default_value(&params.defaults, path),
+        )
+    };
+    let (Some(current), Some(default)) = (current, default) else {
+        return;
+    };
+    let mut reset = current.clone();
+    match leaf_only {
+        true => reset_value(leaf_value_mut(&mut reset), leaf_value(&default)),
+        false => reset_value(&mut reset, &default),
+    }
+    if reset != current {
+        edit_value_at(path, |value| *value = reset, true);
+    }
 }
 
 fn set_optional_enabled(path: &[String], enabled: bool) {
@@ -476,6 +502,12 @@ fn render_named_param(
     } else {
         ""
     };
+    let label_title = match &description {
+        Some(description) => format!("{description}\nDouble-click to reset"),
+        None => "Double-click to reset".to_string(),
+    };
+    let reset_path = path.clone();
+    let onreset = move |_| reset_at(&reset_path, false);
     let item_count = vec_item_count(&param.value).map(|count| match count {
         1 => "1 item".to_string(),
         n => format!("{n} items"),
@@ -507,7 +539,10 @@ fn render_named_param(
     if compact {
         rsx! {
             div { class: sub_class, key: "{key}",
-                div { class: "sublabel {label_class}", title: description,
+                div {
+                    class: "sublabel {label_class}",
+                    title: label_title,
+                    ondoubleclick: onreset,
                     "{formatted_name}"
                     if let Some(item_count) = item_count {
                         span { class: "count", "{item_count}" }
@@ -519,7 +554,10 @@ fn render_named_param(
     } else {
         rsx! {
             div { class: "prow", key: "{key}",
-                div { class: "plabel {label_class}", title: description,
+                div {
+                    class: "plabel {label_class}",
+                    title: label_title,
+                    ondoubleclick: onreset,
                     "{formatted_name}"
                     if let Some(item_count) = item_count {
                         span { class: "count", "{item_count}" }

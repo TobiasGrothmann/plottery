@@ -102,6 +102,8 @@ Field types and their widgets:
 
 `Option<Option<T>>`, `Vec<Option<T>>` and `Vec<Vec<T>>` don't compile. `Option<Vec<T>>` works.
 
+A double-click on a param's name sets it back to its default, the `#[value]` or the type's own. Sliders and the angle dial also reset on a double-click on the widget.
+
 ### Enums with fields
 
 A mode that needs its own params carries them in its variant. The editor shows only the fields of the selected variant, and every variant remembers its values while another one is selected.

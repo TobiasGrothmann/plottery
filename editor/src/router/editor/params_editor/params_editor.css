@@ -9,6 +9,13 @@
   flex-direction: column;
   gap: 2px;
   line-height: 16px;
+  /* a double-click resets the param instead of selecting its name */
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* Wraps a drag widget whose double-click resets the param, without a box of its own. */
+.ParamsEditor .reset-target {
+  display: contents;
 }
 .ParamsEditor .hrow {
   min-height: 28px;
