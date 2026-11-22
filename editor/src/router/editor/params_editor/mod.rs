@@ -11,6 +11,7 @@ mod font_preview_test;
 pub mod number_field;
 pub mod paper_field;
 pub mod param_tree;
+mod param_tree_test;
 pub mod params_editor;
 pub mod percent_field;
 pub mod range_field;

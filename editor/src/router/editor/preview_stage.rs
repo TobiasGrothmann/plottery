@@ -13,9 +13,7 @@ use crate::{
     router::editor::{
         editor_ctx::EditorCtx,
         editor_data::PreviewSvg,
-        params_editor::param_tree::{
-            get_param_value_by_path, get_param_value_mut_by_path, leaf_value_mut,
-        },
+        params_editor::{param_tree::get_param_value_by_path, params_editor::edit_leaf_at},
         pick_target::{PickPart, PickTarget},
     },
     util::preview_zoom::PreviewZoom,
@@ -46,37 +44,26 @@ pub fn PreviewStage(props: PreviewStageProps) -> Element {
     let mut svg_on_screen = use_signal(|| false);
 
     let mut pick_target = use_context::<PickTarget>();
-    let mut project_params = ctx.project_params;
+    let project_params = ctx.project_params;
     let onpick = move |point: V2| {
         let Some(pick) = pick_target.take() else {
             return;
         };
-        let mut new_params = project_params.read().clone();
-        match get_param_value_mut_by_path(&mut new_params.list, &pick.path) {
-            Some(value) => match (leaf_value_mut(value), pick.part) {
-                (ProjectParamValue::V2(v), PickPart::Point) => *v = point,
-                (ProjectParamValue::Rect(rect), PickPart::BottomLeft) => {
-                    *rect = Rect::new(point, rect.tr())
-                }
-                (ProjectParamValue::Rect(rect), PickPart::TopRight) => {
-                    *rect = Rect::new(rect.bl(), point)
-                }
-                (value, part) => {
-                    tracing::error!(
-                        "Can't pick {part:?} of a {} param: {:?}",
-                        value.type_name(),
-                        pick.path
-                    );
-                    return;
-                }
-            },
-            None => {
-                tracing::error!("Pick target not found: {:?}", pick.path);
-                return;
+        let set_point = |value: &mut ProjectParamValue| match (value, pick.part) {
+            (ProjectParamValue::V2(v), PickPart::Point) => *v = point,
+            (ProjectParamValue::Rect(rect), PickPart::BottomLeft) => {
+                *rect = Rect::new(point, rect.tr())
             }
-        }
-        project_params.set(new_params);
-        ctx.trigger_run();
+            (ProjectParamValue::Rect(rect), PickPart::TopRight) => {
+                *rect = Rect::new(rect.bl(), point)
+            }
+            (value, part) => tracing::error!(
+                "Can't pick {part:?} of a {} param: {:?}",
+                value.type_name(),
+                pick.path
+            ),
+        };
+        edit_leaf_at(&pick.path, set_point, true);
     };
 
     let mark = pick_target.marked().and_then(|pick| {

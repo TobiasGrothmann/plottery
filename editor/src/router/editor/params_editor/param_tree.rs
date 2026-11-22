@@ -1,3 +1,6 @@
+//! Paths into the params: the param's name, then per level a field name, a Vec's `[index]`, or
+//! an enum's variant name followed by a field name. `Optional` takes no segment.
+
 use plottery_runtime::{project_param::ProjectParam, project_param_value::ProjectParamValue};
 
 /// Unwraps `Optional` so widgets can edit the inner leaf value.
@@ -12,7 +15,7 @@ pub fn get_param_value_by_path(
     list: &[ProjectParam],
     path: &[String],
 ) -> Option<ProjectParamValue> {
-    get_param_value_ref_by_path(list, path, false).cloned()
+    walk(list, path, false).map(|(_, value)| value.clone())
 }
 
 /// The default of the leaf at `path`, `Optional` unwrapped. Vec items past the defaults' end use the item prototype.
@@ -20,143 +23,95 @@ pub fn get_default_leaf_value(
     defaults: &[ProjectParam],
     path: &[String],
 ) -> Option<ProjectParamValue> {
-    get_param_value_ref_by_path(defaults, path, true)
-        .map(|value| match value {
+    walk(defaults, path, true)
+        .map(|(_, value)| match value {
             ProjectParamValue::Optional(optional) => optional.value.as_ref(),
             other => other,
         })
         .cloned()
 }
 
+/// `#[no_pick]` of the innermost param on `path`; a Vec item has the flag of its Vec.
+pub fn no_pick_at(list: &[ProjectParam], path: &[String]) -> bool {
+    walk(list, path, true).is_some_and(|(param, _)| param.no_pick)
+}
+
+fn field<'a>(fields: &'a [ProjectParam], name: &str) -> Option<&'a ProjectParam> {
+    fields.iter().find(|param| param.name == name)
+}
+
+fn field_mut<'a>(fields: &'a mut [ProjectParam], name: &str) -> Option<&'a mut ProjectParam> {
+    fields.iter_mut().find(|param| param.name == name)
+}
+
+/// The value at `path` and the innermost param on the way to it. With `prototype_fallback`, a Vec
+/// item past the end is the item prototype.
+fn walk<'a>(
+    list: &'a [ProjectParam],
+    path: &[String],
+    prototype_fallback: bool,
+) -> Option<(&'a ProjectParam, &'a ProjectParamValue)> {
+    let (name, mut rest) = path.split_first()?;
+    let mut param = field(list, name)?;
+    let mut value = &param.value;
+    while let Some((segment, tail)) = rest.split_first() {
+        match value {
+            ProjectParamValue::Optional(optional) => {
+                value = &optional.value;
+                continue;
+            }
+            ProjectParamValue::Struct(param_struct) => {
+                param = field(&param_struct.fields, segment)?;
+                value = &param.value;
+                rest = tail;
+            }
+            ProjectParamValue::Vec(vec_value) => {
+                let index = parse_index_segment(segment)?;
+                value = match vec_value.items.get(index) {
+                    Some(item) => item,
+                    None if prototype_fallback => &vec_value.item_prototype,
+                    None => return None,
+                };
+                rest = tail;
+            }
+            ProjectParamValue::DataEnum(data_enum) => {
+                let (name, tail) = tail.split_first()?;
+                param = field(&data_enum.variant(segment)?.fields, name)?;
+                value = &param.value;
+                rest = tail;
+            }
+            _ => return None,
+        }
+    }
+    Some((param, value))
+}
+
 pub fn get_param_value_mut_by_path<'a>(
     list: &'a mut [ProjectParam],
     path: &[String],
 ) -> Option<&'a mut ProjectParamValue> {
-    if path.is_empty() {
-        return None;
+    let (name, mut rest) = path.split_first()?;
+    let mut value = &mut field_mut(list, name)?.value;
+    while let Some((segment, tail)) = rest.split_first() {
+        (value, rest) = match value {
+            ProjectParamValue::Optional(optional) => (optional.value.as_mut(), rest),
+            ProjectParamValue::Struct(param_struct) => (
+                &mut field_mut(&mut param_struct.fields, segment)?.value,
+                tail,
+            ),
+            ProjectParamValue::Vec(vec_value) => (
+                vec_value.items.get_mut(parse_index_segment(segment)?)?,
+                tail,
+            ),
+            ProjectParamValue::DataEnum(data_enum) => {
+                let (name, tail) = tail.split_first()?;
+                let variant = data_enum.variant_mut(segment)?;
+                (&mut field_mut(&mut variant.fields, name)?.value, tail)
+            }
+            _ => return None,
+        };
     }
-
-    let field_name = &path[0];
-    let param = list.iter_mut().find(|param| param.name == *field_name)?;
-
-    if path.len() == 1 {
-        return Some(&mut param.value);
-    }
-
-    get_param_value_mut_in_value(&mut param.value, &path[1..])
-}
-
-fn get_param_value_ref_by_path<'a>(
-    list: &'a [ProjectParam],
-    path: &[String],
-    prototype_fallback: bool,
-) -> Option<&'a ProjectParamValue> {
-    if path.is_empty() {
-        return None;
-    }
-
-    let field_name = &path[0];
-    let param = list.iter().find(|param| param.name == *field_name)?;
-
-    if path.len() == 1 {
-        return Some(&param.value);
-    }
-
-    get_param_value_ref_in_value(&param.value, &path[1..], prototype_fallback)
-}
-
-fn get_param_value_ref_in_value<'a>(
-    value: &'a ProjectParamValue,
-    path: &[String],
-    prototype_fallback: bool,
-) -> Option<&'a ProjectParamValue> {
-    if path.is_empty() {
-        return Some(value);
-    }
-
-    match value {
-        ProjectParamValue::Struct(param_struct) => {
-            get_param_value_ref_by_path(&param_struct.fields, path, prototype_fallback)
-        }
-        ProjectParamValue::Optional(optional) => {
-            get_param_value_ref_in_value(optional.value.as_ref(), path, prototype_fallback)
-        }
-        ProjectParamValue::Vec(vec_value) => {
-            let index = parse_index_segment(&path[0])?;
-            let item = match vec_value.items.get(index) {
-                Some(item) => item,
-                None if prototype_fallback => vec_value.item_prototype.as_ref(),
-                None => return None,
-            };
-            get_param_value_ref_in_value(item, &path[1..], prototype_fallback)
-        }
-        ProjectParamValue::DataEnum(data_enum) => {
-            let variant = data_enum.variant(&path[0])?;
-            get_param_value_ref_by_path(&variant.fields, &path[1..], prototype_fallback)
-        }
-        _ => None,
-    }
-}
-
-fn get_param_value_mut_in_value<'a>(
-    value: &'a mut ProjectParamValue,
-    path: &[String],
-) -> Option<&'a mut ProjectParamValue> {
-    if path.is_empty() {
-        return Some(value);
-    }
-
-    match value {
-        ProjectParamValue::Struct(param_struct) => {
-            get_param_value_mut_by_path(&mut param_struct.fields, path)
-        }
-        ProjectParamValue::Optional(optional) => {
-            get_param_value_mut_in_value(optional.value.as_mut(), path)
-        }
-        ProjectParamValue::Vec(vec_value) => {
-            let index = parse_index_segment(&path[0])?;
-            let item = vec_value.items.get_mut(index)?;
-            get_param_value_mut_in_value(item, &path[1..])
-        }
-        ProjectParamValue::DataEnum(data_enum) => {
-            let variant = data_enum.variant_mut(&path[0])?;
-            get_param_value_mut_by_path(&mut variant.fields, &path[1..])
-        }
-        _ => None,
-    }
-}
-
-/// `#[no_pick]` of the innermost param on `path`; a Vec item has the flag of its Vec.
-pub fn no_pick_at(list: &[ProjectParam], path: &[String]) -> bool {
-    let Some((name, rest)) = path.split_first() else {
-        return false;
-    };
-    let Some(param) = list.iter().find(|param| param.name == *name) else {
-        return false;
-    };
-    no_pick_in_value(&param.value, rest).unwrap_or(param.no_pick)
-}
-
-/// `None` when `path` ends before reaching another param.
-fn no_pick_in_value(value: &ProjectParamValue, path: &[String]) -> Option<bool> {
-    let segment = path.first()?;
-    match value {
-        ProjectParamValue::Struct(param_struct) => Some(no_pick_at(&param_struct.fields, path)),
-        ProjectParamValue::Optional(optional) => no_pick_in_value(&optional.value, path),
-        ProjectParamValue::Vec(vec_value) => {
-            let index = parse_index_segment(segment)?;
-            let item = vec_value
-                .items
-                .get(index)
-                .unwrap_or(vec_value.item_prototype.as_ref());
-            no_pick_in_value(item, &path[1..])
-        }
-        ProjectParamValue::DataEnum(data_enum) => {
-            let variant = data_enum.variant(segment)?;
-            Some(no_pick_at(&variant.fields, &path[1..]))
-        }
-        _ => None,
-    }
+    Some(value)
 }
 
 fn parse_index_segment(segment: &str) -> Option<usize> {

@@ -68,209 +68,90 @@ impl LeafProps {
     }
 }
 
-/// Applies `edit` to the leaf value at `path`, `Optional` unwrapped, and reruns the project if
-/// `rerun`. Drags pass `false` while moving and rerun on release.
-pub fn edit_leaf_at(path: &[String], edit: impl FnOnce(&mut ProjectParamValue), rerun: bool) {
+/// Applies `edit` to the value at `path` and reruns the project if `rerun`.
+fn edit_value_at(path: &[String], edit: impl FnOnce(&mut ProjectParamValue), rerun: bool) {
     let mut ctx = consume_context::<EditorCtx>();
     let mut new_params = ctx.project_params.read().clone();
-    match get_param_value_mut_by_path(&mut new_params.list, path) {
-        Some(value) => edit(leaf_value_mut(value)),
-        None => {
-            tracing::error!("Param path not found: {:?}", path);
-            return;
-        }
-    }
+    let Some(value) = get_param_value_mut_by_path(&mut new_params.list, path) else {
+        tracing::error!("Param path not found: {:?}", path);
+        return;
+    };
+    edit(value);
     ctx.project_params.set(new_params);
     if rerun {
         ctx.trigger_run();
     }
 }
 
-fn set_optional_enabled(path: &[String], enabled: bool, mut ctx: EditorCtx) {
-    let mut new_params = ctx.project_params.read().clone();
-    match get_param_value_mut_by_path(&mut new_params.list, path) {
-        Some(ProjectParamValue::Optional(optional)) => optional.enabled = enabled,
-        Some(_) => {
-            tracing::error!("Param path is not Optional: {:?}", path);
-            return;
-        }
-        None => {
-            tracing::error!("Param path not found: {:?}", path);
-            return;
-        }
-    }
-
-    ctx.project_params.set(new_params);
-    ctx.trigger_run();
+/// Like [`edit_value_at`] for the leaf value, `Optional` unwrapped. Drags pass `rerun: false`
+/// while moving and rerun on release.
+pub fn edit_leaf_at(path: &[String], edit: impl FnOnce(&mut ProjectParamValue), rerun: bool) {
+    edit_value_at(path, |value| edit(leaf_value_mut(value)), rerun);
 }
 
-fn add_vec_item(path: &[String], mut ctx: EditorCtx) {
-    let mut new_params = ctx.project_params.read().clone();
-    if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, path) {
-        match param_value {
-            ProjectParamValue::Vec(vec_value) => {
-                vec_value.items.push((*vec_value.item_prototype).clone());
-            }
-            ProjectParamValue::Optional(optional) => {
-                if let ProjectParamValue::Vec(vec_value) = optional.value.as_mut() {
-                    vec_value.items.push((*vec_value.item_prototype).clone());
-                } else {
-                    tracing::error!(
-                        "Param path is Optional but not Optional<Vec<_>>: {:?}",
-                        path
-                    );
-                    return;
-                }
-            }
-            _ => {
-                tracing::error!("Param path is not Vec: {:?}", path);
-                return;
-            }
-        }
-    } else {
-        tracing::error!("Param path not found: {:?}", path);
-        return;
-    }
-
-    ctx.project_params.set(new_params);
-    ctx.trigger_run();
+fn set_optional_enabled(path: &[String], enabled: bool) {
+    let edit = |value: &mut ProjectParamValue| match value {
+        ProjectParamValue::Optional(optional) => optional.enabled = enabled,
+        other => tracing::error!("{path:?} is a {}, not an Optional", other.type_name()),
+    };
+    edit_value_at(path, edit, true);
 }
 
-fn remove_vec_item(path: &[String], index: usize, mut ctx: EditorCtx) {
-    let mut new_params = ctx.project_params.read().clone();
-    if let Some(param_value) = get_param_value_mut_by_path(&mut new_params.list, path) {
-        match param_value {
-            ProjectParamValue::Vec(vec_value) => {
-                if index < vec_value.items.len() {
-                    vec_value.items.remove(index);
-                } else {
-                    tracing::error!("Vec remove index out of bounds: {:?} / {}", path, index);
-                    return;
-                }
-            }
-            ProjectParamValue::Optional(optional) => {
-                if let ProjectParamValue::Vec(vec_value) = optional.value.as_mut() {
-                    if index < vec_value.items.len() {
-                        vec_value.items.remove(index);
-                    } else {
-                        tracing::error!("Vec remove index out of bounds: {:?} / {}", path, index);
-                        return;
-                    }
-                } else {
-                    tracing::error!(
-                        "Param path is Optional but not Optional<Vec<_>>: {:?}",
-                        path
-                    );
-                    return;
-                }
-            }
-            _ => {
-                tracing::error!("Param path is not Vec: {:?}", path);
-                return;
-            }
-        }
-    } else {
-        tracing::error!("Param path not found: {:?}", path);
-        return;
-    }
+/// Applies `edit` to the `Vec` or `Option<Vec>` at `path`.
+fn edit_vec_at(path: &[String], edit: impl FnOnce(&mut ProjectParamVec)) {
+    let edit = |value: &mut ProjectParamValue| match value {
+        ProjectParamValue::Vec(vec_value) => edit(vec_value),
+        other => tracing::error!("{path:?} is a {}, not a Vec", other.type_name()),
+    };
+    edit_leaf_at(path, edit, true);
+}
 
-    ctx.project_params.set(new_params);
-    ctx.trigger_run();
+fn add_vec_item(path: &[String]) {
+    edit_vec_at(path, |vec_value| {
+        vec_value.items.push((*vec_value.item_prototype).clone())
+    });
+}
+
+fn remove_vec_item(path: &[String], index: usize) {
+    edit_vec_at(path, |vec_value| {
+        if index < vec_value.items.len() {
+            vec_value.items.remove(index);
+        }
+    });
 }
 
 fn render_leaf_param(param: ProjectParam, path: Vec<String>, ctx: EditorCtx) -> Element {
     let key = path.join(".");
+    macro_rules! leaf {
+        ($Field:ident) => {
+            rsx! {
+                $Field { key: "{key}", ..LeafProps::new(param, path, ctx) }
+            }
+        };
+    }
     match &param.value {
-        ProjectParamValue::Float(_) | ProjectParamValue::Int(_) => {
-            rsx! {
-                NumberField { key: "{key}", ..LeafProps::new(param, path, ctx) }
-            }
-        }
+        ProjectParamValue::Float(_) | ProjectParamValue::Int(_) => leaf!(NumberField),
         ProjectParamValue::FloatRanged { .. } | ProjectParamValue::IntRanged { .. } => {
-            rsx! {
-                Slider { key: "{key}", ..LeafProps::new(param, path, ctx) }
-            }
+            leaf!(Slider)
         }
-        ProjectParamValue::Bool(_) => {
-            rsx! {
-                BoolField { key: "{key}", ..LeafProps::new(param, path, ctx) }
-            }
-        }
-        ProjectParamValue::Curve2DNorm(_) | ProjectParamValue::Curve2D(_) => {
-            rsx! {
-                Curve2DField { key: "{key}", ..LeafProps::new(param, path, ctx) }
-            }
-        }
-        ProjectParamValue::Enum(_) | ProjectParamValue::DataEnum(_) => {
-            rsx! {
-                EnumField { key: "{key}", ..LeafProps::new(param, path, ctx) }
-            }
-        }
-        ProjectParamValue::String(_) => {
-            rsx! {
-                StringField { key: "{key}", ..LeafProps::new(param, path, ctx) }
-            }
-        }
-        ProjectParamValue::Paper(_) => {
-            rsx! {
-                PaperField { key: "{key}", ..LeafProps::new(param, path, ctx) }
-            }
-        }
+        ProjectParamValue::Bool(_) => leaf!(BoolField),
+        ProjectParamValue::Curve2DNorm(_) | ProjectParamValue::Curve2D(_) => leaf!(Curve2DField),
+        ProjectParamValue::Enum(_) | ProjectParamValue::DataEnum(_) => leaf!(EnumField),
+        ProjectParamValue::String(_) => leaf!(StringField),
+        ProjectParamValue::Paper(_) => leaf!(PaperField),
         ProjectParamValue::RangeF32 { .. } | ProjectParamValue::RangeI32 { .. } => {
-            rsx! {
-                RangeField { key: "{key}", ..LeafProps::new(param, path, ctx) }
-            }
+            leaf!(RangeField)
         }
-        ProjectParamValue::Angle { .. } => {
-            rsx! {
-                AngleField { key: "{key}", ..LeafProps::new(param, path, ctx) }
-            }
-        }
-        ProjectParamValue::Percent { .. } => {
-            rsx! {
-                PercentField { key: "{key}", ..LeafProps::new(param, path, ctx) }
-            }
-        }
-        ProjectParamValue::V2(_) | ProjectParamValue::V2i(_) => {
-            rsx! {
-                V2Field { key: "{key}", ..LeafProps::new(param, path, ctx) }
-            }
-        }
-        ProjectParamValue::Rect(_) => {
-            rsx! {
-                RectField { key: "{key}", ..LeafProps::new(param, path, ctx) }
-            }
-        }
-        ProjectParamValue::Seed(_) => {
-            rsx! {
-                SeedField { key: "{key}", ..LeafProps::new(param, path, ctx) }
-            }
-        }
-        ProjectParamValue::Image(_) | ProjectParamValue::Svg(_) => {
-            rsx! {
-                FileField { key: "{key}", ..LeafProps::new(param, path, ctx) }
-            }
-        }
-        ProjectParamValue::Easing(_) => {
-            rsx! {
-                EasingField { key: "{key}", ..LeafProps::new(param, path, ctx) }
-            }
-        }
-        ProjectParamValue::Color(_) => {
-            rsx! {
-                ColorField { key: "{key}", ..LeafProps::new(param, path, ctx) }
-            }
-        }
-        ProjectParamValue::Font(_) => {
-            rsx! {
-                FontField { key: "{key}", ..LeafProps::new(param, path, ctx) }
-            }
-        }
-        ProjectParamValue::SystemFont(_) => {
-            rsx! {
-                SystemFontField { key: "{key}", ..LeafProps::new(param, path, ctx) }
-            }
-        }
+        ProjectParamValue::Angle { .. } => leaf!(AngleField),
+        ProjectParamValue::Percent { .. } => leaf!(PercentField),
+        ProjectParamValue::V2(_) | ProjectParamValue::V2i(_) => leaf!(V2Field),
+        ProjectParamValue::Rect(_) => leaf!(RectField),
+        ProjectParamValue::Seed(_) => leaf!(SeedField),
+        ProjectParamValue::Image(_) | ProjectParamValue::Svg(_) => leaf!(FileField),
+        ProjectParamValue::Easing(_) => leaf!(EasingField),
+        ProjectParamValue::Color(_) => leaf!(ColorField),
+        ProjectParamValue::Font(_) => leaf!(FontField),
+        ProjectParamValue::SystemFont(_) => leaf!(SystemFontField),
         ProjectParamValue::Struct(_)
         | ProjectParamValue::Optional(_)
         | ProjectParamValue::Vec(_) => {
@@ -317,7 +198,7 @@ fn render_optional_value(
             Switch {
                 checked: enabled,
                 aria_label: "Set {param_name}",
-                onchange: move |enabled: bool| set_optional_enabled(&path_for_switch, enabled, ctx),
+                onchange: move |enabled: bool| set_optional_enabled(&path_for_switch, enabled),
             }
             if enabled {
                 div { class: "grow pctl",
@@ -394,7 +275,7 @@ fn render_vec_value(
                                 icon: IconName::X,
                                 label: "Remove item",
                                 size: Size::Sm,
-                                onclick: move |_| remove_vec_item(&vec_path_for_remove, index, ctx),
+                                onclick: move |_| remove_vec_item(&vec_path_for_remove, index),
                             }
                         }
                     }
@@ -405,7 +286,7 @@ fn render_vec_value(
                     variant: Variant::Dashed,
                     size: Size::Sm,
                     icon: IconName::Plus,
-                    onclick: move |_| add_vec_item(&vec_path_for_add, ctx),
+                    onclick: move |_| add_vec_item(&vec_path_for_add),
                     "Add item"
                 }
             }
@@ -483,7 +364,7 @@ fn render_struct_section(param: &ProjectParam, path: &[String], ctx: EditorCtx) 
     let state_key = section_state_key(ctx, &path.join("."));
     let path_for_switch = path.to_vec();
     let on_enabled = enabled.map(|_| {
-        EventHandler::new(move |enabled: bool| set_optional_enabled(&path_for_switch, enabled, ctx))
+        EventHandler::new(move |enabled: bool| set_optional_enabled(&path_for_switch, enabled))
     });
     Some(rsx! {
         ParamSection {
