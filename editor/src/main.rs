@@ -3,6 +3,7 @@ use crate::{
     components::remote::{PlotterRemote, PlotterState, PlotterStatus, RemoteOpen},
     model::{
         app_state::{update_app_state, AppState},
+        open_request::{OpenRequest, RequestedView},
         window_state::WindowState,
     },
     menu::{use_menu_action, MenuAction},
@@ -20,12 +21,9 @@ use dioxus::{
 };
 use dioxus_router::*;
 use plottery_project::Project;
-use std::{
-    path::PathBuf,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Mutex,
-    },
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Mutex,
 };
 
 mod components;
@@ -36,21 +34,27 @@ mod routes;
 mod util;
 
 /// A project macOS asked to open before the app was mounted (cold start via `open -a`).
-static PENDING_OPEN: Mutex<Option<PathBuf>> = Mutex::new(None);
+static PENDING_OPEN: Mutex<Option<OpenRequest>> = Mutex::new(None);
 static MOUNTED: AtomicBool = AtomicBool::new(false);
 
-/// The first `.plottery` file of an open-document event.
-fn opened_project<T>(event: &Event<'_, T>) -> Option<PathBuf> {
+/// The first project file of an open-document event, see [`OpenRequest`].
+fn opened_project<T>(event: &Event<'_, T>) -> Option<OpenRequest> {
     let Event::Opened { urls } = event else {
         return None;
     };
     urls.iter()
         .filter_map(|url| url.to_file_path().ok())
-        .find(|path| path.extension().is_some_and(|ext| ext == "plottery"))
+        .find_map(|path| OpenRequest::from_file(&path))
 }
 
-/// Shows the project in the editor and selects its folder in the browser for later.
-fn open_project_path(path: PathBuf, app_state: Signal<AppState>, console: ActiveConsole) {
+/// Shows the project in the requested view and selects its folder in the browser for later.
+fn open_project_path(
+    request: OpenRequest,
+    app_state: Signal<AppState>,
+    console: ActiveConsole,
+    RequestedView(mut requested_view): RequestedView,
+) {
+    let path = request.config_path;
     let project = match Project::load_from_file(path.clone()) {
         Ok(project) => project,
         Err(err) => {
@@ -58,6 +62,7 @@ fn open_project_path(path: PathBuf, app_state: Signal<AppState>, console: Active
             return;
         }
     };
+    requested_view.set(Some((project.dir.clone(), request.view)));
     update_app_state(app_state, |state| {
         state.ensure_root_covers(&project.dir);
         if let Some(parent) = project.dir.parent() {
@@ -79,6 +84,7 @@ fn app() -> Element {
     let history = dioxus::history::history();
     let app_state = use_context_provider(|| Signal::new(AppState::load_or_default()));
     let console = use_context_provider(|| ActiveConsole(Signal::new(None)));
+    let requested_view = use_context_provider(|| RequestedView(Signal::new(None)));
     use_hook(|| {
         MOUNTED.store(true, Ordering::SeqCst);
         if let Some(state) = WindowState::load() {
@@ -89,15 +95,15 @@ fn app() -> Element {
             }
         }
         // A requested project wins over the restored route.
-        if let Some(path) = PENDING_OPEN.lock().unwrap().take() {
-            open_project_path(path, app_state, console);
+        if let Some(request) = PENDING_OPEN.lock().unwrap().take() {
+            open_project_path(request, app_state, console, requested_view);
         }
     });
     let history = dioxus::history::history();
     use_wry_event_handler(move |event, _| {
-        if let Some(path) = opened_project(event) {
+        if let Some(request) = opened_project(event) {
             window.set_focus();
-            open_project_path(path, app_state, console);
+            open_project_path(request, app_state, console, requested_view);
             return;
         }
         let closing = matches!(
@@ -158,8 +164,8 @@ fn main() {
             if MOUNTED.load(Ordering::SeqCst) {
                 return;
             }
-            if let Some(path) = opened_project(event) {
-                *PENDING_OPEN.lock().unwrap() = Some(path);
+            if let Some(request) = opened_project(event) {
+                *PENDING_OPEN.lock().unwrap() = Some(request);
             }
         });
 

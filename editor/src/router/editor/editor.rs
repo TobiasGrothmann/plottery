@@ -10,6 +10,7 @@ use crate::{
     model::{
         app_state::{update_app_state, AppState, Panel},
         layer_view::{LayerKey, RowTarget},
+        open_request::RequestedView,
     },
     router::editor::{
         console::Console,
@@ -115,6 +116,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
         hovered: Signal::new(None),
     });
     use_autosave(ctx, params_file.clone(), plot_settings, layer, layer_view);
+    use_requested_view(ctx, params_file.clone());
     let (hot_reload, set_hot_reload) = use_hot_reload(ctx, cargo_path.clone(), params_file);
 
     let mut preview_zoom = use_signal(PreviewZoom::default);
@@ -392,4 +394,37 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
             }
         }
     }
+}
+
+/// Shows the view an open request asked for, e.g. `plottery roll --open`. Asked for the edit view
+/// of the open project (`plottery pick --open`), it also picks up params changed on disk.
+fn use_requested_view(ctx: EditorCtx, params_file: ParamsFile) {
+    let RequestedView(mut requested) = use_context::<RequestedView>();
+    use_effect(move || {
+        let Some((dir, view)) = requested() else {
+            return;
+        };
+        // another project's request remounts the editor with that project
+        if dir != ctx.project.peek().dir {
+            return;
+        }
+        requested.set(None);
+        let mut shown = ctx.variations.view;
+        shown.set(view);
+        if view != EditorView::Edit {
+            return;
+        }
+        match params_file.read_external() {
+            Ok(Some(params)) if params.list != ctx.project_params.peek().list => {
+                let mut project_params = ctx.project_params;
+                project_params.set(params);
+                ctx.trigger_run();
+            }
+            Ok(_) => {}
+            Err(e) => ctx
+                .console
+                .peek()
+                .error(&format!("Failed to read the params: {e:#}")),
+        }
+    });
 }
