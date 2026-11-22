@@ -224,6 +224,22 @@ impl ProjectParamsListWrapper {
                 max: *max,
             }),
             (
+                ProjectParamValue::Angle { rad, unit }
+                | ProjectParamValue::AngleRanged { rad, unit, .. },
+                ProjectParamValue::AngleRanged { min, max, .. },
+            ) => Some(ProjectParamValue::AngleRanged {
+                rad: rad.clamp(*min, *max),
+                unit: *unit,
+                min: *min,
+                max: *max,
+            }),
+            (ProjectParamValue::AngleRanged { rad, unit, .. }, ProjectParamValue::Angle { .. }) => {
+                Some(ProjectParamValue::Angle {
+                    rad: *rad,
+                    unit: *unit,
+                })
+            }
+            (
                 ProjectParamValue::RangeF32 { min, max, .. },
                 ProjectParamValue::RangeF32 { bounds, .. },
             ) => {

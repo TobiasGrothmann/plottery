@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 use anyhow::{anyhow, bail, Result};
 use plottery_lib::{
-    BundledFont, ColorRgb, FontStyle, Margin, Paper, PaperSize, Rect, SystemFont, V2i, V2,
+    Angle, BundledFont, ColorRgb, FontStyle, Margin, Paper, PaperSize, Rect, SystemFont, V2i, V2,
 };
 
 use super::angle_unit::AngleUnit;
@@ -33,11 +33,9 @@ impl ProjectParamValue {
                     .flatten()
                     .collect()
             }
-            Self::Angle { rad, unit } => format!(
-                "{}{}",
-                short_float(unit.from_angle(plottery_lib::Angle::from_rad(*rad))),
-                unit.short_name()
-            ),
+            Self::Angle { rad, unit } | Self::AngleRanged { rad, unit, .. } => {
+                unit.text(Angle::from_rad(*rad))
+            }
             Self::Percent { val, .. } => format!("{}%", short_float(*val)),
             Self::V2(v) => format!("{},{}", v.x, v.y),
             Self::V2i(v) => format!("{},{}", v.x, v.y),
@@ -98,6 +96,19 @@ impl ProjectParamValue {
             }
             Self::SystemFont(font) => *font = parse_system_font(text)?,
             Self::Angle { rad, unit } => *rad = parse_angle(text, *unit)?,
+            Self::AngleRanged {
+                rad,
+                unit,
+                min,
+                max,
+            } => {
+                let value = parse_angle(text, *unit)?;
+                if !(value >= *min && value <= *max) {
+                    let bound = |rad: f32| unit.text(Angle::from_rad(rad));
+                    bail!("{text} is outside {}..{}", bound(*min), bound(*max));
+                }
+                *rad = value;
+            }
             Self::Percent { val, min, max } => {
                 let text = text.trim();
                 *val = parse_in(text.strip_suffix('%').unwrap_or(text), *min, *max)?
@@ -393,7 +404,7 @@ fn parse_paper(text: &str, margin: Margin) -> Result<Paper> {
 }
 
 /// At most four decimals, so unit conversions don't print as `45.000004`.
-fn short_float(value: f32) -> String {
+pub(super) fn short_float(value: f32) -> String {
     let text = format!("{value:.4}");
     let text = text.trim_end_matches('0').trim_end_matches('.');
     match text {

@@ -81,7 +81,7 @@ and runs with the user's param values, so a render shows what the user sees.
   like `render`, plus `--fps` and `--hold`. Needs ffmpeg and a `Paper` param. To check single frames,
   take stills out of the video with ffmpeg.
 - `roll PARAM... -n N` gives the named params N uniform random values: within their `#[range]`, seeds
-  100 to 999, angles over the full turn, bools, enums and options among their choices. Other params
+  100 to 999, angles within their `#[range]` or over the full turn, bools, enums and options among their choices. Other params
   fail with the list of rollable ones. Roll 0 is the start params (the user's values, or `--set` and
   `--defaults` like `render`). It prints one line per roll with its values and png. The results replace
   the last ones in `variations/`; the user's values don't change. The first failed run ends the roll.

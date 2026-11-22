@@ -20,6 +20,7 @@ pub fn is_rollable(value: &ProjectParamValue) -> bool {
         | V::Percent { .. }
         | V::Seed(_)
         | V::Angle { .. }
+        | V::AngleRanged { .. }
         | V::Bool(_)
         | V::Enum(_)
         | V::DataEnum(_)
@@ -129,6 +130,7 @@ pub fn roll_value(value: &mut ProjectParamValue, rng: &mut impl Rng) {
         }
         V::Seed(seed) => seed.set(rng.random_range(ROLL_SEED_RANGE)),
         V::Angle { rad, .. } => *rad = rng.random_range(0.0..TAU),
+        V::AngleRanged { rad, min, max, .. } => *rad = uniform_f32(rng, *min, *max),
         V::Bool(val) => *val = rng.random_bool(0.5),
         V::Enum(param_enum) => {
             if let Some(variant) = param_enum.variants.choose(rng) {

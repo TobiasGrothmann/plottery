@@ -49,9 +49,11 @@ pub fn reset_value(value: &mut ProjectParamValue, default: &ProjectParamValue) {
         | (ProjectParamValue::Svg(file), ProjectParamValue::Svg(default)) => {
             file.set(default.path.clone())
         }
-        (ProjectParamValue::Angle { rad, .. }, ProjectParamValue::Angle { rad: default, .. }) => {
-            *rad = *default
-        }
+        (
+            ProjectParamValue::Angle { rad, .. } | ProjectParamValue::AngleRanged { rad, .. },
+            ProjectParamValue::Angle { rad: default, .. }
+            | ProjectParamValue::AngleRanged { rad: default, .. },
+        ) => *rad = *default,
         (value, default) => *value = default.clone(),
     }
 }

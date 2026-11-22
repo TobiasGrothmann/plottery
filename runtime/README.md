@@ -65,7 +65,7 @@ pub struct Params {
 ```
 
 - `#[value(..)]` sets the default.
-- `#[range(min, max)]` turns a number into a slider and bounds a `Range` or a `Percent` (given in percent), also inside an `Option`.
+- `#[range(min, max)]` turns a number into a slider and bounds a `Range`, a `Percent` (given in percent) or an `Angle` (given as angles, e.g. `#[range(Angle::from_degrees(-45.0), Angle::from_degrees(45.0))]`), also inside an `Option`.
 - `#[section("Name")]` starts a collapsible section. It holds this field and all following ones until the next `#[section]`. The struct stays flat.
 - `#[no_pick]` removes the buttons that pick a `V2` or the corners of a `Rect` on the drawing, for a `V2` that isn't a position, like a size or a scale.
 - `///` doc comments are shown as tooltips on the param labels.
@@ -80,7 +80,7 @@ Field types and their widgets:
 | `String` | multi-line text box |
 | `Paper` | DIN A/B or custom size, orientation, margin in cm or as a fraction |
 | `Range<f32>`, `Range<i32>` | min and max boxes, clamped to `#[range]` |
-| `Angle` | dial to drag (shift snaps to 15°, alt slows it down) and a number with a deg/rot/rad unit switch |
+| `Angle` | dial to drag (shift snaps to 15°, alt slows it down) and a number with a deg/rot/rad unit switch, clamped to `#[range]` |
 | `Percent` | slider from 0 % to 100 %, or over its `#[range]`; `fraction()` gives 0..1 |
 | `V2`, `V2i` | x and y boxes; a `V2` can also be picked by clicking the drawing, unless `#[no_pick]` |
 | `Rect` | x and y of the bottom left and top right corner, each also picked by clicking the drawing; defaults to a 10 cm square at the origin |

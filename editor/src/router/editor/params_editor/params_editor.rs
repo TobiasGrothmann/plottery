@@ -192,7 +192,9 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, ctx: EditorCtx) -> 
         ProjectParamValue::RangeF32 { .. } | ProjectParamValue::RangeI32 { .. } => {
             leaf!(RangeField)
         }
-        ProjectParamValue::Angle { .. } => leaf!(AngleField),
+        ProjectParamValue::Angle { .. } | ProjectParamValue::AngleRanged { .. } => {
+            leaf!(AngleField)
+        }
         ProjectParamValue::Percent { .. } => leaf!(PercentField),
         ProjectParamValue::V2(_) | ProjectParamValue::V2i(_) => leaf!(V2Field),
         ProjectParamValue::Rect(_) => leaf!(RectField),
@@ -441,9 +443,9 @@ fn render_struct_section(param: &ProjectParam, path: &[String], ctx: EditorCtx) 
         EventHandler::new(move |enabled: bool| set_optional_enabled(&path_for_switch, enabled))
     });
     let tick = roll_tick(ctx, &param.value, path);
-    let on_tick = tick
-        .clone()
-        .map(|(dot, _)| EventHandler::new(move |ticked: bool| set_ticked(ctx, dot.clone(), ticked)));
+    let on_tick = tick.clone().map(|(dot, _)| {
+        EventHandler::new(move |ticked: bool| set_ticked(ctx, dot.clone(), ticked))
+    });
     Some(rsx! {
         ParamSection {
             key: "{state_key}",

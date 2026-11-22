@@ -193,6 +193,23 @@ mod tests {
     }
 
     #[test]
+    fn ranged_angle_rejects_text_outside_its_range() {
+        let mut angle = Value::AngleRanged {
+            rad: 0.0,
+            unit: AngleUnit::Degrees,
+            min: 0.0,
+            max: std::f32::consts::FRAC_PI_2,
+        };
+        angle.set_from_text("0.25rot").unwrap();
+        assert_eq!(angle.to_text(), "90deg");
+        assert_eq!(
+            angle.set_from_text("-10").unwrap_err().to_string(),
+            "-10 is outside 0deg..90deg"
+        );
+        assert_eq!(angle.to_text(), "90deg");
+    }
+
+    #[test]
     fn percent_sign_is_optional() {
         let mut percent = Value::Percent {
             val: 0.0,

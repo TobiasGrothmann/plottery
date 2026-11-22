@@ -1,6 +1,8 @@
 use plottery_lib::Angle;
 use serde::{Deserialize, Serialize};
 
+use super::param_text::short_float;
+
 /// Unit an `Angle` param is shown in. The value itself is stored in radians.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum AngleUnit {
@@ -27,6 +29,15 @@ impl AngleUnit {
             AngleUnit::Rotations => angle.to_rotations(),
             AngleUnit::Radians => angle.to_rad(),
         }
+    }
+
+    /// `angle` in this unit with its suffix, e.g. `45deg`.
+    pub fn text(&self, angle: Angle) -> String {
+        format!(
+            "{}{}",
+            short_float(self.from_angle(angle)),
+            self.short_name()
+        )
     }
 
     pub fn to_angle(&self, value: f32) -> Angle {

@@ -74,6 +74,13 @@ pub enum ProjectParamValue {
         max: f32,
     },
     Rect(Rect),
+    /// An `Angle` with `#[range]`, all in radians.
+    AngleRanged {
+        rad: f32,
+        unit: AngleUnit,
+        min: f32,
+        max: f32,
+    },
 }
 
 fn same_schema_list(left: &[ProjectParam], right: &[ProjectParam]) -> bool {
@@ -89,6 +96,10 @@ impl ProjectParamValue {
                 Self::Float(_) | Self::FloatRanged { .. },
             ) => true,
             (Self::Int(_) | Self::IntRanged { .. }, Self::Int(_) | Self::IntRanged { .. }) => true,
+            (
+                Self::Angle { .. } | Self::AngleRanged { .. },
+                Self::Angle { .. } | Self::AngleRanged { .. },
+            ) => true,
             (Self::Struct(left), Self::Struct(right)) => {
                 same_schema_list(&left.fields, &right.fields)
             }
@@ -144,7 +155,9 @@ impl ProjectParamValue {
             ProjectParamValue::Paper(_) => "paper".to_string(),
             ProjectParamValue::RangeF32 { .. } => "range<f32>".to_string(),
             ProjectParamValue::RangeI32 { .. } => "range<i32>".to_string(),
-            ProjectParamValue::Angle { .. } => "angle".to_string(),
+            ProjectParamValue::Angle { .. } | ProjectParamValue::AngleRanged { .. } => {
+                "angle".to_string()
+            }
             ProjectParamValue::V2(_) => "v2".to_string(),
             ProjectParamValue::Seed(_) => "seed".to_string(),
             ProjectParamValue::Image(_) => "image".to_string(),

@@ -48,6 +48,9 @@ mod tests {
         count: Range<i32>,
         #[value(Angle::from_degrees(45.0))]
         rotation: Angle,
+        #[value(Angle::from_degrees(120.0))]
+        #[range(Angle::from_degrees(-45.0), Angle::from_degrees(90.0))]
+        tilt: Angle,
         #[value(V2::new(1.0, 2.0))]
         center: V2,
         #[value(Seed::new(7))]
@@ -163,6 +166,15 @@ mod tests {
             }
         );
         assert_eq!(
+            by_name("tilt"),
+            ProjectParamValue::AngleRanged {
+                rad: Angle::from_degrees(90.0).to_rad(),
+                unit: AngleUnit::Degrees,
+                min: Angle::from_degrees(-45.0).to_rad(),
+                max: Angle::from_degrees(90.0).to_rad(),
+            }
+        );
+        assert_eq!(
             by_name("default_share"),
             ProjectParamValue::Percent {
                 val: 0.0,
@@ -190,6 +202,7 @@ mod tests {
             radius: Range::new(1.0, 9.0),
             count: Range::new(3, 8),
             rotation: Angle::from_rotations(0.75),
+            tilt: Angle::from_degrees(-30.0),
             center: V2::new(-3.0, 4.5),
             seed: Seed::new(-1),
             image: ImagePath::new("resources/images/a.png"),
@@ -227,6 +240,7 @@ mod tests {
         assert_eq!(params.radius, Range::new(2.0, 10.0));
         assert_eq!(params.count, Range::new(0, 1));
         assert_eq!(params.rotation, Angle::from_degrees(45.0));
+        assert_eq!(params.tilt, Angle::from_degrees(90.0));
         assert_eq!(params.center, V2::new(1.0, 2.0));
         assert_eq!(params.seed, Seed::new(7));
         assert_eq!(params.image, ImagePath::none());

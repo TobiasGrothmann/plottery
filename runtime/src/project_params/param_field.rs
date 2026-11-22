@@ -223,8 +223,27 @@ impl ParamField for Angle {
     }
     fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
         match value {
-            ProjectParamValue::Angle { rad, .. } => Ok(Angle::from_rad(*rad)),
+            ProjectParamValue::Angle { rad, .. } | ProjectParamValue::AngleRanged { rad, .. } => {
+                Ok(Angle::from_rad(*rad))
+            }
             other => Err(param_type_mismatch("angle", other)),
+        }
+    }
+}
+
+/// Bounds are angles, so the attribute names the unit: `#[range(Angle::from_degrees(0.0), ...)]`.
+impl RangedParamField for Angle {
+    type Bound = Angle;
+    fn default_ranged_param_value(min: Angle, max: Angle) -> ProjectParamValue {
+        Angle::zero().to_ranged_param_value(min, max)
+    }
+    fn to_ranged_param_value(&self, min: Angle, max: Angle) -> ProjectParamValue {
+        let (min, max) = (min.to_rad(), max.to_rad());
+        ProjectParamValue::AngleRanged {
+            rad: self.to_rad().clamp(min, max),
+            unit: AngleUnit::default(),
+            min,
+            max,
         }
     }
 }
