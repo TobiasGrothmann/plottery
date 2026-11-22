@@ -49,7 +49,8 @@ pub fn VariationsGrid() -> Element {
     let tile_size = app_state.read().roll_tile_size;
     let project = ctx.project.read().clone();
     let variations = ctx.variations.variations.read().clone();
-    let rolling = ctx.variations.rolling.read().is_some();
+    let rolling = ctx.variations.rolling.read().is_some()
+        || variations.as_ref().is_some_and(|v| v.progress().is_some());
     let current_params = ctx.project_params.read().list.clone();
 
     let tiles = match variations {

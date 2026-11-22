@@ -24,6 +24,12 @@ pub struct VariationsMeta {
     pub created: DateTime<Utc>,
     /// Dotted paths of the rolled params.
     pub params: Vec<String>,
+    /// Rolls asked for, roll 0 left out. `None` in sets from before it was stored.
+    #[serde(default)]
+    pub total: Option<usize>,
+    /// The roll is over: done, stopped or failed. A hard-killed roll never gets here.
+    #[serde(default)]
+    pub ended: bool,
 }
 
 /// One roll. Roll 0 has the params the others were rolled from.
@@ -42,6 +48,15 @@ pub struct Roll {
 pub struct Variations {
     pub meta: VariationsMeta,
     pub rolls: Vec<Roll>,
+}
+
+impl Variations {
+    /// Rolls done (skipped ones included, roll 0 left out) and asked for, while the roll goes on.
+    pub fn progress(&self) -> Option<(usize, usize)> {
+        let total = self.meta.total.filter(|_| !self.meta.ended)?;
+        let done = self.rolls.iter().filter(|roll| roll.index > 0).count();
+        Some((done, total))
+    }
 }
 
 /// The index of a file of a roll, `7` for `007.png`, when its extension is one of `extensions`.
@@ -161,6 +176,18 @@ impl Project {
         write_atomic(
             &self.get_variations_meta_path(),
             serde_json::to_vec_pretty(meta)?,
+        )
+    }
+
+    /// Marks the set as ended, so nobody waits for more rolls.
+    pub(crate) fn end_variations(&self, meta: &VariationsMeta) -> Result<()> {
+        let meta = VariationsMeta {
+            ended: true,
+            ..meta.clone()
+        };
+        write_atomic(
+            &self.get_variations_meta_path(),
+            serde_json::to_vec_pretty(&meta)?,
         )
     }
 

@@ -30,6 +30,11 @@ pub fn RollPanel() -> Element {
         RunningState::Rolling { done, total } => Some((done, total)),
         _ => None,
     };
+    // a roll from the terminal, seen in the stored files
+    let elsewhere = match rolling {
+        true => None,
+        false => state.variations.read().as_ref().and_then(|v| v.progress()),
+    };
     let paths = to_roll.clone();
     let roll = Callback::new(move |_: ()| {
         if paths.is_empty() || state.rolling.peek().is_some() {
@@ -120,6 +125,11 @@ pub fn RollPanel() -> Element {
                         Some((done, total)) => rsx! { span { "{done} / {total}" } },
                         None => rsx! { span { "Compiling…" } },
                     }
+                }
+            } else if let Some((done, total)) = elsewhere {
+                div { class: "roll-progress", title: "Rolled outside the editor, e.g. with plottery roll",
+                    ProgressBar { progress: Some(done as f32 / total.max(1) as f32) }
+                    span { "{done} / {total} in the terminal" }
                 }
             }
         }

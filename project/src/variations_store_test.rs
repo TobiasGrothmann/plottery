@@ -34,6 +34,8 @@ mod tests {
         VariationsMeta {
             created: Utc::now(),
             params: vec!["count".to_string()],
+            total: Some(3),
+            ended: false,
         }
     }
 
@@ -70,6 +72,11 @@ mod tests {
             rolls(&project),
             vec![(0, "0".to_string()), (2, "2".to_string())]
         );
+        // roll 0 is not counted
+        let progress = || project.load_variations().unwrap().unwrap().progress();
+        assert_eq!(progress(), Some((1, 3)));
+        project.end_variations(&meta()).unwrap();
+        assert_eq!(progress(), None);
         assert_eq!(project.load_roll_params(2).unwrap().list, sets[2].list);
         assert!(project.load_roll_params(1).is_err());
 

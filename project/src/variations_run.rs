@@ -8,7 +8,7 @@ use std::sync::Mutex;
 use std::task::Poll;
 use std::time::{Duration, Instant};
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use chrono::Utc;
 use futures_lite::{future::poll_fn, StreamExt};
 use plottery_runtime::ProjectParamsListWrapper;
@@ -154,6 +154,8 @@ impl Project {
         let meta = VariationsMeta {
             created: Utc::now(),
             params: paths.clone(),
+            total: Some(count),
+            ended: false,
         };
         self.start_variations(&meta)?;
         on_event(RollEvent::Prepared { total });
@@ -271,9 +273,11 @@ impl Project {
 
         let failure = failure.into_inner().unwrap();
         let canceled = canceled.load(Ordering::SeqCst);
+        let ended = self.end_variations(&meta);
         if let Some(message) = failure {
             bail!(message);
         }
+        ended.context("Failed to mark the variations as ended")?;
         Ok(RollOutcome {
             done: done.load(Ordering::SeqCst),
             skipped: skipped.load(Ordering::SeqCst),
