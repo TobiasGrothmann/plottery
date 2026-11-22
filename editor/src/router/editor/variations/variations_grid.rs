@@ -49,6 +49,7 @@ pub fn VariationsGrid() -> Element {
     let tile_size = app_state.read().roll_tile_size;
     let project = ctx.project.read().clone();
     let variations = ctx.variations.variations.read().clone();
+    let rolling = ctx.variations.rolling.read().is_some();
     let current_params = ctx.project_params.read().list.clone();
 
     let tiles = match variations {
@@ -58,13 +59,11 @@ pub fn VariationsGrid() -> Element {
                 .rolls
                 .into_iter()
                 .map(|roll| {
-                    let png = roll.done.then(|| {
-                        project
-                            .get_roll_path(roll.index, "png")
-                            .to_string_lossy()
-                            .to_string()
-                    });
-                    let current = roll.done && roll.params.list == current_params;
+                    let png = project
+                        .get_roll_path(roll.index, "png")
+                        .to_string_lossy()
+                        .to_string();
+                    let current = roll.params.list == current_params;
                     rsx! {
                         RollTile {
                             key: "{roll.index}",
@@ -96,8 +95,13 @@ pub fn VariationsGrid() -> Element {
                     div { class: "grid_cards", {tiles.into_iter()} }
                 } else {
                     div { class: "variations-empty",
-                        p { "No variations yet." }
-                        p { class: "hint", "Click the params on the left to pick what to roll, then Roll." }
+                        if rolling {
+                            p { "Rolling…" }
+                            p { class: "hint", "Each roll shows up when it is done." }
+                        } else {
+                            p { "No variations yet." }
+                            p { class: "hint", "Click the params on the left to pick what to roll, then Roll." }
+                        }
                     }
                 }
             }
@@ -112,7 +116,7 @@ pub fn VariationsGrid() -> Element {
     }
 }
 
-/// Makes the params and drawing of finished roll `index` the project's and shows them in the
+/// Makes the params and drawing of roll `index` the project's and shows them in the
 /// edit view. Nothing runs, so a roll in progress goes on.
 fn pick_roll(ctx: EditorCtx, index: usize) {
     let picked = ctx
@@ -124,7 +128,7 @@ fn pick_roll(ctx: EditorCtx, index: usize) {
             variations
                 .rolls
                 .iter()
-                .find(|roll| roll.index == index && roll.done)
+                .find(|roll| roll.index == index)
                 .map(|roll| roll.params.clone())
         });
     let Some(picked) = picked else {

@@ -39,9 +39,6 @@
 .card.roll {
   position: relative;
 }
-.card.roll.pending {
-  cursor: default;
-}
 .card.roll.current,
 .card.roll.current:hover {
   border-color: var(--accent);

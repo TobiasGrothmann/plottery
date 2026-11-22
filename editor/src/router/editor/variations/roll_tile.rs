@@ -6,8 +6,7 @@ use crate::components::image::Image;
 #[component]
 pub fn RollTile(
     index: usize,
-    /// Its PNG once the roll is done.
-    png: Option<String>,
+    png: String,
     /// Its params are the project's current ones.
     current: bool,
     values: Vec<(String, String)>,
@@ -25,10 +24,9 @@ pub fn RollTile(
         .collect::<Vec<_>>()
         .join("\n");
 
-    let class = match (&png, current) {
-        (Some(_), true) => "card roll current",
-        (Some(_), false) => "card roll",
-        (None, _) => "card roll pending",
+    let class = match current {
+        true => "card roll current",
+        false => "card roll",
     };
 
     rsx! {
@@ -44,11 +42,7 @@ pub fn RollTile(
                 }
             },
             div { class: "thumb",
-                if let Some(img_path) = png {
-                    Image { img_path, redraw_counter: set_id, class: "thumb_paper" }
-                } else {
-                    span { class: "thumb_empty", "rolling…" }
-                }
+                Image { img_path: png, redraw_counter: set_id, class: "thumb_paper" }
             }
             span { class: "roll_number", "{name}" }
         }

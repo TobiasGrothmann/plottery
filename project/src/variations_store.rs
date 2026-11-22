@@ -33,11 +33,9 @@ pub struct Roll {
     pub params: ProjectParamsListWrapper,
     /// The rolled params and their values as text.
     pub values: Vec<(String, String)>,
-    /// Its layer, SVG and PNG are written.
-    pub done: bool,
 }
 
-/// The stored set of rolls of a project.
+/// The stored set of rolls of a project: the finished ones, also while more are running.
 #[derive(Debug, Clone)]
 pub struct Variations {
     pub meta: VariationsMeta,
@@ -112,17 +110,16 @@ impl Project {
             rolls.push(Roll {
                 index,
                 values: rolled_values(&params, &meta.params),
-                done: self.get_roll_path(index, "png").exists(),
                 params,
             });
         }
         Ok(Some(Variations { meta, rolls }))
     }
 
-    /// The drawing of roll `index`, once it is done.
+    /// The drawing of roll `index`.
     pub fn load_roll_layer(&self, index: usize) -> Result<Layer> {
         Layer::new_from_file(&self.get_roll_path(index, "plotl"))
-            .with_context(|| format!("Roll {index} has no drawing yet"))
+            .with_context(|| format!("There is no roll {index}"))
     }
 
     /// The params of roll `index`.
@@ -140,13 +137,8 @@ impl Project {
         Ok(ProjectParamsListWrapper::from_file_bytes(&bytes)?.0)
     }
 
-    /// Replaces the stored rolls with `sets`, not run yet. The description is written last, so a
-    /// reader sees either no set or all of its params.
-    pub(crate) fn start_variations(
-        &self,
-        meta: &VariationsMeta,
-        sets: &[ProjectParamsListWrapper],
-    ) -> Result<()> {
+    /// Removes the stored rolls and starts an empty set.
+    pub(crate) fn start_variations(&self, meta: &VariationsMeta) -> Result<()> {
         let dir = self.get_variations_dir();
         std::fs::create_dir_all(&dir)?;
         let gitignore = dir.join(".gitignore");
@@ -160,17 +152,19 @@ impl Project {
                 remove_if_exists(&path)?;
             }
         }
-        for (index, params) in sets.iter().enumerate() {
-            write_atomic(&self.get_roll_path(index, "plotp"), params.to_file_bytes()?)?;
-        }
         write_atomic(
             &self.get_variations_meta_path(),
             serde_json::to_vec_pretty(meta)?,
         )
     }
 
-    /// Writes the layer and then the PNG of roll `index`. The PNG marks the roll as done.
-    pub(crate) fn save_roll_output(&self, index: usize, layer: &Layer) -> Result<()> {
+    /// Stores finished roll `index`. Its params are written last: a roll with params is complete.
+    pub(crate) fn save_roll(
+        &self,
+        index: usize,
+        params: &ProjectParamsListWrapper,
+        layer: &Layer,
+    ) -> Result<()> {
         write_atomic(&self.get_roll_path(index, "plotl"), layer.to_binary()?)?;
         let png = render_svg(
             layer.to_svg().as_bytes(),
@@ -178,19 +172,7 @@ impl Project {
             Some(tiny_skia::Color::WHITE),
         )?
         .encode_png()?;
-        write_atomic(&self.get_roll_path(index, "png"), png)
-    }
-
-    /// Removes the rolls that have no PNG, so only finished ones are left.
-    pub(crate) fn remove_unfinished_rolls(&self) -> Result<()> {
-        for path in files_in(&self.get_variations_dir())? {
-            let unfinished = roll_index(&path, &ROLL_EXTENSIONS)
-                .is_some_and(|index| !self.get_roll_path(index, "png").exists());
-            let temp = path.extension().is_some_and(|extension| extension == "tmp");
-            if unfinished || temp {
-                remove_if_exists(&path)?;
-            }
-        }
-        Ok(())
+        write_atomic(&self.get_roll_path(index, "png"), png)?;
+        write_atomic(&self.get_roll_path(index, "plotp"), params.to_file_bytes()?)
     }
 }

@@ -43,59 +43,43 @@ mod tests {
         layer
     }
 
-    fn rolls(project: &Project) -> Vec<(usize, bool, String)> {
+    fn rolls(project: &Project) -> Vec<(usize, String)> {
         project
             .load_variations()
             .unwrap()
             .unwrap()
             .rolls
             .into_iter()
-            .map(|roll| (roll.index, roll.done, roll.values[0].1.clone()))
+            .map(|roll| (roll.index, roll.values[0].1.clone()))
             .collect()
     }
 
     #[test]
-    fn done_comes_from_the_png_and_a_new_set_replaces_only_roll_files() {
+    fn rolls_are_the_saved_ones_and_a_new_set_removes_only_roll_files() {
         let tmp = tempfile::tempdir().unwrap();
         let project = project(tmp.path());
         assert!(project.load_variations().unwrap().is_none());
 
-        project.start_variations(&meta(), &sets(3)).unwrap();
-        project.save_roll_output(0, &layer()).unwrap();
-        project.save_roll_output(2, &layer()).unwrap();
+        let sets = sets(3);
+        project.start_variations(&meta()).unwrap();
+        project.save_roll(2, &sets[2], &layer()).unwrap();
+        project.save_roll(0, &sets[0], &layer()).unwrap();
+        // a roll that died while it was stored
+        std::fs::write(project.get_roll_path(1, "png"), "half").unwrap();
         assert_eq!(
             rolls(&project),
-            vec![
-                (0, true, "0".to_string()),
-                (1, false, "1".to_string()),
-                (2, true, "2".to_string())
-            ]
+            vec![(0, "0".to_string()), (2, "2".to_string())]
         );
+        assert_eq!(project.load_roll_params(2).unwrap().list, sets[2].list);
+        assert!(project.load_roll_params(1).is_err());
 
         let notes = project.get_variations_dir().join("notes.txt");
         std::fs::write(&notes, "mine").unwrap();
-        project.start_variations(&meta(), &sets(2)).unwrap();
-        assert_eq!(
-            rolls(&project),
-            vec![(0, false, "0".to_string()), (1, false, "1".to_string())]
-        );
+        project.start_variations(&meta()).unwrap();
+        assert_eq!(rolls(&project), vec![]);
         assert!(notes.exists());
-        assert!(!project.get_roll_path(2, "plotp").exists());
-        assert!(!project.get_roll_path(2, "png").exists());
+        assert!(!project.get_roll_path(1, "png").exists());
+        assert!(!project.get_roll_path(2, "plotl").exists());
         assert!(project.get_variations_dir().join(".gitignore").exists());
-    }
-
-    #[test]
-    fn removing_unfinished_rolls_keeps_the_done_ones() {
-        let tmp = tempfile::tempdir().unwrap();
-        let project = project(tmp.path());
-        project.start_variations(&meta(), &sets(4)).unwrap();
-        project.save_roll_output(1, &layer()).unwrap();
-        project.save_roll_output(3, &layer()).unwrap();
-        project.remove_unfinished_rolls().unwrap();
-        let indices: Vec<usize> = rolls(&project).into_iter().map(|roll| roll.0).collect();
-        assert_eq!(indices, vec![1, 3]);
-        assert_eq!(project.load_roll_params(3).unwrap().list, sets(4)[3].list);
-        assert!(project.load_roll_params(2).is_err());
     }
 }

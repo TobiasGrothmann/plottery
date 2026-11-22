@@ -25,9 +25,9 @@ const OUTPUT_TAIL: usize = 20;
 
 #[derive(Debug, Clone)]
 pub enum RollEvent {
-    /// The params of all `total` rolls, start included, are stored and the runs begin.
+    /// The runs of all `total` rolls, start included, begin.
     Prepared { total: usize },
-    /// Roll `index` finished and its SVG and PNG are stored.
+    /// Roll `index` finished and is stored.
     Finished {
         index: usize,
         done: usize,
@@ -43,11 +43,11 @@ pub struct RollOutcome {
     pub canceled: bool,
 }
 
-/// Runs at once: half the cores, 1 to 8.
+/// Runs at once: half the cores, 1 to 4.
 pub fn default_roll_parallelism() -> usize {
     std::thread::available_parallelism()
         .map_or(2, |cores| cores.get() / 2)
-        .clamp(1, 8)
+        .clamp(1, 4)
 }
 
 /// Runs `job(i)` for `i` in `0..count` in order, at most `parallel` at once. No job starts once
@@ -111,7 +111,7 @@ fn format_values(values: &[(String, String)]) -> String {
 impl Project {
     /// Rolls `paths` of `start` `count` times and runs the already built project with each set,
     /// replacing the stored variations. Roll 0 runs `start` itself. The first failed roll stops
-    /// all others and is the error; only finished rolls stay stored.
+    /// all others and is the error. Every roll is stored when it finishes.
     pub async fn roll_async(
         &self,
         release: bool,
@@ -131,7 +131,7 @@ impl Project {
             created: Utc::now(),
             params: paths.clone(),
         };
-        self.start_variations(&meta, &sets)?;
+        self.start_variations(&meta)?;
         on_event(RollEvent::Prepared { total });
 
         let stop = AtomicBool::new(false);
@@ -173,7 +173,7 @@ impl Project {
                     _ => format!("Roll {index}"),
                 };
                 match result {
-                    Ok(layer) => match self.save_roll_output(index, &layer) {
+                    Ok(layer) => match self.save_roll(index, &sets[index], &layer) {
                         Ok(()) => {
                             let done = done.fetch_add(1, Ordering::SeqCst) + 1;
                             on_event(RollEvent::Finished { index, done, total });
@@ -197,9 +197,6 @@ impl Project {
 
         let failure = failure.into_inner().unwrap();
         let canceled = canceled.load(Ordering::SeqCst);
-        if failure.is_some() || canceled {
-            self.remove_unfinished_rolls()?;
-        }
         if let Some(message) = failure {
             bail!(message);
         }
