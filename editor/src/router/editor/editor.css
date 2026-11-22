@@ -196,36 +196,38 @@
   position: relative;
   padding-right: var(--pill-slot);
 }
-/* Edit | Variations, next to the project name */
+/* Edit | Variations, next to the project name: two joined buttons as high as the others */
 .view-switch {
   display: inline-flex;
   flex: none;
-  height: 32px;
-  box-sizing: border-box;
-  padding: 2px;
-  gap: 2px;
-  background: var(--bg-0);
-  border: 1px solid var(--line-2);
-  border-radius: var(--r);
 }
 .view-switch button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  height: 32px;
+  box-sizing: border-box;
   padding: 0 12px;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
+  border: 1px solid var(--line-2);
+  background: var(--bg-3);
   color: var(--fg-1);
-  font: 600 13px 'Inter', system-ui, sans-serif;
+  font: 600 13px/1 'Inter', system-ui, sans-serif;
   white-space: nowrap;
   cursor: pointer;
 }
+.view-switch button:first-child {
+  border-radius: var(--r) 0 0 var(--r);
+}
+.view-switch button:last-child {
+  border-left: 0;
+  border-radius: 0 var(--r) var(--r) 0;
+}
 .view-switch button:hover {
   color: var(--fg-0);
-  background: var(--bg-3);
+  background: var(--bg-4);
 }
 .view-switch button.on {
+  border-color: var(--accent);
   background: var(--accent);
   color: var(--accent-fg);
 }
