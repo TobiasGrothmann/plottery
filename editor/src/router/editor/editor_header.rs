@@ -6,6 +6,7 @@ use dioxus::prelude::*;
 use dioxus_router::hooks::use_navigator;
 use plottery_lib::SampleSettings;
 use plottery_server_lib::{plot_settings::PlotSettings, send_task, task::Task};
+use rfd::AsyncFileDialog;
 
 use crate::{
     components::{
@@ -192,7 +193,7 @@ pub fn PanelToggles(layout: PanelLayout, on_toggle: Callback<Panel>) -> Element 
     }
 }
 
-/// Plotter remote, plot settings, the svg in another app, and sending the visible layers.
+/// Plotter remote, plot settings, the svg menu, and sending the visible layers.
 #[component]
 pub fn PlotActions(
     svg: SyncSignal<Option<PreviewSvg>>,
@@ -200,9 +201,12 @@ pub fn PlotActions(
     plot_settings: SyncSignal<PlotSettings>,
     on_plot_settings: Callback<()>,
 ) -> Element {
-    let console = use_context::<EditorCtx>().console;
+    let ctx = use_context::<EditorCtx>();
+    let console = ctx.console;
+    let project = ctx.project;
     let RemoteOpen(mut remote_open) = use_context::<RemoteOpen>();
     let plot_estimate_text = use_plot_estimate(only_visible, plot_settings);
+    let mut svg_menu_open = use_signal(|| false);
 
     rsx! {
         IconButton {
@@ -217,19 +221,67 @@ pub fn PlotActions(
             onclick: move |_| on_plot_settings.call(()),
             "Plot settings"
         }
-        Button {
-            icon: IconName::External,
-            onclick: move |_| {
-                if let Some(svg) = svg() {
-                    let path = std::env::temp_dir().join("temp_editor.svg");
-                    // A copy, so the other app keeps its file when the preview is rendered again.
-                    let opened = std::fs::copy(&svg.path, &path).and_then(|_| open::that(&path));
-                    if let Err(err) = opened {
-                        console.peek().error(&format!("Failed to open the SVG: {err}"));
+        div { class: "menu-anchor",
+            Button {
+                icon: IconName::External,
+                onclick: move |_| svg_menu_open.set(true),
+                "SVG"
+            }
+            if svg_menu_open() {
+                div {
+                    class: "menu-backdrop",
+                    onclick: move |_| svg_menu_open.set(false),
+                }
+                div { class: "menu", role: "menu",
+                    button {
+                        r#type: "button",
+                        class: "menu-item",
+                        role: "menuitem",
+                        onclick: move |_| {
+                            svg_menu_open.set(false);
+                            if let Some(svg) = svg() {
+                                let path = std::env::temp_dir().join("temp_editor.svg");
+                                // A copy, so the other app keeps its file when the preview is rendered again.
+                                let opened = std::fs::copy(&svg.path, &path).and_then(|_| open::that(&path));
+                                if let Err(err) = opened {
+                                    console.peek().error(&format!("Failed to open the SVG: {err}"));
+                                }
+                            }
+                        },
+                        "Open"
+                    }
+                    button {
+                        r#type: "button",
+                        class: "menu-item",
+                        role: "menuitem",
+                        onclick: move |_| {
+                            svg_menu_open.set(false);
+                            async move {
+                                let Some(svg) = svg() else {
+                                    return;
+                                };
+                                let file_name = format!("{}.svg", project.peek().config.name);
+                                let Some(target) = AsyncFileDialog::new()
+                                    .set_title("Save the SVG")
+                                    .set_file_name(file_name)
+                                    .add_filter("SVG", &["svg"])
+                                    .set_parent(&*dioxus::desktop::window().window)
+                                    .save_file()
+                                    .await
+                                    else {
+                                    return;
+                                };
+                                let target = target.path();
+                                match std::fs::copy(&svg.path, target) {
+                                    Ok(_) => console.peek().success(&format!("Saved the SVG to {}", target.display())),
+                                    Err(err) => console.peek().error(&format!("Failed to save the SVG: {err}")),
+                                }
+                            }
+                        },
+                        "Save to…"
                     }
                 }
-            },
-            "Open SVG"
+            }
         }
         Button {
             variant: Variant::Primary,
