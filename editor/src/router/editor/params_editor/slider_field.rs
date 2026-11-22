@@ -44,7 +44,7 @@ fn set_ranged_value(param_value: &mut ProjectParamValue, new_val: f32) {
 }
 
 #[component]
-pub fn Slider(props: LeafProps) -> Element {
+pub fn SliderField(props: LeafProps) -> Element {
     let leaf = props.use_handle();
     let Some(ranged) = Ranged::from_value(&props.param.value) else {
         return rsx! { p { "unexpected value type" } };

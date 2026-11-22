@@ -6,7 +6,7 @@ use std::os::unix::net::UnixStream;
 use std::path::PathBuf;
 
 use crate::project_param::ProjectParam;
-use crate::project_params_definition::PlotteryParams;
+use crate::plottery_params::PlotteryParams;
 use crate::project_params_list_wrapper::ProjectParamsListWrapper;
 use crate::protocol::PROTOCOL_VERSION;
 use crate::run_stream::{write_message, MessageKind};

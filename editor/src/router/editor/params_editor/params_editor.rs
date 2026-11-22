@@ -32,7 +32,7 @@ use crate::router::editor::{
         range_field::RangeField,
         rect_field::RectField,
         seed_field::SeedField,
-        slider::Slider,
+        slider_field::SliderField,
         string_field::StringField,
         system_font_field::SystemFontField,
         v2_field::V2Field,
@@ -180,7 +180,7 @@ fn render_leaf_param(param: ProjectParam, path: Vec<String>, ctx: EditorCtx) -> 
     match &param.value {
         ProjectParamValue::Float(_) | ProjectParamValue::Int(_) => leaf!(NumberField),
         ProjectParamValue::FloatRanged { .. } | ProjectParamValue::IntRanged { .. } => {
-            leaf!(Slider)
+            leaf!(SliderField)
         }
         ProjectParamValue::Bool(_) => leaf!(BoolField),
         ProjectParamValue::Curve2DNorm(_) | ProjectParamValue::Curve2D(_) => leaf!(Curve2DField),

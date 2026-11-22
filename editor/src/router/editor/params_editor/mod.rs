@@ -17,7 +17,7 @@ pub mod percent_field;
 pub mod range_field;
 pub mod rect_field;
 pub mod seed_field;
-pub mod slider;
+pub mod slider_field;
 pub mod string_field;
 pub mod system_font_field;
 pub mod system_fonts;
