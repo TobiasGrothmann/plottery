@@ -44,22 +44,16 @@ pub fn RollPanel() -> Element {
             state.rolling,
         );
     });
-    let hint = match to_roll.len() {
-        0 => String::new(),
-        1 => "1 param".to_string(),
-        n => format!("{n} params"),
-    };
 
     rsx! {
         style { {include_str!("./roll_panel.css")} }
         div { class: "roll-panel",
             div { class: "roll-panel-head",
                 Icon { name: IconName::Dice }
-                span { class: "roll-panel-title", "Roll variations" }
-                span { class: "roll-panel-hint", "{hint}" }
+                span { class: "roll-panel-title", "Roll" }
             }
             if to_roll.is_empty() {
-                span { class: "roll-panel-empty", "Click the params below to roll them." }
+                span { class: "roll-panel-empty", "Click the params on the left to roll them" }
             } else {
                 div { class: "roll-panel-chips",
                     for path in to_roll.iter().cloned() {

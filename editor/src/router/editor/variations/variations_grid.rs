@@ -2,7 +2,8 @@ use dioxus::prelude::*;
 use plottery_runtime::project_params_list_wrapper::ProjectParamsListWrapper;
 
 use super::{
-    roll_tile::RollTile, variations_state::EditorView, variations_watch::use_variations_watch,
+    roll_panel::RollPanel, roll_tile::RollTile, variations_state::EditorView,
+    variations_watch::use_variations_watch,
 };
 use crate::{
     components::tile_size_slider::TileSizeSlider,
@@ -59,16 +60,14 @@ pub fn VariationsGrid() -> Element {
     rsx! {
         style { {include_str!("./variations.css")} }
         div { class: "variations",
+            RollPanel {}
             div { class: "variations-scroll", style: "--tile-size: {tile_size}px;",
                 if let Some(tiles) = tiles {
                     div { class: "grid_cards", {tiles.into_iter()} }
                 } else {
                     div { class: "variations-empty",
                         p { "No variations yet." }
-                        p { class: "hint",
-                            "Roll some with "
-                            code { "plottery roll seed -n 24" }
-                        }
+                        p { class: "hint", "Click the params on the left to pick what to roll, then Roll." }
                     }
                 }
             }
