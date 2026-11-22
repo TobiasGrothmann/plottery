@@ -8,11 +8,11 @@ use dioxus::{
 use super::slider_input::{ALT_SPEED_FACTOR, JUMP_DISTANCE_PX};
 
 /// Must match `.AngleDial` in angle_dial.css.
-const SIZE: f32 = 70.0;
-const RIM_RADIUS: f32 = 34.5;
+const SIZE: f32 = 60.0;
+const RIM_RADIUS: f32 = 29.5;
 /// Distance of the handle from the center.
-const HAND_LENGTH: f32 = 26.0;
-const HANDLE_RADIUS: f32 = 4.5;
+const HAND_LENGTH: f32 = 22.0;
+const HANDLE_RADIUS: f32 = 4.0;
 /// The cursor has no direction this close to the center.
 const DEAD_ZONE_PX: f64 = 4.0;
 const STEP_DEGREES: f64 = 1.0;
