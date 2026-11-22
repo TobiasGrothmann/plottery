@@ -42,6 +42,15 @@
 .card.roll.pending {
   cursor: default;
 }
+.card.roll.current,
+.card.roll.current:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.card.roll.current .roll_number {
+  background: var(--accent);
+  color: var(--accent-fg, #fff);
+}
 
 .roll_number {
   position: absolute;

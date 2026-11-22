@@ -49,6 +49,7 @@ pub fn VariationsGrid() -> Element {
     let tile_size = app_state.read().roll_tile_size;
     let project = ctx.project.read().clone();
     let variations = ctx.variations.variations.read().clone();
+    let current_params = ctx.project_params.read().list.clone();
 
     let tiles = match variations {
         Some(variations) if !variations.rolls.is_empty() => {
@@ -63,11 +64,13 @@ pub fn VariationsGrid() -> Element {
                             .to_string_lossy()
                             .to_string()
                     });
+                    let current = roll.done && roll.params.list == current_params;
                     rsx! {
                         RollTile {
                             key: "{roll.index}",
                             index: roll.index,
                             png,
+                            current,
                             values: roll.values,
                             set_id,
                             on_pick: move |index| pick_roll(ctx, index),

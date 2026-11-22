@@ -8,6 +8,8 @@ pub fn RollTile(
     index: usize,
     /// Its PNG once the roll is done.
     png: Option<String>,
+    /// Its params are the project's current ones.
+    current: bool,
     values: Vec<(String, String)>,
     /// Changes with every new set of rolls, so a reused file name loads its new image.
     set_id: u32,
@@ -23,9 +25,10 @@ pub fn RollTile(
         .collect::<Vec<_>>()
         .join("\n");
 
-    let class = match png {
-        Some(_) => "card roll",
-        None => "card roll pending",
+    let class = match (&png, current) {
+        (Some(_), true) => "card roll current",
+        (Some(_), false) => "card roll",
+        (None, _) => "card roll pending",
     };
 
     rsx! {
