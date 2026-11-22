@@ -173,3 +173,7 @@ h1,h2,h3,p{margin:0}
 .hgroup.tight:has(> .app-btn){gap:4px}
 .panel-fill{fill:none;stroke:none}
 .icon-btn.on .panel-fill{fill:currentColor}
+.progress-bar{position:relative;flex:1;height:6px;border-radius:3px;background:var(--bg-4);overflow:hidden}
+.progress-bar>div{height:100%;border-radius:3px;background:var(--accent);transition:width .2s}
+.progress-bar.indeterminate>div{position:absolute;width:30%;animation:progress-slide 1.2s ease-in-out infinite}
+@keyframes progress-slide{from{left:-30%}to{left:100%}}

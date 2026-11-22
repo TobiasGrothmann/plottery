@@ -397,11 +397,46 @@
   padding: 8px;
 }
 
-/* variations view: read-only params, ticks to roll them */
+/* variations view: params are read-only, a rollable row toggles whether it is rolled */
 .pctl[inert] {
-  opacity: 0.55;
+  opacity: 0.8;
 }
-.plabel .check,
-.psection-head .check {
-  margin-right: 6px;
+.ParamsEditor .prow.roll-row {
+  margin: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.ParamsEditor .prow.roll-row:hover {
+  background: var(--bg-2);
+  border-color: var(--line-2);
+}
+.ParamsEditor .prow.roll-row.on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.ParamsEditor .prow.roll-row.on > .plabel {
+  color: var(--fg-0);
+}
+.ParamsEditor .prow.roll-locked {
+  opacity: 0.45;
+}
+.roll-chip {
+  height: 22px;
+  padding: 0 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg-2);
+  font: 500 11px 'Inter', system-ui, sans-serif;
+  cursor: pointer;
+}
+.roll-chip:hover {
+  color: var(--fg-0);
+}
+.roll-chip.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
 }

@@ -192,16 +192,36 @@
 }
 
 .center-group {
-  --pill-slot: 140px;
+  --pill-slot: 190px;
   position: relative;
   padding-right: var(--pill-slot);
+}
+/* view switch, hot reload, Run and the status share one height */
+.center-group > .seg {
+  height: 32px;
+  box-sizing: border-box;
+  align-items: stretch;
+}
+.center-group > .seg button {
+  height: auto;
+  padding: 0 12px;
 }
 .center-group > .pill {
   position: absolute;
   left: calc(100% - var(--pill-slot) + 8px);
   top: 50%;
   transform: translateY(-50%);
+  height: 32px;
+  box-sizing: border-box;
+  border-radius: var(--r);
   white-space: nowrap;
+}
+.center-group > .pill .progress-bar {
+  width: 56px;
+  flex: none;
+}
+.pill-count {
+  font-variant-numeric: tabular-nums;
 }
 
 /* The hovered V2 or Rect param, drawn over the paper with the paper's size and transform. */

@@ -9,7 +9,7 @@ use plottery_runtime::{
 
 use crate::components::{
     icon::{Icon, IconName},
-    ui::{Button, Checkbox, IconButton, Size, Switch, Variant},
+    ui::{Button, IconButton, Size, Switch, Variant},
 };
 use crate::model::app_state::{update_app_state, AppState};
 use crate::router::editor::{
@@ -490,13 +490,6 @@ fn ParamSection(
     rsx! {
         section { class: "psection",
             div { class: "psection-head",
-                if let (Some(ticked), Some(on_tick)) = (ticked, on_tick) {
-                    Checkbox {
-                        checked: ticked,
-                        aria_label: "Roll {title}",
-                        onchange: move |ticked: bool| on_tick.call(ticked),
-                    }
-                }
                 button {
                     r#type: "button",
                     class: "psection-toggle",
@@ -512,6 +505,16 @@ fn ParamSection(
                         class: if open { "sec-chevron" } else { "sec-chevron rot-90" },
                     }
                     span { class: "psection-title", "{title}" }
+                }
+                if let (Some(ticked), Some(on_tick)) = (ticked, on_tick) {
+                    button {
+                        r#type: "button",
+                        class: if ticked { "roll-chip on" } else { "roll-chip" },
+                        "aria-pressed": if ticked { "true" } else { "false" },
+                        title: "Roll whether {title} is on",
+                        onclick: move |_| on_tick.call(!ticked),
+                        "roll"
+                    }
                 }
                 if let (Some(enabled), Some(on_enabled)) = (enabled, on_enabled) {
                     Switch {
@@ -564,6 +567,13 @@ fn render_named_param(
         true => None,
         false => roll_tick(ctx, &param.value, &path),
     };
+    // in the variations view a rollable row is a toggle, the others are dimmed
+    let row_class = match (&tick, read_only) {
+        (Some((_, true)), _) => "prow roll-row on",
+        (Some((_, false)), _) => "prow roll-row",
+        (None, true) => "prow roll-locked",
+        (None, false) => "prow",
+    };
     let item_count = vec_item_count(&param.value).map(|count| match count {
         1 => "1 item".to_string(),
         n => format!("{n} items"),
@@ -609,18 +619,25 @@ fn render_named_param(
         }
     } else {
         rsx! {
-            div { class: "prow", key: "{key}",
+            div {
+                class: row_class,
+                key: "{key}",
+                role: if tick.is_some() { "button" },
+                "aria-pressed": tick.as_ref().map(|(_, ticked)| ticked.to_string()),
+                onclick: move |event| {
+                    if !read_only {
+                        return;
+                    }
+                    // rows of an enum's variant sit inside the enum's row
+                    event.stop_propagation();
+                    if let Some((dot, ticked)) = &tick {
+                        set_ticked(ctx, dot.clone(), !ticked);
+                    }
+                },
                 div {
                     class: "plabel {label_class}",
                     title: label_title,
                     ondoubleclick: onreset,
-                    if let Some((dot, ticked)) = tick {
-                        Checkbox {
-                            checked: ticked,
-                            aria_label: "Roll {formatted_name}",
-                            onchange: move |ticked: bool| set_ticked(ctx, dot.clone(), ticked),
-                        }
-                    }
                     "{formatted_name}"
                     if let Some(item_count) = item_count {
                         span { class: "count", "{item_count}" }

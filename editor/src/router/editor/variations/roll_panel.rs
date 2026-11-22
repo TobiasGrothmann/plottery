@@ -3,60 +3,103 @@ use plottery_project::{rollable_paths, MAX_ROLLS};
 
 use crate::{
     components::{
-        icon::IconName,
+        icon::{Icon, IconName},
         ui::{Button, Variant},
     },
-    router::editor::{
-        editor_ctx::EditorCtx, params_editor::widgets::number_input::NumberInput,
-        running_state::RunningState,
-    },
+    router::editor::{editor_ctx::EditorCtx, running_state::RunningState},
 };
 
-/// How many times to roll the ticked params, and the button that does it.
+/// The params to roll, how many times, and the button that does it.
 #[component]
 pub fn RollPanel() -> Element {
     let ctx = use_context::<EditorCtx>();
     let state = ctx.variations;
     let mut count = state.count;
+    let mut selected = state.selected;
+    // the field's text while typing, the count follows when it is a number
+    let mut count_text = use_signal(|| count.peek().to_string());
+    use_effect(move || count_text.set(count().to_string()));
+
     // in the order of the params, without ticks the project lost
     let to_roll: Vec<String> = rollable_paths(&ctx.project_params.read().list)
         .into_iter()
-        .filter(|path| state.selected.read().contains(path))
+        .filter(|path| selected.read().contains(path))
         .collect();
     let rolling = (state.rolling)().is_some();
     let progress = match (ctx.running_state)() {
-        RunningState::Rolling { done, total } => format!("{done}/{total}"),
-        _ => String::new(),
-    };
-    let label = match to_roll.is_empty() {
-        true => "Tick the params to roll".to_string(),
-        false => to_roll.join(", "),
+        RunningState::Rolling { done, total } => Some((done, total)),
+        _ => None,
     };
     let paths = to_roll.clone();
-    let roll = move |_| {
+    let roll = Callback::new(move |_: ()| {
+        if paths.is_empty() || state.rolling.peek().is_some() {
+            return;
+        }
         ctx.project_runner.peek().trigger_roll(
             ctx.release,
             paths.clone(),
-            count(),
+            *count.peek(),
             ctx.running_state,
             ctx.console,
             state.rolling,
         );
+    });
+    let hint = match to_roll.len() {
+        0 => String::new(),
+        1 => "1 param".to_string(),
+        n => format!("{n} params"),
     };
 
     rsx! {
         style { {include_str!("./roll_panel.css")} }
         div { class: "roll-panel",
-            span { class: "roll-panel-label", title: "{label}", "{label}" }
-            div { class: "roll-panel-row",
-                div { class: "roll-panel-count",
-                    NumberInput {
-                        value: count() as f32,
-                        integer: true,
-                        affix: "×",
-                        aria_label: "Number of rolls",
-                        oncommit: move |value: f32| count.set((value.max(1.0) as usize).min(MAX_ROLLS)),
+            div { class: "roll-panel-head",
+                Icon { name: IconName::Dice }
+                span { class: "roll-panel-title", "Roll variations" }
+                span { class: "roll-panel-hint", "{hint}" }
+            }
+            if to_roll.is_empty() {
+                span { class: "roll-panel-empty", "Click the params below to roll them." }
+            } else {
+                div { class: "roll-panel-chips",
+                    for path in to_roll.iter().cloned() {
+                        button {
+                            key: "{path}",
+                            r#type: "button",
+                            class: "roll-param-chip",
+                            title: "Don't roll {path}",
+                            onclick: move |_| {
+                                selected.write().remove(&path);
+                            },
+                            "{path}"
+                            span { class: "roll-param-chip-x", "×" }
+                        }
                     }
+                }
+            }
+            div { class: "roll-panel-row",
+                label { class: "roll-count",
+                    input {
+                        class: "input",
+                        inputmode: "numeric",
+                        "aria-label": "Number of rolls",
+                        value: "{count_text}",
+                        oninput: move |event| {
+                            let text = event.value();
+                            if let Ok(value) = text.trim().parse::<usize>() {
+                                count.set(value.clamp(1, MAX_ROLLS));
+                            }
+                            count_text.set(text);
+                        },
+                        onblur: move |_| count_text.set(count().to_string()),
+                        onkeydown: move |event| {
+                            if event.key() == Key::Enter {
+                                count_text.set(count().to_string());
+                                roll.call(());
+                            }
+                        },
+                    }
+                    span { "times" }
                 }
                 if rolling {
                     Button {
@@ -64,17 +107,45 @@ pub fn RollPanel() -> Element {
                         onclick: move |_| ctx.project_runner.peek().stop(),
                         "Stop"
                     }
-                    span { class: "roll-panel-progress", "{progress}" }
                 } else {
                     Button {
                         variant: Variant::Primary,
                         icon: IconName::Dice,
                         disabled: to_roll.is_empty(),
-                        onclick: roll,
+                        onclick: move |_| roll.call(()),
                         "Roll"
                     }
                 }
             }
+            if rolling {
+                div { class: "roll-progress",
+                    ProgressBar { progress: progress.map(|(done, total)| done as f32 / total.max(1) as f32) }
+                    match progress {
+                        Some((done, total)) => rsx! { span { "{done} / {total}" } },
+                        None => rsx! { span { "Compiling…" } },
+                    }
+                }
+            }
         }
+    }
+}
+
+/// A thin bar filled to `progress` (0 to 1), moving back and forth while unknown.
+#[component]
+pub fn ProgressBar(progress: Option<f32>) -> Element {
+    match progress {
+        Some(progress) => {
+            let percent = (progress.clamp(0.0, 1.0) * 100.0).round();
+            rsx! {
+                div { class: "progress-bar", role: "progressbar", "aria-valuenow": "{percent}",
+                    div { style: "width: {percent}%;" }
+                }
+            }
+        }
+        None => rsx! {
+            div { class: "progress-bar indeterminate", role: "progressbar",
+                div {}
+            }
+        },
     }
 }
