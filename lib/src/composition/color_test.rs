@@ -96,4 +96,13 @@ mod test_color {
             assert_close(back.b, color.b, 1e-3);
         }
     }
+
+    #[test]
+    fn hex_rounds_and_round_trips() {
+        assert_eq!(ColorRgb::new(0.999, 0.5, 0.0).hex(), "#ff8000");
+        for byte in 0..=255u8 {
+            let color = ColorRgb::from_hex(&format!("#{byte:02x}0000")).unwrap();
+            assert_eq!(color.hex(), format!("#{byte:02x}0000"));
+        }
+    }
 }

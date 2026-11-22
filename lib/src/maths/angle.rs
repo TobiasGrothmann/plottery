@@ -158,10 +158,10 @@ impl Angle {
         Angle::from_rad(-self.rad)
     }
 
-    /// Returns a new angle orthogonal to this one (to the right). Equivalent to `self + Angle::quarter_rotation()`.
+    /// The angle a quarter turn clockwise from this one, to its right like [`crate::Line::normal_right`].
     #[must_use]
     pub fn normal_right(&self) -> Self {
-        self + Angle::quarter_rotation()
+        self - Angle::quarter_rotation()
     }
 
     /// Interpolates between `self` and `other` with `t` as the interpolation factor.

@@ -310,18 +310,18 @@ pub trait Plottable: Clone + Into<Shape> + BoundingBox {
         let Some(&first) = points_shape.first() else {
             return Masked::default();
         };
-        let mut current_part = Path::new_from([first]);
+        let mut current_part = Path::new();
         let mut is_inside = mask.contains_point(first);
 
         for point in points_shape {
             let new_inside = mask.contains_point(point);
             if is_inside != new_inside {
+                let part = std::mem::replace(&mut current_part, Path::new());
                 if is_inside {
-                    inside.push(current_part);
+                    inside.push(part);
                 } else {
-                    outside.push(current_part);
+                    outside.push(part);
                 }
-                current_part = Path::new_from(vec![point]);
             }
             is_inside = new_inside;
             current_part.push(point);

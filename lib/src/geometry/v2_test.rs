@@ -359,4 +359,16 @@ mod test_v2 {
             v.dist(around).pow(0.1)
         );
     }
+
+    #[test]
+    fn random_unit_disk_is_uniform_over_the_area() {
+        let _rng = crate::maths::seed_for_test(3);
+        let n = 4000;
+        // half the area lies within radius sqrt(0.5)
+        let inner = (0..n)
+            .map(|_| V2::random_unit_disk())
+            .filter(|p| p.length() < 0.5_f32.sqrt())
+            .count();
+        assert!((inner as f32 / n as f32 - 0.5).abs() < 0.05);
+    }
 }

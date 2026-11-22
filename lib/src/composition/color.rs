@@ -37,15 +37,6 @@ impl ColorRgb {
     pub fn oklab(&self) -> ColorOklab {
         (*self).into()
     }
-    /// Returns the hexadecimal representation of this color.
-    /// ```
-    /// # use plottery_lib::*;
-    /// assert_eq!(ColorRgb::red().hex(), "#ff0000");
-    /// assert_eq!(ColorRgb::black().hex(), "#000000");
-    /// assert_eq!(ColorRgb::white().hex(), "#ffffff");
-    /// assert_eq!(ColorRgb::yellow().hex(), "#ffff00");
-    /// assert_eq!(ColorRgb::blue().hex(), "#0000ff");
-    /// ```
     /// Parses `#rrggbb` or `rrggbb`.
     pub fn from_hex(hex: &str) -> Option<Self> {
         let hex = hex.trim().trim_start_matches('#');
@@ -60,12 +51,22 @@ impl ColorRgb {
         ))
     }
 
+    /// Returns the hexadecimal representation of this color, each channel rounded.
+    /// ```
+    /// # use plottery_lib::*;
+    /// assert_eq!(ColorRgb::red().hex(), "#ff0000");
+    /// assert_eq!(ColorRgb::black().hex(), "#000000");
+    /// assert_eq!(ColorRgb::white().hex(), "#ffffff");
+    /// assert_eq!(ColorRgb::yellow().hex(), "#ffff00");
+    /// assert_eq!(ColorRgb::blue().hex(), "#0000ff");
+    /// ```
     pub fn hex(&self) -> String {
+        let channel = |c: f32| (c.clamp(0.0, 1.0) * 255.0).round() as u8;
         format!(
             "#{:02x}{:02x}{:02x}",
-            (self.r.clamp(0.0, 1.0) * 255.0) as u8,
-            (self.g.clamp(0.0, 1.0) * 255.0) as u8,
-            (self.b.clamp(0.0, 1.0) * 255.0) as u8
+            channel(self.r),
+            channel(self.g),
+            channel(self.b)
         )
     }
 

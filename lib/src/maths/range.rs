@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::random::{rand_range, rand_range_i};
+use super::random::{rand_range, rand_range_i_inclusive};
 
 /// An inclusive `min..=max` interval, e.g. for randomized parameters.
 ///
@@ -70,7 +70,7 @@ impl Range<i32> {
     }
     /// Uniform random value in the range, both ends inclusive.
     pub fn sample(&self) -> i32 {
-        rand_range_i(self.min, self.max + 1)
+        rand_range_i_inclusive(self.min, self.max)
     }
 }
 

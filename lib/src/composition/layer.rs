@@ -85,13 +85,15 @@ impl Layer {
     }
     /// Reads a `.plotl` file. see [`Layer::write_file`].
     pub fn new_from_file(path: &PathBuf) -> Result<Layer> {
-        Layer::new_from_binary(&std::fs::read(path)?)
+        std::fs::read(path)
+            .map_err(anyhow::Error::from)
+            .and_then(|bytes| Layer::new_from_binary(&bytes))
             .with_context(|| format!("Failed to read layer '{}'", path.display()))
     }
     /// Writes the `Layer` as a `.plotl` file. see [`Layer::new_from_file`].
     pub fn write_file(&self, path: &PathBuf) -> Result<()> {
-        std::fs::write(path, self.to_binary()?)?;
-        Ok(())
+        std::fs::write(path, self.to_binary()?)
+            .with_context(|| format!("Failed to write layer '{}'", path.display()))
     }
     /// Reads the `.plotl` format written by [`Layer::to_binary`]. There is no migration between its versions.
     pub fn new_from_binary(binary_data: &[u8]) -> Result<Layer> {
@@ -197,9 +199,9 @@ impl Layer {
             .iter()
             .fold(self.shapes.len(), |acc, sublayer| acc + sublayer.len())
     }
-    /// Returns true if the layer has no [`Shape]s and no sublayers.
+    /// True if neither this layer nor any sublayer has a [`Shape`], i.e. `len() == 0`.
     pub fn is_empty(&self) -> bool {
-        self.shapes.is_empty() && self.sublayers.is_empty()
+        self.shapes.is_empty() && self.sublayers.iter().all(Layer::is_empty)
     }
 
     /// Returns a new `Layer` with [`Shape`]s that start/end at another [`Shape`]'s start/end combined into a single [`Path`].
@@ -560,6 +562,7 @@ impl Layer {
                 }
             }
             Shape::Circle(circle) => {
+                // Approximation: the plotter enters a circle at the point nearest the pen (see `points_from`).
                 let start = circle.center + V2::new(circle.radius, 0.0);
                 (start, start)
             }

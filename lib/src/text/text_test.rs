@@ -148,6 +148,26 @@ mod test_text {
     }
 
     #[test]
+    fn fit_inside_then_at_keeps_the_fitted_size() {
+        let rect = Rect::new(V2::zero(), V2::new(3.0, 2.0));
+        let fitted = Text::new("AA AA AA", &font())
+            .fit_inside(rect)
+            .layout()
+            .unwrap();
+        let moved = Text::new("AA AA AA", &font())
+            .fit_inside(rect)
+            .at(V2::new(10.0, 10.0))
+            .layout()
+            .unwrap();
+        assert_eq!(moved.lines.len(), 2);
+        assert_eq!(
+            moved.glyphs[0].glyph.advance,
+            fitted.glyphs[0].glyph.advance
+        );
+        assert!(close(moved.lines[0].origin, V2::new(10.0, 10.0)));
+    }
+
+    #[test]
     fn in_rect_anchors_to_the_aligned_edges() {
         let rect = Rect::new(V2::new(1.0, 1.0), V2::new(5.0, 4.0));
         let layout = Text::new("AA", &font())

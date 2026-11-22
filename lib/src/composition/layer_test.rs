@@ -834,4 +834,18 @@ mod test_layer {
             assert!(err.to_string().contains("another Plottery version"));
         }
     }
+
+    #[test]
+    fn layer_of_empty_sublayers_is_empty() {
+        let layer = Layer::new_from_shapes_and_layers(vec![], vec![Layer::new(), Layer::new()]);
+        assert!(layer.is_empty());
+        assert_eq!(layer.len(), 0);
+    }
+
+    #[test]
+    fn missing_file_error_names_the_path() {
+        let path = std::path::PathBuf::from("/nonexistent/missing.plotl");
+        let err = Layer::new_from_file(&path).unwrap_err();
+        assert!(err.to_string().contains("missing.plotl"));
+    }
 }

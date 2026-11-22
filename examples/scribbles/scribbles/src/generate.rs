@@ -55,7 +55,7 @@ pub fn generate(params: Params) -> Layer {
         let t = params.falloff.apply(depth);
         let turn = Angle::from_rotations(params.turn.sample() * t);
         Rect::new_from_center(cell.center(), cell.size() * params.square_size.fraction())
-            .rotate(turn)
+            .rotate_around(cell.center(), turn)
             .distort(sample_settings, |point| {
                 let direction = Angle::from_rotations(noise.get(point) * 4.0);
                 let distance = noise.get_3d(point, 10.0) * params.strength * t;

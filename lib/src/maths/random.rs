@@ -7,15 +7,21 @@ use rand_distr::{Distribution, Normal, SkewNormal};
 
 use super::global_rng::RNG;
 
-/// uniform random float between `from` and `to`
+/// uniform random float between `from` and `to`; `from` if the range is empty
 pub fn rand_range(from: f32, to: f32) -> f32 {
+    if from >= to {
+        return from;
+    }
     RNG.lock()
         .expect("Failed to acquire RNG lock")
         .random_range(from..to)
 }
 
-/// uniform random integer between `from` and `to`
+/// uniform random integer between `from` and `to`; `from` if the range is empty
 pub fn rand_range_i(from: i32, to: i32) -> i32 {
+    if from >= to {
+        return from;
+    }
     RNG.lock()
         .expect("Failed to acquire RNG lock")
         .random_range(from..to)
@@ -23,8 +29,11 @@ pub fn rand_range_i(from: i32, to: i32) -> i32 {
 
 /// uniform random integer between `from` and `to`, both inclusive
 ///
-/// unlike [`rand_range_i`], which excludes `to`
+/// unlike [`rand_range_i`], which excludes `to`; `from` if `to < from`
 pub fn rand_range_i_inclusive(from: i32, to: i32) -> i32 {
+    if from > to {
+        return from;
+    }
     RNG.lock()
         .expect("Failed to acquire RNG lock")
         .random_range(from..=to)

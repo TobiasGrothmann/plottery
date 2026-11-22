@@ -77,10 +77,10 @@ impl V2 {
     pub fn random_unit_circle() -> Self {
         Self::polar(Angle::rand(), 1.0)
     }
-    /// Returns a random vector inside or on the unit circle.
+    /// Returns a random vector inside or on the unit circle, uniform over its area.
     pub fn random_unit_disk() -> Self {
         let angle = Angle::rand();
-        let radius = rand_range(0.0, 1.0);
+        let radius = rand_range(0.0, 1.0).sqrt();
         Self::polar(angle, radius)
     }
     pub fn random_in_rect(rect: Rect) -> Self {

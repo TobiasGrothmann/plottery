@@ -112,9 +112,13 @@ impl Circle {
         sample_settings: SampleSettings,
     ) -> super::Path {
         thickness = thickness.min(self.radius - pen_width * 0.5);
+        if pen_width <= LENGTH_TOLERANCE || thickness <= LENGTH_TOLERANCE {
+            return Path::new_from(self.points_from_angle(Angle::zero(), sample_settings));
+        }
         let num_rotations = thickness / pen_width;
-        let circumference = 2.0 * PI * self.radius;
-        let resolution = sample_settings.num_points_for_length(circumference);
+        let resolution = sample_settings
+            .num_points_for_length(self.circumference())
+            .max(8);
 
         let outside = (0..resolution + 1).map(|i| {
             let rot = i as f32 / resolution as f32;
@@ -144,17 +148,17 @@ impl Circle {
         outside_and_spiral.into_iter().chain(inside).collect()
     }
 
-    /// Path to draw a circle filled similar to `with_thickness_towards_center`
-    /// It creates a spiraling path from the circle's radius towards the center with a given `thickness`
+    /// A spiral from the circle's outline to its center, filling it like [`Circle::filled_partially_towards_center`].
     pub fn filled_spiral(&self, pen_width: f32, sample_settings: SampleSettings) -> super::Path {
-        if self.radius <= pen_width * 0.5 {
+        if pen_width <= LENGTH_TOLERANCE || self.radius <= pen_width * 0.5 {
             return Path::new_from(self.points_from_angle(Angle::zero(), sample_settings));
         }
 
         let thickness = self.radius - 0.005;
         let num_rotations = thickness / pen_width;
-        let circumference = 2.0 * PI * self.radius;
-        let resolution = sample_settings.num_points_for_length(circumference);
+        let resolution = sample_settings
+            .num_points_for_length(self.circumference())
+            .max(8);
 
         let outside = (0..resolution + 1).map(|i| {
             let rot = i as f32 / resolution as f32;

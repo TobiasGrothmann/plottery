@@ -2,8 +2,8 @@
 mod test_rect {
     use crate::{
         maths::seed_for_test,
-        traits::{ClosestPoint, Scale},
-        Angle, Plottable, Rect, Rotate90, SampleSettings, LENGTH_TOLERANCE, V2,
+        traits::{ClosestPoint, Rotate, Scale},
+        Angle, Plottable, Rect, Rotate90, SampleSettings, Shape, LENGTH_TOLERANCE, V2,
     };
 
     #[test]
@@ -133,9 +133,19 @@ mod test_rect {
             Rect::new(V2::xy(0.5), V2::xy(1.5))
         );
         assert!(r.contains_point(r.random_point()));
+    }
 
-        let rotated = r.rotate(Angle::half_rotation());
-        assert!(rotated[0].dist(r.tr()) < LENGTH_TOLERANCE);
+    #[test]
+    fn rotate_turns_around_the_origin_like_shape() {
+        let r = Rect::new(V2::new(1.0, 2.0), V2::new(4.0, 4.0));
+        let angle = Angle::half_rotation();
+        let rotated = r.rotate(angle);
+        assert!(rotated[0].dist(V2::new(-1.0, -2.0)) < LENGTH_TOLERANCE);
         assert_eq!(rotated.len(), 5);
+        let shape_rotated = Shape::Rect(r).rotate(angle);
+        assert_eq!(
+            shape_rotated.points(SampleSettings::default()),
+            rotated.points(SampleSettings::default())
+        );
     }
 }

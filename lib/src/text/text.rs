@@ -46,7 +46,7 @@ enum Anchor {
 #[derive(Clone, Copy, Debug)]
 enum Fit {
     Width(f32),
-    Rect,
+    Rect(Rect),
 }
 
 /// A word, word part or character shaped at em size 1, followed by `spaces` space characters.
@@ -118,7 +118,7 @@ impl Text {
     /// [`Text::in_rect`] with the largest em size whose wrapped block fits the rect by its font metrics.
     pub fn fit_inside(mut self, rect: Rect) -> Self {
         self.anchor = Anchor::Rect(rect);
-        self.fit = Some(Fit::Rect);
+        self.fit = Some(Fit::Rect(rect));
         self
     }
 
@@ -207,7 +207,8 @@ impl Text {
         };
         let max_width = match self.fit {
             Some(Fit::Width(_)) => None,
-            _ => self.max_width.or(rect.map(|rect| rect.width())),
+            Some(Fit::Rect(fit_rect)) => self.max_width.or(Some(fit_rect.width())),
+            None => self.max_width.or(rect.map(|rect| rect.width())),
         };
         let break_paragraph = |tokens: &[(f32, f32)]| -> Vec<Range<usize>> {
             match (self.wrap, max_width) {
@@ -239,8 +240,7 @@ impl Text {
                 })
                 .min_by(f32::total_cmp)
                 .unwrap_or(self.size),
-            Some(Fit::Rect) => {
-                let rect = rect.expect("fit_inside sets a rect anchor");
+            Some(Fit::Rect(rect)) => {
                 let fits = |size: f32| {
                     let (lines, widest) = paragraphs.iter().fold((0, 0.0_f32), |acc, tokens| {
                         let measured = measure(tokens, size);

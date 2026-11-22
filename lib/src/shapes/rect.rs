@@ -98,10 +98,10 @@ impl Rect {
         V2::random_in_rect(*self)
     }
 
-    /// The outline rotated around the rect's center; a rotated rect is a [`Path`].
+    /// The outline rotated around the origin; a rotated rect is a [`Path`].
     #[must_use]
     pub fn rotate(&self, angle: Angle) -> Path {
-        self.rotate_around(self.center(), angle)
+        self.rotate_around(V2::zero(), angle)
     }
     /// The outline rotated around `pivot`; a rotated rect is a [`Path`].
     #[must_use]

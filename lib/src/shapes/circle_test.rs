@@ -189,4 +189,20 @@ mod test_circle {
         assert!(sector.contains_point(V2::new(1.5, 1.5)));
         assert!(!sector.contains_point(V2::new(0.5, 0.5)));
     }
+
+    #[test]
+    fn fills_with_zero_pen_width_or_radius_are_the_outline() {
+        let ss = SampleSettings::default();
+        let c = Circle::new(V2::xy(1.0), 2.0);
+        let dot = Circle::new(V2::xy(1.0), 0.0);
+        for path in [
+            c.filled_spiral(0.0, ss),
+            c.filled_partially_towards_center(1.0, 0.0, ss),
+            dot.filled_spiral(0.1, ss),
+            dot.filled_partially_towards_center(1.0, 0.1, ss),
+        ] {
+            assert!(path.len() <= c.to_path(ss).len());
+            assert!(path.iter().all(|p| p.x.is_finite() && p.y.is_finite()));
+        }
+    }
 }

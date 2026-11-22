@@ -1,4 +1,4 @@
-use anyhow::{Ok, Result};
+use anyhow::{Context, Ok, Result};
 use std::{fmt::Write, path::PathBuf};
 use svg::{
     node::{element::tag::Type as SvgTagType, Attributes},
@@ -193,8 +193,8 @@ impl Layer {
     }
     /// Save a converted version of this layer to an .svg file. see [`Layer::to_svg`].
     pub fn write_svg(&self, path: PathBuf) -> Result<()> {
-        std::fs::write(path, self.to_svg())?;
-        Ok(())
+        std::fs::write(&path, self.to_svg())
+            .with_context(|| format!("Failed to write SVG '{}'", path.display()))
     }
 
     /// Creates a new `Layer` from an .svg file.

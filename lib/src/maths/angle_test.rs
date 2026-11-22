@@ -226,4 +226,11 @@ mod test_angle {
         assert_eq!(Angle::left_cw().positive(), Angle::left_cc());
         assert_eq!(Angle::down_cw().positive(), Angle::down_cc());
     }
+
+    #[test]
+    fn normal_right_matches_line_normal_right() {
+        let line = crate::Line::new(crate::V2::zero(), crate::V2::new(1.0, 2.0));
+        let normal = line.vector().angle().normal_right();
+        assert_eq!(crate::V2::polar(normal, 1.0), line.normal_right());
+    }
 }

@@ -165,4 +165,16 @@ mod test_shape {
             }
         }
     }
+
+    #[test]
+    fn mask_brute_force_pieces_have_no_duplicate_points() {
+        let line = Path::new_from([V2::new(0.0, 0.5), V2::new(3.0, 0.5)]);
+        let mask = Rect::new(V2::new(1.0, 0.0), V2::new(2.0, 1.0));
+        let masked = line.mask_brute_force(mask, SampleSettings::new(4.0));
+        assert_eq!(masked.inside.len(), 1);
+        assert_eq!(masked.outside.len(), 2);
+        for path in masked.inside.paths().chain(masked.outside.paths()) {
+            assert!(path.iter().tuple_windows().all(|(a, b)| a != b));
+        }
+    }
 }
