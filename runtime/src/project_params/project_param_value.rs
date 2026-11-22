@@ -1,7 +1,8 @@
 use anyhow::Result;
-use plottery_lib::{ColorRgb, Easing, FontStyle, NoiseSettings, Paper, Rect, SystemFont, V2i, V2};
+use plottery_lib::{ColorRgb, Easing, NoiseSettings, Paper, Rect, SystemFont, V2i, V2};
 
 use super::angle_unit::AngleUnit;
+use super::param_field::param_type_mismatch;
 use super::project_param::ProjectParam;
 use super::project_param_file::ProjectParamFile;
 use super::seed::ProjectParamSeed;
@@ -110,38 +111,24 @@ impl ProjectParamValue {
 
     pub fn get_f32(&self) -> Result<f32> {
         match self {
-            ProjectParamValue::Float(val) => Ok(*val),
-            ProjectParamValue::FloatRanged {
-                val,
-                min: _,
-                max: _,
-            } => Ok(*val),
-            _ => Err(anyhow::anyhow!(
-                "Failed to get_f32 - Expected value to be of type 'float' but found {}",
-                self.type_name()
-            )),
+            ProjectParamValue::Float(val) | ProjectParamValue::FloatRanged { val, .. } => Ok(*val),
+            other => Err(param_type_mismatch("f32", other)),
         }
     }
+
     pub fn get_i32(&self) -> Result<i32> {
         match self {
-            ProjectParamValue::Int(val) => Ok(*val),
-            ProjectParamValue::IntRanged {
-                val,
-                min: _,
-                max: _,
-            } => Ok(*val),
-            _ => Err(anyhow::anyhow!(
-                "Failed to get_i32 - Expected value to be of type 'int' but found {}",
-                self.type_name()
-            )),
+            ProjectParamValue::Int(val) | ProjectParamValue::IntRanged { val, .. } => Ok(*val),
+            other => Err(param_type_mismatch("i32", other)),
         }
     }
+
     pub fn type_name(&self) -> String {
         match self {
             ProjectParamValue::Float(_) => "f32".to_string(),
-            ProjectParamValue::FloatRanged { .. } => "f32 (ranged)".to_string(),
+            ProjectParamValue::FloatRanged { .. } => "f32".to_string(),
             ProjectParamValue::Int(_) => "i32".to_string(),
-            ProjectParamValue::IntRanged { .. } => "i32 (ranged)".to_string(),
+            ProjectParamValue::IntRanged { .. } => "i32".to_string(),
             ProjectParamValue::Bool(_) => "bool".to_string(),
             ProjectParamValue::Curve2DNorm(_) => "curve2d_norm".to_string(),
             ProjectParamValue::Curve2D(_) => "curve2d".to_string(),
@@ -171,74 +158,6 @@ impl ProjectParamValue {
             ProjectParamValue::DataEnum(_) => "enum".to_string(),
             ProjectParamValue::Percent { .. } => "percent".to_string(),
             ProjectParamValue::Rect(_) => "rect".to_string(),
-        }
-    }
-
-    pub fn value_as_string(&self) -> String {
-        match self {
-            ProjectParamValue::Float(val) => val.to_string(),
-            ProjectParamValue::FloatRanged { val, .. } => val.to_string(),
-            ProjectParamValue::Int(val) => val.to_string(),
-            ProjectParamValue::IntRanged { val, .. } => val.to_string(),
-            ProjectParamValue::Bool(val) => val.to_string(),
-            ProjectParamValue::Curve2DNorm(graph) => format!("{} points", graph.len()),
-            ProjectParamValue::Curve2D(curve) => format!("{} points", curve.len()),
-            ProjectParamValue::Struct(param_struct) => {
-                format!("{} fields", param_struct.fields.len())
-            }
-            ProjectParamValue::Optional(optional) => {
-                if optional.enabled {
-                    format!("Some({})", optional.value.value_as_string())
-                } else {
-                    "None".to_string()
-                }
-            }
-            ProjectParamValue::Vec(vec_value) => {
-                format!("{} items", vec_value.items.len())
-            }
-            ProjectParamValue::Enum(param_enum) => param_enum.selected.clone(),
-            ProjectParamValue::String(val) => val.clone(),
-            ProjectParamValue::Paper(paper) => paper.to_string(),
-            ProjectParamValue::RangeF32 { min, max, .. } => format!("{min} – {max}"),
-            ProjectParamValue::RangeI32 { min, max, .. } => format!("{min} – {max}"),
-            ProjectParamValue::Angle { rad, unit } => format!(
-                "{} {}",
-                unit.from_angle(plottery_lib::Angle::from_rad(*rad)),
-                unit.short_name()
-            ),
-            ProjectParamValue::V2(v) => format!("({}, {})", v.x, v.y),
-            ProjectParamValue::Seed(seed) => seed.current.to_string(),
-            ProjectParamValue::Image(file) | ProjectParamValue::Svg(file) => {
-                file.file_name().unwrap_or_else(|| "none".to_string())
-            }
-            ProjectParamValue::Noise(noise) => format!(
-                "{:?} f={} o={} {:?}",
-                noise.noise_type, noise.frequency, noise.octaves, noise.scale
-            ),
-            ProjectParamValue::Easing(easing) => {
-                format!("{:?} {:.2}", easing.kind, easing.amount).to_lowercase()
-            }
-            ProjectParamValue::Color(color) => color.hex(),
-            ProjectParamValue::V2i(v) => format!("({}, {})", v.x, v.y),
-            ProjectParamValue::Font(name) => name.clone(),
-            ProjectParamValue::SystemFont(font) => {
-                let weight = (font.style.weight != FontStyle::default().weight)
-                    .then(|| format!(":{}", font.style.weight));
-                let italic = font.style.italic.then(|| ":italic".to_string());
-                [Some(font.family.clone()), weight, italic]
-                    .into_iter()
-                    .flatten()
-                    .collect()
-            }
-            ProjectParamValue::DataEnum(data_enum) => data_enum.selected.clone(),
-            ProjectParamValue::Percent { val, .. } => format!("{val}%"),
-            ProjectParamValue::Rect(rect) => format!(
-                "({}, {}) – ({}, {})",
-                rect.bl().x,
-                rect.bl().y,
-                rect.tr().x,
-                rect.tr().y
-            ),
         }
     }
 }

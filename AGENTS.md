@@ -81,13 +81,13 @@ Building, local checkouts in projects, examples, tests, pre-release checks and r
 
 - **Adding shapes:** A plottable shape implements `Plottable`, which needs a variant in the `Shape` enum in `lib/src/shapes/shape.rs`. Implement only the transform traits that make sense, e.g. `Rect` has no `Rotate` and `Circle` no `Scale2D`. Shapes that are not plotted directly, like `Spline`, convert to a `Path` instead.
 - **Adding param types:** every place a new `ProjectParamValue` variant is handled:
-  - `runtime/src/project_params/project_param_value.rs`: the variant, appended at the end (variant order is the `.plotp` type tag, see `ParamRecord` in `params_file_format.rs`), `same_schema`, `type_name`, `value_as_string`
+  - `runtime/src/project_params/project_param_value.rs`: the variant, appended at the end (variant order is the `.plotp` type tag, see `ParamRecord` in `params_file_format.rs`), `same_schema`, `type_name`
   - `runtime/src/project_params/param_field.rs`: `impl ParamField`, `impl RangedParamField` if it takes `#[range]`
   - `runtime/src/project_params/param_text.rs`: `to_text`, `set_from_text`
   - `runtime/src/project_params/project_params_list_wrapper.rs`: `combine_values`
   - `runtime/src/project_params/mod.rs`: the module and re-export of a new value type
   - `runtime/src/protocol.rs`: `PROTOCOL_VERSION`
-  - `cli/src/params.rs`: `type_label`, `constraint`, `same_value`
+  - `cli/src/params.rs`: `constraint`, `same_value`
   - `editor/src/router/editor/params_editor/params_editor.rs`: `render_leaf_param`, with the widget as a new `*_field.rs` registered in `mod.rs`
   - `runtime/README.md`: the widget table
   - `project/resources/AGENTS.md`: "Parameters"

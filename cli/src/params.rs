@@ -142,7 +142,7 @@ fn format_row(row: &Row) -> String {
     let mut line = format!(
         "{}: {} = {}",
         row.path,
-        type_label(row.value),
+        row.value.type_name(),
         row.value.to_text()
     );
     let mut notes: Vec<String> = constraint(row.value).into_iter().collect();
@@ -159,16 +159,6 @@ fn format_row(row: &Row) -> String {
         );
     }
     line
-}
-
-fn type_label(value: &Value) -> String {
-    match value {
-        Value::Float(_) | Value::FloatRanged { .. } => "f32".to_string(),
-        Value::Int(_) | Value::IntRanged { .. } => "i32".to_string(),
-        Value::Optional(optional) => format!("option<{}>", type_label(&optional.value)),
-        Value::Vec(param_vec) => format!("vec<{}>", type_label(&param_vec.item_prototype)),
-        _ => value.type_name(),
-    }
 }
 
 /// Allowed values: enum variants, a range or the text form.

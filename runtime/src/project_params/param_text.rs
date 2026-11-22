@@ -3,7 +3,9 @@
 use std::str::FromStr;
 
 use anyhow::{anyhow, bail, Result};
-use plottery_lib::{BundledFont, ColorRgb, Margin, Paper, PaperSize, Rect, SystemFont, V2i, V2};
+use plottery_lib::{
+    BundledFont, ColorRgb, FontStyle, Margin, Paper, PaperSize, Rect, SystemFont, V2i, V2,
+};
 
 use super::angle_unit::AngleUnit;
 use super::project_param::ProjectParam;
@@ -13,7 +15,7 @@ use super::project_params_list_wrapper::ProjectParamsListWrapper;
 
 impl ProjectParamValue {
     /// The value in the syntax [`ProjectParamValue::set_from_text`] reads. Values that can't be
-    /// set from text fall back to [`ProjectParamValue::value_as_string`].
+    /// set from text give a summary.
     pub fn to_text(&self) -> String {
         match self {
             Self::Float(val) | Self::FloatRanged { val, .. } => val.to_string(),
@@ -22,7 +24,15 @@ impl ProjectParamValue {
             Self::Enum(param_enum) => param_enum.selected.clone(),
             Self::DataEnum(data_enum) => data_enum.selected.clone(),
             Self::String(val) | Self::Font(val) => val.clone(),
-            Self::SystemFont(_) => self.value_as_string(),
+            Self::SystemFont(font) => {
+                let weight = (font.style.weight != FontStyle::default().weight)
+                    .then(|| format!(":{}", font.style.weight));
+                let italic = font.style.italic.then(|| ":italic".to_string());
+                [Some(font.family.clone()), weight, italic]
+                    .into_iter()
+                    .flatten()
+                    .collect()
+            }
             Self::Angle { rad, unit } => format!(
                 "{}{}",
                 short_float(unit.from_angle(plottery_lib::Angle::from_rad(*rad))),
@@ -48,12 +58,17 @@ impl ProjectParamValue {
                 (true, Self::Struct(_)) => "on".to_string(),
                 (true, inner) => inner.to_text(),
             },
-            Self::Struct(_)
-            | Self::Vec(_)
-            | Self::Noise(_)
-            | Self::Easing(_)
-            | Self::Curve2D(_)
-            | Self::Curve2DNorm(_) => self.value_as_string(),
+            Self::Struct(param_struct) => format!("{} fields", param_struct.fields.len()),
+            Self::Vec(param_vec) => format!("{} items", param_vec.items.len()),
+            Self::Noise(noise) => format!(
+                "{:?} f={} o={} {:?}",
+                noise.noise_type, noise.frequency, noise.octaves, noise.scale
+            ),
+            Self::Easing(easing) => {
+                format!("{:?} {:.2}", easing.kind, easing.amount).to_lowercase()
+            }
+            Self::Curve2D(curve) => format!("{} points", curve.len()),
+            Self::Curve2DNorm(curve) => format!("{} points", curve.len()),
         }
     }
 

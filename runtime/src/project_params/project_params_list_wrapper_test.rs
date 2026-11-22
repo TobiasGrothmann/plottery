@@ -557,7 +557,7 @@ mod tests {
 
         let combined = ProjectParamsListWrapper::new_combined(&old, &new);
         let merged = &combined.list[0];
-        assert_eq!(merged.value.value_as_string(), "Spiral");
+        assert_eq!(merged.value.to_text(), "Spiral");
         // the unselected variant keeps its value too, clamped, and gets the new field
         assert_eq!(
             variant_values(merged, "Grid"),
@@ -590,7 +590,7 @@ mod tests {
 
         let combined = ProjectParamsListWrapper::new_combined(&old, &new);
         let merged = &combined.list[0];
-        assert_eq!(merged.value.value_as_string(), "Spiral");
+        assert_eq!(merged.value.to_text(), "Spiral");
         assert_eq!(
             variant_values(merged, "Spiral"),
             vec![ProjectParamValue::Float(9.0)]
@@ -617,7 +617,7 @@ mod tests {
         };
 
         let gained = ProjectParamsListWrapper::new_combined(&unit, &with_fields("Grid"));
-        assert_eq!(gained.list[0].value.value_as_string(), "Spiral");
+        assert_eq!(gained.list[0].value.to_text(), "Spiral");
         assert_eq!(
             variant_values(&gained.list[0], "Spiral"),
             vec![ProjectParamValue::Float(3.0)]
