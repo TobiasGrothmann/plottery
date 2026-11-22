@@ -1,12 +1,8 @@
 use anyhow::{Ok, Result};
-use std::path::PathBuf;
+use std::{fmt::Write, path::PathBuf};
 use svg::{
-    node::{
-        element::{path::Data, tag::Type as SvgTagType, Group, Style},
-        Attributes,
-    },
+    node::{element::tag::Type as SvgTagType, Attributes},
     parser::Event,
-    Document, Node,
 };
 
 use crate::{
@@ -22,118 +18,182 @@ use super::{
 };
 
 /// SVG exports use millimeters as user units.
-const SVG_UNITS_PER_CM: f32 = 10.0;
+const SVG_UNITS_PER_CM: f64 = 10.0;
+
+fn mm(cm: f32) -> f64 {
+    cm as f64 * SVG_UNITS_PER_CM
+}
+
+/// Appends `mm` rounded to a thousandth of a millimeter, without trailing zeros.
+pub(super) fn push_mm(out: &mut String, mm: f64) {
+    let thousandths = (mm * 1000.0).round() as i64;
+    let (whole, fraction) = (thousandths.abs() / 1000, thousandths.abs() % 1000);
+    if thousandths < 0 {
+        out.push('-');
+    }
+    let _ = write!(out, "{whole}");
+    if fraction != 0 {
+        let _ = write!(out, ".{fraction:03}");
+        out.truncate(out.trim_end_matches('0').len());
+    }
+}
+
+/// Appends ` name="value"` with `value` in mm.
+fn push_mm_attr(out: &mut String, name: &str, mm: f64) {
+    let _ = write!(out, " {name}=\"");
+    push_mm(out, mm);
+    out.push('"');
+}
+
+/// Appends `text` with the characters escaped that end an attribute value or start markup.
+fn push_escaped(out: &mut String, text: &str) {
+    for c in text.chars() {
+        match c {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            '"' => out.push_str("&quot;"),
+            c => out.push(c),
+        }
+    }
+}
+
+/// Writes shapes in SVG coordinates: mm, the y-axis flipped inside a view of `view_height` cm.
+struct SvgWriter {
+    out: String,
+    view_height: f32,
+}
+
+impl SvgWriter {
+    fn y(&self, y: f32) -> f64 {
+        (self.view_height as f64 - y as f64) * SVG_UNITS_PER_CM
+    }
+    fn push_point(&mut self, point: &V2) {
+        let y = self.y(point.y);
+        push_mm(&mut self.out, mm(point.x));
+        self.out.push(',');
+        push_mm(&mut self.out, y);
+    }
+
+    /// Stroke color and width are written on the group, and only where they differ from `parent`.
+    fn push_layer(&mut self, layer: &Layer, parent: Option<&LayerPropsInheritable>) {
+        let inherited = parent.cloned().unwrap_or_default();
+        let props = inherited.overwrite_with(&layer.props_inheritable);
+        let (color, pen_width) = (props.color.unwrap(), props.pen_width.unwrap());
+
+        self.out.push_str("<g");
+        if let Some(name) = &layer.props.name {
+            self.out.push_str(" id=\"");
+            push_escaped(&mut self.out, name);
+            self.out.push('"');
+        }
+        if parent.is_none() || color != inherited.color.unwrap() {
+            let _ = write!(self.out, " stroke=\"{}\"", color.hex());
+        }
+        if parent.is_none() || pen_width != inherited.pen_width.unwrap() {
+            push_mm_attr(&mut self.out, "stroke-width", mm(pen_width));
+        }
+        self.out.push_str(">\n");
+
+        for shape in &layer.shapes {
+            self.push_shape(shape);
+        }
+        for sublayer in &layer.sublayers {
+            self.push_layer(sublayer, Some(&props));
+        }
+        self.out.push_str("</g>\n");
+    }
+
+    fn push_shape(&mut self, shape: &Shape) {
+        match shape {
+            Shape::Circle(c) => {
+                let cy = self.y(c.center.y);
+                self.out.push_str("<circle");
+                push_mm_attr(&mut self.out, "cx", mm(c.center.x));
+                push_mm_attr(&mut self.out, "cy", cy);
+                push_mm_attr(&mut self.out, "r", mm(c.radius));
+                self.out.push_str("/>\n");
+            }
+            Shape::Rect(r) => {
+                // The top left corner, as the y-axis points down.
+                let y = self.y(r.tr().y);
+                self.out.push_str("<rect");
+                push_mm_attr(&mut self.out, "x", mm(r.bl().x));
+                push_mm_attr(&mut self.out, "y", y);
+                push_mm_attr(&mut self.out, "width", mm(r.width()));
+                push_mm_attr(&mut self.out, "height", mm(r.height()));
+                self.out.push_str("/>\n");
+            }
+            Shape::Path(p) => {
+                let points = p.as_slice();
+                let [first, rest @ ..] = points else {
+                    return;
+                };
+                if rest.is_empty() {
+                    return;
+                }
+                self.out.push_str("<path d=\"M");
+                self.push_point(first);
+                // One `L`, the points after it are lines too.
+                self.out.push_str(" L");
+                for (i, point) in rest.iter().enumerate() {
+                    if i > 0 {
+                        self.out.push(' ');
+                    }
+                    self.push_point(point);
+                }
+                if points.first() == points.last() {
+                    self.out.push_str(" z");
+                }
+                self.out.push_str("\"/>\n");
+            }
+        }
+    }
+}
 
 impl Layer {
-    /// Return the layer as a real-size [`svg::Document`] in mm, y-axis flipped, sublayers as `<g>`, strokes multiplied like ink.
-    pub fn to_svg(&self) -> Document {
+    /// Return the layer as a real-size SVG document in mm, y-axis flipped, sublayers as `<g>`, strokes multiplied like ink.
+    pub fn to_svg(&self) -> String {
         // The view box follows the content so shapes below or left of the origin stay visible.
         match self.bounding_box() {
             Some(bounding_box) => self.to_svg_in(bounding_box),
-            None => Document::new(),
+            None => "<svg xmlns=\"http://www.w3.org/2000/svg\"/>\n".to_string(),
         }
     }
     /// Like [`Layer::to_svg`], but the document shows exactly `view` instead of the layer's
     /// bounding box. Layers of different extent then line up, e.g. as frames of an animation.
-    pub fn to_svg_in(&self, view: Rect) -> Document {
-        let height = view.size().only_y();
-        let prepared = self.map_recursive_par(|shape| shape.mirror_y().translate(height));
+    pub fn to_svg_in(&self, view: Rect) -> String {
+        let mut writer = SvgWriter {
+            out: String::new(),
+            view_height: view.height(),
+        };
+        // The view's top left corner, where the flipped y-axis starts.
+        let (x, y) = (mm(view.bl().x), writer.y(view.tr().y));
+        let (width, height) = (mm(view.width()), mm(view.height()));
 
-        let flipped_bl = V2::new(view.bl().x, height.y - view.tr().y);
-        let origin: V2 = flipped_bl * SVG_UNITS_PER_CM;
-        let size: V2 = view.size() * SVG_UNITS_PER_CM;
-
-        Document::new()
-            .set("viewBox", (origin.x, origin.y, size.x, size.y))
-            .set("width", format!("{}mm", size.x))
-            .set("height", format!("{}mm", size.y))
-            // Round like a real pen tip; the default miter join spikes at sharp corners.
-            .set("stroke-linejoin", "round")
-            .set("stroke-linecap", "round")
-            .add(Style::new("path,circle,rect{mix-blend-mode:multiply}"))
-            .add(prepared.svg_group(&LayerPropsInheritable::default()))
-    }
-    fn svg_group(&self, parent_props: &LayerPropsInheritable) -> Group {
-        let props_inheritable = parent_props.overwrite_with(&self.props_inheritable);
-
-        let mut group = Group::new();
-        if let Some(name) = &self.props.name {
-            group = group.set("id", name.as_str());
-        }
-
-        for shape_svg in self.shapes_as_svg_nodes(&props_inheritable) {
-            group = group.add(shape_svg);
-        }
-        for sublayer_svg in self
-            .sublayers
-            .iter()
-            .map(|sublayer| sublayer.svg_group(&props_inheritable))
-        {
-            group = group.add(sublayer_svg);
-        }
-        group
-    }
-    fn shapes_as_svg_nodes(&self, props: &LayerPropsInheritable) -> Vec<Box<dyn Node>> {
-        let fill = "none";
-        let stroke = props.color.unwrap().hex();
-        let stroke_width = props.pen_width.unwrap() * SVG_UNITS_PER_CM;
-
-        let mut nodes: Vec<Box<dyn Node>> = Vec::with_capacity(self.shapes.len());
-        for shape in &self.shapes {
-            match shape {
-                Shape::Circle(c) => nodes.push(Box::new(
-                    svg::node::element::Circle::new()
-                        .set("cx", c.center.x * SVG_UNITS_PER_CM)
-                        .set("cy", c.center.y * SVG_UNITS_PER_CM)
-                        .set("r", c.radius * SVG_UNITS_PER_CM)
-                        .set("fill", fill)
-                        .set("stroke", stroke.clone())
-                        .set("stroke-width", stroke_width),
-                )),
-                Shape::Rect(r) => {
-                    let bl = r.bl();
-                    let size = r.size();
-                    nodes.push(Box::new(
-                        svg::node::element::Rectangle::new()
-                            .set("x", bl.x * SVG_UNITS_PER_CM)
-                            .set("y", bl.y * SVG_UNITS_PER_CM)
-                            .set("width", size.x * SVG_UNITS_PER_CM)
-                            .set("height", size.y * SVG_UNITS_PER_CM)
-                            .set("fill", fill)
-                            .set("stroke", stroke.clone())
-                            .set("stroke-width", stroke_width),
-                    ));
-                }
-                Shape::Path(p) => {
-                    let points = p.as_slice();
-                    if points.len() <= 1 {
-                        continue;
-                    }
-                    let mut data = Data::new();
-                    data = data.move_to((points[0] * SVG_UNITS_PER_CM).as_tuple());
-                    data = points.iter().skip(1).fold(data, |data, point| {
-                        data.line_to((point * SVG_UNITS_PER_CM).as_tuple())
-                    });
-
-                    if points.first().unwrap() == points.last().unwrap() {
-                        data = data.close();
-                    }
-                    nodes.push(Box::new(
-                        svg::node::element::Path::new()
-                            .set("d", data)
-                            .set("fill", fill)
-                            .set("stroke", stroke.clone())
-                            .set("stroke-width", stroke_width),
-                    ));
-                }
+        let out = &mut writer.out;
+        out.push_str("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"");
+        for (i, value) in [x, y, width, height].into_iter().enumerate() {
+            if i > 0 {
+                out.push(' ');
             }
+            push_mm(out, value);
         }
-        nodes
+        out.push_str("\" width=\"");
+        push_mm(out, width);
+        out.push_str("mm\" height=\"");
+        push_mm(out, height);
+        // Round like a real pen tip; the default miter join spikes at sharp corners.
+        out.push_str("mm\" fill=\"none\" stroke-linejoin=\"round\" stroke-linecap=\"round\">\n");
+        out.push_str("<style>path,circle,rect{mix-blend-mode:multiply}</style>\n");
+
+        writer.push_layer(self, None);
+        writer.out.push_str("</svg>\n");
+        writer.out
     }
     /// Save a converted version of this layer to an .svg file. see [`Layer::to_svg`].
     pub fn write_svg(&self, path: PathBuf) -> Result<()> {
-        let document = self.to_svg();
-        svg::save(path.to_str().unwrap(), &document)?;
+        std::fs::write(path, self.to_svg())?;
         Ok(())
     }
 

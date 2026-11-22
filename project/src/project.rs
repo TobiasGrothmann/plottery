@@ -75,7 +75,7 @@ pub struct Raster {
 /// Rasterizes `layer` on white, its longest side `max_size` pixels. Shows exactly `view` instead
 /// of the layer's bounding box, so that layers of different extent give images that line up.
 pub fn rasterize(layer: &Layer, view: Rect, max_size: u32) -> Result<Raster> {
-    let svg_data = layer.to_svg_in(view).to_string();
+    let svg_data = layer.to_svg_in(view);
     let pixmap = render_svg(
         svg_data.as_bytes(),
         Some(max_size),
@@ -427,7 +427,7 @@ impl Project {
 
     /// Writes a PNG on white, its longest side `max_size` pixels.
     pub fn write_png(&self, path: PathBuf, layer: &Layer, max_size: u32) -> Result<()> {
-        let svg_data = layer.to_svg().to_string();
+        let svg_data = layer.to_svg();
         render_svg_to_png(
             svg_data.as_bytes(),
             &path,
@@ -491,7 +491,7 @@ impl Project {
     ) -> Result<()> {
         self.save_editor_params(params)?;
         self.save_editor_layer(layer)?;
-        self.save_editor_preview(&layer.to_svg().to_string())
+        self.save_editor_preview(&layer.to_svg())
     }
 
     /// The cached preview SVG, unless it is missing or older than the layer.
@@ -525,6 +525,6 @@ impl Project {
     /// Renders the preview and the thumbnail again from the layer on disk.
     pub fn update_editor_thumbnail(&self) -> Result<()> {
         let layer = Layer::new_from_file(&self.get_editor_layer_path())?;
-        self.save_editor_preview(&layer.to_svg().to_string())
+        self.save_editor_preview(&layer.to_svg())
     }
 }

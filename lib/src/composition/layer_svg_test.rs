@@ -4,7 +4,36 @@ mod test_layer_svg {
 
     use svg::parser::Event;
 
-    use crate::{Circle, Layer, Path, Rect, Shape, V2};
+    use crate::{composition::layer_svg::push_mm, Circle, Layer, Path, Rect, Shape, V2};
+
+    #[test]
+    fn coordinates_round_to_a_thousandth_without_trailing_zeros() {
+        let written = |mm: f64| {
+            let mut out = String::new();
+            push_mm(&mut out, mm);
+            out
+        };
+        assert_eq!(written(12.3456), "12.346");
+        assert_eq!(written(2.5), "2.5");
+        assert_eq!(written(100.07), "100.07");
+        // zeros of the whole part stay
+        assert_eq!(written(10.0), "10");
+        // rounding carries into the whole part
+        assert_eq!(written(0.9996), "1");
+        assert_eq!(written(-0.0501), "-0.05");
+        // no negative zero
+        assert_eq!(written(-0.0004), "0");
+    }
+
+    #[test]
+    fn layer_name_is_escaped() {
+        let mut l = Layer::new().with_name("a \"b\" & <c>");
+        l.push(Path::new_from(vec![V2::new(0.0, 0.0), V2::new(1.0, 1.0)]));
+
+        assert!(l
+            .to_svg()
+            .contains("<g id=\"a &quot;b&quot; &amp; &lt;c&gt;\""));
+    }
 
     #[test]
     fn svg() {
