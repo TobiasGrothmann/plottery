@@ -15,6 +15,10 @@
   stroke: var(--line);
   stroke-width: 1;
 }
+.angle_dial_range {
+  fill: var(--fg-0);
+  opacity: 0.08;
+}
 .angle_dial_zero {
   stroke: #25252b;
   stroke-width: 1;

@@ -20,6 +20,7 @@ pub fn AngleField(props: LeafProps) -> Element {
         } => (rad, unit, Some((min, max))),
         _ => return rsx! { p { "unexpected value type" } },
     };
+    // a typed number is clamped as it is, the dial fits its angles into the range itself
     let clamp = move |value: f32| bounds.map_or(value, |(min, max)| value.clamp(min, max));
     // angle while the dial is dragged, so the number follows before the commit
     let mut live_rad = use_signal(|| None::<f32>);
@@ -31,10 +32,11 @@ pub fn AngleField(props: LeafProps) -> Element {
             div { class: "reset-target", ondoubleclick: move |_| leaf.reset(),
                 AngleDial {
                     rad,
-                    oninput: move |value: f32| live_rad.set(Some(clamp(value))),
+                    range: bounds,
+                    oninput: move |value: f32| live_rad.set(Some(value)),
                     oncommit: move |value: f32| {
                         live_rad.set(None);
-                        leaf.edit(|param| set_rad(param, clamp(value)));
+                        leaf.edit(|param| set_rad(param, value));
                     },
                 }
             }
