@@ -25,8 +25,7 @@ use crate::router::editor::{
         number_field::NumberField,
         paper_field::PaperField,
         param_tree::{
-            get_default_leaf_value, get_param_mut_by_path, get_param_value_mut_by_path,
-            leaf_value_mut, no_pick_at,
+            get_default_leaf_value, get_param_value_mut_by_path, leaf_value_mut, no_pick_at,
         },
         percent_field::PercentField,
         range_field::RangeField,
@@ -89,16 +88,16 @@ pub fn edit_leaf_at(path: &[String], edit: impl FnOnce(&mut ProjectParamValue), 
 
 fn set_optional_enabled(path: &[String], enabled: bool, mut ctx: EditorCtx) {
     let mut new_params = ctx.project_params.read().clone();
-    if let Some(param_field) = get_param_mut_by_path(&mut new_params.list, path) {
-        if let ProjectParamValue::Optional(optional) = &mut param_field.value {
-            optional.enabled = enabled;
-        } else {
+    match get_param_value_mut_by_path(&mut new_params.list, path) {
+        Some(ProjectParamValue::Optional(optional)) => optional.enabled = enabled,
+        Some(_) => {
             tracing::error!("Param path is not Optional: {:?}", path);
             return;
         }
-    } else {
-        tracing::error!("Param path not found: {:?}", path);
-        return;
+        None => {
+            tracing::error!("Param path not found: {:?}", path);
+            return;
+        }
     }
 
     ctx.project_params.set(new_params);

@@ -116,7 +116,10 @@ impl ParamField for bool {
         ProjectParamValue::Bool(*self)
     }
     fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
-        value.get_bool()
+        match value {
+            ProjectParamValue::Bool(val) => Ok(*val),
+            other => Err(param_type_mismatch("bool", other)),
+        }
     }
 }
 

@@ -46,24 +46,6 @@ pub fn get_param_value_mut_by_path<'a>(
     get_param_value_mut_in_value(&mut param.value, &path[1..])
 }
 
-pub fn get_param_mut_by_path<'a>(
-    list: &'a mut [ProjectParam],
-    path: &[String],
-) -> Option<&'a mut ProjectParam> {
-    if path.is_empty() {
-        return None;
-    }
-
-    let field_name = &path[0];
-    let param = list.iter_mut().find(|param| param.name == *field_name)?;
-
-    if path.len() == 1 {
-        return Some(param);
-    }
-
-    get_param_mut_in_value(&mut param.value, &path[1..])
-}
-
 fn get_param_value_ref_by_path<'a>(
     list: &'a [ProjectParam],
     path: &[String],
@@ -139,34 +121,6 @@ fn get_param_value_mut_in_value<'a>(
         ProjectParamValue::DataEnum(data_enum) => {
             let variant = data_enum.variant_mut(&path[0])?;
             get_param_value_mut_by_path(&mut variant.fields, &path[1..])
-        }
-        _ => None,
-    }
-}
-
-fn get_param_mut_in_value<'a>(
-    value: &'a mut ProjectParamValue,
-    path: &[String],
-) -> Option<&'a mut ProjectParam> {
-    if path.is_empty() {
-        return None;
-    }
-
-    match value {
-        ProjectParamValue::Struct(param_struct) => {
-            get_param_mut_by_path(&mut param_struct.fields, path)
-        }
-        ProjectParamValue::Optional(optional) => {
-            get_param_mut_in_value(optional.value.as_mut(), path)
-        }
-        ProjectParamValue::Vec(vec_value) => {
-            let index = parse_index_segment(&path[0])?;
-            let item = vec_value.items.get_mut(index)?;
-            get_param_mut_in_value(item, &path[1..])
-        }
-        ProjectParamValue::DataEnum(data_enum) => {
-            let variant = data_enum.variant_mut(&path[0])?;
-            get_param_mut_by_path(&mut variant.fields, &path[1..])
         }
         _ => None,
     }

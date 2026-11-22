@@ -17,9 +17,6 @@ pub trait PlotteryParams: Sized {
         Self::try_new_from_map(&map)
     }
 
-    fn new_from_map(params: &HashMap<String, ProjectParam>) -> Self {
-        Self::try_new_from_map(params).unwrap_or_else(|e| panic!("Failed to read params: {:#}", e))
-    }
     fn new_from_list(params: Vec<ProjectParam>) -> Self {
         Self::try_new_from_list(params).unwrap_or_else(|e| panic!("Failed to read params: {:#}", e))
     }
