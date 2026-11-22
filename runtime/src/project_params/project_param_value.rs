@@ -2,6 +2,7 @@ use anyhow::Result;
 use plottery_lib::{ColorRgb, Easing, FontStyle, NoiseSettings, Paper, Rect, SystemFont, V2i, V2};
 
 use super::angle_unit::AngleUnit;
+use super::project_param::ProjectParam;
 use super::project_param_file::ProjectParamFile;
 use super::seed::ProjectParamSeed;
 use serde::{Deserialize, Serialize};
@@ -74,7 +75,39 @@ pub enum ProjectParamValue {
     Rect(Rect),
 }
 
+fn same_schema_list(left: &[ProjectParam], right: &[ProjectParam]) -> bool {
+    left.len() == right.len() && left.iter().zip(right).all(|(l, r)| l.same_schema(r))
+}
+
 impl ProjectParamValue {
+    /// Same type, whatever the values and `#[range]`s.
+    pub fn same_schema(&self, other: &Self) -> bool {
+        match (self, other) {
+            (
+                Self::Float(_) | Self::FloatRanged { .. },
+                Self::Float(_) | Self::FloatRanged { .. },
+            ) => true,
+            (Self::Int(_) | Self::IntRanged { .. }, Self::Int(_) | Self::IntRanged { .. }) => true,
+            (Self::Struct(left), Self::Struct(right)) => {
+                same_schema_list(&left.fields, &right.fields)
+            }
+            (Self::Optional(left), Self::Optional(right)) => left.value.same_schema(&right.value),
+            (Self::Vec(left), Self::Vec(right)) => {
+                left.item_prototype.same_schema(&right.item_prototype)
+            }
+            (Self::Enum(left), Self::Enum(right)) => left.variants == right.variants,
+            (Self::DataEnum(left), Self::DataEnum(right)) => {
+                left.variants.len() == right.variants.len()
+                    && left
+                        .variants
+                        .iter()
+                        .zip(&right.variants)
+                        .all(|(l, r)| l.name == r.name && same_schema_list(&l.fields, &r.fields))
+            }
+            _ => std::mem::discriminant(self) == std::mem::discriminant(other),
+        }
+    }
+
     pub fn get_f32(&self) -> Result<f32> {
         match self {
             ProjectParamValue::Float(val) => Ok(*val),

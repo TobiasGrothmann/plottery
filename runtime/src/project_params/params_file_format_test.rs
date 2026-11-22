@@ -38,22 +38,12 @@ mod tests {
         ])
     }
 
-    fn assert_same(read: &[ProjectParam], expected: &[ProjectParam]) {
-        assert_eq!(read.len(), expected.len());
-        for (read, expected) in read.iter().zip(expected) {
-            assert_eq!(read.name, expected.name);
-            assert_eq!(read.value, expected.value);
-            assert_eq!(read.section, expected.section);
-            assert_eq!(read.description, expected.description);
-        }
-    }
-
     #[test]
     fn round_trip() {
         let bytes = params().to_file_bytes().unwrap();
         assert_eq!(&bytes[..6], b"PLTP\x02\x00");
         let (read, skipped) = ProjectParamsListWrapper::from_file_bytes(&bytes).unwrap();
-        assert_same(&read.list, &params().list);
+        assert_eq!(read.list, params().list);
         assert!(skipped.is_empty());
     }
 
@@ -77,7 +67,7 @@ mod tests {
 
         let (read, skipped) = ProjectParamsListWrapper::from_file_bytes(&bytes).unwrap();
         assert_eq!(skipped, ["a", "b"]);
-        assert_same(&read.list, &params().list[2..]);
+        assert_eq!(read.list, params().list[2..]);
     }
 
     #[test]

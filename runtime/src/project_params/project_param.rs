@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::project_param_value::ProjectParamValue;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ProjectParam {
     pub name: String,
     pub value: ProjectParamValue,
@@ -16,35 +16,12 @@ pub struct ProjectParam {
     pub no_pick: bool,
 }
 
-impl PartialEq for ProjectParam {
-    fn eq(&self, other: &Self) -> bool {
-        // section, description and `#[range]` don't decide whether a saved value is kept.
-        self.name == other.name && value_schema_equal(&self.value, &other.value)
-    }
-}
-
-/// Same type, whatever the values and `#[range]`s.
-fn value_schema_equal(left: &ProjectParamValue, right: &ProjectParamValue) -> bool {
-    use ProjectParamValue::{
-        DataEnum, Enum, Float, FloatRanged, Int, IntRanged, Optional, Struct, Vec,
-    };
-    match (left, right) {
-        (Float(_) | FloatRanged { .. }, Float(_) | FloatRanged { .. }) => true,
-        (Int(_) | IntRanged { .. }, Int(_) | IntRanged { .. }) => true,
-        (Struct(left_struct), Struct(right_struct)) => left_struct.fields == right_struct.fields,
-        (Optional(left_optional), Optional(right_optional)) => {
-            value_schema_equal(&left_optional.value, &right_optional.value)
-        }
-        (Vec(left_vec), Vec(right_vec)) => {
-            value_schema_equal(&left_vec.item_prototype, &right_vec.item_prototype)
-        }
-        (Enum(left_enum), Enum(right_enum)) => left_enum.variants == right_enum.variants,
-        (DataEnum(left_enum), DataEnum(right_enum)) => left_enum.variants == right_enum.variants,
-        _ => std::mem::discriminant(left) == std::mem::discriminant(right),
-    }
-}
-
 impl ProjectParam {
+    /// Same name and type, whatever the value, `#[range]`, section and description.
+    pub fn same_schema(&self, other: &Self) -> bool {
+        self.name == other.name && self.value.same_schema(&other.value)
+    }
+
     pub fn new(name: &str, value: ProjectParamValue) -> Self {
         Self {
             name: name.to_string(),

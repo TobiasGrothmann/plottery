@@ -40,7 +40,7 @@ use crate::router::editor::{
 };
 
 /// Props shared by all leaf widgets. `param` already has `Optional` unwrapped, `path` has not.
-#[derive(Props, Clone)]
+#[derive(Props, Clone, PartialEq)]
 pub struct LeafProps {
     pub param: ProjectParam,
     pub path: Vec<String>,
@@ -48,17 +48,6 @@ pub struct LeafProps {
     pub default: Option<ProjectParamValue>,
     /// From `#[no_pick]` in the project: no picking on the preview.
     pub no_pick: bool,
-}
-
-/// `ProjectParam` only compares its schema, so compare the value too or Dioxus will not re-render.
-impl PartialEq for LeafProps {
-    fn eq(&self, other: &Self) -> bool {
-        self.param.name == other.param.name
-            && self.param.value == other.param.value
-            && self.path == other.path
-            && self.default == other.default
-            && self.no_pick == other.no_pick
-    }
 }
 
 impl LeafProps {

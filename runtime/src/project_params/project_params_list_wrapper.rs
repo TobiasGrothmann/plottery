@@ -247,8 +247,7 @@ impl ProjectParamsListWrapper {
             }
             (ProjectParamValue::Vec(old_vec), ProjectParamValue::Vec(new_vec)) => {
                 let prototype = new_vec.item_prototype.as_ref();
-                // ProjectParam's equality compares the type only.
-                if ProjectParam::new("", old.clone()) != ProjectParam::new("", new.clone()) {
+                if !old.same_schema(new) {
                     return None;
                 }
                 let items = old_vec
