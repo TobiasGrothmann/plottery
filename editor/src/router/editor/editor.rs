@@ -30,6 +30,7 @@ use crate::{
         project_runner::ProjectRunner,
         running_state::RunningState,
         variations::{
+            roll_compare::RollCompare,
             variations_grid::VariationsGrid,
             variations_state::{use_variations_state, EditorView},
         },
@@ -100,6 +101,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
     let running_state = use_signal_sync(|| RunningState::Idle);
     let variations = use_variations_state();
     let mut view = variations.view;
+    let mut compare = variations.compare;
     let project_runner =
         use_signal_sync(|| ProjectRunner::new(project.peek().clone(), layer, project_params));
     let ctx = use_context_provider(|| EditorCtx {
@@ -217,6 +219,21 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                     });
                     return;
                 }
+                let y = matches!(event.key(), Key::Character(ref key) if key.eq_ignore_ascii_case("y"));
+                if y && !command && !modifiers.alt() && view() == EditorView::Variations {
+                    spawn(async move {
+                        let typing = document::eval(FOCUS_IS_TEXT_FIELD).await;
+                        if typing.ok().and_then(|v| v.as_bool()) != Some(true) {
+                            compare.toggle();
+                        }
+                    });
+                    return;
+                }
+                if event.key() == Key::Escape && compare() && view() == EditorView::Variations {
+                    event.prevent_default();
+                    compare.set(false);
+                    return;
+                }
                 if event.key() == Key::Escape && fullscreen() {
                     event.prevent_default();
                     fullscreen.set(false);
@@ -286,10 +303,15 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                 }
                 main { class: "center",
                     if !editing {
-                        VariationsGrid { preview: svg.read().as_ref().map(|svg| svg.src.clone()).or(cached_preview.clone()) }
+                        div { class: "variations-area",
+                            VariationsGrid { preview: svg.read().as_ref().map(|svg| svg.src.clone()).or(cached_preview.clone()) }
+                            if compare() {
+                                RollCompare { fullscreen }
+                            }
+                        }
                     }
                     // over the variations only in fullscreen, showing the selected roll
-                    if editing || fullscreen() {
+                    if editing || (fullscreen() && !compare()) {
                         PreviewStage {
                         svg,
                         cached_preview: cached_preview.clone(),

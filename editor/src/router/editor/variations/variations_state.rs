@@ -87,6 +87,8 @@ pub struct VariationsState {
     pub rolling: SyncSignal<Option<u64>>,
     /// Scroll position of the grid, kept while the edit view is shown.
     pub scroll_top: Signal<f64>,
+    /// The selected roll is shown next to the start, toggled with Y.
+    pub compare: Signal<bool>,
 }
 
 pub fn use_variations_state() -> VariationsState {
@@ -100,6 +102,7 @@ pub fn use_variations_state() -> VariationsState {
         similar_percent: use_signal(|| 20.0),
         rolling: use_signal_sync(|| None),
         scroll_top: use_signal(|| 0.0),
+        compare: use_signal(|| false),
     }
 }
 
