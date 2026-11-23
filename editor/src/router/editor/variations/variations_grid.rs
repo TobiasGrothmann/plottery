@@ -1,10 +1,13 @@
 use std::rc::Rc;
 
 use dioxus::{html::geometry::PixelsVector2D, prelude::*};
+use plottery_project::Roll;
 use plottery_runtime::project_params_list_wrapper::ProjectParamsListWrapper;
 
 use super::{
-    roll_panel::RollPanel, roll_tile::RollTile, variations_state::EditorView,
+    roll_panel::RollPanel,
+    roll_tile::{CurrentTile, RollTile},
+    variations_state::EditorView,
     variations_watch::use_variations_watch,
 };
 use crate::{
@@ -13,9 +16,10 @@ use crate::{
     router::editor::editor_ctx::EditorCtx,
 };
 
-/// The rolls of the open project as tiles, updated as they finish.
+/// The rolls of the open project as tiles, updated as they finish. `preview` is the url of the
+/// current drawing.
 #[component]
-pub fn VariationsGrid() -> Element {
+pub fn VariationsGrid(preview: Option<String>) -> Element {
     let ctx = use_context::<EditorCtx>();
     use_variations_watch(ctx);
     let mut scroll_top = ctx.variations.scroll_top;
@@ -53,36 +57,34 @@ pub fn VariationsGrid() -> Element {
         || variations.as_ref().is_some_and(|v| v.progress().is_some());
     let current_params = ctx.project_params.read().list.clone();
 
-    let tiles = match variations {
-        Some(variations) if !variations.rolls.is_empty() => {
-            let set_id = variations.meta.created.timestamp_millis() as u32;
-            let tiles = variations
-                .rolls
-                .into_iter()
-                .map(|roll| {
-                    let png = project
-                        .get_roll_path(roll.index, "png")
-                        .to_string_lossy()
-                        .to_string();
-                    let current = !roll.skipped && roll.params.list == current_params;
-                    rsx! {
-                        RollTile {
-                            key: "{roll.index}",
-                            index: roll.index,
-                            png,
-                            current,
-                            skipped: roll.skipped,
-                            set_id,
-                            on_select: move |index| pick_roll(ctx, index, false),
-                            on_open: move |index| pick_roll(ctx, index, true),
-                        }
-                    }
-                })
-                .collect::<Vec<_>>();
-            Some(tiles)
+    let set_id = variations.as_ref().map_or(0, |variations| {
+        variations.meta.created.timestamp_millis() as u32
+    });
+    let rolls = variations
+        .map(|variations| variations.rolls)
+        .unwrap_or_default();
+    let is_current = |roll: &Roll| !roll.skipped && roll.params.list == current_params;
+    // the next roll starts from the current drawing, shown first when no roll is it
+    let show_current = !rolls.iter().any(is_current);
+    let tiles = rolls.iter().map(|roll| {
+        let png = project
+            .get_roll_path(roll.index, "png")
+            .to_string_lossy()
+            .to_string();
+        rsx! {
+            RollTile {
+                key: "{roll.index}",
+                index: roll.index,
+                png,
+                current: is_current(roll),
+                skipped: roll.skipped,
+                set_id,
+                on_select: move |index| pick_roll(ctx, index, false),
+                on_open: move |index| pick_roll(ctx, index, true),
+            }
         }
-        _ => None,
-    };
+    });
+    let mut view = ctx.variations.view;
 
     rsx! {
         style { {include_str!("./variations.css")} }
@@ -93,9 +95,16 @@ pub fn VariationsGrid() -> Element {
                 style: "--tile-size: {tile_size}px;",
                 onmounted: move |event| scroller.set(Some(event.data())),
                 onscroll: move |event| scroll_top.set(event.data().scroll_top()),
-                if let Some(tiles) = tiles {
-                    div { class: "grid_cards", {tiles.into_iter()} }
-                } else {
+                div { class: "grid_cards",
+                    if show_current {
+                        CurrentTile {
+                            src: preview,
+                            on_open: move |_| view.set(EditorView::Edit),
+                        }
+                    }
+                    {tiles}
+                }
+                if rolls.is_empty() {
                     div { class: "variations-empty",
                         if rolling {
                             p { "Rolling…" }

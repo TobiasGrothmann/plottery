@@ -57,3 +57,33 @@ pub fn RollTile(
         }
     }
 }
+
+/// The current drawing, when no roll is it: what the next roll starts from. A double click or
+/// Enter opens it.
+#[component]
+pub fn CurrentTile(
+    /// Url of the drawing, `None` before the first run.
+    src: Option<String>,
+    on_open: EventHandler<()>,
+) -> Element {
+    rsx! {
+        div {
+            class: "card roll current",
+            role: "button",
+            tabindex: "0",
+            ondoubleclick: move |_| on_open.call(()),
+            onkeydown: move |event| {
+                if event.key() == Key::Enter {
+                    on_open.call(());
+                }
+            },
+            div { class: "thumb",
+                match src {
+                    Some(src) => rsx! { img { class: "thumb_paper", src: "{src}", draggable: "false" } },
+                    None => rsx! { span { class: "roll_skipped", "not run yet" } },
+                }
+            }
+            span { class: "roll_number", "current" }
+        }
+    }
+}

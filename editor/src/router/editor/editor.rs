@@ -286,7 +286,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                 }
                 main { class: "center",
                     if view() == EditorView::Variations {
-                        VariationsGrid {}
+                        VariationsGrid { preview: svg.read().as_ref().map(|svg| svg.src.clone()).or(cached_preview.clone()) }
                     } else {
                         PreviewStage {
                         svg,
