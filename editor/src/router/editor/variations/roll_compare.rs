@@ -1,7 +1,7 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use dioxus::prelude::*;
-use plottery_lib::Rect;
+use plottery_lib::{BoundingBox, Rect};
 use plottery_project::Project;
 
 use crate::{
@@ -28,15 +28,21 @@ pub fn RollCompare() -> Element {
             .find(|roll| !roll.skipped && roll.index != 0 && roll.params.list == current_params)
             .map(|roll| roll.index)
     });
+    // a new set of rolls renders the sides again; a key is only allowed first in a block
+    let side = |index: usize| {
+        rsx! {
+            CompareSide { key: "{set_id}-{index}", index }
+        }
+    };
 
     rsx! {
         style { {include_str!("./roll_compare.css")} }
         section { class: "roll-compare",
             match selected {
                 Some(index) => rsx! {
-                    CompareSide { key: "{set_id}-0", index: 0 }
+                    {side(0)}
                     div { class: "roll-compare-wall" }
-                    CompareSide { key: "{set_id}-{index}", index }
+                    {side(index)}
                 },
                 None => rsx! {
                     p { class: "roll-compare-hint", "Click a roll to compare it with the start." }
