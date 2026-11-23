@@ -67,11 +67,11 @@ pub struct RollOutcome {
     pub canceled: bool,
 }
 
-/// Runs at once: half the cores, 1 to 4.
+/// Runs at once: one per core, at most 8. 2 when the cores can't be counted.
 pub fn default_roll_parallelism() -> usize {
     std::thread::available_parallelism()
-        .map_or(2, |cores| cores.get() / 2)
-        .clamp(1, 4)
+        .map_or(2, |cores| cores.get())
+        .min(8)
 }
 
 /// Runs `job(i)` for `i` in `0..count` in order, at most `parallel` at once. No job starts once
