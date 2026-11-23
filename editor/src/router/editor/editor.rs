@@ -182,9 +182,9 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
     });
     let current_layout = layout();
     let (params_min, params_max, params_default) = Panel::Params.size_limits();
-    // the variations view adds a column with the roll ranges to the params
+    // the variations view adds a column with the roll ranges, as wide as `.ParamsEditor.selecting` pads
     let range_column_w = match view() {
-        EditorView::Variations => 136.0,
+        EditorView::Variations => 152.0,
         EditorView::Edit => 0.0,
     };
     let (layers_min, layers_max, layers_default) = Panel::Layers.size_limits();

@@ -466,26 +466,49 @@
 .ParamsEditor .roll-row.on > .sublabel {
   color: var(--fg-0);
 }
-/* a number's row: a column on the right with the range it is rolled in */
-.ParamsEditor .prow.ranged {
-  grid-template-columns: 84px minmax(0, 1fr) 124px;
+/* the params keep the width they have in the edit view, the ranges numbers are rolled in go to
+   a column on their right */
+.ParamsEditor.selecting {
+  --range-w: 144px;
+  padding-right: calc(var(--range-w) + 8px);
 }
-.ParamsEditor .sub.ranged {
-  grid-template-columns: 64px minmax(0, 1fr) 124px;
-}
+/* a box of its own next to the number's row and as high as it */
 .RollRangeField {
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  left: calc(100% + 9px);
+  width: var(--range-w);
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 4px;
+  padding: 0 8px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--bg-2);
   cursor: default;
 }
-.vec-item > .RollRangeField {
-  flex: none;
-  width: 124px;
+.roll-row.on > .RollRangeField {
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 .RollRangeField .input {
   padding: 0 6px;
   text-align: center;
+}
+/* inside a list item or another toggle the column is out of reach: the row makes room itself */
+.ParamsEditor .pvec .ranged,
+.ParamsEditor .roll-row .ranged {
+  margin-right: calc(var(--range-w) + 8px);
+}
+/* the box is not part of the toggle, pointing at it doesn't light the row up */
+.ParamsEditor .roll-row:not(.on):has(> .RollRangeField:hover) {
+  background: var(--bg-2);
+  border-color: var(--line-2);
+}
+.ParamsEditor .roll-row:not(.on):has(> .RollRangeField:hover)::after {
+  border-color: var(--fg-2);
 }
 .ParamsEditor .roll-locked {
   opacity: 0.45;

@@ -426,7 +426,7 @@ fn set_ticked(ctx: EditorCtx, dot: String, ticked: bool) {
     };
 }
 
-/// The range inputs of a number with a tick, the right column of the variations view.
+/// The range inputs of a number with a tick: a box right of its row in the variations view.
 fn roll_range_cell(value: &ProjectParamValue, tick: &Option<(String, bool)>) -> Option<Element> {
     let (dot, ticked) = tick.as_ref()?;
     if !takes_roll_range(value) {
@@ -466,7 +466,7 @@ fn roll_class(
     if !selecting(ctx) {
         return base.to_string();
     }
-    // a number's row has a third column for its range
+    // a number's row has the box with its range next to it
     let ranged = match takes_roll_range(value) {
         true => " ranged",
         false => "",
@@ -758,6 +758,8 @@ pub fn ParamsEditor() -> Element {
     let params = ctx.project_params.read().list.clone();
     rsx! {
         style { {include_str!("params_editor.css")} }
-        div { class: "ParamsEditor", {render_param_list(&params, &[], ctx)} }
+        div { class: if selecting(ctx) { "ParamsEditor selecting" } else { "ParamsEditor" },
+            {render_param_list(&params, &[], ctx)}
+        }
     }
 }
