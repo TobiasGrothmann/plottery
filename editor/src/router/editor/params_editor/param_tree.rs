@@ -142,13 +142,19 @@ pub fn get_param_value_mut_by_path<'a>(
 }
 
 /// The dotted path of `plottery params` and `--set` for `path`, like `points.1.size` for
-/// `points`, `[1]`, `size`. `None` for a field of a variant that isn't selected.
+/// `points`, `[1]`, `size`. `None` for a field of a variant that isn't selected and for the
+/// items of an `Option<Vec>`, which the CLI doesn't reach.
 pub fn dot_path(list: &[ProjectParam], path: &[String]) -> Option<String> {
     let (name, mut rest) = path.split_first()?;
     let mut value = &field(list, name)?.value;
     let mut segments = vec![name.clone()];
     while let Some((segment, tail)) = rest.split_first() {
         match value {
+            ProjectParamValue::Optional(optional)
+                if matches!(*optional.value, ProjectParamValue::Vec(_)) =>
+            {
+                return None;
+            }
             ProjectParamValue::Optional(optional) => {
                 value = &optional.value;
                 continue;

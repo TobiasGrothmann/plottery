@@ -4,11 +4,11 @@ mod tests {
 
     use plottery_runtime::{
         AngleUnit, ProjectParam, ProjectParamDataEnum, ProjectParamSeed, ProjectParamStruct,
-        ProjectParamValue as V, ProjectParamVariant, ProjectParamsListWrapper,
+        ProjectParamValue as V, ProjectParamVariant, ProjectParamVec, ProjectParamsListWrapper,
     };
     use rand::{rngs::StdRng, SeedableRng};
 
-    use crate::{check_rollable, roll_param_sets, rollable_paths, ROLL_SEED_RANGE};
+    use crate::{check_rollable, holds_rollable, roll_param_sets, rollable_paths, ROLL_SEED_RANGE};
 
     fn ranged(name: &str, val: f32, min: f32, max: f32) -> ProjectParam {
         ProjectParam::new(name, V::FloatRanged { val, min, max })
@@ -169,6 +169,40 @@ mod tests {
         )
         .unwrap();
         assert_eq!(checked, paths(&["shape", "seed", "shape.radius"]));
+    }
+
+    #[test]
+    fn a_field_of_one_list_item_rolls_alone() {
+        let shape = |radius| {
+            V::Struct(ProjectParamStruct::new(vec![ranged(
+                "radius", radius, 0.0, 5.0,
+            )]))
+        };
+        let start = ProjectParamsListWrapper::new(vec![ProjectParam::new(
+            "shapes",
+            V::Vec(ProjectParamVec::new(
+                shape(1.0),
+                vec![shape(1.0), shape(1.0)],
+            )),
+        )]);
+        assert!(holds_rollable(&value(&start, "shapes")));
+
+        let selected = check_rollable(&start, &paths(&["shapes.1.radius"])).unwrap();
+        let sets = roll_param_sets(&start, &selected, 20, &mut StdRng::seed_from_u64(4));
+        let radius = |set, i| value(set, &format!("shapes.{i}.radius")).get_f32().unwrap();
+        assert!(sets[1..].iter().all(|set| radius(set, 0) == 1.0));
+        assert!(sets[1..]
+            .iter()
+            .all(|set| (0.0..=5.0).contains(&radius(set, 1))));
+        assert!(sets[1..].iter().any(|set| radius(set, 1) != 1.0));
+
+        let error = |path| {
+            check_rollable(&start, &paths(&[path]))
+                .unwrap_err()
+                .to_string()
+        };
+        assert!(error("shapes").starts_with("'shapes' is a vec<struct> and can't be rolled"));
+        assert!(error("shapes.1").starts_with("'shapes.1' is a struct and can't be rolled"));
     }
 
     #[test]

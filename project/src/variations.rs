@@ -38,6 +38,13 @@ pub fn rollable_paths(list: &[ProjectParam]) -> Vec<String> {
     paths
 }
 
+/// Whether `value` or anything in it can be rolled.
+pub fn holds_rollable(value: &ProjectParamValue) -> bool {
+    let mut paths = Vec::new();
+    push_rollable_value(value, String::new(), &mut paths);
+    !paths.is_empty()
+}
+
 fn push_rollable_list(list: &[ProjectParam], prefix: &str, paths: &mut Vec<String>) {
     for param in list {
         push_rollable_value(&param.value, format!("{prefix}{}", param.name), paths);

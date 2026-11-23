@@ -401,18 +401,31 @@
 .pctl[inert] {
   opacity: 0.8;
 }
-.ParamsEditor .prow.roll-row {
+/* a wrapper that only makes its widget inert */
+.ParamsEditor .contents {
+  display: contents;
+}
+.ParamsEditor .roll-row {
   position: relative;
-  margin: 4px 8px;
-  padding-right: 30px;
   border: 1px solid var(--line-2);
   border-radius: var(--r);
   background: var(--bg-2);
   cursor: pointer;
   transition: background 0.12s, border-color 0.12s;
 }
+.ParamsEditor .prow.roll-row {
+  margin: 4px 8px;
+  padding-right: 30px;
+}
+/* rows inside a list: the same toggle, tighter */
+.ParamsEditor .sub.roll-row {
+  padding: 4px 26px 4px 6px;
+}
+.ParamsEditor .vec-item.roll-row {
+  padding-right: 26px;
+}
 /* a ring in the corner, filled with a check when the param is rolled */
-.ParamsEditor .prow.roll-row::after {
+.ParamsEditor .roll-row::after {
   content: '';
   position: absolute;
   top: 10px;
@@ -424,28 +437,41 @@
   border-radius: 50%;
   transition: border-color 0.12s, background 0.12s;
 }
-.ParamsEditor .prow.roll-row:hover {
+.ParamsEditor .sub.roll-row::after {
+  top: 11px;
+  right: 6px;
+}
+.ParamsEditor .vec-item.roll-row::after {
+  top: 13px;
+  right: 6px;
+}
+.ParamsEditor .roll-row:hover {
   background: var(--bg-3);
   border-color: var(--accent);
 }
-.ParamsEditor .prow.roll-row:hover::after {
+.ParamsEditor .roll-row:hover::after {
   border-color: var(--accent);
 }
-.ParamsEditor .prow.roll-row.on {
+.ParamsEditor .roll-row.on {
   background: var(--accent-soft);
   border-color: var(--accent);
 }
-.ParamsEditor .prow.roll-row.on::after {
+.ParamsEditor .roll-row.on::after {
   border-color: var(--accent);
   background: var(--accent)
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M4 7.2l2 2 4-4.4' fill='none' stroke='%230d1330' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
     center / 14px no-repeat;
 }
-.ParamsEditor .prow.roll-row.on > .plabel {
+.ParamsEditor .roll-row.on > .plabel,
+.ParamsEditor .roll-row.on > .sublabel {
   color: var(--fg-0);
 }
-.ParamsEditor .prow.roll-locked {
+.ParamsEditor .roll-locked {
   opacity: 0.45;
+}
+/* dimmed once, not again for every level inside */
+.ParamsEditor .roll-locked .roll-locked {
+  opacity: 1;
 }
 .roll-chip {
   height: 22px;
@@ -465,20 +491,20 @@
   border-color: var(--accent);
   color: var(--accent-fg);
 }
-.ParamsEditor .prow.roll-row.frozen {
+.ParamsEditor .roll-row.frozen {
   cursor: default;
 }
-.ParamsEditor .prow.roll-row.frozen:not(.on) {
+.ParamsEditor .roll-row.frozen:not(.on) {
   opacity: 0.6;
 }
-.ParamsEditor .prow.roll-row.frozen:hover {
+.ParamsEditor .roll-row.frozen:hover {
   background: var(--bg-2);
   border-color: var(--line-2);
 }
-.ParamsEditor .prow.roll-row.frozen:not(.on):hover::after {
+.ParamsEditor .roll-row.frozen:not(.on):hover::after {
   border-color: var(--fg-2);
 }
-.ParamsEditor .prow.roll-row.frozen.on:hover {
+.ParamsEditor .roll-row.frozen.on:hover {
   background: var(--accent-soft);
   border-color: var(--accent);
 }
