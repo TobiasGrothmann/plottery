@@ -3,14 +3,15 @@ mod tests {
     use std::f32::consts::TAU;
 
     use plottery_runtime::{
-        AngleUnit, ProjectParam, ProjectParamDataEnum, ProjectParamSeed, ProjectParamStruct,
-        ProjectParamValue as V, ProjectParamVariant, ProjectParamVec, ProjectParamsListWrapper,
+        AngleUnit, ProjectParam, ProjectParamDataEnum, ProjectParamEnum, ProjectParamOptional,
+        ProjectParamSeed, ProjectParamStruct, ProjectParamValue as V, ProjectParamVariant,
+        ProjectParamVec, ProjectParamsListWrapper,
     };
     use rand::{rngs::StdRng, SeedableRng};
 
     use crate::{
-        can_roll_paths, check_rollable, holds_rollable, roll_param_sets, rollable_paths, RollRange,
-        RollRanges, ROLL_SEED_RANGE,
+        can_roll_paths, check_roll_mode, check_rollable, holds_rollable, roll_param_sets,
+        rollable_paths, RollMode, RollRange, RollRanges, ROLL_SEED_RANGE,
     };
 
     fn ranged(name: &str, val: f32, min: f32, max: f32) -> ProjectParam {
@@ -86,6 +87,7 @@ mod tests {
             &start,
             &selected,
             &RollRanges::new(),
+            RollMode::Uniform,
             400,
             &mut StdRng::seed_from_u64(1),
         );
@@ -128,6 +130,7 @@ mod tests {
                 &start,
                 &selected,
                 &RollRanges::new(),
+                RollMode::Uniform,
                 10,
                 &mut StdRng::seed_from_u64(seed),
             )
@@ -210,6 +213,7 @@ mod tests {
             &start,
             &selected,
             &ranges,
+            RollMode::Uniform,
             400,
             &mut StdRng::seed_from_u64(5),
         );
@@ -297,6 +301,7 @@ mod tests {
             &start,
             &selected,
             &RollRanges::new(),
+            RollMode::Uniform,
             20,
             &mut StdRng::seed_from_u64(4),
         );
@@ -329,6 +334,7 @@ mod tests {
             &start,
             &selected,
             &RollRanges::new(),
+            RollMode::Uniform,
             100,
             &mut StdRng::seed_from_u64(3),
         );
@@ -351,5 +357,159 @@ mod tests {
         assert!(rolled
             .iter()
             .any(|(selected, radius)| selected == "Circle" && *radius != 1.0));
+    }
+
+    fn similar(percent: f32) -> RollMode {
+        RollMode::Similar { percent }
+    }
+
+    fn int(val: i32, min: i32, max: i32) -> V {
+        V::IntRanged { val, min, max }
+    }
+
+    #[test]
+    fn similar_rolls_move_numbers_near_the_start_and_keep_the_rest() {
+        let start = ProjectParamsListWrapper::new(vec![
+            ranged("level", 90.0, 0.0, 100.0),
+            ProjectParam::new("steps", int(50, 0, 100)),
+            ProjectParam::new("tiny", int(5, 0, 10)),
+            ProjectParam::new(
+                "spread",
+                V::RangeI32 {
+                    min: 2,
+                    max: 3,
+                    bounds: Some((0, 10)),
+                },
+            ),
+            ProjectParam::new(
+                "turn",
+                V::Angle {
+                    rad: 0.1,
+                    unit: AngleUnit::Degrees,
+                },
+            ),
+            ProjectParam::new(
+                "glow",
+                V::Optional(ProjectParamOptional::new(false, int(50, 0, 100))),
+            ),
+            ProjectParam::new("seed", V::Seed(ProjectParamSeed::new(1))),
+            ProjectParam::new("mirror", V::Bool(false)),
+            ProjectParam::new(
+                "pen",
+                V::Enum(ProjectParamEnum::new("Fine", &["Fine", "Bold"])),
+            ),
+        ]);
+        let names = [
+            "level", "steps", "tiny", "spread", "turn", "glow", "seed", "mirror", "pen",
+        ];
+        let selected = check_rollable(&start, &paths(&names), &RollRanges::new()).unwrap();
+        let sets = roll_param_sets(
+            &start,
+            &selected,
+            &RollRanges::new(),
+            similar(20.0),
+            400,
+            &mut StdRng::seed_from_u64(9),
+        );
+        let rolled =
+            |path: &str| -> Vec<V> { sets[1..].iter().map(|set| value(set, path)).collect() };
+
+        let levels: Vec<f32> = rolled("level")
+            .iter()
+            .map(|v| v.get_f32().unwrap())
+            .collect();
+        assert!(levels.iter().all(|level| (70.0..=100.0).contains(level)));
+        assert!(
+            levels.iter().any(|level| *level < 72.0) && levels.iter().any(|level| *level > 98.0)
+        );
+
+        let ints = |path| -> Vec<i32> {
+            let mut vals: Vec<i32> = rolled(path)
+                .iter()
+                .map(|v| match v {
+                    V::IntRanged { val, .. } => *val,
+                    V::Optional(optional) => match *optional.value {
+                        V::IntRanged { val, .. } => val,
+                        _ => panic!(),
+                    },
+                    other => panic!("{other:?}"),
+                })
+                .collect();
+            vals.sort();
+            vals.dedup();
+            vals
+        };
+        assert_eq!(ints("steps"), (30..=70).collect::<Vec<_>>());
+        // 20 % of 10 is 2 steps
+        assert_eq!(ints("tiny"), (3..=7).collect::<Vec<_>>());
+        assert_eq!(ints("glow"), (30..=70).collect::<Vec<_>>());
+
+        for spread in rolled("spread") {
+            let V::RangeI32 { min, max, .. } = spread else {
+                panic!()
+            };
+            assert!(0 <= min && min <= max && max <= 5);
+        }
+        let reach = TAU * 0.2;
+        for turn in rolled("turn") {
+            let V::Angle { rad, .. } = turn else { panic!() };
+            assert!((0.0..TAU).contains(&rad));
+            let distance = (rad - 0.1).rem_euclid(TAU).min((0.1 - rad).rem_euclid(TAU));
+            assert!(distance <= reach + 1e-4);
+        }
+
+        for set in &sets[1..] {
+            let V::Optional(glow) = value(set, "glow") else {
+                panic!()
+            };
+            assert!(!glow.enabled);
+            for kept in ["seed", "mirror", "pen"] {
+                assert_eq!(value(set, kept), value(&start, kept));
+            }
+        }
+    }
+
+    #[test]
+    fn a_similar_roll_moves_within_the_roll_range() {
+        let start = params();
+        // free is 1 outside 10..30, size 1 outside its roll range 1.5..2 (its #[range] cuts 9)
+        let ranges = ranges(&[("free", 10.0, 30.0), ("size", 1.5, 9.0)]);
+        let selected = check_rollable(&start, &paths(&["free", "size"]), &ranges).unwrap();
+        let sets = roll_param_sets(
+            &start,
+            &selected,
+            &ranges,
+            similar(10.0),
+            200,
+            &mut StdRng::seed_from_u64(2),
+        );
+        for set in &sets[1..] {
+            let free = value(set, "free").get_f32().unwrap();
+            assert!((10.0..=12.0).contains(&free), "{free}");
+            let size = value(set, "size").get_f32().unwrap();
+            assert!((1.5..=1.55).contains(&size), "{size}");
+        }
+    }
+
+    #[test]
+    fn a_similar_roll_needs_a_percentage_and_a_number() {
+        let start = params();
+        let check = |names: &[&str], mode| check_roll_mode(&start, &paths(names), mode);
+        assert!(check(&["size"], similar(100.0)).is_ok());
+        assert!(check(&["seed"], RollMode::Uniform).is_ok());
+        for percent in [0.0, 100.5, f32::NAN] {
+            assert!(check(&["size"], similar(percent)).is_err());
+        }
+        let error = check(&["seed", "shape"], similar(20.0))
+            .unwrap_err()
+            .to_string();
+        assert!(
+            error.starts_with("A similar roll only moves numbers"),
+            "{error}"
+        );
+        assert!(
+            error.contains("Numbers: size, count, spread, free, turn,"),
+            "{error}"
+        );
     }
 }

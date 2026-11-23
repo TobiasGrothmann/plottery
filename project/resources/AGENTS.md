@@ -55,6 +55,7 @@ plottery run                                      # like the editor's Run button
 plottery animate /tmp/a.mp4 --every 5             # video of how the drawing comes about, see `snapshot`
 plottery roll seed size -n 24 --open              # 24 random variations, shown in the editor as they finish
 plottery pick 7                                   # make roll 7 the user's values and the editor's drawing
+plottery roll size spread --similar 20            # variations near the user's values
 ```
 
 `plottery --help` lists all commands. If `plottery` is missing or lacks a command, install the version
@@ -86,6 +87,8 @@ and runs with the user's param values, so a render shows what the user sees.
   `--defaults` like `render`). It prints one line per roll with its values and png. The results replace
   the last ones in `variations/`; the user's values don't change. The first failed run ends the roll.
   `--open` shows them in the editor while they come in. Use it when the user asks for variations.
+  `--similar PERCENT` rolls near the start instead: numbers move at most PERCENT of their range,
+  everything else stays. For variations of roll N, `pick N` first.
 - `pick N` makes roll N the user's values and its drawing the editor's, like `set` plus `run`. Only when the user picks.
 - Compiler errors show paths relative to `{{project-name}}/`, e.g. `src/generate.rs` is
   `{{project-name}}/src/generate.rs`.

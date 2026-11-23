@@ -15,8 +15,8 @@ use plottery_runtime::ProjectParamsListWrapper;
 use rand::rngs::StdRng;
 
 use crate::{
-    check_rollable, roll_param_sets, rolled_values, takes_roll_range, Project, RollRanges,
-    RunError, RunEvent, VariationsMeta,
+    check_roll_mode, check_rollable, roll_param_sets, rolled_values, takes_roll_range, Project,
+    RollMode, RollRanges, RunError, RunEvent, VariationsMeta,
 };
 
 /// Most rolls in one set.
@@ -134,9 +134,9 @@ fn format_values(values: &[(String, String)]) -> String {
 
 impl Project {
     /// Rolls `paths` of `start` `count` times and runs the already built project with each set,
-    /// replacing the stored variations. Numbers with a range in `ranges` roll within it. Roll 0
-    /// runs `start` itself. The first failed roll stops all others and is the error. Every roll is
-    /// stored when it finishes.
+    /// replacing the stored variations. Numbers with a range in `ranges` roll within it, `mode`
+    /// says how far from `start`. Roll 0 runs `start` itself. The first failed roll stops all
+    /// others and is the error. Every roll is stored when it finishes.
     #[allow(clippy::too_many_arguments)]
     pub async fn roll_async(
         &self,
@@ -144,6 +144,7 @@ impl Project {
         start: &ProjectParamsListWrapper,
         paths: &[String],
         ranges: &RollRanges,
+        mode: RollMode,
         count: usize,
         on_event: impl Fn(RollEvent),
         cancel: impl Future<Output = ()>,
@@ -152,6 +153,7 @@ impl Project {
             bail!("Roll 1 to {MAX_ROLLS} times, not {count}");
         }
         let paths = check_rollable(start, paths, ranges)?;
+        check_roll_mode(start, &paths, mode)?;
         // only what this roll uses is stored with it
         let mut probe = start.clone();
         let ranges: RollRanges = paths
@@ -166,6 +168,7 @@ impl Project {
             start,
             &paths,
             &ranges,
+            mode,
             count,
             &mut rand::make_rng::<StdRng>(),
         );
@@ -175,6 +178,7 @@ impl Project {
             created: Utc::now(),
             params: paths.clone(),
             ranges,
+            mode,
             total: Some(count),
             ended: false,
         };

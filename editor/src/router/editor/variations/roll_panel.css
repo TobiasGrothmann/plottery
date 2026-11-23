@@ -55,6 +55,12 @@
 .roll-param-chip.missing {
   box-shadow: inset 0 0 0 1px var(--err);
 }
+/* a similar roll keeps it as it is */
+.roll-param-chip.kept {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--fg-2);
+}
 .roll-panel-missing {
   font-size: 12px;
   color: var(--err);

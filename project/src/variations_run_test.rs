@@ -102,6 +102,7 @@ mod tests {
             &start,
             &[],
             &Default::default(),
+            Default::default(),
             1,
             |_| {},
             pending(),

@@ -10,7 +10,7 @@ use clap::{Args, Parser, Subcommand};
 use futures_lite::future::block_on;
 use plottery_project::{
     editor_roots, scan_roots, set_plottery_home, validate_project_name, LibSource, Project,
-    RollEvent, RunEvent, ScanOptions, PLOTTERY_HOME_ENV,
+    RollEvent, RollMode, RunEvent, ScanOptions, PLOTTERY_HOME_ENV,
 };
 use plottery_runtime::project_params_list_wrapper::ProjectParamsListWrapper;
 use std::{
@@ -128,7 +128,7 @@ enum Command {
     },
     #[command(
         about = "Roll params to random values and store a drawing per roll, the project's variations",
-        long_about = "Roll params to random values and store a drawing per roll, the project's variations.\n\nEach roll gives every named param a uniform random value: params with a #[range] within it, seeds from 100 to 999, angles over the full turn, bools, enums and options among their choices. Roll 0 is the start params themselves. The results replace the last ones in the project's variations/ folder (not committed): NNN.plotp, NNN.plotl and NNN.png per roll. The start params are the editor's saved values unless --defaults or --set say otherwise; the saved values don't change. The first failed run ends the roll, finished rolls stay. `plottery pick N` makes roll N the saved values."
+        long_about = "Roll params to random values and store a drawing per roll, the project's variations.\n\nEach roll gives every named param a uniform random value: params with a #[range] within it, seeds from 100 to 999, angles over the full turn, bools, enums and options among their choices. Roll 0 is the start params themselves. The results replace the last ones in the project's variations/ folder (not committed): NNN.plotp, NNN.plotl and NNN.png per roll. The start params are the editor's saved values unless --defaults or --set say otherwise; the saved values don't change. The first failed run ends the roll, finished rolls stay. `plottery pick N` makes roll N the saved values.\n\nWith --similar PERCENT the rolls stay near the start: each named number moves at most PERCENT of its range away from its start value, still within the range, and seeds, bools, enums and whether options are on stay as they are. To roll around roll N of the last set, `plottery pick N` first."
     )]
     Roll {
         #[arg(
@@ -138,6 +138,12 @@ enum Command {
         names: Vec<String>,
         #[arg(short = 'n', long, default_value_t = 100, help = "Number of rolls")]
         count: usize,
+        #[arg(
+            long,
+            value_name = "PERCENT",
+            help = "Roll numbers at most PERCENT of their range away from the start values, keep everything else"
+        )]
+        similar: Option<f32>,
         #[command(flatten)]
         project: ProjectFlag,
         #[command(flatten)]
@@ -283,6 +289,7 @@ Typical loop inside a project folder:
   plottery animate /tmp/a.mp4 --every 5           video of how the drawing comes about (`snapshot`)
   plottery roll seed size -n 24 --open            24 random variations, shown in the editor
   plottery pick 7                                 make roll 7 the user's values
+  plottery roll size spread --similar 20          variations near the user's values
   plottery set size=12                            change the user's values
   plottery run ~/art/labyrinth                    run a project from anywhere
   plottery open                                   open the project in the editor";
@@ -515,6 +522,7 @@ pub fn main() -> Result<()> {
         Command::Roll {
             names,
             count,
+            similar,
             project,
             params,
             open,
@@ -529,6 +537,7 @@ pub fn main() -> Result<()> {
                 &start,
                 &names,
                 &Default::default(),
+                similar.map_or(RollMode::Uniform, |percent| RollMode::Similar { percent }),
                 count,
                 |event| match event {
                     RollEvent::Prepared { total } => {

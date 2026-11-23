@@ -6,7 +6,7 @@ mod tests {
     use plottery_lib::{Circle, Layer, V2};
     use plottery_runtime::{ProjectParam, ProjectParamValue, ProjectParamsListWrapper};
 
-    use crate::{Project, ProjectConfig, VariationsMeta};
+    use crate::{Project, ProjectConfig, RollMode, VariationsMeta};
 
     fn project(dir: &Path) -> Project {
         Project {
@@ -35,9 +35,25 @@ mod tests {
             created: Utc::now(),
             params: vec!["count".to_string()],
             ranges: Default::default(),
+            mode: RollMode::Similar { percent: 20.0 },
             total: Some(3),
             ended: false,
         }
+    }
+
+    #[test]
+    fn meta_without_a_mode_is_uniform_and_a_similar_one_round_trips() {
+        let old = r#"{"created":"2026-11-01T10:00:00Z","params":["count"],"total":3,"ended":true}"#;
+        let old: VariationsMeta = serde_json::from_str(old).unwrap();
+        assert_eq!(old.mode, RollMode::Uniform);
+        assert!(!serde_json::to_string(&old).unwrap().contains("mode"));
+
+        let similar = meta();
+        let json = serde_json::to_string(&similar).unwrap();
+        assert_eq!(
+            serde_json::from_str::<VariationsMeta>(&json).unwrap(),
+            similar
+        );
     }
 
     fn layer() -> Layer {

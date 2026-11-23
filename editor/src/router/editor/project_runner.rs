@@ -7,7 +7,7 @@ use crate::router::editor::running_state::RunningState;
 use dioxus::signals::{ReadableExt, SyncSignal, WritableExt};
 use dioxus_logger::tracing;
 use plottery_lib::Layer;
-use plottery_project::{Project, RollEvent, RollRanges, RunError, RunEvent, RunStage};
+use plottery_project::{Project, RollEvent, RollMode, RollRanges, RunError, RunEvent, RunStage};
 use plottery_runtime::project_params_list_wrapper::ProjectParamsListWrapper;
 
 use super::{console_messages::ConsoleMessages, editor_data::LayerChangeWrapper};
@@ -247,14 +247,15 @@ impl ProjectRunner {
     }
 
     /// Builds, then rolls `paths` of the params `count` times into the project's variations,
-    /// numbers within their range in `ranges`, canceling the previous run. `rolling` holds the
-    /// roll's id while it runs.
+    /// numbers within their range in `ranges` and as far as `mode` says, canceling the previous
+    /// run. `rolling` holds the roll's id while it runs.
     #[allow(clippy::too_many_arguments)]
     pub fn trigger_roll(
         &self,
         release: bool,
         paths: Vec<String>,
         ranges: RollRanges,
+        mode: RollMode,
         count: usize,
         running_state: SyncSignal<RunningState>,
         console: SyncSignal<ConsoleMessages>,
@@ -350,6 +351,7 @@ impl ProjectRunner {
                                 &start,
                                 &paths,
                                 &ranges,
+                                mode,
                                 count,
                                 on_roll_event,
                                 &mut cancel,

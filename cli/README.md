@@ -18,6 +18,7 @@ plottery render /tmp/a.png /tmp/a.svg --set size=12  # render, print length, tra
 plottery set size=12 glow.radius=2                # change the saved values, the editor reruns with hot reload on
 plottery roll seed size -n 24 --open              # 24 random variations of seed and size, shown in the editor as they finish
 plottery pick 7                                   # make roll 7 the saved values and the editor's drawing
+plottery roll size spread --similar 20            # variations near the saved values, numbers at most 20 % of their range away
 plottery run                                      # like the editor's Run button
 plottery animate /tmp/a.mp4 --every 5             # video of how the drawing comes about, from the project's `snapshot` calls
 plottery open                                     # open the project in the editor

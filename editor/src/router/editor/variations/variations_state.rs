@@ -3,7 +3,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use dioxus::prelude::*;
 use dioxus_logger::tracing;
 use plottery_project::{
-    is_rollable, own_roll_range, takes_roll_range, Project, RollRange, RollRanges, Variations,
+    is_rollable, own_roll_range, takes_roll_range, Project, RollMode, RollRange, RollRanges,
+    Variations,
 };
 use plottery_runtime::{
     project_param_value::ProjectParamValue, project_params_list_wrapper::ProjectParamsListWrapper,
@@ -78,6 +79,10 @@ pub struct VariationsState {
     /// The ranges set for numbers, by dotted path.
     pub ranges: Signal<BTreeMap<String, RangeInput>>,
     pub count: Signal<usize>,
+    /// Roll near the current values instead of anywhere in the ranges.
+    pub similar: Signal<bool>,
+    /// How far a similar roll goes, in percent of each number's range.
+    pub similar_percent: Signal<f32>,
     /// Id of the roll that is running.
     pub rolling: SyncSignal<Option<u64>>,
     /// Scroll position of the grid, kept while the edit view is shown.
@@ -91,8 +96,21 @@ pub fn use_variations_state() -> VariationsState {
         selected: use_signal(BTreeSet::new),
         ranges: use_signal(BTreeMap::new),
         count: use_signal(|| 100),
+        similar: use_signal(|| false),
+        similar_percent: use_signal(|| 20.0),
         rolling: use_signal_sync(|| None),
         scroll_top: use_signal(|| 0.0),
+    }
+}
+
+impl VariationsState {
+    pub fn roll_mode(&self) -> RollMode {
+        match (self.similar)() {
+            true => RollMode::Similar {
+                percent: (self.similar_percent)(),
+            },
+            false => RollMode::Uniform,
+        }
     }
 }
 
@@ -128,6 +146,13 @@ pub async fn reload_variations(
             state
                 .count
                 .set(variations.rolls.len().saturating_sub(1).max(1));
+            match variations.meta.mode {
+                RollMode::Uniform => state.similar.set(false),
+                RollMode::Similar { percent } => {
+                    state.similar.set(true);
+                    state.similar_percent.set(percent);
+                }
+            }
         }
     }
     state.variations.set(loaded);

@@ -1,10 +1,10 @@
 use dioxus::prelude::*;
-use plottery_project::{can_roll_paths, MAX_ROLLS};
+use plottery_project::{can_roll_paths, is_rollable_number, MAX_ROLLS};
 
 use crate::{
     components::{
         icon::{Icon, IconName},
-        ui::{Button, Variant},
+        ui::{Button, Segmented, Variant},
     },
     router::editor::{
         editor_ctx::EditorCtx, running_state::RunningState,
@@ -19,9 +19,13 @@ pub fn RollPanel() -> Element {
     let state = ctx.variations;
     let mut count = state.count;
     let mut selected = state.selected;
-    // the field's text while typing, the count follows when it is a number
+    let mut similar = state.similar;
+    let mut percent = state.similar_percent;
+    // the fields' text while typing, the values follow when it is a number
     let mut count_text = use_signal(|| count.peek().to_string());
     use_effect(move || count_text.set(count().to_string()));
+    let mut percent_text = use_signal(|| percent.peek().to_string());
+    use_effect(move || percent_text.set(percent().to_string()));
 
     // in the order of the params, without ticks the project lost
     let params = ctx.project_params.read().clone();
@@ -31,7 +35,23 @@ pub fn RollPanel() -> Element {
         .collect();
     // numbers without a #[range] wait for both ends of theirs
     let (ranges, missing) = roll_ranges(&params, &to_roll, &state.ranges.read());
-    let ready = !to_roll.is_empty() && missing.is_empty();
+    let mode = state.roll_mode();
+    // what a similar roll keeps as it is: all but numbers
+    let mut probe = params.clone();
+    let kept: Vec<String> = match similar() {
+        true => to_roll
+            .iter()
+            .filter(|path| {
+                !probe
+                    .value_at_path_mut(path)
+                    .is_ok_and(|value| is_rollable_number(value))
+            })
+            .cloned()
+            .collect(),
+        false => Vec::new(),
+    };
+    let nothing_moves = !to_roll.is_empty() && kept.len() == to_roll.len();
+    let ready = !to_roll.is_empty() && missing.is_empty() && !nothing_moves;
     let missing_names = missing.join(", ");
     let rolling = (state.rolling)().is_some();
     let progress = match (ctx.running_state)() {
@@ -52,6 +72,7 @@ pub fn RollPanel() -> Element {
             ctx.release,
             paths.clone(),
             ranges.clone(),
+            mode,
             *count.peek(),
             ctx.running_state,
             ctx.console,
@@ -74,9 +95,9 @@ pub fn RollPanel() -> Element {
                         button {
                             key: "{path}",
                             r#type: "button",
-                            class: if missing.contains(&path) { "roll-param-chip missing" } else { "roll-param-chip" },
+                            class: if missing.contains(&path) { "roll-param-chip missing" } else if kept.contains(&path) { "roll-param-chip kept" } else { "roll-param-chip" },
                             disabled: rolling,
-                            title: "Don't roll {path}",
+                            title: if kept.contains(&path) { "Don't roll {path}. A similar roll keeps it as it is" } else { "Don't roll {path}" },
                             onclick: move |_| {
                                 selected.write().remove(&path);
                             },
@@ -89,7 +110,47 @@ pub fn RollPanel() -> Element {
             if !missing.is_empty() {
                 span { class: "roll-panel-missing", "Set the range to roll {missing_names} in" }
             }
+            if nothing_moves {
+                span { class: "roll-panel-missing", "A similar roll only moves numbers, tick one" }
+            }
             div { class: "roll-panel-row",
+                Segmented {
+                    options: vec![(false, "Uniform".to_string()), (true, "Similar".to_string())],
+                    value: similar(),
+                    disabled: rolling,
+                    onchange: move |on| similar.set(on),
+                }
+                if similar() {
+                    label {
+                        class: "roll-count",
+                        title: "How far from the current values, in percent of each number's range",
+                        span { "±" }
+                        input {
+                            class: "input",
+                            inputmode: "decimal",
+                            "aria-label": "Percent of the range to roll near the current values",
+                            disabled: rolling,
+                            value: "{percent_text}",
+                            oninput: move |event| {
+                                let text = event.value();
+                                if let Ok(value) = text.trim().parse::<f32>() {
+                                    if value.is_finite() {
+                                        percent.set(value.clamp(1.0, 100.0));
+                                    }
+                                }
+                                percent_text.set(text);
+                            },
+                            onblur: move |_| percent_text.set(percent().to_string()),
+                            onkeydown: move |event| {
+                                if event.key() == Key::Enter {
+                                    percent_text.set(percent().to_string());
+                                    roll.call(());
+                                }
+                            },
+                        }
+                        span { "%" }
+                    }
+                }
                 label { class: "roll-count",
                     input {
                         class: "input",

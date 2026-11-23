@@ -97,6 +97,7 @@ pub fn Segmented<T: Clone + PartialEq + 'static>(
     options: Vec<(T, String)>,
     value: T,
     onchange: EventHandler<T>,
+    #[props(default)] disabled: bool,
 ) -> Element {
     rsx! {
         div { class: "seg", role: "group",
@@ -104,6 +105,7 @@ pub fn Segmented<T: Clone + PartialEq + 'static>(
                 button {
                     key: "{text}",
                     r#type: "button",
+                    disabled,
                     class: if option == value { "on" },
                     "aria-pressed": if option == value { "true" } else { "false" },
                     onclick: move |_| onchange.call(option.clone()),
