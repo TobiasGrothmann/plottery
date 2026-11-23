@@ -504,7 +504,18 @@
 .ParamsEditor.selecting .penum-body {
   --outer: var(--inner);
 }
-/* a box of its own in the column, next to the number's row and as high as it */
+/* a number has no tick: rolled, its row is blue and its range shows next to it */
+.ParamsEditor .roll-row.ranged::after {
+  display: none;
+}
+.ParamsEditor .prow.roll-row.ranged {
+  padding-right: 12px;
+}
+.ParamsEditor .sub.roll-row.ranged,
+.ParamsEditor .vec-item.roll-row.ranged {
+  padding-right: 6px;
+}
+/* a box of its own in the column, next to the rolled number's row and as high as it */
 .RollRangeField {
   position: absolute;
   top: -1px;
@@ -516,14 +527,10 @@
   align-items: center;
   gap: 4px;
   padding: 0 8px;
-  border: 1px solid var(--line-2);
+  border: 1px solid var(--accent);
   border-radius: var(--r);
-  background: var(--bg-2);
-  cursor: default;
-}
-.roll-row.on > .RollRangeField {
-  border-color: var(--accent);
   background: var(--accent-soft);
+  cursor: default;
 }
 .RollRangeField .input {
   padding: 0 6px;

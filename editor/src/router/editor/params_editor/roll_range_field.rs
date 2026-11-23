@@ -6,15 +6,15 @@ use crate::router::editor::{
     variations::variations_state::RangeInput,
 };
 
-/// From and to of the range a number is rolled in, in the variations view. They start as the
-/// param's own `#[range]` (`own`); a number without one has to get both.
+/// From and to of the range a ticked number is rolled in, in the variations view. They start as
+/// the param's own `#[range]` (`own`); a number without one has to get both.
 #[component]
 pub fn RollRangeField(
     /// Dotted path of the param.
     dot: String,
     integer: bool,
     own: Option<RollRange>,
-    /// The param is ticked and can't roll without both ends.
+    /// The param can't roll without both ends.
     required: bool,
 ) -> Element {
     let ctx = use_context::<EditorCtx>();
@@ -60,7 +60,6 @@ fn RangeEnd(
 ) -> Element {
     let ctx = use_context::<EditorCtx>();
     let mut inputs = ctx.variations.ranges;
-    let mut selected = ctx.variations.selected;
     let locked = (ctx.variations.rolling)().is_some();
     // the text while typing, so a commit that changes nothing still shows the number again
     let mut typed: Signal<Option<String>> = use_signal(|| None);
@@ -98,10 +97,6 @@ fn RangeEnd(
             true => inputs.write().remove(&dot),
             false => inputs.write().insert(dot.clone(), input),
         };
-        // a range is set to roll in it
-        if end.is_some() && !selected.peek().contains(&dot) {
-            selected.write().insert(dot.clone());
-        }
     };
 
     rsx! {

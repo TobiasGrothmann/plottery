@@ -426,10 +426,10 @@ fn set_ticked(ctx: EditorCtx, dot: String, ticked: bool) {
     };
 }
 
-/// The range inputs of a number with a tick: a box right of its row in the variations view.
+/// The range inputs of a ticked number: a box right of its row in the variations view.
 fn roll_range_cell(value: &ProjectParamValue, tick: &Option<(String, bool)>) -> Option<Element> {
     let (dot, ticked) = tick.as_ref()?;
-    if !takes_roll_range(value) {
+    if !ticked || !takes_roll_range(value) {
         return None;
     }
     let integer = matches!(
@@ -441,7 +441,7 @@ fn roll_range_cell(value: &ProjectParamValue, tick: &Option<(String, bool)>) -> 
             dot: dot.clone(),
             integer,
             own: own_roll_range(value),
-            required: *ticked && !is_rollable(value),
+            required: !is_rollable(value),
         }
     })
 }
@@ -466,9 +466,14 @@ fn roll_class(
     if !selecting(ctx) {
         return base.to_string();
     }
+    // a number shows that it is rolled with its range box instead of the tick
+    let ranged = match takes_roll_range(value) {
+        true => " ranged",
+        false => "",
+    };
     let class = match tick {
-        Some((_, true)) => format!("{base} roll-row on"),
-        Some((_, false)) => format!("{base} roll-row"),
+        Some((_, true)) => format!("{base} roll-row{ranged} on"),
+        Some((_, false)) => format!("{base} roll-row{ranged}"),
         None if holds_rollable(value) => base.to_string(),
         None => format!("{base} roll-locked"),
     };
