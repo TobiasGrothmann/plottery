@@ -316,7 +316,10 @@ impl ProjectRunner {
                         ProjectParamsListWrapper::new_combined(&saved_params, &defaults.list);
                     if is_current() {
                         if let Ok(mut current) = params.try_write() {
-                            *current = start.clone();
+                            // a roll picked while building stays picked
+                            if current.list == saved_params {
+                                *current = start.clone();
+                            }
                         }
                     }
                     let on_roll_event = |event: RollEvent| {
