@@ -28,6 +28,7 @@ pub fn RollTile(
 
     rsx! {
         div {
+            id: "roll-tile-{index}",
             class,
             role: "button",
             tabindex: "0",

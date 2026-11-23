@@ -5,6 +5,7 @@ use plottery_project::Roll;
 use plottery_runtime::project_params_list_wrapper::ProjectParamsListWrapper;
 
 use super::{
+    roll_nav::on_arrow_key,
     roll_panel::RollPanel,
     roll_tile::{CurrentTile, RollTile},
     variations_state::EditorView,
@@ -95,6 +96,13 @@ pub fn VariationsGrid(preview: Option<String>) -> Element {
                 style: "--tile-size: {tile_size}px;",
                 onmounted: move |event| scroller.set(Some(event.data())),
                 onscroll: move |event| scroll_top.set(event.data().scroll_top()),
+                // no text fields in here, so the arrows always move the selection
+                onkeydown: move |event| {
+                    if on_arrow_key(ctx, &event.key()) {
+                        event.prevent_default();
+                        event.stop_propagation();
+                    }
+                },
                 div { class: "grid_cards",
                     if show_current {
                         CurrentTile {
@@ -129,7 +137,7 @@ pub fn VariationsGrid(preview: Option<String>) -> Element {
 
 /// Makes the params and drawing of roll `index` the project's, the start of the next roll, and
 /// with `open` shows them in the edit view. Nothing runs, so a roll in progress goes on.
-fn pick_roll(ctx: EditorCtx, index: usize, open: bool) {
+pub(super) fn pick_roll(ctx: EditorCtx, index: usize, open: bool) {
     let picked = ctx
         .variations
         .variations

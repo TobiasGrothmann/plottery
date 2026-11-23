@@ -28,10 +28,11 @@ pub fn RollCompare() -> Element {
             .find(|roll| !roll.skipped && roll.index != 0 && roll.params.list == current_params)
             .map(|roll| roll.index)
     });
-    // a new set of rolls renders the sides again; a key is only allowed first in a block
-    let side = |index: usize| {
+    // a new set of rolls renders the sides again, another selected roll keeps the zoom of its
+    // side; a key is only allowed first in a block
+    let side = |name: &str, index: usize| {
         rsx! {
-            CompareSide { key: "{set_id}-{index}", index }
+            CompareSide { key: "{set_id}-{name}", index }
         }
     };
 
@@ -40,9 +41,9 @@ pub fn RollCompare() -> Element {
         section { class: "roll-compare",
             match selected {
                 Some(index) => rsx! {
-                    {side(0)}
+                    {side("start", 0)}
                     div { class: "roll-compare-wall" }
-                    {side(index)}
+                    {side("roll", index)}
                 },
                 None => rsx! {
                     p { class: "roll-compare-hint", "Click a roll to compare it with the start." }
@@ -60,33 +61,43 @@ pub fn RollCompare() -> Element {
     }
 }
 
-/// Roll `index` as a zoomable drawing, like the fullscreen preview.
+/// Roll `index` as a zoomable drawing, like the fullscreen preview. Another `index` keeps the zoom.
 #[component]
-fn CompareSide(index: usize) -> Element {
+fn CompareSide(index: ReadSignal<usize>) -> Element {
     let ctx = use_context::<EditorCtx>();
     let zoom = use_signal(PreviewZoom::default);
     let svg = use_resource(move || {
+        let index = index();
         let project = ctx.project.peek().clone();
         async move {
-            match tokio::task::spawn_blocking(move || roll_svg(&project, index)).await {
+            let svg = match tokio::task::spawn_blocking(move || roll_svg(&project, index)).await {
                 Ok(Ok(svg)) => Ok(svg),
                 Ok(Err(e)) => Err(format!("{e:#}")),
                 Err(e) => Err(e.to_string()),
-            }
+            };
+            (index, svg)
         }
     });
-    let name = match index {
-        0 => "start".to_string(),
-        _ => index.to_string(),
+    // the start stays on its side, so the stage id stays the same
+    let stage_id = match index() {
+        0 => "roll-compare-start",
+        _ => "roll-compare-roll",
     };
-    let side = match &*svg.read() {
+    // the shown roll until the next one is rendered
+    let loaded = svg.read().clone();
+    let name = match loaded.as_ref().map(|(index, _)| *index) {
+        Some(0) => "start".to_string(),
+        Some(index) => index.to_string(),
+        None => String::new(),
+    };
+    let side = match loaded.map(|(_, svg)| svg) {
         None => rsx! { Loading {} },
         Some(Err(e)) => rsx! { p { class: "roll-compare-hint", "{e}" } },
         Some(Ok((src, layer_bbox))) => rsx! {
             SVGImage {
-                stage_id: format!("roll-compare-{index}"),
-                src: src.clone(),
-                layer_bbox: *layer_bbox,
+                stage_id: stage_id.to_string(),
+                src,
+                layer_bbox,
                 pick_active: false,
                 onpick: move |_| {},
                 mark: None,

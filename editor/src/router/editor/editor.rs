@@ -31,6 +31,7 @@ use crate::{
         running_state::RunningState,
         variations::{
             roll_compare::RollCompare,
+            roll_nav::on_arrow_key,
             variations_grid::VariationsGrid,
             variations_state::{use_variations_state, EditorView},
         },
@@ -227,6 +228,12 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                             compare.toggle();
                         }
                     });
+                    return;
+                }
+                // the grid handles its own arrows; over it, fullscreen or compare, no text field has focus
+                let over_grid = view() == EditorView::Variations && (fullscreen() || compare());
+                if over_grid && !command && on_arrow_key(ctx, &event.key()) {
+                    event.prevent_default();
                     return;
                 }
                 if event.key() == Key::Escape && compare() && view() == EditorView::Variations {
