@@ -207,7 +207,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                 let modifiers = event.modifiers();
                 let command = modifiers.meta() || modifiers.ctrl();
                 let f = matches!(event.key(), Key::Character(ref key) if key.eq_ignore_ascii_case("f"));
-                if f && !command && !modifiers.alt() && view() == EditorView::Edit {
+                if f && !command && !modifiers.alt() {
                     spawn(async move {
                         let typing = document::eval(FOCUS_IS_TEXT_FIELD).await;
                         if typing.ok().and_then(|v| v.as_bool()) != Some(true) {
@@ -285,15 +285,18 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                     }
                 }
                 main { class: "center",
-                    if view() == EditorView::Variations {
+                    if !editing {
                         VariationsGrid { preview: svg.read().as_ref().map(|svg| svg.src.clone()).or(cached_preview.clone()) }
-                    } else {
+                    }
+                    // over the variations only in fullscreen, showing the selected roll
+                    if editing || fullscreen() {
                         PreviewStage {
                         svg,
                         cached_preview: cached_preview.clone(),
                         layer_bbox: (layer_view.bbox)(),
                         redraw_counter: layer.read().change_counter,
-                        busy,
+                        // a roll doesn't change the drawing
+                        busy: busy && editing,
                         has_drawing,
                         fullscreen,
                         zoom: preview_zoom,
