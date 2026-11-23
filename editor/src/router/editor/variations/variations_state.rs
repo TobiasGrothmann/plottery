@@ -90,7 +90,7 @@ pub fn use_variations_state() -> VariationsState {
         variations: use_signal_sync(|| None),
         selected: use_signal(BTreeSet::new),
         ranges: use_signal(BTreeMap::new),
-        count: use_signal(|| 24),
+        count: use_signal(|| 100),
         rolling: use_signal_sync(|| None),
         scroll_top: use_signal(|| 0.0),
     }

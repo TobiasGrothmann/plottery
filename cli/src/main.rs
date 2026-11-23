@@ -136,7 +136,7 @@ enum Command {
             help = "Params to roll, as named by `plottery params`, e.g. seed size glow.radius. Without any, lists the rollable ones"
         )]
         names: Vec<String>,
-        #[arg(short = 'n', long, default_value_t = 24, help = "Number of rolls")]
+        #[arg(short = 'n', long, default_value_t = 100, help = "Number of rolls")]
         count: usize,
         #[command(flatten)]
         project: ProjectFlag,
