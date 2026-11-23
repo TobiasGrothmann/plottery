@@ -246,27 +246,39 @@ impl Project {
                         futures_lite::future::or(stopped, too_long),
                     )
                     .await;
+                // the run alone, without storing it
+                let took = started.elapsed().as_millis().max(1) as u64;
                 // roll 0 runs too but is not one of the `count` rolls
                 let counted = usize::from(index > 0);
                 let name = match index {
                     0 => "Roll 0 (the start params)".to_string(),
                     _ => format!("Roll {index}"),
                 };
+                // storing renders a png: on a thread of its own, or the other rolls wait for it
+                let (project, params) = (self.clone(), sets[index].clone());
                 match result {
-                    Ok(layer) => match self.save_roll(index, &sets[index], &layer) {
-                        Ok(()) => {
-                            let took = started.elapsed().as_millis().max(1) as u64;
-                            slowest.fetch_max(took, Ordering::SeqCst);
-                            let done = done.fetch_add(counted, Ordering::SeqCst)
-                                + counted
-                                + skipped.load(Ordering::SeqCst);
-                            on_event(RollEvent::Finished { index, done, total });
+                    Ok(layer) => {
+                        match blocking::unblock(move || project.save_roll(index, &params, &layer))
+                            .await
+                        {
+                            Ok(()) => {
+                                slowest.fetch_max(took, Ordering::SeqCst);
+                                let done = done.fetch_add(counted, Ordering::SeqCst)
+                                    + counted
+                                    + skipped.load(Ordering::SeqCst);
+                                on_event(RollEvent::Finished { index, done, total });
+                            }
+                            Err(e) => fail(format!("{name}: storing its result failed: {e}")),
                         }
-                        Err(e) => fail(format!("{name}: storing its result failed: {e}")),
-                    },
+                    }
                     Err(RunError::Killed { .. }) => {
-                        if let Some(limit) = *timed_out.lock().unwrap() {
-                            if let Err(e) = self.save_skipped_roll(index, &sets[index]) {
+                        let timed_out = *timed_out.lock().unwrap();
+                        if let Some(limit) = timed_out {
+                            let stored = blocking::unblock(move || {
+                                project.save_skipped_roll(index, &params)
+                            })
+                            .await;
+                            if let Err(e) = stored {
                                 return fail(format!("{name}: storing it as skipped failed: {e}"));
                             }
                             let done = skipped.fetch_add(counted, Ordering::SeqCst)

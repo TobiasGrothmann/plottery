@@ -27,6 +27,7 @@ rand = "0.10"
 resvg = "0.50"
 async-process = "2.0.1"
 async-io = "2.3.0"
+blocking = "1.6"
 futures-lite.workspace = true
 tokio = { workspace = true, features = ["rt"] }
 rust-embed = "8.0.0"
