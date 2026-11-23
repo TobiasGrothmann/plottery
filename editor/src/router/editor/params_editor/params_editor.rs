@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use dioxus_logger::tracing;
-use plottery_project::{holds_rollable, is_rollable};
+use plottery_project::{can_roll, holds_rollable, is_rollable, own_roll_range, takes_roll_range};
 use plottery_runtime::{
     project_param::ProjectParam, project_param_optional::ProjectParamOptional,
     project_param_struct::ProjectParamStruct, project_param_value::ProjectParamValue,
@@ -32,6 +32,7 @@ use crate::router::editor::{
         percent_field::PercentField,
         range_field::RangeField,
         rect_field::RectField,
+        roll_range_field::RollRangeField,
         seed_field::SeedField,
         slider_field::SliderField,
         string_field::StringField,
@@ -323,6 +324,7 @@ fn render_vec_value(
                     let item_key = item_path.join("_");
                     let tick = roll_tick(ctx, &item, &item_path);
                     let item_class = roll_class("vec-item", &tick, &item, ctx);
+                    let range_cell = roll_range_cell(&item, &tick);
                     let inert = read_only && !holds_rows(&item);
 
                     rsx! {
@@ -336,6 +338,7 @@ fn render_vec_value(
                             div { class: "grow pctl", inert: if inert { "true" },
                                 {render_value_without_label(param_name.clone(), item, item_path, ctx)}
                             }
+                            {range_cell}
                             if !read_only {
                                 IconButton {
                                     icon: IconName::X,
@@ -404,7 +407,7 @@ fn rolling(ctx: EditorCtx) -> bool {
 /// The dotted path to roll the param at `path` by, and whether it is ticked. `None` outside the
 /// variations view and for params that can't be rolled.
 fn roll_tick(ctx: EditorCtx, value: &ProjectParamValue, path: &[String]) -> Option<(String, bool)> {
-    if !selecting(ctx) || !is_rollable(value) {
+    if !selecting(ctx) || !can_roll(value) {
         return None;
     }
     let dot = dot_path(&ctx.project_params.peek().list, path)?;
@@ -421,6 +424,26 @@ fn set_ticked(ctx: EditorCtx, dot: String, ticked: bool) {
         true => selected.write().insert(dot),
         false => selected.write().remove(&dot),
     };
+}
+
+/// The range inputs of a number with a tick, the right column of the variations view.
+fn roll_range_cell(value: &ProjectParamValue, tick: &Option<(String, bool)>) -> Option<Element> {
+    let (dot, ticked) = tick.as_ref()?;
+    if !takes_roll_range(value) {
+        return None;
+    }
+    let integer = matches!(
+        leaf_value(value),
+        ProjectParamValue::Int(_) | ProjectParamValue::IntRanged { .. }
+    );
+    Some(rsx! {
+        RollRangeField {
+            dot: dot.clone(),
+            integer,
+            own: own_roll_range(value),
+            required: *ticked && !is_rollable(value),
+        }
+    })
 }
 
 /// Values drawn as rows of their own (fields, items, a variant's fields), which can have ticks.
@@ -443,9 +466,14 @@ fn roll_class(
     if !selecting(ctx) {
         return base.to_string();
     }
+    // a number's row has a third column for its range
+    let ranged = match takes_roll_range(value) {
+        true => " ranged",
+        false => "",
+    };
     let class = match tick {
-        Some((_, true)) => format!("{base} roll-row on"),
-        Some((_, false)) => format!("{base} roll-row"),
+        Some((_, true)) => format!("{base} roll-row{ranged} on"),
+        Some((_, false)) => format!("{base} roll-row{ranged}"),
         None if holds_rollable(value) => base.to_string(),
         None => format!("{base} roll-locked"),
     };
@@ -646,6 +674,7 @@ fn render_named_param(
         &param.value,
         ctx,
     );
+    let range_cell = roll_range_cell(&param.value, &tick);
     let item_count = vec_item_count(&param.value).map(|count| match count {
         1 => "1 item".to_string(),
         n => format!("{n} items"),
@@ -693,6 +722,7 @@ fn render_named_param(
                     }
                 }
                 div { class: "pctl", inert: if inert { "true" }, {control} }
+                {range_cell}
             }
         }
     } else {
@@ -713,6 +743,7 @@ fn render_named_param(
                     }
                 }
                 div { class: "pctl", inert: if inert { "true" }, {control} }
+                {range_cell}
                 if let Some(variant_rows) = variant_rows {
                     div { class: "psection-body penum-body", {variant_rows} }
                 }

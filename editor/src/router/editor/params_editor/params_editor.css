@@ -466,6 +466,27 @@
 .ParamsEditor .roll-row.on > .sublabel {
   color: var(--fg-0);
 }
+/* a number's row: a column on the right with the range it is rolled in */
+.ParamsEditor .prow.ranged {
+  grid-template-columns: 84px minmax(0, 1fr) 124px;
+}
+.ParamsEditor .sub.ranged {
+  grid-template-columns: 64px minmax(0, 1fr) 124px;
+}
+.RollRangeField {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: default;
+}
+.vec-item > .RollRangeField {
+  flex: none;
+  width: 124px;
+}
+.RollRangeField .input {
+  padding: 0 6px;
+  text-align: center;
+}
 .ParamsEditor .roll-locked {
   opacity: 0.45;
 }

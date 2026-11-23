@@ -16,6 +16,7 @@ pub mod params_editor;
 pub mod percent_field;
 pub mod range_field;
 pub mod rect_field;
+pub mod roll_range_field;
 pub mod seed_field;
 pub mod slider_field;
 pub mod string_field;
