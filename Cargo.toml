@@ -3,7 +3,7 @@ resolver = "2"
 members = ["lib", "fonts", "cli", "editor", "project", "runtime", "server", "server_lib"]
 
 [workspace.package]
-version = "0.23.1"
+version = "0.23.2"
 rust-version = "1.88"
 authors = ["Tobias Grothmann <tobiasgrothmannplotterart@gmail.com>"]
 license = "GPL-3.0-only"
