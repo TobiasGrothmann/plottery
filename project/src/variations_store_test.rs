@@ -34,6 +34,7 @@ mod tests {
         VariationsMeta {
             created: Utc::now(),
             params: vec!["count".to_string()],
+            ranges: Default::default(),
             total: Some(3),
             ended: false,
         }

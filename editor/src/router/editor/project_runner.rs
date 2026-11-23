@@ -342,7 +342,15 @@ impl ProjectRunner {
                     };
                     Some(
                         project
-                            .roll_async(release, &start, &paths, count, on_roll_event, &mut cancel)
+                            .roll_async(
+                                release,
+                                &start,
+                                &paths,
+                                &Default::default(),
+                                count,
+                                on_roll_event,
+                                &mut cancel,
+                            )
                             .await,
                     )
                 }

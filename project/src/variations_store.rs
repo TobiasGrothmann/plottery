@@ -10,7 +10,7 @@ use resvg::tiny_skia;
 use serde::{Deserialize, Serialize};
 
 use crate::project::{render_svg, write_atomic};
-use crate::{rolled_values, Project};
+use crate::{rolled_values, Project, RollRanges};
 
 /// Longest side of a roll's PNG in pixels.
 pub const ROLL_THUMBNAIL_SIZE: u32 = 768;
@@ -24,6 +24,9 @@ pub struct VariationsMeta {
     pub created: DateTime<Utc>,
     /// Dotted paths of the rolled params.
     pub params: Vec<String>,
+    /// The ranges given to rolled numbers.
+    #[serde(default, skip_serializing_if = "RollRanges::is_empty")]
+    pub ranges: RollRanges,
     /// Rolls asked for, roll 0 left out. `None` in sets from before it was stored.
     #[serde(default)]
     pub total: Option<usize>,

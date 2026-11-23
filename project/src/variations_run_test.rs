@@ -97,7 +97,15 @@ mod tests {
             dir: std::env::temp_dir(),
         };
         let start = ProjectParamsListWrapper::empty();
-        assert_send(project.roll_async(true, &start, &[], 1, |_| {}, pending()));
+        assert_send(project.roll_async(
+            true,
+            &start,
+            &[],
+            &Default::default(),
+            1,
+            |_| {},
+            pending(),
+        ));
     }
 
     #[test]

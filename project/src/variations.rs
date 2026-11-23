@@ -1,5 +1,6 @@
 //! Rolls: params set to uniform random values within their range or among their choices.
 
+use std::collections::BTreeMap;
 use std::f32::consts::TAU;
 use std::ops::RangeInclusive;
 
@@ -7,6 +8,7 @@ use anyhow::{bail, Result};
 use plottery_runtime::{ProjectParam, ProjectParamValue, ProjectParamsListWrapper};
 use rand::seq::IndexedRandom;
 use rand::{Rng, RngExt};
+use serde::{Deserialize, Serialize};
 
 /// Seeds a roll picks from, the same as the editor's dice button.
 pub const ROLL_SEED_RANGE: RangeInclusive<i32> = 100..=999;
@@ -31,53 +33,119 @@ pub fn is_rollable(value: &ProjectParamValue) -> bool {
     }
 }
 
+/// From and to of a number param in a roll, instead of its `#[range]`.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct RollRange {
+    pub from: f32,
+    pub to: f32,
+}
+
+/// Roll ranges by the dotted path of their param.
+pub type RollRanges = BTreeMap<String, RollRange>;
+
+/// Numbers a roll can give a range of its own. A float or int without a `#[range]` only rolls with one.
+pub fn takes_roll_range(value: &ProjectParamValue) -> bool {
+    use ProjectParamValue as V;
+    match value {
+        V::Float(_) | V::Int(_) | V::FloatRanged { .. } | V::IntRanged { .. } => true,
+        V::Optional(optional) => takes_roll_range(&optional.value),
+        _ => false,
+    }
+}
+
+/// The `#[range]` of a number, what it rolls in without a roll range.
+pub fn own_roll_range(value: &ProjectParamValue) -> Option<RollRange> {
+    use ProjectParamValue as V;
+    let (from, to) = match value {
+        V::FloatRanged { min, max, .. } => (*min, *max),
+        V::IntRanged { min, max, .. } => (*min as f32, *max as f32),
+        V::Optional(optional) => return own_roll_range(&optional.value),
+        _ => return None,
+    };
+    Some(RollRange { from, to })
+}
+
+/// Rollable as it is or with a roll range.
+pub fn can_roll(value: &ProjectParamValue) -> bool {
+    is_rollable(value) || takes_roll_range(value)
+}
+
 /// Every rollable param as a dotted path, in the order `plottery params` lists them.
 pub fn rollable_paths(list: &[ProjectParam]) -> Vec<String> {
     let mut paths = Vec::new();
-    push_rollable_list(list, "", &mut paths);
+    push_paths_of_list(list, "", is_rollable, &mut paths);
     paths
 }
 
-/// Whether `value` or anything in it can be rolled.
+/// Like [`rollable_paths`], with the numbers that need a roll range.
+pub fn can_roll_paths(list: &[ProjectParam]) -> Vec<String> {
+    let mut paths = Vec::new();
+    push_paths_of_list(list, "", can_roll, &mut paths);
+    paths
+}
+
+/// Whether `value` or anything in it can be rolled, as it is or with a roll range.
 pub fn holds_rollable(value: &ProjectParamValue) -> bool {
     let mut paths = Vec::new();
-    push_rollable_value(value, String::new(), &mut paths);
+    push_paths_of_value(value, String::new(), can_roll, &mut paths);
     !paths.is_empty()
 }
 
-fn push_rollable_list(list: &[ProjectParam], prefix: &str, paths: &mut Vec<String>) {
+type Accept = fn(&ProjectParamValue) -> bool;
+
+fn push_paths_of_list(
+    list: &[ProjectParam],
+    prefix: &str,
+    accept: Accept,
+    paths: &mut Vec<String>,
+) {
     for param in list {
-        push_rollable_value(&param.value, format!("{prefix}{}", param.name), paths);
+        let path = format!("{prefix}{}", param.name);
+        push_paths_of_value(&param.value, path, accept, paths);
     }
 }
 
-fn push_rollable_value(value: &ProjectParamValue, path: String, paths: &mut Vec<String>) {
+fn push_paths_of_value(
+    value: &ProjectParamValue,
+    path: String,
+    accept: Accept,
+    paths: &mut Vec<String>,
+) {
     use ProjectParamValue as V;
     let prefix = format!("{path}.");
-    if is_rollable(value) {
+    if accept(value) {
         paths.push(path);
     }
     match value {
-        V::Struct(param_struct) => push_rollable_list(&param_struct.fields, &prefix, paths),
-        V::DataEnum(data_enum) => push_rollable_list(data_enum.selected_fields(), &prefix, paths),
+        V::Struct(param_struct) => push_paths_of_list(&param_struct.fields, &prefix, accept, paths),
+        V::DataEnum(data_enum) => {
+            push_paths_of_list(data_enum.selected_fields(), &prefix, accept, paths)
+        }
         V::Optional(optional) => match optional.value.as_ref() {
-            V::Struct(param_struct) => push_rollable_list(&param_struct.fields, &prefix, paths),
+            V::Struct(param_struct) => {
+                push_paths_of_list(&param_struct.fields, &prefix, accept, paths)
+            }
             V::DataEnum(data_enum) => {
-                push_rollable_list(data_enum.selected_fields(), &prefix, paths)
+                push_paths_of_list(data_enum.selected_fields(), &prefix, accept, paths)
             }
             _ => {}
         },
         V::Vec(param_vec) => {
             for (i, item) in param_vec.items.iter().enumerate() {
-                push_rollable_value(item, format!("{prefix}{i}"), paths);
+                push_paths_of_value(item, format!("{prefix}{i}"), accept, paths);
             }
         }
         _ => {}
     }
 }
 
-/// Checks that every path names a rollable param. Returns them without duplicates, parents before their fields.
-pub fn check_rollable(params: &ProjectParamsListWrapper, paths: &[String]) -> Result<Vec<String>> {
+/// Checks that every path names a param that is rollable, as it is or with its range in `ranges`.
+/// Returns them without duplicates, parents before their fields.
+pub fn check_rollable(
+    params: &ProjectParamsListWrapper,
+    paths: &[String],
+    ranges: &RollRanges,
+) -> Result<Vec<String>> {
     use ProjectParamValue as V;
     let rollable = rollable_paths(&params.list);
     let listing = match rollable.is_empty() {
@@ -91,7 +159,15 @@ pub fn check_rollable(params: &ProjectParamsListWrapper, paths: &[String]) -> Re
     let mut checked: Vec<String> = Vec::new();
     for path in paths {
         let value = probe.value_at_path_mut(path)?;
-        if !is_rollable(value) {
+        let range = ranges.get(path).filter(|_| takes_roll_range(value));
+        if let Some(range) = range.filter(|r| !(r.from.is_finite() && r.to.is_finite())) {
+            bail!(
+                "The range to roll '{path}' in needs two numbers, not {} and {}",
+                range.from,
+                range.to
+            );
+        }
+        if !is_rollable(value) && range.is_none() {
             let hint = match value {
                 V::Float(_) | V::Int(_) | V::RangeF32 { .. } | V::RangeI32 { .. } => {
                     " without a #[range]"
@@ -159,6 +235,33 @@ pub fn roll_value(value: &mut ProjectParamValue, rng: &mut impl Rng) {
     }
 }
 
+/// Gives a number a uniform random value between `range`'s ends, within its `#[range]` if it has
+/// one. An `Option` also rolls whether it is on.
+pub fn roll_value_in(value: &mut ProjectParamValue, range: RollRange, rng: &mut impl Rng) {
+    use ProjectParamValue as V;
+    let (lo, hi) = (range.from.min(range.to), range.from.max(range.to));
+    let int = |x: f32| x.round() as i32;
+    match value {
+        V::Float(val) => *val = uniform_f32(rng, lo, hi),
+        V::FloatRanged { val, min, max } => {
+            *val = uniform_f32(rng, lo.max(*min).min(*max), hi.max(*min).min(*max))
+        }
+        V::Int(val) => *val = uniform_i32(rng, int(lo), int(hi)),
+        V::IntRanged { val, min, max } => {
+            *val = uniform_i32(
+                rng,
+                int(lo).max(*min).min(*max),
+                int(hi).max(*min).min(*max),
+            )
+        }
+        V::Optional(optional) => {
+            optional.enabled = rng.random_bool(0.5);
+            roll_value_in(&mut optional.value, range, rng);
+        }
+        _ => {}
+    }
+}
+
 fn uniform_f32(rng: &mut impl Rng, min: f32, max: f32) -> f32 {
     match min < max {
         true => rng.random_range(min..=max),
@@ -173,18 +276,22 @@ fn uniform_i32(rng: &mut impl Rng, min: i32, max: i32) -> i32 {
     }
 }
 
-/// `start` with every path rolled. A path that no longer resolves after its parent rolled, like a
-/// field of an enum variant that isn't selected anymore, is skipped.
+/// `start` with every path rolled, numbers with a range in `ranges` within it. A path that no
+/// longer resolves after its parent rolled, like a field of an enum variant that isn't selected
+/// anymore, is skipped.
 pub fn roll_params(
     start: &ProjectParamsListWrapper,
     paths: &[String],
+    ranges: &RollRanges,
     rng: &mut impl Rng,
 ) -> ProjectParamsListWrapper {
     let mut params = start.clone();
     for path in paths {
         if let Ok(value) = params.value_at_path_mut(path) {
-            if is_rollable(value) {
-                roll_value(value, rng);
+            match ranges.get(path) {
+                Some(range) if takes_roll_range(value) => roll_value_in(value, *range, rng),
+                _ if is_rollable(value) => roll_value(value, rng),
+                _ => {}
             }
         }
     }
@@ -195,11 +302,12 @@ pub fn roll_params(
 pub fn roll_param_sets(
     start: &ProjectParamsListWrapper,
     paths: &[String],
+    ranges: &RollRanges,
     count: usize,
     rng: &mut impl Rng,
 ) -> Vec<ProjectParamsListWrapper> {
     std::iter::once(start.clone())
-        .chain((0..count).map(|_| roll_params(start, paths, rng)))
+        .chain((0..count).map(|_| roll_params(start, paths, ranges, rng)))
         .collect()
 }
 
