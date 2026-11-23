@@ -74,7 +74,8 @@ pub fn VariationsGrid() -> Element {
                             skipped: roll.skipped,
                             values: roll.values,
                             set_id,
-                            on_pick: move |index| pick_roll(ctx, index),
+                            on_select: move |index| pick_roll(ctx, index, false),
+                            on_open: move |index| pick_roll(ctx, index, true),
                         }
                     }
                 })
@@ -118,9 +119,9 @@ pub fn VariationsGrid() -> Element {
     }
 }
 
-/// Makes the params and drawing of roll `index` the project's and shows them in the
-/// edit view. Nothing runs, so a roll in progress goes on.
-fn pick_roll(ctx: EditorCtx, index: usize) {
+/// Makes the params and drawing of roll `index` the project's, the start of the next roll, and
+/// with `open` shows them in the edit view. Nothing runs, so a roll in progress goes on.
+fn pick_roll(ctx: EditorCtx, index: usize, open: bool) {
     let picked = ctx
         .variations
         .variations
@@ -136,6 +137,14 @@ fn pick_roll(ctx: EditorCtx, index: usize) {
     let Some(picked) = picked else {
         return;
     };
+    let mut view = ctx.variations.view;
+    // the clicks of a double click pick it already
+    if picked.list == ctx.project_params.peek().list {
+        if open {
+            view.set(EditorView::Edit);
+        }
+        return;
+    }
     let layer = match ctx.project.peek().load_roll_layer(index) {
         Ok(layer) => layer,
         Err(e) => {
@@ -154,6 +163,7 @@ fn pick_roll(ctx: EditorCtx, index: usize) {
     };
     project_params.set(params);
     ctx.project_runner.peek().show_layer(layer, ctx.console);
-    let mut view = ctx.variations.view;
-    view.set(EditorView::Edit);
+    if open {
+        view.set(EditorView::Edit);
+    }
 }

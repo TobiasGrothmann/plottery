@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 
 use crate::components::image::Image;
 
-/// One roll in the variations grid. A click makes its params the project's.
+/// One roll in the variations grid. A click selects it, a double click or Enter opens it.
 #[component]
 pub fn RollTile(
     index: usize,
@@ -14,7 +14,8 @@ pub fn RollTile(
     values: Vec<(String, String)>,
     /// Changes with every new set of rolls, so a reused file name loads its new image.
     set_id: u32,
-    on_pick: EventHandler<usize>,
+    on_select: EventHandler<usize>,
+    on_open: EventHandler<usize>,
 ) -> Element {
     let name = match index {
         0 => "start".to_string(),
@@ -33,7 +34,7 @@ pub fn RollTile(
     };
     let title = match skipped {
         true => format!("Ran too long and was skipped\n{title}"),
-        false => title,
+        false => format!("{title}\n\nClick to roll from it, double-click to edit it"),
     };
 
     rsx! {
@@ -44,12 +45,17 @@ pub fn RollTile(
             title: "{title}",
             onclick: move |_| {
                 if !skipped {
-                    on_pick.call(index);
+                    on_select.call(index);
+                }
+            },
+            ondoubleclick: move |_| {
+                if !skipped {
+                    on_open.call(index);
                 }
             },
             onkeydown: move |event| {
                 if !skipped && event.key() == Key::Enter {
-                    on_pick.call(index);
+                    on_open.call(index);
                 }
             },
             div { class: "thumb",
