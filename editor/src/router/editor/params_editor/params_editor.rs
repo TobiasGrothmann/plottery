@@ -466,14 +466,9 @@ fn roll_class(
     if !selecting(ctx) {
         return base.to_string();
     }
-    // a number's row has the box with its range next to it
-    let ranged = match takes_roll_range(value) {
-        true => " ranged",
-        false => "",
-    };
     let class = match tick {
-        Some((_, true)) => format!("{base} roll-row{ranged} on"),
-        Some((_, false)) => format!("{base} roll-row{ranged}"),
+        Some((_, true)) => format!("{base} roll-row on"),
+        Some((_, false)) => format!("{base} roll-row"),
         None if holds_rollable(value) => base.to_string(),
         None => format!("{base} roll-locked"),
     };

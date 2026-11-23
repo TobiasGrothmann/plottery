@@ -471,13 +471,45 @@
 .ParamsEditor.selecting {
   --range-w: 144px;
   padding-right: calc(var(--range-w) + 8px);
+  /* how far the right edge a row is laid out against is from the column */
+  --outer: 0px;
 }
-/* a box of its own next to the number's row and as high as it */
+/* Nested rows end left of the column. Every row says how far its own right edge is from it
+   (--to-edge) and how far the right edge of what it holds (--inner: plus its border and padding).
+   .pctl and .penum-body pass that on to the rows inside them. */
+.ParamsEditor.selecting .prow {
+  --to-edge: var(--outer);
+  --inner: calc(var(--to-edge) + 12px);
+}
+.ParamsEditor.selecting .penum-body > .prow {
+  --inner: var(--to-edge);
+}
+.ParamsEditor.selecting .prow.roll-row {
+  --to-edge: calc(var(--outer) + 8px);
+  --inner: calc(var(--to-edge) + 31px);
+}
+.ParamsEditor.selecting .sub {
+  --to-edge: var(--outer);
+  --inner: var(--to-edge);
+}
+.ParamsEditor.selecting .vec-item {
+  --to-edge: var(--outer);
+  --inner: calc(var(--to-edge) + 7px);
+}
+.ParamsEditor.selecting .sub.roll-row,
+.ParamsEditor.selecting .vec-item.roll-row {
+  --inner: calc(var(--to-edge) + 27px);
+}
+.ParamsEditor.selecting .pctl,
+.ParamsEditor.selecting .penum-body {
+  --outer: var(--inner);
+}
+/* a box of its own in the column, next to the number's row and as high as it */
 .RollRangeField {
   position: absolute;
   top: -1px;
   bottom: -1px;
-  left: calc(100% + 9px);
+  left: calc(100% + 1px + var(--to-edge));
   width: var(--range-w);
   box-sizing: border-box;
   display: flex;
@@ -497,17 +529,12 @@
   padding: 0 6px;
   text-align: center;
 }
-/* inside a list item or another toggle the column is out of reach: the row makes room itself */
-.ParamsEditor .pvec .ranged,
-.ParamsEditor .roll-row .ranged {
-  margin-right: calc(var(--range-w) + 8px);
-}
-/* the box is not part of the toggle, pointing at it doesn't light the row up */
-.ParamsEditor .roll-row:not(.on):has(> .RollRangeField:hover) {
+/* the box is not part of the toggle, pointing at it lights up neither its row nor those around it */
+.ParamsEditor .roll-row:not(.on):has(.RollRangeField:hover) {
   background: var(--bg-2);
   border-color: var(--line-2);
 }
-.ParamsEditor .roll-row:not(.on):has(> .RollRangeField:hover)::after {
+.ParamsEditor .roll-row:not(.on):has(.RollRangeField:hover)::after {
   border-color: var(--fg-2);
 }
 .ParamsEditor .roll-locked {
