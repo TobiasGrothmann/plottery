@@ -72,7 +72,6 @@ pub fn VariationsGrid() -> Element {
                             png,
                             current,
                             skipped: roll.skipped,
-                            values: roll.values,
                             set_id,
                             on_select: move |index| pick_roll(ctx, index, false),
                             on_open: move |index| pick_roll(ctx, index, true),
