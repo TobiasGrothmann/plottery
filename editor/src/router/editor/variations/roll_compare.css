@@ -1,43 +1,40 @@
+/* Fullscreen, above the fullscreen preview. */
 .roll-compare {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 5;
+  z-index: 16;
   display: flex;
   align-items: stretch;
   justify-content: center;
-  gap: 24px;
-  padding: 32px;
   background-color: var(--stage);
   background-image: radial-gradient(var(--stage-dot) 1px, transparent 1px);
   background-size: 16px 16px;
-}
-.roll-compare.fullscreen {
-  position: fixed;
-  z-index: 15;
-}
-
-.roll-compare-close {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 1;
-  border-radius: var(--r);
-  background: var(--bg-2);
 }
 
 .roll-compare-pane {
   position: relative;
   flex: 1;
   min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+}
+.roll-compare-pane .roll_number {
+  top: 12px;
+  left: 12px;
+  z-index: 1;
 }
 
-.roll-compare-paper {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
+.roll-compare-wall {
+  flex: none;
+  width: 2px;
+  background: var(--line);
+}
+
+.roll-compare-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  border-radius: var(--r);
+  background: var(--bg-2);
 }
 
 .roll-compare-hint {

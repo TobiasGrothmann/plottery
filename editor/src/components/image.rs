@@ -28,6 +28,9 @@ pub struct SVGImageProps {
     pub zoom: Signal<PreviewZoom>,
     /// Called once the svg is decoded and on screen.
     pub onready: EventHandler<()>,
+    /// Id of the stage element, unique among the stages on screen.
+    #[props(default = "preview-stage".to_string())]
+    pub stage_id: String,
 }
 
 /// A param value shown on the preview, e.g. while its field is hovered.
@@ -145,9 +148,14 @@ pub fn SVGImage(props: SVGImageProps) -> Element {
             }
         });
     });
+    let stage_id = props.stage_id.clone();
     let start_input = move |_| {
+        let script = format!(
+            "const stageId = {stage_id:?};\n{}",
+            include_str!("preview_input.js")
+        );
         spawn(async move {
-            let mut eval = document::eval(include_str!("preview_input.js"));
+            let mut eval = document::eval(&script);
             while let Ok(input) = eval.recv::<PreviewInput>().await {
                 let view = input.view();
                 let current = *zoom.peek();
@@ -251,7 +259,7 @@ pub fn SVGImage(props: SVGImageProps) -> Element {
 
     rsx!(
         div {
-            id: "preview-stage",
+            id: "{props.stage_id}",
             class: "preview-stage zoomable",
             style: "cursor: {stage_cursor}; visibility: {visibility};",
             onmounted: start_input,

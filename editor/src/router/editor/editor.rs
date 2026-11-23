@@ -303,15 +303,14 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
                 }
                 main { class: "center",
                     if !editing {
-                        div { class: "variations-area",
-                            VariationsGrid { preview: svg.read().as_ref().map(|svg| svg.src.clone()).or(cached_preview.clone()) }
-                            if compare() {
-                                RollCompare { fullscreen }
-                            }
-                        }
+                        VariationsGrid { preview: svg.read().as_ref().map(|svg| svg.src.clone()).or(cached_preview.clone()) }
+                    }
+                    // fullscreen, over the fullscreen preview too
+                    if !editing && compare() {
+                        RollCompare {}
                     }
                     // over the variations only in fullscreen, showing the selected roll
-                    if editing || (fullscreen() && !compare()) {
+                    if editing || fullscreen() {
                         PreviewStage {
                         svg,
                         cached_preview: cached_preview.clone(),

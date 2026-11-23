@@ -1,5 +1,6 @@
 // Forwards pinch, wheel, drag and click on the preview stage to Rust.
-const stage = document.getElementById("preview-stage");
+// `stageId` is set by the Rust side in front of this script.
+const stage = document.getElementById(stageId);
 if (stage) {
   let gestureScale = null;
   let drag = null;
