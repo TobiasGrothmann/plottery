@@ -1,12 +1,15 @@
 use dioxus::prelude::*;
-use plottery_project::{rollable_paths, MAX_ROLLS};
+use plottery_project::{can_roll_paths, MAX_ROLLS};
 
 use crate::{
     components::{
         icon::{Icon, IconName},
         ui::{Button, Variant},
     },
-    router::editor::{editor_ctx::EditorCtx, running_state::RunningState},
+    router::editor::{
+        editor_ctx::EditorCtx, running_state::RunningState,
+        variations::variations_state::roll_ranges,
+    },
 };
 
 /// The params to roll, how many times, and the button that does it.
@@ -21,10 +24,15 @@ pub fn RollPanel() -> Element {
     use_effect(move || count_text.set(count().to_string()));
 
     // in the order of the params, without ticks the project lost
-    let to_roll: Vec<String> = rollable_paths(&ctx.project_params.read().list)
+    let params = ctx.project_params.read().clone();
+    let to_roll: Vec<String> = can_roll_paths(&params.list)
         .into_iter()
         .filter(|path| selected.read().contains(path))
         .collect();
+    // numbers without a #[range] wait for both ends of theirs
+    let (ranges, missing) = roll_ranges(&params, &to_roll, &state.ranges.read());
+    let ready = !to_roll.is_empty() && missing.is_empty();
+    let missing_names = missing.join(", ");
     let rolling = (state.rolling)().is_some();
     let progress = match (ctx.running_state)() {
         RunningState::Rolling { done, total } => Some((done, total)),
@@ -37,12 +45,13 @@ pub fn RollPanel() -> Element {
     };
     let paths = to_roll.clone();
     let roll = Callback::new(move |_: ()| {
-        if paths.is_empty() || state.rolling.peek().is_some() {
+        if !ready || state.rolling.peek().is_some() {
             return;
         }
         ctx.project_runner.peek().trigger_roll(
             ctx.release,
             paths.clone(),
+            ranges.clone(),
             *count.peek(),
             ctx.running_state,
             ctx.console,
@@ -65,7 +74,7 @@ pub fn RollPanel() -> Element {
                         button {
                             key: "{path}",
                             r#type: "button",
-                            class: "roll-param-chip",
+                            class: if missing.contains(&path) { "roll-param-chip missing" } else { "roll-param-chip" },
                             disabled: rolling,
                             title: "Don't roll {path}",
                             onclick: move |_| {
@@ -76,6 +85,9 @@ pub fn RollPanel() -> Element {
                         }
                     }
                 }
+            }
+            if !missing.is_empty() {
+                span { class: "roll-panel-missing", "Set the range to roll {missing_names} in" }
             }
             div { class: "roll-panel-row",
                 label { class: "roll-count",
@@ -112,7 +124,7 @@ pub fn RollPanel() -> Element {
                     Button {
                         variant: Variant::Primary,
                         icon: IconName::Dice,
-                        disabled: to_roll.is_empty(),
+                        disabled: !ready,
                         onclick: move |_| roll.call(()),
                         "Roll"
                     }

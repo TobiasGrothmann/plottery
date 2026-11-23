@@ -15,7 +15,8 @@ use plottery_runtime::ProjectParamsListWrapper;
 use rand::rngs::StdRng;
 
 use crate::{
-    check_rollable, roll_param_sets, rolled_values, Project, RunError, RunEvent, VariationsMeta,
+    check_rollable, roll_param_sets, rolled_values, takes_roll_range, Project, RollRanges,
+    RunError, RunEvent, VariationsMeta,
 };
 
 /// Most rolls in one set.
@@ -66,11 +67,11 @@ pub struct RollOutcome {
     pub canceled: bool,
 }
 
-/// Runs at once: half the cores, 1 to 4.
+/// Runs at once: one per core, at most 8. 2 when the cores can't be counted.
 pub fn default_roll_parallelism() -> usize {
     std::thread::available_parallelism()
-        .map_or(2, |cores| cores.get() / 2)
-        .clamp(1, 4)
+        .map_or(2, |cores| cores.get())
+        .min(8)
 }
 
 /// Runs `job(i)` for `i` in `0..count` in order, at most `parallel` at once. No job starts once
@@ -133,13 +134,16 @@ fn format_values(values: &[(String, String)]) -> String {
 
 impl Project {
     /// Rolls `paths` of `start` `count` times and runs the already built project with each set,
-    /// replacing the stored variations. Roll 0 runs `start` itself. The first failed roll stops
-    /// all others and is the error. Every roll is stored when it finishes.
+    /// replacing the stored variations. Numbers with a range in `ranges` roll within it. Roll 0
+    /// runs `start` itself. The first failed roll stops all others and is the error. Every roll is
+    /// stored when it finishes.
+    #[allow(clippy::too_many_arguments)]
     pub async fn roll_async(
         &self,
         release: bool,
         start: &ProjectParamsListWrapper,
         paths: &[String],
+        ranges: &RollRanges,
         count: usize,
         on_event: impl Fn(RollEvent),
         cancel: impl Future<Output = ()>,
@@ -147,13 +151,30 @@ impl Project {
         if count == 0 || count > MAX_ROLLS {
             bail!("Roll 1 to {MAX_ROLLS} times, not {count}");
         }
-        let paths = check_rollable(start, paths)?;
-        let sets = roll_param_sets(start, &paths, count, &mut rand::make_rng::<StdRng>());
+        let paths = check_rollable(start, paths, ranges)?;
+        // only what this roll uses is stored with it
+        let mut probe = start.clone();
+        let ranges: RollRanges = paths
+            .iter()
+            .filter_map(|path| {
+                let range = ranges.get(path)?;
+                let value = probe.value_at_path_mut(path).ok()?;
+                takes_roll_range(value).then(|| (path.clone(), *range))
+            })
+            .collect();
+        let sets = roll_param_sets(
+            start,
+            &paths,
+            &ranges,
+            count,
+            &mut rand::make_rng::<StdRng>(),
+        );
         let runs = sets.len();
         let total = count;
         let meta = VariationsMeta {
             created: Utc::now(),
             params: paths.clone(),
+            ranges,
             total: Some(count),
             ended: false,
         };

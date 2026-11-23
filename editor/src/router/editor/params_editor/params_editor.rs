@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use dioxus_logger::tracing;
-use plottery_project::is_rollable;
+use plottery_project::{can_roll, holds_rollable, is_rollable, own_roll_range, takes_roll_range};
 use plottery_runtime::{
     project_param::ProjectParam, project_param_optional::ProjectParamOptional,
     project_param_struct::ProjectParamStruct, project_param_value::ProjectParamValue,
@@ -32,6 +32,7 @@ use crate::router::editor::{
         percent_field::PercentField,
         range_field::RangeField,
         rect_field::RectField,
+        roll_range_field::RollRangeField,
         seed_field::SeedField,
         slider_field::SliderField,
         string_field::StringField,
@@ -249,6 +250,7 @@ fn render_optional_value(
         div { class: "hrow opt-row",
             Switch {
                 checked: enabled,
+                disabled: selecting(ctx),
                 aria_label: "Set {param_name}",
                 onchange: move |enabled: bool| set_optional_enabled(&path_for_switch, enabled),
             }
@@ -278,8 +280,11 @@ fn render_value_without_label(
             let variant_path = child_path(&path, &data_enum.selected);
             let selector =
                 ProjectParam::new(param_name.as_str(), ProjectParamValue::DataEnum(data_enum));
+            // in the variations view the fields below can be ticked, the selector stays read-only
             rsx! {
-                {render_leaf_param(selector, path, ctx)}
+                div { class: "contents", inert: if selecting(ctx) { "true" },
+                    {render_leaf_param(selector, path, ctx)}
+                }
                 if !fields.is_empty() {
                     div { class: "penum-fields",
                         for field in fields.into_iter() {
@@ -306,6 +311,7 @@ fn render_vec_value(
     ctx: EditorCtx,
 ) -> Element {
     let vec_path_for_add = path.clone();
+    let read_only = selecting(ctx);
 
     rsx! {
         div { class: "pvec",
@@ -316,30 +322,44 @@ fn render_vec_value(
 
                     let vec_path_for_remove = path.clone();
                     let item_key = item_path.join("_");
+                    let tick = roll_tick(ctx, &item, &item_path);
+                    let item_class = roll_class("vec-item", &tick, &item, ctx);
+                    let range_cell = roll_range_cell(&item, &tick);
+                    let inert = read_only && !holds_rows(&item);
 
                     rsx! {
-                        div { class: "vec-item", key: "{item_key}",
+                        div {
+                            class: item_class,
+                            key: "{item_key}",
+                            role: if tick.is_some() { "button" },
+                            "aria-pressed": tick.as_ref().map(|(_, ticked)| ticked.to_string()),
+                            onclick: roll_click(ctx, tick.clone()),
                             span { class: "mono vec-index", "#{index}" }
-                            div { class: "grow pctl",
+                            div { class: "grow pctl", inert: if inert { "true" },
                                 {render_value_without_label(param_name.clone(), item, item_path, ctx)}
                             }
-                            IconButton {
-                                icon: IconName::X,
-                                label: "Remove item",
-                                size: Size::Sm,
-                                onclick: move |_| remove_vec_item(&vec_path_for_remove, index),
+                            {range_cell}
+                            if !read_only {
+                                IconButton {
+                                    icon: IconName::X,
+                                    label: "Remove item",
+                                    size: Size::Sm,
+                                    onclick: move |_| remove_vec_item(&vec_path_for_remove, index),
+                                }
                             }
                         }
                     }
                 }
             }
-            div {
-                Button {
-                    variant: Variant::Dashed,
-                    size: Size::Sm,
-                    icon: IconName::Plus,
-                    onclick: move |_| add_vec_item(&vec_path_for_add),
-                    "Add item"
+            if !read_only {
+                div {
+                    Button {
+                        variant: Variant::Dashed,
+                        size: Size::Sm,
+                        icon: IconName::Plus,
+                        onclick: move |_| add_vec_item(&vec_path_for_add),
+                        "Add item"
+                    }
                 }
             }
         }
@@ -387,7 +407,7 @@ fn rolling(ctx: EditorCtx) -> bool {
 /// The dotted path to roll the param at `path` by, and whether it is ticked. `None` outside the
 /// variations view and for params that can't be rolled.
 fn roll_tick(ctx: EditorCtx, value: &ProjectParamValue, path: &[String]) -> Option<(String, bool)> {
-    if !selecting(ctx) || !is_rollable(value) {
+    if !selecting(ctx) || !can_roll(value) {
         return None;
     }
     let dot = dot_path(&ctx.project_params.peek().list, path)?;
@@ -404,6 +424,77 @@ fn set_ticked(ctx: EditorCtx, dot: String, ticked: bool) {
         true => selected.write().insert(dot),
         false => selected.write().remove(&dot),
     };
+}
+
+/// The range inputs of a ticked number: a box right of its row in the variations view.
+fn roll_range_cell(value: &ProjectParamValue, tick: &Option<(String, bool)>) -> Option<Element> {
+    let (dot, ticked) = tick.as_ref()?;
+    if !ticked || !takes_roll_range(value) {
+        return None;
+    }
+    let integer = matches!(
+        leaf_value(value),
+        ProjectParamValue::Int(_) | ProjectParamValue::IntRanged { .. }
+    );
+    Some(rsx! {
+        RollRangeField {
+            dot: dot.clone(),
+            integer,
+            own: own_roll_range(value),
+            required: !is_rollable(value),
+        }
+    })
+}
+
+/// Values drawn as rows of their own (fields, items, a variant's fields), which can have ticks.
+fn holds_rows(value: &ProjectParamValue) -> bool {
+    match value {
+        ProjectParamValue::Struct(_) | ProjectParamValue::Vec(_) => true,
+        ProjectParamValue::DataEnum(data_enum) => !data_enum.selected_fields().is_empty(),
+        ProjectParamValue::Optional(optional) => holds_rows(&optional.value),
+        _ => false,
+    }
+}
+
+/// `base` plus the variations view's classes: a toggle with a tick, dimmed with nothing to roll.
+fn roll_class(
+    base: &str,
+    tick: &Option<(String, bool)>,
+    value: &ProjectParamValue,
+    ctx: EditorCtx,
+) -> String {
+    if !selecting(ctx) {
+        return base.to_string();
+    }
+    // a number shows that it is rolled with its range box instead of the tick
+    let ranged = match takes_roll_range(value) {
+        true => " ranged",
+        false => "",
+    };
+    let class = match tick {
+        Some((_, true)) => format!("{base} roll-row{ranged} on"),
+        Some((_, false)) => format!("{base} roll-row{ranged}"),
+        None if holds_rollable(value) => base.to_string(),
+        None => format!("{base} roll-locked"),
+    };
+    match rolling(ctx) {
+        true => format!("{class} frozen"),
+        false => class,
+    }
+}
+
+/// In the variations view a click on a row toggles its tick and doesn't reach the rows around it.
+fn roll_click(ctx: EditorCtx, tick: Option<(String, bool)>) -> impl FnMut(MouseEvent) {
+    let read_only = selecting(ctx);
+    move |event: MouseEvent| {
+        if !read_only {
+            return;
+        }
+        event.stop_propagation();
+        if let Some((dot, ticked)) = &tick {
+            set_ticked(ctx, dot.clone(), !ticked);
+        }
+    }
 }
 
 /// Renders full-width rows, wrapping runs of params that share a `#[section]` in a `ParamSection`.
@@ -575,29 +666,22 @@ fn render_named_param(
             reset_at(&reset_path, false)
         }
     };
-    let tick = match compact {
-        true => None,
-        false => roll_tick(ctx, &param.value, &path),
-    };
-    // in the variations view a rollable row is a toggle, the others are dimmed
-    let row_class = match (&tick, read_only) {
-        (Some((_, true)), _) => "prow roll-row on",
-        (Some((_, false)), _) => "prow roll-row",
-        (None, true) => "prow roll-locked",
-        (None, false) => "prow",
-    };
-    let row_class = match read_only && rolling(ctx) {
-        true => format!("{row_class} frozen"),
-        false => row_class.to_string(),
-    };
+    // in the variations view a rollable row is a toggle, rows with nothing to roll are dimmed
+    let tick = roll_tick(ctx, &param.value, &path);
+    let row_class = roll_class(
+        if compact { "sub" } else { "prow" },
+        &tick,
+        &param.value,
+        ctx,
+    );
+    let range_cell = roll_range_cell(&param.value, &tick);
     let item_count = vec_item_count(&param.value).map(|count| match count {
         1 => "1 item".to_string(),
         n => format!("{n} items"),
     });
-    let sub_class = if is_struct(&param.value) {
-        "sub group"
-    } else {
-        "sub"
+    let sub_class = match is_struct(&param.value) {
+        true => format!("{row_class} group"),
+        false => row_class.clone(),
     };
     // In a full-width row the selected variant's fields get full-width rows below the selector.
     let variant_rows = match &param.value {
@@ -613,6 +697,8 @@ fn render_named_param(
         }
         _ => None,
     };
+    // rows inside the control can have ticks, so only a single widget is made inert
+    let inert = read_only && (variant_rows.is_some() || !holds_rows(&param.value));
     let control = match variant_rows {
         Some(_) => render_leaf_param(ProjectParam::new(&param.name, param.value), path, ctx),
         None => render_value_without_label(param.name, param.value, path, ctx),
@@ -620,7 +706,12 @@ fn render_named_param(
 
     if compact {
         rsx! {
-            div { class: sub_class, key: "{key}",
+            div {
+                class: sub_class,
+                key: "{key}",
+                role: if tick.is_some() { "button" },
+                "aria-pressed": tick.as_ref().map(|(_, ticked)| ticked.to_string()),
+                onclick: roll_click(ctx, tick.clone()),
                 div {
                     class: "sublabel {label_class}",
                     title: label_title,
@@ -630,7 +721,8 @@ fn render_named_param(
                         span { class: "count", "{item_count}" }
                     }
                 }
-                div { class: "pctl", inert: if read_only { "true" }, {control} }
+                div { class: "pctl", inert: if inert { "true" }, {control} }
+                {range_cell}
             }
         }
     } else {
@@ -640,16 +732,7 @@ fn render_named_param(
                 key: "{key}",
                 role: if tick.is_some() { "button" },
                 "aria-pressed": tick.as_ref().map(|(_, ticked)| ticked.to_string()),
-                onclick: move |event| {
-                    if !read_only {
-                        return;
-                    }
-                    // rows of an enum's variant sit inside the enum's row
-                    event.stop_propagation();
-                    if let Some((dot, ticked)) = &tick {
-                        set_ticked(ctx, dot.clone(), !ticked);
-                    }
-                },
+                onclick: roll_click(ctx, tick.clone()),
                 div {
                     class: "plabel {label_class}",
                     title: label_title,
@@ -659,7 +742,8 @@ fn render_named_param(
                         span { class: "count", "{item_count}" }
                     }
                 }
-                div { class: "pctl", inert: if read_only { "true" }, {control} }
+                div { class: "pctl", inert: if inert { "true" }, {control} }
+                {range_cell}
                 if let Some(variant_rows) = variant_rows {
                     div { class: "psection-body penum-body", {variant_rows} }
                 }
@@ -674,6 +758,8 @@ pub fn ParamsEditor() -> Element {
     let params = ctx.project_params.read().list.clone();
     rsx! {
         style { {include_str!("params_editor.css")} }
-        div { class: "ParamsEditor", {render_param_list(&params, &[], ctx)} }
+        div { class: if selecting(ctx) { "ParamsEditor selecting" } else { "ParamsEditor" },
+            {render_param_list(&params, &[], ctx)}
+        }
     }
 }

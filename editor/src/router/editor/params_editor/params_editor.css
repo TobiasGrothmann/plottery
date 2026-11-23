@@ -401,18 +401,31 @@
 .pctl[inert] {
   opacity: 0.8;
 }
-.ParamsEditor .prow.roll-row {
+/* a wrapper that only makes its widget inert */
+.ParamsEditor .contents {
+  display: contents;
+}
+.ParamsEditor .roll-row {
   position: relative;
-  margin: 4px 8px;
-  padding-right: 30px;
   border: 1px solid var(--line-2);
   border-radius: var(--r);
   background: var(--bg-2);
   cursor: pointer;
   transition: background 0.12s, border-color 0.12s;
 }
+.ParamsEditor .prow.roll-row {
+  margin: 4px 8px;
+  padding-right: 30px;
+}
+/* rows inside a list: the same toggle, tighter */
+.ParamsEditor .sub.roll-row {
+  padding: 4px 26px 4px 6px;
+}
+.ParamsEditor .vec-item.roll-row {
+  padding-right: 26px;
+}
 /* a ring in the corner, filled with a check when the param is rolled */
-.ParamsEditor .prow.roll-row::after {
+.ParamsEditor .roll-row::after {
   content: '';
   position: absolute;
   top: 10px;
@@ -424,28 +437,119 @@
   border-radius: 50%;
   transition: border-color 0.12s, background 0.12s;
 }
-.ParamsEditor .prow.roll-row:hover {
+.ParamsEditor .sub.roll-row::after {
+  top: 11px;
+  right: 6px;
+}
+.ParamsEditor .vec-item.roll-row::after {
+  top: 13px;
+  right: 6px;
+}
+.ParamsEditor .roll-row:hover {
   background: var(--bg-3);
   border-color: var(--accent);
 }
-.ParamsEditor .prow.roll-row:hover::after {
+.ParamsEditor .roll-row:hover::after {
   border-color: var(--accent);
 }
-.ParamsEditor .prow.roll-row.on {
+.ParamsEditor .roll-row.on {
   background: var(--accent-soft);
   border-color: var(--accent);
 }
-.ParamsEditor .prow.roll-row.on::after {
+.ParamsEditor .roll-row.on::after {
   border-color: var(--accent);
   background: var(--accent)
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M4 7.2l2 2 4-4.4' fill='none' stroke='%230d1330' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
     center / 14px no-repeat;
 }
-.ParamsEditor .prow.roll-row.on > .plabel {
+.ParamsEditor .roll-row.on > .plabel,
+.ParamsEditor .roll-row.on > .sublabel {
   color: var(--fg-0);
 }
-.ParamsEditor .prow.roll-locked {
+/* the params keep the width they have in the edit view, the ranges numbers are rolled in go to
+   a column on their right */
+.ParamsEditor.selecting {
+  --range-w: 144px;
+  padding-right: calc(var(--range-w) + 8px);
+  /* how far the right edge a row is laid out against is from the column */
+  --outer: 0px;
+}
+/* Nested rows end left of the column. Every row says how far its own right edge is from it
+   (--to-edge) and how far the right edge of what it holds (--inner: plus its border and padding).
+   .pctl and .penum-body pass that on to the rows inside them. */
+.ParamsEditor.selecting .prow {
+  --to-edge: var(--outer);
+  --inner: calc(var(--to-edge) + 12px);
+}
+.ParamsEditor.selecting .penum-body > .prow {
+  --inner: var(--to-edge);
+}
+.ParamsEditor.selecting .prow.roll-row {
+  --to-edge: calc(var(--outer) + 8px);
+  --inner: calc(var(--to-edge) + 31px);
+}
+.ParamsEditor.selecting .sub {
+  --to-edge: var(--outer);
+  --inner: var(--to-edge);
+}
+.ParamsEditor.selecting .vec-item {
+  --to-edge: var(--outer);
+  --inner: calc(var(--to-edge) + 7px);
+}
+.ParamsEditor.selecting .sub.roll-row,
+.ParamsEditor.selecting .vec-item.roll-row {
+  --inner: calc(var(--to-edge) + 27px);
+}
+.ParamsEditor.selecting .pctl,
+.ParamsEditor.selecting .penum-body {
+  --outer: var(--inner);
+}
+/* a number has no tick: rolled, its row is blue and its range shows next to it */
+.ParamsEditor .roll-row.ranged::after {
+  display: none;
+}
+.ParamsEditor .prow.roll-row.ranged {
+  padding-right: 12px;
+}
+.ParamsEditor .sub.roll-row.ranged,
+.ParamsEditor .vec-item.roll-row.ranged {
+  padding-right: 6px;
+}
+/* a box of its own in the column, next to the rolled number's row and as high as it */
+.RollRangeField {
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  left: calc(100% + 1px + var(--to-edge));
+  width: var(--range-w);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--r);
+  background: var(--accent-soft);
+  cursor: default;
+}
+.RollRangeField .input {
+  padding: 0 6px;
+  text-align: center;
+}
+/* the box is not part of the toggle, pointing at it lights up neither its row nor those around it */
+.ParamsEditor .roll-row:not(.on):has(.RollRangeField:hover) {
+  background: var(--bg-2);
+  border-color: var(--line-2);
+}
+.ParamsEditor .roll-row:not(.on):has(.RollRangeField:hover)::after {
+  border-color: var(--fg-2);
+}
+.ParamsEditor .roll-locked {
   opacity: 0.45;
+}
+/* dimmed once, not again for every level inside */
+.ParamsEditor .roll-locked .roll-locked {
+  opacity: 1;
 }
 .roll-chip {
   height: 22px;
@@ -465,20 +569,20 @@
   border-color: var(--accent);
   color: var(--accent-fg);
 }
-.ParamsEditor .prow.roll-row.frozen {
+.ParamsEditor .roll-row.frozen {
   cursor: default;
 }
-.ParamsEditor .prow.roll-row.frozen:not(.on) {
+.ParamsEditor .roll-row.frozen:not(.on) {
   opacity: 0.6;
 }
-.ParamsEditor .prow.roll-row.frozen:hover {
+.ParamsEditor .roll-row.frozen:hover {
   background: var(--bg-2);
   border-color: var(--line-2);
 }
-.ParamsEditor .prow.roll-row.frozen:not(.on):hover::after {
+.ParamsEditor .roll-row.frozen:not(.on):hover::after {
   border-color: var(--fg-2);
 }
-.ParamsEditor .prow.roll-row.frozen.on:hover {
+.ParamsEditor .roll-row.frozen.on:hover {
   background: var(--accent-soft);
   border-color: var(--accent);
 }

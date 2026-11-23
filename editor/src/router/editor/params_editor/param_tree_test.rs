@@ -200,5 +200,14 @@ mod tests {
         assert_eq!(dot(&["shape"]).as_deref(), Some("shape"));
         assert_eq!(dot(&["shape", "Blank", "turns"]), None);
         assert_eq!(dot(&["points", "[5]", "size"]), None);
+
+        // the CLI doesn't reach into an Option<Vec>
+        let sizes = ProjectParamVec::new(Value::Float(0.0), vec![Value::Float(1.0)]);
+        let list = vec![ProjectParam::new(
+            "sizes",
+            Value::Optional(ProjectParamOptional::new(true, Value::Vec(sizes))),
+        )];
+        assert_eq!(dot_path(&list, &path(&["sizes"])).as_deref(), Some("sizes"));
+        assert_eq!(dot_path(&list, &path(&["sizes", "[0]"])), None);
     }
 }

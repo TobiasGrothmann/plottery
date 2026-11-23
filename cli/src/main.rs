@@ -528,6 +528,7 @@ pub fn main() -> Result<()> {
                 RELEASE,
                 &start,
                 &names,
+                &Default::default(),
                 count,
                 |event| match event {
                     RollEvent::Prepared { total } => {

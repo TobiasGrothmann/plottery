@@ -182,6 +182,11 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
     });
     let current_layout = layout();
     let (params_min, params_max, params_default) = Panel::Params.size_limits();
+    // the variations view adds a column with the roll ranges, as wide as `.ParamsEditor.selecting` pads
+    let range_column_w = match view() {
+        EditorView::Variations => 152.0,
+        EditorView::Edit => 0.0,
+    };
     let (layers_min, layers_max, layers_default) = Panel::Layers.size_limits();
     let (console_min, console_max, console_default) = Panel::Console.size_limits();
 
@@ -249,7 +254,7 @@ fn ProjectEditor(project_path: Vec<String>) -> Element {
 
             div { class: "workspace",
                 if current_layout.params_open {
-                    aside { class: "params-panel", style: "width: {current_layout.params_w}px;",
+                    aside { class: "params-panel", style: "width: {current_layout.params_w + range_column_w}px;",
                         PanelHeader {
                             title: "Parameters",
                             on_collapse: move |_| toggle_panel(Panel::Params),
