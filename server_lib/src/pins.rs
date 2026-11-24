@@ -75,7 +75,6 @@ impl HardwareProfile {
     High	    High	    High	    (1/16) Sixteenth step
 */
 
-// TODO: get settings from file
 pub static HARDWARE_CONSTS: HardwareConsts = HardwareConsts {
     pin_settings: PinSettings {
         dir_pins: [18, 4, 11, 16],
