@@ -193,8 +193,8 @@ impl Angle {
     ///     println!("{:?}", angle);
     /// }
     /// ```
-    pub fn lerp_iter_fixed(&self, end: Angle, steps: usize) -> AngleInterpolator {
-        AngleInterpolator::new(*self, end, steps)
+    pub fn lerp_iter_fixed(&self, end: Angle, steps: usize) -> Interpolator<Angle> {
+        Interpolator::new(*self, end, steps)
     }
 
     /// Returns an iterator to interpolate from `self` to `end`.
@@ -216,9 +216,9 @@ impl Angle {
         end: Angle,
         sample_settings: SampleSettings,
         radius: f32,
-    ) -> AngleInterpolator {
+    ) -> Interpolator<Angle> {
         let distance = (end.rad - self.rad).abs() * radius;
-        AngleInterpolator::new(
+        Interpolator::new(
             *self,
             end,
             sample_settings.num_points_for_length(distance) as usize,
@@ -259,8 +259,6 @@ impl Angle {
         }
     }
 }
-
-pub type AngleInterpolator = Interpolator<Angle>;
 
 impl Interpolate for Angle {
     fn interpolate(self, end: Self, step: usize, steps: usize) -> Self {

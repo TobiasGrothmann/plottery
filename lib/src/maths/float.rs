@@ -2,27 +2,24 @@ use num_traits::{Float, FromPrimitive};
 
 use super::interpolator::{Interpolate, Interpolator};
 
-/// Iterator for interpolating between two float values.
-pub type FloatInterpolator<T> = Interpolator<T>;
-
 /// Trait for interpolating between float values.
 pub trait FloatInterpolation: Float + FromPrimitive + Interpolate {
     fn lerp(self, end: Self, t: Self) -> Self {
         self * (Self::one() - t) + end * t
     }
 
-    fn lerp_iter(self, end: Self, step_size: Self) -> FloatInterpolator<Self> {
+    fn lerp_iter(self, end: Self, step_size: Self) -> Interpolator<Self> {
         // A zero or NaN step size gives no steps, so only `self`.
         let steps = ((end - self) / step_size)
             .abs()
             .round()
             .to_usize()
             .unwrap_or(0);
-        FloatInterpolator::new(self, end, steps)
+        Interpolator::new(self, end, steps)
     }
 
-    fn lerp_iter_fixed(self, end: Self, steps: usize) -> FloatInterpolator<Self> {
-        FloatInterpolator::new(self, end, steps)
+    fn lerp_iter_fixed(self, end: Self, steps: usize) -> Interpolator<Self> {
+        Interpolator::new(self, end, steps)
     }
 
     /// `sin` mapped from -1..1 to 0..1.
@@ -70,7 +67,7 @@ impl Interpolate for f64 {
 }
 
 /// `steps + 1` evenly spaced values from 0.0 to 1.0, both inclusive.
-pub fn fractions(steps: usize) -> FloatInterpolator<f32> {
+pub fn fractions(steps: usize) -> Interpolator<f32> {
     0.0.lerp_iter_fixed(1.0, steps)
 }
 
@@ -80,6 +77,6 @@ pub fn fractions_exclusive(steps: usize) -> impl Iterator<Item = f32> {
 }
 
 /// `count` evenly spaced values from `start` to `end`, both inclusive.
-pub fn linspace(start: f32, end: f32, count: usize) -> FloatInterpolator<f32> {
+pub fn linspace(start: f32, end: f32, count: usize) -> Interpolator<f32> {
     start.lerp_iter_fixed(end, count.saturating_sub(1))
 }

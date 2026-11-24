@@ -483,8 +483,8 @@ impl V2 {
     ///     println!("{:?}", point);
     /// }
     /// ```
-    pub fn lerp_iter_fixed(&self, end: V2, steps: usize) -> V2Interpolator {
-        V2Interpolator::new(*self, end, steps)
+    pub fn lerp_iter_fixed(&self, end: V2, steps: usize) -> Interpolator<V2> {
+        Interpolator::new(*self, end, steps)
     }
 
     /// Returns an iterator to interpolate from this vector to another with density based on sample settings.
@@ -500,9 +500,9 @@ impl V2 {
     ///     println!("{:?}", point);
     /// }
     /// ```
-    pub fn lerp_iter(&self, end: V2, sample_settings: SampleSettings) -> V2Interpolator {
+    pub fn lerp_iter(&self, end: V2, sample_settings: SampleSettings) -> Interpolator<V2> {
         let distance = self.dist(end);
-        V2Interpolator::new(
+        Interpolator::new(
             *self,
             end,
             sample_settings.num_points_for_length(distance) as usize,
@@ -552,8 +552,6 @@ impl V2 {
         self.lerp(other, t)
     }
 }
-
-pub type V2Interpolator = Interpolator<V2>;
 
 impl Interpolate for V2 {
     fn interpolate(self, end: Self, step: usize, steps: usize) -> Self {
