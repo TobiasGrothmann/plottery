@@ -96,10 +96,6 @@ impl Angle {
         Self::from_degrees(-90.0)
     }
 
-    /// Creates an angle with 1.0 / golden ratio number of rotations. See [`GOLDEN_RATIO`].
-    pub fn golden_ratio_inverse() -> Self {
-        Self::from_rotations(1.0 / GOLDEN_RATIO)
-    }
     /// The golden angle, ≈ 137.5°: the circle split in the golden ratio.
     pub fn golden_angle() -> Self {
         Self::from_rotations(1.0 - 1.0 / GOLDEN_RATIO)
@@ -150,12 +146,6 @@ impl Angle {
     #[must_use]
     pub fn abs(&self) -> Self {
         Angle::from_rad(self.rad.abs())
-    }
-
-    /// Returns a new angle with flipped sign: `self * -1.0`.
-    #[must_use]
-    pub fn flip_sign(&self) -> Self {
-        Angle::from_rad(-self.rad)
     }
 
     /// The angle a quarter turn clockwise from this one, to its right like [`crate::Line::normal_right`].
