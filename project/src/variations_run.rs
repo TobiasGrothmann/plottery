@@ -179,7 +179,7 @@ impl Project {
             params: paths.clone(),
             ranges,
             mode,
-            total: Some(count),
+            total: count,
             ended: false,
         };
         self.start_variations(&meta)?;
