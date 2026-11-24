@@ -61,7 +61,7 @@ pub fn ProjectTitle(cargo_path: PathBuf) -> Element {
             .collect::<Vec<_>>()
     });
     let cargo_dir = use_memo(move || cargo_path.clone());
-    let project_dir = use_memo(move || project().get_dir());
+    let project_dir = use_memo(move || project().dir);
     let icon_folder = format_svg(include_bytes!("../../../public/icons/finder.svg"));
 
     rsx! {
