@@ -64,10 +64,12 @@ The plan therefore starts by instrumenting the loop so the two can be
 told apart, then fixes the software causes, then retunes. Everything
 else waits until the benchmark passes.
 
-## What the current code actually does
+## What the code did before Phase 0
 
-Facts from `server_lib/src/hardware.rs`, `server/src/gpio_executor.rs` and
-`server/src/util/system.rs`.
+The diagnosis from `server_lib/src/hardware.rs`, `server/src/gpio_executor.rs`
+and `server/src/util/system.rs` as of September 2026, back when the server ran
+on Rocket. Much of it is fixed since; the state is at the end of the hardware
+checklist.
 
 - **Per-axis timing, not path timing.** `Hardware::move_steps` applies one
   delay independently per axis. A 45° move runs 1.41 times faster than

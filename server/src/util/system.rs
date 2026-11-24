@@ -46,7 +46,7 @@ pub fn prepare_plot_thread() {
 /// Pin the calling thread to the plot core. `sched_setaffinity(0, ...)`
 /// acts on the calling thread only (threads it spawns later inherit the
 /// mask), so this runs inside the plot thread, never in `main`: pinning
-/// `main` would drag tokio and Rocket onto the plot core as well.
+/// `main` would drag tokio and axum onto the plot core as well.
 #[cfg(feature = "raspi")]
 fn pin_this_thread_to_plot_core() -> std::io::Result<()> {
     let mut cpu_set: libc::cpu_set_t = unsafe { std::mem::zeroed() };
