@@ -2,8 +2,6 @@ target/
 
 *.DS_Store
 
-tmp.svg
-
 editor/dist/
 
 todo.md
