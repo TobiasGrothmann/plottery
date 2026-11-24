@@ -402,7 +402,6 @@ fn build_and_resolve_params(
     Ok((params, defaults))
 }
 
-/// The editor app, or an error that says how to get it.
 static INTERRUPTED: AtomicBool = AtomicBool::new(false);
 static INTERRUPT_WAKER: Mutex<Option<Waker>> = Mutex::new(None);
 
@@ -426,6 +425,7 @@ fn interrupted() -> Result<impl Future<Output = ()>> {
     }))
 }
 
+/// The editor app, or an error that says how to get it.
 fn check_editor_available() -> Result<PathBuf> {
     if !cfg!(target_os = "macos") {
         bail!("Opening the editor needs the Plottery Editor, which runs on macOS only");
