@@ -830,7 +830,7 @@ pub fn main() -> Result<()> {
             if let Some(env_home) = std::env::var_os(PLOTTERY_HOME_ENV).filter(|v| !v.is_empty()) {
                 if Path::new(&env_home) != home {
                     eprintln!(
-                        "{PLOTTERY_HOME_ENV} is set to '{}' and overrides it. Remove it from your shell profile.",
+                        "{PLOTTERY_HOME_ENV} is set to '{}' and wins over it while it is set.",
                         env_home.to_string_lossy()
                     );
                 }
