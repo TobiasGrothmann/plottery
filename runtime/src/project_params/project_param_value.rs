@@ -1,5 +1,5 @@
 use anyhow::Result;
-use plottery_lib::{ColorRgb, Easing, NoiseSettings, Paper, Rect, SystemFont, V2i, V2};
+use plottery_lib::{ColorRgb, Easing, Paper, Rect, SystemFont, V2i, V2};
 
 use super::angle_unit::AngleUnit;
 use super::param_field::param_type_mismatch;
@@ -56,8 +56,6 @@ pub enum ProjectParamValue {
     V2(V2),
     Seed(ProjectParamSeed),
     Image(ProjectParamFile),
-    /// What a `NoiseSettings` param was before it became a `Struct`, only read from saved files.
-    Noise(NoiseSettings),
     Easing(Easing),
     Color(ColorRgb),
     V2i(V2i),
@@ -161,7 +159,6 @@ impl ProjectParamValue {
             ProjectParamValue::V2(_) => "v2".to_string(),
             ProjectParamValue::Seed(_) => "seed".to_string(),
             ProjectParamValue::Image(_) => "image".to_string(),
-            ProjectParamValue::Noise(_) => "noise".to_string(),
             ProjectParamValue::Easing(_) => "easing".to_string(),
             ProjectParamValue::Color(_) => "color".to_string(),
             ProjectParamValue::V2i(_) => "v2i".to_string(),

@@ -2,8 +2,8 @@
 mod tests {
     use crate::*;
     use plottery_lib::{
-        Angle, BundledFont, ColorRgb, Easing, Margin, NoiseScale, NoiseSettings, NoiseType, Paper,
-        Ramp, Range, Rect, SystemFont, V2i, V2,
+        Angle, BundledFont, ColorRgb, Easing, Margin, NoiseSettings, NoiseType, Paper, Ramp, Range,
+        Rect, SystemFont, V2i, V2,
     };
 
     #[derive(PlotteryEnum, Debug, Clone, Copy, PartialEq)]
@@ -207,7 +207,7 @@ mod tests {
             seed: Seed::new(-1),
             image: ImagePath::new("resources/images/a.png"),
             svg: SvgPath::new("resources/svgs/a.svg"),
-            noise: NoiseSettings::new(NoiseType::Simplex, 3.0, 4, NoiseScale::PerPaper),
+            noise: NoiseSettings::new(NoiseType::Simplex, 3.0, 4),
             easing: Easing::s_curve(0.4),
             color: ColorRgb::new(0.2, 0.4, 0.6),
             cells: V2i::new(-1, 9),

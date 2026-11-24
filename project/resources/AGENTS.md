@@ -133,7 +133,7 @@ Check here before writing your own helper. Paths are in `plottery_lib/src/`; the
 | grids, hex grids, colors and color names | `composition/` |
 | `Angle` with constants like `golden_angle`, `Range`, `Ramp`, easing | `maths/` |
 | float helpers: `lerp`, `linlin`, `sin01`, `cos01`, `clamp01`; evenly spaced steps `fractions`, `linspace` | `maths/float.rs` |
-| perlin, simplex and worley noise, scaled per cm or per paper | `maths/noise.rs` |
+| perlin, simplex and worley noise, per cm or across a length | `maths/noise.rs` |
 | random helpers and seeding | `maths/random.rs`, `maths/global_rng.rs` |
 | evenly spaced random points (blue noise), uniform or following a density function | `PoissonDisk` in `generate/poisson_disk.rs` |
 | Voronoi diagrams with relaxation | `generate/voronoi.rs` |
@@ -234,7 +234,7 @@ pen. The layer tree you return is that panel, so build it for the user, not for 
   return the root layer through `optimize_recursive()` so paths are reordered for plotting.
 - With a `Seed` param, call `params.seed.apply()` first. Then use Plottery's random helpers
   (`maths/random.rs`) and `Range::sample` instead of the `rand` crate, so results are reproducible.
-  `NoiseSettings::noise()` also draws its seed from there, so create noise after applying the seed.
+  `NoiseSettings::noise()` and `noise_across()` also draw their seed from there, so create noise after applying the seed.
 - A drawing that comes about over iterations (growth, a simulation, relaxation, strokes added one
   after another) calls `snapshot(|| layer)` once per iteration, with the whole picture at that moment.
   Add it without being asked: it costs nothing in normal runs, the closure only runs for

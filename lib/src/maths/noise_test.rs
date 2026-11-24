@@ -4,7 +4,7 @@ mod test_noise {
 
     use crate::{
         maths::global_rng::{seed, seed_for_test},
-        MarchingSquares, Noise, NoiseScale, NoiseSettings, NoiseType, Rect, SampleSettings, V2,
+        MarchingSquares, Noise, NoiseSettings, NoiseType, Rect, SampleSettings, V2,
     };
 
     #[test]
@@ -53,28 +53,16 @@ mod test_noise {
     }
 
     #[test]
-    fn test_noise_settings_per_paper_divides_frequency() {
-        let size = V2::new(20.0, 40.0);
+    fn noise_across_divides_frequency_by_length() {
         let _rng = seed_for_test(1);
-        let settings = NoiseSettings::default()
-            .with_frequency(4.0)
-            .with_scale(NoiseScale::PerPaper);
+        let settings = NoiseSettings::default().with_frequency(4.0);
 
         // the same explicit seed, so the two noises can match
-        let per_paper = settings.noise_for(size).with_seed(7);
-        let absolute = settings.with_frequency(4.0 / 20.0).noise().with_seed(7);
+        let across = settings.noise_across(20.0).with_seed(7);
+        let per_cm = settings.with_frequency(4.0 / 20.0).noise().with_seed(7);
         for i in 0..20 {
             let p = V2::new(i as f32 * 1.3, i as f32 * 0.7);
-            assert_eq!(per_paper.get(p), absolute.get(p));
+            assert_eq!(across.get(p), per_cm.get(p));
         }
-
-        let per_cm = settings
-            .with_scale(NoiseScale::PerCm)
-            .noise_for(size)
-            .with_seed(7);
-        assert_eq!(
-            per_cm.get(V2::xy(2.0)),
-            settings.noise().with_seed(7).get(V2::xy(2.0))
-        );
     }
 }

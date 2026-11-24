@@ -58,10 +58,6 @@ impl ProjectParamValue {
             },
             Self::Struct(param_struct) => format!("{} fields", param_struct.fields.len()),
             Self::Vec(param_vec) => format!("{} items", param_vec.items.len()),
-            Self::Noise(noise) => format!(
-                "{:?} f={} o={} {:?}",
-                noise.noise_type, noise.frequency, noise.octaves, noise.scale
-            ),
             Self::Easing(easing) => {
                 format!("{:?} {:.2}", easing.kind, easing.amount).to_lowercase()
             }
@@ -146,7 +142,7 @@ impl ProjectParamValue {
             },
             Self::Struct(_) => bail!("is a struct, set its fields as <name>.<field>"),
             Self::Vec(_) => bail!("is a list, set its items as <name>.0, <name>.1, ..."),
-            Self::Noise(_) | Self::Easing(_) | Self::Curve2D(_) | Self::Curve2DNorm(_) => {
+            Self::Easing(_) | Self::Curve2D(_) | Self::Curve2DNorm(_) => {
                 bail!("{} params are not settable from the CLI", self.type_name())
             }
         }

@@ -41,7 +41,7 @@ mod tests {
     #[test]
     fn round_trip() {
         let bytes = params().to_file_bytes().unwrap();
-        assert_eq!(&bytes[..6], b"PLTP\x02\x00");
+        assert_eq!(&bytes[..6], b"PLTP\x03\x00");
         let (read, skipped) = ProjectParamsListWrapper::from_file_bytes(&bytes).unwrap();
         assert_eq!(read.list, params().list);
         assert!(skipped.is_empty());
@@ -73,9 +73,9 @@ mod tests {
     #[test]
     fn newer_version_and_garbage_are_errors() {
         let mut newer = params().to_file_bytes().unwrap();
-        newer[4] = 3;
+        newer[4] = 4;
         let err = ProjectParamsListWrapper::from_file_bytes(&newer).unwrap_err();
-        assert!(err.to_string().contains("format version 3"));
+        assert!(err.to_string().contains("format version 4"));
 
         let mut truncated = params().to_file_bytes().unwrap();
         truncated.truncate(30);

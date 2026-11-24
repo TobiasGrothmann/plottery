@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 pub use anyhow::Error as ParamFieldError;
 use plottery_lib::{
-    Angle, BundledFont, ColorRgb, Easing, NoiseScale, NoiseSettings, NoiseType, Paper, Ramp, Range,
-    Rect, SystemFont, V2i, V2,
+    Angle, BundledFont, ColorRgb, Easing, NoiseSettings, NoiseType, Paper, Ramp, Range, Rect,
+    SystemFont, V2i, V2,
 };
 use plottery_runtime_macros::PlotteryParams;
 
@@ -358,15 +358,13 @@ macro_rules! lib_enum_param_field {
 }
 
 lib_enum_param_field!(NoiseType: Perlin, Simplex, Worley);
-lib_enum_param_field!(NoiseScale: PerCm, PerPaper);
 
 /// The fields a [`NoiseSettings`] param has, as the lib type can't derive `PlotteryParams`.
 #[derive(PlotteryParams)]
 struct NoiseFields {
     noise_type: NoiseType,
-    /// features per cm, or across the shorter side of the paper
+    /// features per cm, or across what the project names
     frequency: f32,
-    scale: NoiseScale,
     /// fractal layers, 1 is plain noise
     #[range(1, 8)]
     octaves: i32,
@@ -380,22 +378,16 @@ impl ParamField for NoiseSettings {
         NoiseFields {
             noise_type: self.noise_type,
             frequency: self.frequency,
-            scale: self.scale,
             octaves: i32::try_from(self.octaves).unwrap_or(i32::MAX),
         }
         .to_param_value()
     }
     fn from_param_value(value: &ProjectParamValue) -> Result<Self, ParamFieldError> {
-        // Saved files from before noise was a struct still hold a `Noise`.
-        if let ProjectParamValue::Noise(noise) = value {
-            return Ok(*noise);
-        }
         let fields = NoiseFields::from_param_value(value)?;
         Ok(NoiseSettings::new(
             fields.noise_type,
             fields.frequency,
             fields.octaves.max(1) as u32,
-            fields.scale,
         ))
     }
 }

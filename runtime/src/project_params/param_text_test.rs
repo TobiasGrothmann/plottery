@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
     use plottery_lib::{
-        ColorRgb, Margin, NoiseScale, NoiseSettings, NoiseType, Paper, PaperSize, Ramp, Rect,
-        SystemFont, V2i, V2,
+        ColorRgb, Margin, NoiseSettings, NoiseType, Paper, PaperSize, Ramp, Rect, SystemFont, V2i,
+        V2,
     };
 
     use crate::{
@@ -377,12 +377,11 @@ mod tests {
         )]);
         params.set("noise.noise_type", "Simplex").unwrap();
         params.set("noise.frequency", "2").unwrap();
-        params.set("noise.scale", "PerPaper").unwrap();
         params.set("noise.octaves", "3").unwrap();
 
         assert_eq!(
             NoiseSettings::from_param_value(&params.list[0].value).unwrap(),
-            NoiseSettings::new(NoiseType::Simplex, 2.0, 3, NoiseScale::PerPaper)
+            NoiseSettings::new(NoiseType::Simplex, 2.0, 3)
         );
         assert!(params.set("noise.octaves", "0").is_err());
     }

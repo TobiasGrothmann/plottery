@@ -20,30 +20,21 @@ impl NoiseType {
     pub const ALL: [NoiseType; 3] = [NoiseType::Perlin, NoiseType::Simplex, NoiseType::Worley];
 }
 
-/// How [`NoiseSettings::frequency`] is interpreted.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub enum NoiseScale {
-    /// Features per cm.
-    #[default]
-    PerCm,
-    /// Features across the shorter side of the paper, see [`NoiseSettings::noise_for`].
-    PerPaper,
-}
-
 /// Serializable description of a [`Noise`], e.g. as a project parameter.
 ///
 /// ```
 /// # use plottery_lib::*;
-/// let settings = NoiseSettings::default().with_scale(NoiseScale::PerPaper);
-/// let noise = settings.noise_for(V2::a4());
+/// let settings = NoiseSettings::default().with_frequency(3.0);
+/// let noise = settings.noise_across(V2::a4().min_axis());
 /// let value = noise.get(V2::new(5.0, 5.0));
 /// ```
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct NoiseSettings {
     pub noise_type: NoiseType,
+    /// Features per cm, or across the length given to [`NoiseSettings::noise_across`].
     pub frequency: f32,
+    /// Fractal (FBm) octaves, 1 is plain noise.
     pub octaves: u32,
-    pub scale: NoiseScale,
 }
 
 impl Default for NoiseSettings {
@@ -52,18 +43,16 @@ impl Default for NoiseSettings {
             noise_type: NoiseType::Perlin,
             frequency: 1.0,
             octaves: 1,
-            scale: NoiseScale::PerCm,
         }
     }
 }
 
 impl NoiseSettings {
-    pub fn new(noise_type: NoiseType, frequency: f32, octaves: u32, scale: NoiseScale) -> Self {
+    pub fn new(noise_type: NoiseType, frequency: f32, octaves: u32) -> Self {
         Self {
             noise_type,
             frequency,
             octaves,
-            scale,
         }
     }
 
@@ -79,25 +68,18 @@ impl NoiseSettings {
     pub fn with_octaves(self, octaves: u32) -> Self {
         Self { octaves, ..self }
     }
-    #[must_use]
-    pub fn with_scale(self, scale: NoiseScale) -> Self {
-        Self { scale, ..self }
-    }
 
-    /// Noise with the frequency taken as features per cm, seeded from the global RNG.
+    /// `frequency` features per cm, seeded from the global RNG.
     pub fn noise(&self) -> Noise {
-        Noise::new(self.noise_type)
-            .with_frequency(self.frequency)
-            .with_octaves(self.octaves.max(1))
+        self.noise_with_frequency(self.frequency)
     }
 
-    /// Noise for a paper of `size`: with [`NoiseScale::PerPaper`] the frequency is divided by the
-    /// shorter side, with [`NoiseScale::PerCm`] `size` is ignored.
-    pub fn noise_for(&self, size: V2) -> Noise {
-        let frequency = match self.scale {
-            NoiseScale::PerCm => self.frequency,
-            NoiseScale::PerPaper => self.frequency / size.min_axis().max(f32::EPSILON),
-        };
+    /// `frequency` features across `length` cm, e.g. `paper.size().min_axis()`.
+    pub fn noise_across(&self, length: f32) -> Noise {
+        self.noise_with_frequency(self.frequency / length.max(f32::EPSILON))
+    }
+
+    fn noise_with_frequency(&self, frequency: f32) -> Noise {
         Noise::new(self.noise_type)
             .with_frequency(frequency)
             .with_octaves(self.octaves.max(1))

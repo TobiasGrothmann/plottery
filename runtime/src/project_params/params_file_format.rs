@@ -11,7 +11,7 @@ use super::project_param_value::ProjectParamValue;
 use super::project_params_list_wrapper::ProjectParamsListWrapper;
 
 const MAGIC: [u8; 4] = *b"PLTP";
-const VERSION: u16 = 2;
+const VERSION: u16 = 3;
 
 #[derive(Serialize, Deserialize)]
 struct ParamRecord {

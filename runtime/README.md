@@ -88,7 +88,7 @@ Field types and their widgets:
 | `Easing` | power, bias or s-curve, slider, curve preview |
 | `Ramp` | its own section: from, to and an easing between them; `#[range]` turns from and to into sliders; `at(t)` and `steps(n)` give the values |
 | `ColorRgb` | color picker and hex code |
-| `NoiseSettings` | its own section: perlin/simplex/worley, frequency, per cm or per paper, octaves |
+| `NoiseSettings` | its own section: perlin/simplex/worley, frequency, octaves |
 | `BundledFont` | picker for the bundled single-line fonts, with previews |
 | `SystemFont` | picker for the fonts installed on this machine and their styles; `load()` gives the `Font` |
 | `ImagePath`, `SvgPath` | file picker; copies the file into `resources/` or links the original |

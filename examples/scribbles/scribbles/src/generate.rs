@@ -43,7 +43,7 @@ pub struct Params {
 
 pub fn generate(params: Params) -> Layer {
     params.seed.apply();
-    let noise = params.noise.noise_for(params.paper.size());
+    let noise = params.noise.noise();
     let frame = params.paper.frame();
     let inner = frame.inner_rect();
     let grid = Grid::with_cell_size(inner, params.cell_size, 0.0);
