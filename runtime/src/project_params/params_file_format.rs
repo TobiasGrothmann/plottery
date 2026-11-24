@@ -2,8 +2,8 @@
 //! Each value is its own length-prefixed block, so a value this version can't decode costs only
 //! that param.
 
-use anyhow::{bail, Context, Result};
-use plottery_lib::{split_file_header, with_file_header};
+use anyhow::{bail, Result};
+use plottery_lib::{read_versioned, write_versioned};
 use serde::{Deserialize, Serialize};
 
 use super::project_param::ProjectParam;
@@ -56,27 +56,12 @@ impl ProjectParamsListWrapper {
             .iter()
             .map(ParamRecord::new)
             .collect::<Result<Vec<_>>>()?;
-        Ok(with_file_header(
-            &MAGIC,
-            VERSION,
-            &postcard::to_stdvec(&records)?,
-        ))
+        write_versioned(&MAGIC, VERSION, &records)
     }
 
     /// The saved params, and the names of those left out because their value could not be decoded.
     pub fn from_file_bytes(bytes: &[u8]) -> Result<(Self, Vec<String>)> {
-        let records: Vec<ParamRecord> = match split_file_header(&MAGIC, bytes) {
-            None => bail!("not a params file of this Plottery version"),
-            Some((VERSION, payload)) => {
-                postcard::from_bytes(payload).context("the params file is damaged")?
-            }
-            Some((version, _)) if version < VERSION => bail!(
-                "the params file has the old format version {version}, which this Plottery can't read anymore."
-            ),
-            Some((version, _)) => bail!(
-                "the params file has format version {version}, this Plottery reads up to {VERSION}. Update Plottery."
-            ),
-        };
+        let records: Vec<ParamRecord> = read_versioned(&MAGIC, VERSION, bytes, "params")?;
 
         let mut skipped = Vec::new();
         let list = records

@@ -1,7 +1,7 @@
 use std::path::Path;
 
-use anyhow::{bail, Context, Result};
-use plottery_lib::{split_file_header, with_file_header};
+use anyhow::{Context, Result};
+use plottery_lib::{read_versioned, write_versioned};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -62,30 +62,16 @@ impl PlotSettings {
 
     /// The `.plots` format: a file header followed by the postcard of the settings.
     pub fn to_file_bytes(&self) -> Result<Vec<u8>> {
-        Ok(with_file_header(
-            &Self::FILE_MAGIC,
-            Self::FILE_VERSION,
-            &postcard::to_stdvec(self)?,
-        ))
+        write_versioned(&Self::FILE_MAGIC, Self::FILE_VERSION, self)
     }
 
     pub fn from_file_bytes(bytes: &[u8]) -> Result<Self> {
-        let Some((version, payload)) = split_file_header(&Self::FILE_MAGIC, bytes) else {
-            bail!("not a plot settings file of this Plottery version");
-        };
-        // a changed `PlotSettings` gets a new version, and the old one an arm here that migrates it
-        match version {
-            Self::FILE_VERSION => {
-                postcard::from_bytes(payload).context("the plot settings file is damaged")
-            }
-            _ if version < Self::FILE_VERSION => bail!(
-                "the plot settings file has the old format version {version}, which this Plottery can't read anymore."
-            ),
-            _ => bail!(
-                "the plot settings file has format version {version}, this Plottery reads up to {}. Update Plottery.",
-                Self::FILE_VERSION
-            ),
-        }
+        read_versioned(
+            &Self::FILE_MAGIC,
+            Self::FILE_VERSION,
+            bytes,
+            "plot settings",
+        )
     }
 
     /// The settings saved at `path`, the defaults when there is no file.
