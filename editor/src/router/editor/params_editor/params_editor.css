@@ -115,10 +115,6 @@
   flex-wrap: wrap;
 }
 
-.nowrap {
-  white-space: nowrap;
-}
-
 .color-swatch {
   width: 28px;
   height: 28px;
