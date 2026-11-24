@@ -1,6 +1,6 @@
-pub use crate::shapes::circle::Circle;
-pub use crate::shapes::path::Path;
-pub use crate::shapes::rect::Rect;
+use crate::shapes::circle::Circle;
+use crate::shapes::path::Path;
+use crate::shapes::rect::Rect;
 
 use super::containment::contains_shape_by_variant;
 use crate::{
