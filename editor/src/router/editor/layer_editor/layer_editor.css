@@ -3,24 +3,36 @@
   flex-direction: column;
   gap: 1px;
   padding: 6px;
+  /* Room for the status pill, so the last row scrolls out from under it. */
+  padding-bottom: 44px;
 }
 
 .layers-empty {
   padding: 12px;
 }
 
-/* Says that the drawing is not shown in full. Stays in view while the rows scroll. */
-.layers-status {
+/* Says that the drawing is not shown in full. Floats over the bottom of the panel, so the rows
+   don't move when it shows up. The anchor sticks there and takes no space. */
+.layers-status-anchor {
   position: sticky;
-  top: 0;
+  bottom: 0;
+  height: 0;
   z-index: 1;
+}
+.layers-status {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 6px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   padding: 4px 6px 4px 12px;
-  border-bottom: 1px solid var(--line);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-sm);
   background: var(--bg-2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
 }
 .layers-status-text {
   min-width: 0;

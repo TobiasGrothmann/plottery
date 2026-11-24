@@ -30,29 +30,6 @@ pub fn LayerEditor(
 
     rsx! {
         style { { include_str!("layer_editor.css") } }
-        if let Some((target, label)) = layer_rows.solo.clone() {
-            div { class: "layers-status",
-                span { class: "layers-status-text", title: "{label}", "Only {label}" }
-                Button {
-                    variant: Variant::Ghost,
-                    size: Size::Sm,
-                    onclick: move |_| on_solo.call(target.clone()),
-                    "Exit solo"
-                }
-            }
-        } else if layer_rows.shapes_visible < layer_rows.shapes {
-            div { class: "layers-status",
-                span { class: "layers-status-text",
-                    "{layer_rows.shapes_visible} of {layer_rows.shapes} shapes shown"
-                }
-                Button {
-                    variant: Variant::Ghost,
-                    size: Size::Sm,
-                    onclick: move |_| on_show_all.call(()),
-                    "Show all"
-                }
-            }
-        }
         if layer_rows.rows.is_empty() {
             p { class: "hint layers-empty", "This drawing is empty." }
         }
@@ -64,6 +41,33 @@ pub fn LayerEditor(
                     on_toggle_visible,
                     on_solo,
                     on_set_expanded,
+                }
+            }
+        }
+        if let Some((target, label)) = layer_rows.solo.clone() {
+            div { class: "layers-status-anchor",
+                div { class: "layers-status",
+                    span { class: "layers-status-text", title: "{label}", "Only {label}" }
+                    Button {
+                        variant: Variant::Ghost,
+                        size: Size::Sm,
+                        onclick: move |_| on_solo.call(target.clone()),
+                        "Exit solo"
+                    }
+                }
+            }
+        } else if layer_rows.shapes_visible < layer_rows.shapes {
+            div { class: "layers-status-anchor",
+                div { class: "layers-status",
+                    span { class: "layers-status-text",
+                        "{layer_rows.shapes_visible} of {layer_rows.shapes} shapes shown"
+                    }
+                    Button {
+                        variant: Variant::Ghost,
+                        size: Size::Sm,
+                        onclick: move |_| on_show_all.call(()),
+                        "Show all"
+                    }
                 }
             }
         }
