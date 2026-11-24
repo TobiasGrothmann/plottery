@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod test_svg_path_data {
     use crate::{
-        composition::{svg_path_data::parse_svg_path_data, svg_transform::iter_svg_f32_tokens},
+        composition::svg_path_data::{parse_svg_path_data, svg_numbers},
         Segment, V2,
     };
 
@@ -49,7 +49,7 @@ mod test_svg_path_data {
 
     #[test]
     fn number_lists_split_compact_signs_and_dots() {
-        let numbers: Vec<f32> = iter_svg_f32_tokens("0,0 10-5 1.5.5").collect();
+        let numbers: Vec<f32> = svg_numbers("0,0 10-5 1.5.5").collect();
         assert_eq!(numbers, [0.0, 0.0, 10.0, -5.0, 1.5, 0.5]);
     }
 }
