@@ -128,7 +128,7 @@ enum Command {
     },
     #[command(
         about = "Roll params to random values and store a drawing per roll, the project's variations",
-        long_about = "Roll params to random values and store a drawing per roll, the project's variations.\n\nEach roll gives every named param a uniform random value: params with a #[range] within it, seeds from 100 to 999, angles over the full turn, bools, enums and options among their choices. Roll 0 is the start params themselves. The results replace the last ones in the project's variations/ folder (not committed): NNN.plotp, NNN.plotl and NNN.png per roll. The start params are the editor's saved values unless --defaults or --set say otherwise; the saved values don't change. The first failed run ends the roll, finished rolls stay. `plottery pick N` makes roll N the saved values.\n\nWith --similar PERCENT the rolls stay near the start: each named number moves at most PERCENT of its range away from its start value, still within the range, and seeds, bools, enums and whether options are on stay as they are. To roll around roll N of the last set, `plottery pick N` first."
+        long_about = "Roll params to random values and store a drawing per roll, the project's variations.\n\nEach roll gives every named param a uniform random value: params with a #[range] within it, seeds from 100 to 999, angles over the full turn, bools, enums and options among their choices. Roll 0 is the start params themselves. The results replace the last ones in the project's variations/ folder (not committed): NNN.plotp, NNN.plotl and NNN.png per roll. The start params are the editor's saved values unless --defaults or --set say otherwise; the saved values don't change. The first failed run ends the roll, finished rolls stay. `plottery pick N` makes roll N the saved values.\n\nWith --similar PERCENT the rolls stay near the start: each named number moves at most PERCENT of its range away from its start value, still within the range, and seeds, bools, enums and whether options are on stay as they are. To roll around roll N of the last set, `plottery pick N` first.\n\nWith --permute SAMPLES the rolls are a grid instead: every named number takes SAMPLES evenly spaced values from one end of its range to the other, ranges of two numbers every pair of those, seeds the start seed and the SAMPLES - 1 after it, angles without a range SAMPLES values over the full turn, bools, enums and whether options are on every choice. Every combination is a roll, except the start params themselves; the count follows from SAMPLES and isn't given with -n. --keep PERCENT keeps each combination with that chance, always the same ones for the same params, SAMPLES and PERCENT. There is no limit: mind the count before rolling, it grows fast with SAMPLES and the number of params."
     )]
     Roll {
         #[arg(
@@ -136,14 +136,33 @@ enum Command {
             help = "Params to roll, as named by `plottery params`, e.g. seed size glow.radius. Without any, lists the rollable ones"
         )]
         names: Vec<String>,
-        #[arg(short = 'n', long, default_value_t = 100, help = "Number of rolls")]
-        count: usize,
+        #[arg(
+            short = 'n',
+            long,
+            help = "Number of rolls [default: 100]",
+            conflicts_with = "permute"
+        )]
+        count: Option<usize>,
         #[arg(
             long,
             value_name = "PERCENT",
-            help = "Roll numbers at most PERCENT of their range away from the start values, keep everything else"
+            help = "Roll numbers at most PERCENT of their range away from the start values, keep everything else",
+            conflicts_with = "permute"
         )]
         similar: Option<f32>,
+        #[arg(
+            long,
+            value_name = "SAMPLES",
+            help = "Roll a grid: SAMPLES values per number, every choice of the rest, every combination once"
+        )]
+        permute: Option<usize>,
+        #[arg(
+            long,
+            value_name = "PERCENT",
+            requires = "permute",
+            help = "Keep each combination of --permute with a chance of PERCENT, the same ones every time [default: 100]"
+        )]
+        keep: Option<f32>,
         #[command(flatten)]
         project: ProjectFlag,
         #[command(flatten)]
@@ -290,6 +309,7 @@ Typical loop inside a project folder:
   plottery roll seed size -n 24 --open            24 random variations, shown in the editor
   plottery pick 7                                 make roll 7 the user's values
   plottery roll size spread --similar 20          variations near the user's values
+  plottery roll size mirror --permute 5           every combination of 5 sizes and mirror on/off
   plottery set size=12                            change the user's values
   plottery run ~/art/labyrinth                    run a project from anywhere
   plottery open                                   open the project in the editor";
@@ -523,10 +543,20 @@ pub fn main() -> Result<()> {
             names,
             count,
             similar,
+            permute,
+            keep,
             project,
             params,
             open,
         } => {
+            let mode = match (similar, permute) {
+                (_, Some(samples)) => RollMode::Permutation {
+                    samples,
+                    keep: keep.unwrap_or(100.0),
+                },
+                (Some(percent), None) => RollMode::Similar { percent },
+                (None, None) => RollMode::Uniform,
+            };
             if open {
                 check_editor_available()?;
             }
@@ -537,8 +567,8 @@ pub fn main() -> Result<()> {
                 &start,
                 &names,
                 &Default::default(),
-                similar.map_or(RollMode::Uniform, |percent| RollMode::Similar { percent }),
-                count,
+                mode,
+                count.unwrap_or(100),
                 |event| match event {
                     RollEvent::Prepared { total } => {
                         eprintln!("Rolling {total} times...");
@@ -587,7 +617,7 @@ pub fn main() -> Result<()> {
                         .display()
                         .to_string(),
                 };
-                println!("{:>3}  {values}  {result}", roll.index);
+                println!("{:>4}  {values}  {result}", roll.index);
             }
             let Some(outcome) = outcome.filter(|_| !stopped) else {
                 bail!(

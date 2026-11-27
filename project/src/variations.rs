@@ -1,5 +1,5 @@
 //! Rolls: params set to random values within their range or among their choices, uniform or near
-//! the start.
+//! the start, or to every point of a grid over them (see `permutations.rs`).
 
 use std::collections::BTreeMap;
 use std::f32::consts::TAU;
@@ -13,6 +13,9 @@ use serde::{Deserialize, Serialize};
 
 /// Seeds a roll picks from, the same as the editor's dice button.
 pub const ROLL_SEED_RANGE: RangeInclusive<i32> = 100..=999;
+
+/// Most samples per param in a permutation roll.
+pub const MAX_PERMUTATION_SAMPLES: usize = 100;
 
 /// Values with a range or a fixed set of choices to roll from.
 pub fn is_rollable(value: &ProjectParamValue) -> bool {
@@ -53,6 +56,9 @@ pub enum RollMode {
     Uniform,
     /// Numbers at most `percent` of their range away from the start, everything else kept.
     Similar { percent: f32 },
+    /// A grid: `samples` values per number, every choice of the rest, each point kept with a
+    /// chance of `keep` percent that is the same every time.
+    Permutation { samples: usize, keep: f32 },
 }
 
 impl RollMode {
@@ -60,10 +66,15 @@ impl RollMode {
         *self == RollMode::Uniform
     }
 
+    /// Anywhere in the range or among the choices, not near the start.
+    fn anywhere(self) -> bool {
+        !matches!(self, RollMode::Similar { .. })
+    }
+
     /// The part of `lo..=hi` a number at `center` rolls in.
     fn window(self, center: f32, lo: f32, hi: f32) -> (f32, f32) {
         match self {
-            RollMode::Uniform => (lo, hi),
+            RollMode::Uniform | RollMode::Permutation { .. } => (lo, hi),
             RollMode::Similar { percent } => {
                 let reach = (hi - lo) * percent / 100.0;
                 let center = center.max(lo).min(hi);
@@ -75,8 +86,8 @@ impl RollMode {
     /// [`Self::window`] for an int, its ends rounded.
     fn window_i32(self, center: i32, lo: i32, hi: i32) -> (i32, i32) {
         match self {
-            RollMode::Uniform => (lo, hi),
-            similar => {
+            RollMode::Uniform | RollMode::Permutation { .. } => (lo, hi),
+            similar @ RollMode::Similar { .. } => {
                 let (from, to) = similar.window(center as f32, lo as f32, hi as f32);
                 (from.round() as i32, to.round() as i32)
             }
@@ -104,6 +115,41 @@ pub fn own_roll_range(value: &ProjectParamValue) -> Option<RollRange> {
         _ => return None,
     };
     Some(RollRange { from, to })
+}
+
+/// The ends a float rolls between: `range` within its `#[range]`, or the `#[range]` alone.
+pub(crate) fn float_bounds(
+    value: &ProjectParamValue,
+    range: Option<RollRange>,
+) -> Option<(f32, f32)> {
+    use ProjectParamValue as V;
+    let range = range.map(|r| (r.from.min(r.to), r.from.max(r.to)));
+    match (value, range) {
+        (V::Float(_), Some(range)) => Some(range),
+        (V::FloatRanged { min, max, .. }, Some((lo, hi))) => {
+            Some((lo.max(*min).min(*max), hi.max(*min).min(*max)))
+        }
+        (V::FloatRanged { min, max, .. } | V::Percent { min, max, .. }, _) => Some((*min, *max)),
+        _ => None,
+    }
+}
+
+/// [`float_bounds`] for an int, the ends of `range` rounded.
+pub(crate) fn int_bounds(
+    value: &ProjectParamValue,
+    range: Option<RollRange>,
+) -> Option<(i32, i32)> {
+    use ProjectParamValue as V;
+    let int = |x: f32| x.round() as i32;
+    let range = range.map(|r| (int(r.from.min(r.to)), int(r.from.max(r.to))));
+    match (value, range) {
+        (V::Int(_), Some(range)) => Some(range),
+        (V::IntRanged { min, max, .. }, Some((lo, hi))) => {
+            Some((lo.max(*min).min(*max), hi.max(*min).min(*max)))
+        }
+        (V::IntRanged { min, max, .. }, None) => Some((*min, *max)),
+        _ => None,
+    }
 }
 
 /// Rollable as it is or with a roll range.
@@ -246,14 +292,25 @@ pub fn check_rollable(
     Ok(checked)
 }
 
-/// Checks that a similar roll has a percentage it can use and a number among `paths` to move.
+/// Checks that a similar roll has a percentage it can use and a number among `paths` to move, and
+/// that a permutation roll has samples and a keep chance it can use.
 pub fn check_roll_mode(
     params: &ProjectParamsListWrapper,
     paths: &[String],
     mode: RollMode,
 ) -> Result<()> {
-    let RollMode::Similar { percent } = mode else {
-        return Ok(());
+    let percent = match mode {
+        RollMode::Uniform => return Ok(()),
+        RollMode::Permutation { samples, keep } => {
+            if !(2..=MAX_PERMUTATION_SAMPLES).contains(&samples) {
+                bail!("A permutation roll takes 2 to {MAX_PERMUTATION_SAMPLES} samples per param, not {samples}");
+            }
+            if !(keep > 0.0 && keep <= 100.0) {
+                bail!("A permutation roll keeps more than 0 and at most 100 % of the permutations, not {keep}");
+            }
+            return Ok(());
+        }
+        RollMode::Similar { percent } => percent,
     };
     if !(percent > 0.0 && percent <= 100.0) {
         bail!("A similar roll moves numbers by more than 0 and at most 100 % of their range, not {percent}");
@@ -282,7 +339,7 @@ pub fn check_roll_mode(
 /// is in a similar roll, which keeps everything but numbers.
 pub fn roll_value(value: &mut ProjectParamValue, mode: RollMode, rng: &mut impl Rng) {
     use ProjectParamValue as V;
-    let uniform = mode.is_uniform();
+    let uniform = mode.anywhere();
     match value {
         V::FloatRanged { val, min, max } | V::Percent { val, min, max } => {
             *val = uniform_f32(rng, mode.window(*val, *min, *max))
@@ -309,7 +366,7 @@ pub fn roll_value(value: &mut ProjectParamValue, mode: RollMode, rng: &mut impl 
             (*min, *max) = (a.min(b), a.max(b));
         }
         V::Angle { rad, .. } => match mode {
-            RollMode::Uniform => *rad = rng.random_range(0.0..TAU),
+            RollMode::Uniform | RollMode::Permutation { .. } => *rad = rng.random_range(0.0..TAU),
             RollMode::Similar { percent } => {
                 let reach = TAU * percent / 100.0;
                 *rad = (*rad + uniform_f32(rng, (-reach, reach))).rem_euclid(TAU)
@@ -352,22 +409,19 @@ pub fn roll_value_in(
     rng: &mut impl Rng,
 ) {
     use ProjectParamValue as V;
-    let (lo, hi) = (range.from.min(range.to), range.from.max(range.to));
-    let int = |x: f32| x.round() as i32;
+    let floats = float_bounds(value, Some(range));
+    let ints = int_bounds(value, Some(range));
     match value {
-        V::Float(val) => *val = uniform_f32(rng, mode.window(*val, lo, hi)),
-        V::FloatRanged { val, min, max } => {
-            let (lo, hi) = (lo.max(*min).min(*max), hi.max(*min).min(*max));
+        V::Float(val) | V::FloatRanged { val, .. } => {
+            let (lo, hi) = floats.expect("a float has bounds with a range");
             *val = uniform_f32(rng, mode.window(*val, lo, hi))
         }
-        V::Int(val) => *val = uniform_i32(rng, mode.window_i32(*val, int(lo), int(hi))),
-        V::IntRanged { val, min, max } => {
-            let lo = int(lo).max(*min).min(*max);
-            let hi = int(hi).max(*min).min(*max);
+        V::Int(val) | V::IntRanged { val, .. } => {
+            let (lo, hi) = ints.expect("an int has bounds with a range");
             *val = uniform_i32(rng, mode.window_i32(*val, lo, hi))
         }
         V::Optional(optional) => {
-            if mode.is_uniform() {
+            if mode.anywhere() {
                 optional.enabled = rng.random_bool(0.5);
             }
             roll_value_in(&mut optional.value, range, mode, rng);

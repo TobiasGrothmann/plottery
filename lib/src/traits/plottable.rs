@@ -16,11 +16,8 @@ pub struct Masked {
 
 pub trait Plottable: Clone + Into<Shape> + BoundingBox {
     fn points(&self, _: SampleSettings) -> Vec<V2>;
-    fn points_from(
-        &self,
-        current_drawing_head_pos: V2,
-        sample_settings: SampleSettings,
-    ) -> Vec<V2>;
+    fn points_from(&self, current_drawing_head_pos: V2, sample_settings: SampleSettings)
+        -> Vec<V2>;
 
     /// The shape sampled into a single [`Path`].
     #[must_use]

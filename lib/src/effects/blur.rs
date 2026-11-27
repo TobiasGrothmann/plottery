@@ -3,8 +3,8 @@ use std::{fmt, iter::once, sync::Arc};
 use rand::{rngs::StdRng, SeedableRng};
 
 use crate::{
-    maths::random::rand_seed, Circle, Layer, Path, Plottable, SampleSettings, Shape, LENGTH_TOLERANCE,
-    V2,
+    maths::random::rand_seed, Circle, Layer, Path, Plottable, SampleSettings, Shape,
+    LENGTH_TOLERANCE, V2,
 };
 
 use super::{blur_cull::cull_dots, blur_noise::gaussian_noise};

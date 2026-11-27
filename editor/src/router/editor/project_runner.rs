@@ -247,8 +247,8 @@ impl ProjectRunner {
     }
 
     /// Builds, then rolls `paths` of the params `count` times into the project's variations,
-    /// numbers within their range in `ranges` and as far as `mode` says, canceling the previous
-    /// run. `rolling` holds the roll's id while it runs.
+    /// numbers within their range in `ranges` and as far as `mode` says (a permutation roll
+    /// ignores `count`), canceling the previous run. `rolling` holds the roll's id while it runs.
     #[allow(clippy::too_many_arguments)]
     pub fn trigger_roll(
         &self,

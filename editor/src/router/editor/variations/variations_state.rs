@@ -19,6 +19,14 @@ pub enum EditorView {
     Variations,
 }
 
+/// How the next roll goes, see [`RollMode`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RollKind {
+    Uniform,
+    Similar,
+    Permutation,
+}
+
 /// The ends set for the range a number is rolled in. One left alone is that of its own `#[range]`.
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct RangeInput {
@@ -79,10 +87,13 @@ pub struct VariationsState {
     /// The ranges set for numbers, by dotted path.
     pub ranges: Signal<BTreeMap<String, RangeInput>>,
     pub count: Signal<usize>,
-    /// Roll near the current values instead of anywhere in the ranges.
-    pub similar: Signal<bool>,
+    pub kind: Signal<RollKind>,
     /// How far a similar roll goes, in percent of each number's range.
     pub similar_percent: Signal<f32>,
+    /// Values per number of a permutation roll.
+    pub samples: Signal<usize>,
+    /// Chance of a permutation to be rolled, in percent.
+    pub keep_percent: Signal<f32>,
     /// Id of the roll that is running.
     pub rolling: SyncSignal<Option<u64>>,
     /// Scroll position of the grid, kept while the edit view is shown.
@@ -98,8 +109,10 @@ pub fn use_variations_state() -> VariationsState {
         selected: use_signal(BTreeSet::new),
         ranges: use_signal(BTreeMap::new),
         count: use_signal(|| 100),
-        similar: use_signal(|| false),
+        kind: use_signal(|| RollKind::Uniform),
         similar_percent: use_signal(|| 20.0),
+        samples: use_signal(|| 3),
+        keep_percent: use_signal(|| 100.0),
         rolling: use_signal_sync(|| None),
         scroll_top: use_signal(|| 0.0),
         compare: use_signal(|| false),
@@ -108,11 +121,15 @@ pub fn use_variations_state() -> VariationsState {
 
 impl VariationsState {
     pub fn roll_mode(&self) -> RollMode {
-        match (self.similar)() {
-            true => RollMode::Similar {
+        match (self.kind)() {
+            RollKind::Uniform => RollMode::Uniform,
+            RollKind::Similar => RollMode::Similar {
                 percent: (self.similar_percent)(),
             },
-            false => RollMode::Uniform,
+            RollKind::Permutation => RollMode::Permutation {
+                samples: (self.samples)(),
+                keep: (self.keep_percent)(),
+            },
         }
     }
 }
@@ -146,14 +163,22 @@ pub async fn reload_variations(
                 (path.clone(), input)
             });
             state.ranges.set(ranges.collect());
-            state
-                .count
-                .set(variations.rolls.len().saturating_sub(1).max(1));
+            let count = variations.rolls.len().saturating_sub(1).max(1);
             match variations.meta.mode {
-                RollMode::Uniform => state.similar.set(false),
+                RollMode::Uniform => {
+                    state.kind.set(RollKind::Uniform);
+                    state.count.set(count);
+                }
                 RollMode::Similar { percent } => {
-                    state.similar.set(true);
+                    state.kind.set(RollKind::Similar);
                     state.similar_percent.set(percent);
+                    state.count.set(count);
+                }
+                // the count of a permutation roll follows from the grid
+                RollMode::Permutation { samples, keep } => {
+                    state.kind.set(RollKind::Permutation);
+                    state.samples.set(samples);
+                    state.keep_percent.set(keep);
                 }
             }
         }

@@ -83,7 +83,10 @@ mod test_hatch {
         for (i, &(a, b)) in lines.iter().enumerate() {
             assert!(a.dist(b) > 1e-6, "zero-length line {a:?}");
             // an odd crossing count on a line would pair crossings of two lines
-            assert!((a.y - b.y).abs() < 1e-4, "line spans two lines: {a:?} {b:?}");
+            assert!(
+                (a.y - b.y).abs() < 1e-4,
+                "line spans two lines: {a:?} {b:?}"
+            );
             let duplicate = lines[..i]
                 .iter()
                 .any(|&(c, d)| c.dist(a) < 1e-4 && d.dist(b) < 1e-4);
@@ -115,7 +118,9 @@ mod test_hatch {
     #[test]
     fn plain_lines_run_at_the_angle() {
         let angle = Angle::from_degrees(30.0);
-        let hatch = Hatch::new(LINE_DIST).with_angle(angle).with_connected(false);
+        let hatch = Hatch::new(LINE_DIST)
+            .with_angle(angle)
+            .with_connected(false);
         let layer = Circle::new(V2::new(1.0, 2.0), 1.5).hatch(&hatch);
         assert!(layer.len() > 20);
         for path in paths(&layer) {
@@ -145,7 +150,10 @@ mod test_hatch {
             for path in paths(&layer) {
                 let phase = (path.as_slice()[0].dot(normal) / LINE_DIST - offset).rem_euclid(1.0);
                 let off_grid = phase.min(1.0 - phase);
-                assert!(off_grid < 1e-2, "line {off_grid} line distances off the grid");
+                assert!(
+                    off_grid < 1e-2,
+                    "line {off_grid} line distances off the grid"
+                );
             }
         }
     }
