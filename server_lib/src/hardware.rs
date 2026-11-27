@@ -213,7 +213,6 @@ impl<E: HardwareExecutor> Hardware<E> {
         self.move_steps(delta, speed_handler, speed_fraction_start, pos.speed);
     }
 
-    // TODO: avoid mistakes with changing pen pressures
     pub fn set_head(
         &mut self,
         down: bool,

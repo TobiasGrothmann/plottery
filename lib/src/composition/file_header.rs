@@ -29,14 +29,28 @@ pub fn read_versioned<T: DeserializeOwned>(
     bytes: &[u8],
     kind: &str,
 ) -> Result<T> {
+    Ok(read_versioned_since(magic, version, version, bytes, kind)?.1)
+}
+
+/// [`read_versioned`] for a format whose outer layout is the same from `oldest` to `version`, with
+/// the version found: the caller migrates what changed inside.
+pub fn read_versioned_since<T: DeserializeOwned>(
+    magic: &[u8; 4],
+    oldest: u16,
+    version: u16,
+    bytes: &[u8],
+    kind: &str,
+) -> Result<(u16, T)> {
     let Some((found, payload)) = split_file_header(magic, bytes) else {
         bail!("not a {kind} file of this Plottery version");
     };
-    if found < version {
+    if found < oldest {
         bail!("the {kind} file has the old format version {found}, which this Plottery can't read anymore");
     }
     if found > version {
         bail!("the {kind} file has format version {found}, this Plottery reads up to {version}. Update Plottery.");
     }
-    postcard::from_bytes(payload).with_context(|| format!("the {kind} file is damaged"))
+    let value =
+        postcard::from_bytes(payload).with_context(|| format!("the {kind} file is damaged"))?;
+    Ok((found, value))
 }

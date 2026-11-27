@@ -19,6 +19,7 @@ plottery set size=12 glow.radius=2                # change the saved values, the
 plottery roll seed size -n 24 --open              # 24 random variations of seed and size, shown in the editor as they finish
 plottery pick 7                                   # make roll 7 the saved values and the editor's drawing
 plottery roll size spread --similar 20            # variations near the saved values, numbers at most 20 % of their range away
+plottery roll size mirror --permute 5 --keep 50   # a grid: 5 sizes times mirror on/off, half of the combinations, the same half every time
 plottery run                                      # like the editor's Run button
 plottery animate /tmp/a.mp4 --every 5             # video of how the drawing comes about, from the project's `snapshot` calls
 plottery open                                     # open the project in the editor

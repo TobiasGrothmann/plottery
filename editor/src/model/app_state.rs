@@ -88,39 +88,23 @@ impl PanelLayout {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
 pub struct AppState {
     /// Folders scanned for projects, absolutized and deduplicated.
-    #[serde(default)]
     pub roots: Vec<PathBuf>,
-    #[serde(default)]
     pub selected_folder: Option<PathBuf>,
-    #[serde(default)]
     pub expanded_folders: BTreeSet<PathBuf>,
     /// Minimum width of a project tile in the browser grid, in pixels.
-    #[serde(default = "default_tile_size")]
     pub tile_size: u32,
     /// Minimum width of a roll tile in the variations grid, in pixels.
-    #[serde(default = "default_roll_tile_size")]
     pub roll_tile_size: u32,
-    #[serde(default)]
     pub panel_layout: PanelLayout,
     /// Project grid sections the user collapsed.
-    #[serde(default)]
     pub collapsed_sections: BTreeSet<PathBuf>,
     /// Param sections the user collapsed, keyed `"{project_dir}#{section path}"`.
-    #[serde(default)]
     pub collapsed_param_sections: BTreeSet<String>,
     /// Hidden and collapsed layers of the layers panel, by project folder.
-    #[serde(default)]
     pub layer_views: BTreeMap<PathBuf, LayerViewState>,
-}
-
-fn default_tile_size() -> u32 {
-    TILE_SIZE_DEFAULT
-}
-
-fn default_roll_tile_size() -> u32 {
-    ROLL_TILE_SIZE_DEFAULT
 }
 
 impl Default for AppState {

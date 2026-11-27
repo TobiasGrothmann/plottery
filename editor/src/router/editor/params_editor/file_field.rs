@@ -101,7 +101,7 @@ pub fn FileField(props: LeafProps) -> Element {
     let mut downscale = use_signal(|| true);
     let mut import_error = use_signal(|| None::<String>);
     let ctx = use_context::<EditorCtx>();
-    let project_dir = ctx.project.read().get_dir();
+    let project_dir = ctx.project.read().dir.clone();
 
     let noun = kind.noun();
     let current = file.path.clone();

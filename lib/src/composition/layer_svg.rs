@@ -13,7 +13,8 @@ use crate::{
 
 use super::{
     svg_elements::{attr, element_contours},
-    svg_transform::{iter_svg_f32_tokens, parse_svg_transform_attr},
+    svg_path_data::svg_numbers,
+    svg_transform::parse_svg_transform_attr,
     Layer, LayerPropsInheritable,
 };
 
@@ -267,7 +268,7 @@ impl Layer {
 
 /// cm per SVG user unit from the root's `viewBox` and `width`/`height`, averaged over both axes.
 fn svg_root_units_to_cm_scale(attributes: &Attributes) -> Option<f32> {
-    let mut view_box = iter_svg_f32_tokens(attr(attributes, "viewBox")?).skip(2);
+    let mut view_box = svg_numbers(attr(attributes, "viewBox")?).skip(2);
     let (view_box_w, view_box_h) = (view_box.next()?, view_box.next()?);
     let scale = |length: Option<&str>, view_box_size: f32| {
         (view_box_size.abs() > f32::EPSILON)

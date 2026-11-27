@@ -96,10 +96,6 @@ impl Angle {
         Self::from_degrees(-90.0)
     }
 
-    /// Creates an angle with 1.0 / golden ratio number of rotations. See [`GOLDEN_RATIO`].
-    pub fn golden_ratio_inverse() -> Self {
-        Self::from_rotations(1.0 / GOLDEN_RATIO)
-    }
     /// The golden angle, ≈ 137.5°: the circle split in the golden ratio.
     pub fn golden_angle() -> Self {
         Self::from_rotations(1.0 - 1.0 / GOLDEN_RATIO)
@@ -152,12 +148,6 @@ impl Angle {
         Angle::from_rad(self.rad.abs())
     }
 
-    /// Returns a new angle with flipped sign: `self * -1.0`.
-    #[must_use]
-    pub fn flip_sign(&self) -> Self {
-        Angle::from_rad(-self.rad)
-    }
-
     /// The angle a quarter turn clockwise from this one, to its right like [`crate::Line::normal_right`].
     #[must_use]
     pub fn normal_right(&self) -> Self {
@@ -193,8 +183,8 @@ impl Angle {
     ///     println!("{:?}", angle);
     /// }
     /// ```
-    pub fn lerp_iter_fixed(&self, end: Angle, steps: usize) -> AngleInterpolator {
-        AngleInterpolator::new(*self, end, steps)
+    pub fn lerp_iter_fixed(&self, end: Angle, steps: usize) -> Interpolator<Angle> {
+        Interpolator::new(*self, end, steps)
     }
 
     /// Returns an iterator to interpolate from `self` to `end`.
@@ -216,9 +206,9 @@ impl Angle {
         end: Angle,
         sample_settings: SampleSettings,
         radius: f32,
-    ) -> AngleInterpolator {
+    ) -> Interpolator<Angle> {
         let distance = (end.rad - self.rad).abs() * radius;
-        AngleInterpolator::new(
+        Interpolator::new(
             *self,
             end,
             sample_settings.num_points_for_length(distance) as usize,
@@ -259,8 +249,6 @@ impl Angle {
         }
     }
 }
-
-pub type AngleInterpolator = Interpolator<Angle>;
 
 impl Interpolate for Angle {
     fn interpolate(self, end: Self, step: usize, steps: usize) -> Self {

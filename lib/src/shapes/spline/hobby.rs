@@ -14,7 +14,10 @@ pub(crate) enum EndCondition {
 /// Removes zero-length chords.
 fn dedup_points(points: &[V2]) -> Vec<V2> {
     points.iter().fold(Vec::new(), |mut acc: Vec<V2>, p| {
-        if acc.last().is_none_or(|last| last.dist(*p) > LENGTH_TOLERANCE) {
+        if acc
+            .last()
+            .is_none_or(|last| last.dist(*p) > LENGTH_TOLERANCE)
+        {
             acc.push(*p);
         }
         acc

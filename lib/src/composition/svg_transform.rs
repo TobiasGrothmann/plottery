@@ -3,10 +3,6 @@ use svg::node::Attributes;
 use super::svg_path_data::svg_numbers;
 use crate::{TransformMatrix, V2};
 
-pub(crate) fn iter_svg_f32_tokens(input: &str) -> impl Iterator<Item = f32> {
-    svg_numbers(input)
-}
-
 pub(crate) fn parse_svg_transform_attr(attributes: &Attributes) -> Option<TransformMatrix> {
     parse_svg_transform_chain(&attributes.get("transform")?.to_string())
 }
@@ -29,7 +25,7 @@ pub(crate) fn parse_svg_transform_chain(transform_attr: &str) -> Option<Transfor
         }
 
         let name = rest[..open_idx].trim();
-        let args: Vec<f32> = iter_svg_f32_tokens(&rest[(open_idx + 1)..close_idx]).collect();
+        let args: Vec<f32> = svg_numbers(&rest[(open_idx + 1)..close_idx]).collect();
 
         let next_transform = match (name, args.as_slice()) {
             ("matrix", &[a, b, c, d, e, f]) => Some(TransformMatrix {

@@ -56,6 +56,7 @@ plottery animate /tmp/a.mp4 --every 5             # video of how the drawing com
 plottery roll seed size -n 24 --open              # 24 random variations, shown in the editor as they finish
 plottery pick 7                                   # make roll 7 the user's values and the editor's drawing
 plottery roll size spread --similar 20            # variations near the user's values
+plottery roll size mirror --permute 5             # every combination of 5 sizes and mirror on/off
 ```
 
 `plottery --help` lists all commands. If `plottery` is missing or lacks a command, install the version
@@ -89,6 +90,11 @@ and runs with the user's param values, so a render shows what the user sees.
   `--open` shows them in the editor while they come in. Use it when the user asks for variations.
   `--similar PERCENT` rolls near the start instead: numbers move at most PERCENT of their range,
   everything else stays. For variations of roll N, `pick N` first.
+  `--permute SAMPLES` rolls a grid instead of `-n` random values: SAMPLES evenly spaced values per
+  number from one end of its range to the other, every choice of bools, enums and options, SAMPLES
+  seeds from the start seed on. Every combination is one roll. `--keep PERCENT` rolls only that share of
+  them, always the same ones. There is no limit on the count, it grows fast: keep SAMPLES and the
+  number of params small.
 - `pick N` makes roll N the user's values and its drawing the editor's, like `set` plus `run`. Only when the user picks.
 - Compiler errors show paths relative to `{{project-name}}/`, e.g. `src/generate.rs` is
   `{{project-name}}/src/generate.rs`.

@@ -11,9 +11,6 @@ Install the dependencies:
 ```sh
 # install rust
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-
-# install ssl
-sudo apt install libssl-dev
 ```
 
 The GPIO code is behind the `raspi` feature. Without it the server builds anywhere but does not move motors:

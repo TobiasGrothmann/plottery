@@ -19,7 +19,6 @@ pub struct WindowState {
     pub width: f64,
     pub height: f64,
     /// Route shown when the window was closed, reopened on the next start.
-    #[serde(default)]
     pub route: Option<String>,
 }
 

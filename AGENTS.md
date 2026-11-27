@@ -35,7 +35,7 @@ A **Plottery Project** is a user-created artwork generator: a standalone Cargo p
 - **Effects (blur, hatch):** `lib/src/effects/`
 - **Text & fonts:** `lib/src/text/`, font data in `fonts/fonts/`, credits in `fonts/LICENSES/CREDITS.md`
 - **Project management:** `project/src/project.rs`
-- **Variations (rolls):** roll logic `project/src/variations.rs`, storage in the project's `variations/` `project/src/variations_store.rs`, runner `project/src/variations_run.rs`; editor view `editor/src/router/editor/variations/`
+- **Variations (rolls):** roll logic `project/src/variations.rs`, permutation (grid) rolls `project/src/permutations.rs`, storage in the project's `variations/` `project/src/variations_store.rs`, runner `project/src/variations_run.rs`; editor view `editor/src/router/editor/variations/`
 - **Param types:** `runtime/src/project_params/`, the `.plotp` format in `params_file_format.rs`
 - **Project binary:** entry point and subcommands in `runtime/src/project_main.rs`, `PROTOCOL_VERSION` in `runtime/src/protocol.rs`, run stream in `runtime/src/run_stream.rs` (project side) and `project/src/run_stream.rs` (host side)
 - **Project template:** `project/cargo_project_template/`, its agent doc is `project/resources/AGENTS.md`
@@ -56,7 +56,7 @@ A **Plottery Project** is a user-created artwork generator: a standalone Cargo p
 ## File Conventions
 
 - Tests: `foo_test.rs` next to `foo.rs`, wrapped in a `#[cfg(test)]` module and registered with `mod foo_test;` in the parent `mod.rs`.
-- Serialization formats: `.plotl` (layers), `.plotp` (params), `.plots` (plot settings), `.plottery` (project config). The three binary ones start with a header of 4 magic bytes and a `u16` format version (`lib/src/composition/file_header.rs`); bump the version when the layout after it changes.
+- Serialization formats: `.plotl` (layers), `.plotp` (params), `.plots` (plot settings), `.plottery` (project config). The three binary ones start with a header of 4 magic bytes and a `u16` format version (`lib/src/composition/file_header.rs`); bump the version when the layout after it changes. `.plotp` files hold the user's values in every project, so a bump there comes with a migration that runs on reading: freeze the old value types into `params_file_vN.rs` like `runtime/src/project_params/params_file_v2.rs` and decode records of that version with them in `params_file_format.rs`.
 
 ## Testing
 
@@ -89,7 +89,7 @@ Building, local checkouts in projects, examples, tests, pre-release checks and r
   - `runtime/src/project_params/mod.rs`: the module and re-export of a new value type
   - `runtime/src/protocol.rs`: `PROTOCOL_VERSION`
   - `cli/src/params.rs`: `constraint`, `same_value`
-  - `project/src/variations.rs`: `is_rollable`, `roll_value`, if the type has a range or a fixed set of choices
+  - `project/src/variations.rs`: `is_rollable`, `roll_value`, if the type has a range or a fixed set of choices, and `steps_of` in `project/src/permutations.rs`
   - `editor/src/router/editor/params_editor/params_editor.rs`: `render_leaf_param`, with the widget as a new `*_field.rs` registered in `mod.rs`
   - `runtime/README.md`: the widget table
   - `project/resources/AGENTS.md`: "Parameters"

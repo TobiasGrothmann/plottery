@@ -10,6 +10,8 @@ pub mod param_text;
 mod param_text_test;
 mod params_file_format;
 mod params_file_format_test;
+mod params_file_v2;
+mod params_file_v2_test;
 pub mod percent;
 pub mod plottery_params;
 mod plottery_params_vec_test;

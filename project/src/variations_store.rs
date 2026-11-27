@@ -27,14 +27,12 @@ pub struct VariationsMeta {
     /// The ranges given to rolled numbers.
     #[serde(default, skip_serializing_if = "RollRanges::is_empty")]
     pub ranges: RollRanges,
-    /// Uniform in sets from before it was stored.
+    /// Left out of the file when uniform.
     #[serde(default, skip_serializing_if = "RollMode::is_uniform")]
     pub mode: RollMode,
-    /// Rolls asked for, roll 0 left out. `None` in sets from before it was stored.
-    #[serde(default)]
-    pub total: Option<usize>,
+    /// Rolls asked for, roll 0 left out.
+    pub total: usize,
     /// The roll is over: done, stopped or failed. A hard-killed roll never gets here.
-    #[serde(default)]
     pub ended: bool,
 }
 
@@ -59,7 +57,10 @@ pub struct Variations {
 impl Variations {
     /// Rolls done (skipped ones included, roll 0 left out) and asked for, while the roll goes on.
     pub fn progress(&self) -> Option<(usize, usize)> {
-        let total = self.meta.total.filter(|_| !self.meta.ended)?;
+        if self.meta.ended {
+            return None;
+        }
+        let total = self.meta.total;
         let done = self.rolls.iter().filter(|roll| roll.index > 0).count();
         Some((done, total))
     }

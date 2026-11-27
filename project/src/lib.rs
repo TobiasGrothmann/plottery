@@ -2,11 +2,13 @@
 
 mod cargo_project_template;
 mod editor_state;
-mod project;
 mod plottery_config;
 mod plottery_config_test;
+mod project;
 mod project_config;
 
+mod permutations;
+mod permutations_test;
 mod project_pipeline;
 mod project_scan;
 mod project_scan_test;
@@ -24,6 +26,7 @@ mod variations_test;
 
 pub use cargo_project_template::*;
 pub use editor_state::*;
+pub use permutations::*;
 pub use plottery_config::*;
 pub use project::*;
 pub use project_config::*;

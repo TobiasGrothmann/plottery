@@ -1,6 +1,6 @@
 use svg::node::Attributes;
 
-use super::{svg_path_data::parse_svg_path_data, svg_transform::iter_svg_f32_tokens};
+use super::svg_path_data::{parse_svg_path_data, svg_numbers};
 use crate::{shapes::spline::sink::SplineSink, Spline, V2};
 
 pub(crate) fn attr<'a>(attributes: &'a Attributes, key: &str) -> Option<&'a str> {
@@ -27,7 +27,7 @@ pub(crate) fn element_contours(tag: &str, attributes: &Attributes) -> Vec<Spline
         },
         "polyline" | "polygon" => {
             let values: Vec<f32> =
-                iter_svg_f32_tokens(attr(attributes, "points").unwrap_or_default()).collect();
+                svg_numbers(attr(attributes, "points").unwrap_or_default()).collect();
             let mut sink = SplineSink::new();
             for (i, pair) in values.chunks_exact(2).enumerate() {
                 let point = V2::new(pair[0], pair[1]);

@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use std::f32::consts::TAU;
 
     use plottery_runtime::{
@@ -14,11 +14,11 @@ mod tests {
         rollable_paths, RollMode, RollRange, RollRanges, ROLL_SEED_RANGE,
     };
 
-    fn ranged(name: &str, val: f32, min: f32, max: f32) -> ProjectParam {
+    pub(crate) fn ranged(name: &str, val: f32, min: f32, max: f32) -> ProjectParam {
         ProjectParam::new(name, V::FloatRanged { val, min, max })
     }
 
-    fn params() -> ProjectParamsListWrapper {
+    pub(crate) fn params() -> ProjectParamsListWrapper {
         ProjectParamsListWrapper::new(vec![
             ProjectParam::new("seed", V::Seed(ProjectParamSeed::new(1))),
             ranged("size", 1.0, 0.5, 2.0),
@@ -66,11 +66,11 @@ mod tests {
         ])
     }
 
-    fn paths(names: &[&str]) -> Vec<String> {
+    pub(crate) fn paths(names: &[&str]) -> Vec<String> {
         names.iter().map(|name| name.to_string()).collect()
     }
 
-    fn value(params: &ProjectParamsListWrapper, path: &str) -> V {
+    pub(crate) fn value(params: &ProjectParamsListWrapper, path: &str) -> V {
         params.clone().value_at_path_mut(path).unwrap().clone()
     }
 
@@ -185,7 +185,7 @@ mod tests {
         assert!(error(&[]).starts_with("Name the params to roll. Rollable: seed"));
     }
 
-    fn ranges(list: &[(&str, f32, f32)]) -> RollRanges {
+    pub(crate) fn ranges(list: &[(&str, f32, f32)]) -> RollRanges {
         list.iter()
             .map(|(path, from, to)| {
                 (
@@ -492,13 +492,19 @@ mod tests {
     }
 
     #[test]
-    fn a_similar_roll_needs_a_percentage_and_a_number() {
+    fn a_similar_roll_needs_a_percentage_and_a_number_and_a_permutation_samples() {
         let start = params();
         let check = |names: &[&str], mode| check_roll_mode(&start, &paths(names), mode);
         assert!(check(&["size"], similar(100.0)).is_ok());
         assert!(check(&["seed"], RollMode::Uniform).is_ok());
         for percent in [0.0, 100.5, f32::NAN] {
             assert!(check(&["size"], similar(percent)).is_err());
+        }
+        let permutation = |samples, keep| RollMode::Permutation { samples, keep };
+        assert!(check(&["seed"], permutation(2, 100.0)).is_ok());
+        assert!(check(&["seed"], permutation(100, 0.01)).is_ok());
+        for (samples, keep) in [(1, 50.0), (101, 50.0), (3, 0.0), (3, 100.5), (3, f32::NAN)] {
+            assert!(check(&["seed"], permutation(samples, keep)).is_err());
         }
         let error = check(&["seed", "shape"], similar(20.0))
             .unwrap_err()

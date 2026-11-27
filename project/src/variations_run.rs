@@ -15,11 +15,11 @@ use plottery_runtime::ProjectParamsListWrapper;
 use rand::rngs::StdRng;
 
 use crate::{
-    check_roll_mode, check_rollable, roll_param_sets, rolled_values, takes_roll_range, Project,
-    RollMode, RollRanges, RunError, RunEvent, VariationsMeta,
+    check_roll_mode, check_rollable, permutations, roll_param_sets, rolled_values,
+    takes_roll_range, Project, RollMode, RollRanges, RunError, RunEvent, VariationsMeta,
 };
 
-/// Most rolls in one set.
+/// Most rolls in one random set. A permutation roll has as many as its grid keeps.
 pub const MAX_ROLLS: usize = 1000;
 
 /// A roll is killed and skipped after this many times the slowest finished one, ...
@@ -135,8 +135,9 @@ fn format_values(values: &[(String, String)]) -> String {
 impl Project {
     /// Rolls `paths` of `start` `count` times and runs the already built project with each set,
     /// replacing the stored variations. Numbers with a range in `ranges` roll within it, `mode`
-    /// says how far from `start`. Roll 0 runs `start` itself. The first failed roll stops all
-    /// others and is the error. Every roll is stored when it finishes.
+    /// says how far from `start`; a permutation roll ignores `count` and runs its kept grid
+    /// points. Roll 0 runs `start` itself. The first failed roll stops all others and is the
+    /// error. Every roll is stored when it finishes.
     #[allow(clippy::too_many_arguments)]
     pub async fn roll_async(
         &self,
@@ -149,7 +150,8 @@ impl Project {
         on_event: impl Fn(RollEvent),
         cancel: impl Future<Output = ()>,
     ) -> Result<RollOutcome> {
-        if count == 0 || count > MAX_ROLLS {
+        let permute = matches!(mode, RollMode::Permutation { .. });
+        if !permute && (count == 0 || count > MAX_ROLLS) {
             bail!("Roll 1 to {MAX_ROLLS} times, not {count}");
         }
         let paths = check_rollable(start, paths, ranges)?;
@@ -164,22 +166,28 @@ impl Project {
                 takes_roll_range(value).then(|| (path.clone(), *range))
             })
             .collect();
-        let sets = roll_param_sets(
-            start,
-            &paths,
-            &ranges,
-            mode,
-            count,
-            &mut rand::make_rng::<StdRng>(),
-        );
+        let sets: Vec<ProjectParamsListWrapper> = match mode {
+            RollMode::Permutation { samples, keep } => {
+                let (_, sets) = permutations(start, &paths, &ranges, samples, keep);
+                if sets.is_empty() {
+                    bail!("No permutation to roll. Use more samples, params or a higher keep.");
+                }
+                std::iter::once(start.clone()).chain(sets).collect()
+            }
+            RollMode::Uniform | RollMode::Similar { .. } => {
+                let rng = &mut rand::make_rng::<StdRng>();
+                roll_param_sets(start, &paths, &ranges, mode, count, rng)
+            }
+        };
         let runs = sets.len();
-        let total = count;
+        // roll 0 is not one of them
+        let total = runs - 1;
         let meta = VariationsMeta {
             created: Utc::now(),
             params: paths.clone(),
             ranges,
             mode,
-            total: Some(count),
+            total,
             ended: false,
         };
         self.start_variations(&meta)?;
